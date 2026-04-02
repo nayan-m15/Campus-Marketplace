@@ -41,7 +41,7 @@ export default function Navbar({ searchQuery, onSearchChange }) {
         <ul className="navbar__links">
           {[
             { icon: "", label: "Messages" },
-            { icon: "", label: "Alerts" },
+            { icon: "", label: "Login" },
             { icon: "", label: "Profile" },
           ].map((link) => (
             <li key={link.label}>
