@@ -1,0 +1,121 @@
+.listing-card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.listing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.listing-card__image {
+  width: 100%;
+  height: 160px;
+  background: linear-gradient(135deg, #e0f2fe 0%, #d1fae5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  flex-shrink: 0;
+}
+
+.listing-card__body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.listing-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.listing-card__title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--gray-900);
+  line-height: 1.35;
+  flex: 1;
+}
+
+.listing-card__badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.listing-card__price {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--green);
+  margin-bottom: 10px;
+}
+
+.listing-card__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.listing-card__seller {
+  font-size: 12px;
+  color: var(--gray-600);
+}
+
+.listing-card__distance {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+.listing-card__btn {
+  width: 100%;
+  margin-top: auto;
+}
+
+/* Listings grid */
+.listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+/* Empty state */
+.listings-empty {
+  text-align: center;
+  padding: 80px 20px;
+  background: #fff;
+  border-radius: 20px;
+  border: 2px dashed var(--gray-200);
+}
+
+.listings-empty__icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.listings-empty__title {
+  color: var(--gray-800);
+  font-weight: 600;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.listings-empty__subtitle {
+  color: var(--gray-400);
+  font-size: 14px;
+  margin-bottom: 20px;
+}

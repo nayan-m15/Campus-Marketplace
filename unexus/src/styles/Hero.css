@@ -1,0 +1,123 @@
+.hero {
+  position: relative;
+  height: 520px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    #0f172a 0%,
+    #1e3a5f 40%,
+    #2d5a3d 70%,
+    #4a7c59 100%
+  );
+}
+
+.hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 70% 50%, rgba(253, 186, 116, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 80%, rgba(16, 185, 129, 0.2) 0%, transparent 50%);
+}
+
+.hero__content {
+  position: relative;
+  z-index: 2;
+  padding: 0 64px;
+  max-width: 620px;
+}
+
+.hero__title {
+  font-size: 58px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  margin-bottom: 6px;
+}
+
+.hero__subtitle {
+  font-size: 54px;
+  font-weight: 800;
+  font-style: italic;
+  background: linear-gradient(90deg, #10b981, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  margin-bottom: 20px;
+}
+
+.hero__description {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 16px;
+  line-height: 1.7;
+  margin-bottom: 36px;
+  max-width: 440px;
+}
+
+.hero__buttons {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.hero__badges {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.hero__badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Floating stat cards */
+.hero__stats {
+  position: absolute;
+  right: 80px;
+  top: 20%;
+  z-index: 3;
+}
+
+.hero__stat-card {
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  padding: 16px 22px;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.hero__stat-card--glass {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hero__stat-card--green {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.hero__stat-number {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.hero__stat-label {
+  font-size: 12px;
+  opacity: 0.7;
+}
