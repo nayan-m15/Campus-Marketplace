@@ -80,3 +80,233 @@
   font-weight: 500;
 }
 
+/* Carousel Styles */
+.hero__carousel {
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+/* Container */
+.carousel-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Track */
+.carousel-track {
+  display: flex;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.carousel-slide {
+  min-width: 100%;
+}
+
+/* Card */
+.listing-card {
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 0.75rem;
+  border: 1px solid #f1f3f5;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.listing-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+/* Image Area */
+.listing-image {
+  position: relative;
+  height: 140px;
+  background: #f6f7f9; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.listing-emoji {
+  font-size: 2.2rem;
+  opacity: 0.9;
+}
+
+/* Badge */
+.listing-badge {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  background: #111827;
+  color: white;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* Details */
+.listing-details {
+  padding: 0.85rem;
+}
+
+.listing-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.35rem;
+  line-height: 1.4;
+}
+
+/* Seller Row */
+.listing-seller-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  margin-bottom: 0.5rem;
+}
+
+.listing-seller {
+  color: #6b7280;
+}
+
+.listing-distance {
+  color: #059669;
+  background: #ecfdf5;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* Price Section */
+.listing-price-condition {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #f1f3f5;
+}
+
+.listing-price {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.listing-condition {
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* CTA Button */
+.listing-button {
+  width: 100%;
+  background: #111827;
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.listing-button:hover {
+  background: #000;
+}
+
+/* Navigation Buttons */
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.carousel-nav:hover {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.carousel-nav--prev {
+  left: 0.5rem;
+}
+
+.carousel-nav--next {
+  right: 0.5rem;
+}
+
+/* Dots */
+.carousel-dots {
+  position: absolute;
+  bottom: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.35rem;
+}
+
+.carousel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d1d5db;
+  border: none;
+  transition: all 0.25s ease;
+}
+
+.carousel-dot--active {
+  width: 16px;
+  border-radius: 4px;
+  background: #111827;
+}
+
+/* Progress Bar */
+.carousel-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: #e5e7eb;
+}
+
+.carousel-container::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 0%;
+  background: #111827;
+  animation: progressBar 4s linear infinite;
+}
+
+@keyframes progressBar {
+  from { width: 0%; }
+  to { width: 100%; }
+}
