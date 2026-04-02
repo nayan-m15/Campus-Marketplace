@@ -33,9 +33,9 @@ export default function Hero() {
 
         <ul className="hero__badges">
           {[
-            ["🛡️", "Verified Students"],
-            ["🔄", "Secure Trade Center"],
-            ["💳", "Safe Payments"],
+            ["Verified Students"],
+            ["Secure Trade Center"],
+            ["Safe Payments"],
           ].map(([icon, label]) => (
             <li key={label} className="hero__badge">
               <span>{icon}</span> {label}
@@ -43,19 +43,7 @@ export default function Hero() {
           ))}
         </ul>
       </header>
-
-      {/* Floating Stat Cards */}
-      <aside className="hero__stats" aria-label="Platform statistics">
-        <article className="hero__stat-card hero__stat-card--glass">
-          <p className="hero__stat-number">2,400+</p>
-          <p className="hero__stat-label">Active Listings</p>
-        </article>
-
-        <article className="hero__stat-card hero__stat-card--green">
-          <p className="hero__stat-number">8,900+</p>
-          <p className="hero__stat-label">Students Joined</p>
-        </article>
-      </aside>
+      
     </section>
   );
 }

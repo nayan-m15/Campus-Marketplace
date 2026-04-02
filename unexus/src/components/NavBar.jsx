@@ -5,8 +5,8 @@ export default function Navbar({ searchQuery, onSearchChange }) {
     <header className="navbar">
       {/* Logo */}
       <section className="navbar__logo" aria-label="Homepage">
-        <strong className="navbar__logo-icon">CS</strong>
-        <span className="navbar__logo-text">CampusSwap</span>
+        <strong className="navbar__logo-icon">UX</strong>
+        <span className="navbar__logo-text">Unexus</span>
       </section>
 
       {/* Search */}
@@ -40,9 +40,9 @@ export default function Navbar({ searchQuery, onSearchChange }) {
       <nav aria-label="User navigation">
         <ul className="navbar__links">
           {[
-            { icon: "💬", label: "Messages" },
-            { icon: "🔔", label: "Alerts" },
-            { icon: "👤", label: "Profile" },
+            { icon: "", label: "Messages" },
+            { icon: "", label: "Alerts" },
+            { icon: "", label: "Profile" },
           ].map((link) => (
             <li key={link.label}>
               <button className="navbar__link">

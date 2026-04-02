@@ -9,20 +9,13 @@
 .hero__bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    120deg,
-    #0f172a 0%,
-    #1e3a5f 40%,
-    #2d5a3d 70%,
-    #4a7c59 100%
-  );
+  background: black; 
 }
 
 .hero__overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 70% 50%, rgba(253, 186, 116, 0.15) 0%, transparent 60%),
-    radial-gradient(ellipse at 20% 80%, rgba(16, 185, 129, 0.2) 0%, transparent 50%);
+  background: radial-gradient(ellipse at 70% 50%, rgba(116, 148, 253, 0.15) 0%, transparent 80%);
 }
 
 .hero__content {
@@ -30,6 +23,7 @@
   z-index: 2;
   padding: 0 64px;
   max-width: 620px;
+  align-content: center;
 }
 
 .hero__title {
@@ -39,23 +33,25 @@
   line-height: 1.1;
   letter-spacing: -1.5px;
   margin-bottom: 6px;
+  text-align: center;
 }
 
 .hero__subtitle {
-  font-size: 54px;
+  font-size: 30px;
   font-weight: 800;
   font-style: italic;
-  background: linear-gradient(90deg, #10b981, #f59e0b);
+  background: white;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   line-height: 1.1;
   letter-spacing: -1.5px;
   margin-bottom: 20px;
+  text-align: center;
 }
 
 .hero__description {
-  color: rgba(255, 255, 255, 0.82);
+  color: rgb(110, 110, 110);
   font-size: 16px;
   line-height: 1.7;
   margin-bottom: 36px;
@@ -84,40 +80,3 @@
   font-weight: 500;
 }
 
-/* Floating stat cards */
-.hero__stats {
-  position: absolute;
-  right: 80px;
-  top: 20%;
-  z-index: 3;
-}
-
-.hero__stat-card {
-  backdrop-filter: blur(16px);
-  border-radius: 16px;
-  padding: 16px 22px;
-  color: #fff;
-  margin-bottom: 16px;
-}
-
-.hero__stat-card--glass {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.hero__stat-card--green {
-  background: rgba(16, 185, 129, 0.2);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.hero__stat-number {
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-.hero__stat-label {
-  font-size: 12px;
-  opacity: 0.7;
-}
