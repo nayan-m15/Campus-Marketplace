@@ -28,6 +28,8 @@ export default function App() {
     setSearchQuery("");
   }
 
+  console.log(import.meta.env.VITE_SUPABASE_URL)
+
   return (
     <>
       <header>
@@ -65,5 +67,6 @@ export default function App() {
       
       
     </>
+    
   );
 }
