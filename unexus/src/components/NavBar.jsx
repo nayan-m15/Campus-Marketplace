@@ -1,11 +1,12 @@
 import "../styles/Navbar.css";
 
-export default function Navbar({ searchQuery, onSearchChange, user, onLogin, onSignup, onSignOut }) {
+export default function Navbar({ searchQuery, onSearchChange, user, onLogin, onSignup, onSignOut, onShowListingForm }) {
   // Pull a display name from the user object (Google gives display_name, email fallback)
   const displayName = user?.user_metadata?.full_name
     || user?.user_metadata?.name
     || user?.email?.split("@")[0]
     || "Profile";
+
 
   return (
     <header className="navbar">
@@ -57,7 +58,7 @@ export default function Navbar({ searchQuery, onSearchChange, user, onLogin, onS
                 </button>
               </li>
               <li>
-                <button className="btn-primary navbar__list-btn">
+                <button className="btn-primary navbar__list-btn" onClick={onShowListingForm}>
                   <span>+</span> List Item
                 </button>
               </li>
