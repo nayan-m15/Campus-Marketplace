@@ -1,17 +1,23 @@
 import { useState } from "react";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import CategoryBar from "./components/CategoryBar";
 import ListingsGrid from "./components/ListingsGrid";
 import Footer from "./components/Footer";
+import LoginPage from "./components/LoginPage";
+import SignupPage from "./components/SignupPage";
 import { ALL_LISTINGS } from "./data/listings";
 import "./styles/index.css";
 
-export default function App() {
+// ── Inner app — has access to AuthContext ──────────────────
+function AppInner() {
+  const { user, loading, signOut } = useAuth();
+  const [page, setPage] = useState("home"); // "home" | "login" | "signup"
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [searchQuery, setSearchQuery] = useState("");
 
-  //Get filtered listings 
+  // Filtered listings
   const filteredListings = searchQuery.trim()
     ? ALL_LISTINGS.filter(
         (item) =>
@@ -22,13 +28,42 @@ export default function App() {
     ? ALL_LISTINGS
     : ALL_LISTINGS.filter((item) => item.category === activeCategory);
 
-  //Clear search when category is selected
   function handleCategoryChange(category) {
     setActiveCategory(category);
     setSearchQuery("");
   }
 
-  console.log(import.meta.env.VITE_SUPABASE_URL)
+  // After login/signup, send user home
+  function handleAuthNavigate(target) {
+    if (target === "home") {
+      setPage("home");
+    } else {
+      setPage(target);
+    }
+  }
+
+  // When user logs in successfully, AuthContext updates → go home
+  // We detect this: if user is set and we're on login/signup, redirect home
+  if (!loading && user && (page === "login" || page === "signup")) {
+    setPage("home");
+  }
+
+  // Show a minimal spinner while Supabase resolves the session
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font)", color: "var(--gray-600)" }}>
+        Loading…
+      </div>
+    );
+  }
+
+  if (page === "login") {
+    return <LoginPage onNavigate={handleAuthNavigate} />;
+  }
+
+  if (page === "signup") {
+    return <SignupPage onNavigate={handleAuthNavigate} />;
+  }
 
   return (
     <>
@@ -36,18 +71,22 @@ export default function App() {
         <Navbar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          user={user}
+          onLogin={() => setPage("login")}
+          onSignup={() => setPage("signup")}
+          onSignOut={signOut}
         />
       </header>
 
       <main>
         <section>
           <Hero />
-
         </section>
-        <nav aria-label ="Categories">
+
+        <nav aria-label="Categories">
           <CategoryBar
-        activeCategory={activeCategory}
-        onCategoryChange={handleCategoryChange}
+            activeCategory={activeCategory}
+            onCategoryChange={handleCategoryChange}
           />
         </nav>
 
@@ -58,15 +97,20 @@ export default function App() {
             activeCategory={activeCategory}
           />
         </section>
-
       </main>
-      
+
       <footer>
         <Footer />
       </footer>
-      
-      
     </>
-    
+  );
+}
+
+// ── Root — wraps everything in AuthProvider ────────────────
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   );
 }

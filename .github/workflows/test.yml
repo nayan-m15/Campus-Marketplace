@@ -1,0 +1,32 @@
+name: Run Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: |
+          cd unexus
+          npm install
+          
+      - name: List files for debugging
+        run: |
+          cd unexus
+          ls -la
+          ls -la src/ || echo "src folder not found"
+          
+      - name: Run tests with verbose output
+        run: |
+          cd unexus
+          npm test -- --reporter=verbose

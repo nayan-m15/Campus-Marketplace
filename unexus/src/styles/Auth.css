@@ -1,0 +1,230 @@
+/* ── Auth Page Layout ───────────────────────────────────── */
+.auth-page {
+  min-height: 100vh;
+  background: var(--gray-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  font-family: var(--font);
+}
+
+.auth-card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 12px 40px rgba(0, 0, 0, 0.08);
+  padding: 40px 40px 36px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-card--success {
+  text-align: center;
+  gap: 12px;
+}
+
+/* ── Logo ───────────────────────────────────────────────── */
+.auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.auth-logo__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: -0.5px;
+  font-family: var(--font);
+}
+
+.auth-logo__text {
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--gray-900);
+  letter-spacing: -0.3px;
+}
+
+/* ── Headings ───────────────────────────────────────────── */
+.auth-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gray-900);
+  letter-spacing: -0.4px;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.auth-subtitle {
+  font-size: 14px;
+  color: var(--gray-600);
+  text-align: center;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+/* ── Google Button ──────────────────────────────────────── */
+.auth-google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 20px;
+  border-radius: 50px;
+  border: 1.5px solid var(--gray-200);
+  background: #fff;
+  color: var(--gray-800);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.auth-google-btn:hover:not(:disabled) {
+  border-color: #aaa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.auth-google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Divider ────────────────────────────────────────────── */
+.auth-divider {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--gray-400);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--gray-200);
+}
+
+/* ── Error ──────────────────────────────────────────────── */
+.auth-error {
+  width: 100%;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+/* ── Form ───────────────────────────────────────────────── */
+.auth-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--gray-900);
+  background: #f9fafb;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.auth-field input:focus {
+  border-color: var(--green);
+  background: #fff;
+}
+
+.auth-field input::placeholder {
+  color: var(--gray-400);
+}
+
+/* ── Submit Button ──────────────────────────────────────── */
+.auth-submit {
+  width: 100%;
+  margin-top: 4px;
+  padding: 13px;
+  font-size: 15px;
+  border-radius: 50px;
+}
+
+.auth-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Switch Link ────────────────────────────────────────── */
+.auth-switch {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--gray-600);
+  text-align: center;
+}
+
+.auth-switch__link {
+  background: none;
+  border: none;
+  color: var(--green);
+  font-weight: 700;
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-switch__link:hover {
+  color: var(--green-dark);
+}
+
+/* ── Success Screen ─────────────────────────────────────── */
+.auth-success-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
