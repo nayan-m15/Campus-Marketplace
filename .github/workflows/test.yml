@@ -17,8 +17,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Go to app folder
-        working-directory: unexus
+      - name: Install dependencies
         run: |
+          cd unexus
           npm install
+
+      - name: Run tests
+        run: |
+          cd unexus
           npm test
