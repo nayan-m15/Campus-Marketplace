@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/NavBar";
 import Hero from "./components/Hero";
 import CategoryBar from "./components/CategoryBar";
 import ListingsGrid from "./components/ListingsGrid";
