@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../supabaseClient";
 import "../styles/Auth.css";
 
 export default function SignupPage({ onNavigate }) {
@@ -13,28 +14,37 @@ export default function SignupPage({ onNavigate }) {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    if (password !== confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-
-    setLoading(true);
-    const { error } = await signUp(email, password);
-    setLoading(false);
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setSuccess(true);
-    }
+  if (password !== confirm) {
+    setError("Passwords do not match.");
+    return;
   }
+  if (password.length < 6) {
+    setError("Password must be at least 6 characters.");
+    return;
+  }
+
+  // Check if email already exists in your users table
+  const { data: existingUser } = await supabase
+    .from("users")
+    .select("email")
+    .eq("email", email)
+    .single();
+
+  if (existingUser) {
+    setError("Email rate limit exceeded.");
+    return;
+  }
+
+  setLoading(true);
+  const { error } = await signUp(email, password);
+  setLoading(false);
+
+  if (error) setError(error.message);
+  else setSuccess(true);
+}
 
   async function handleGoogle() {
     setError("");
