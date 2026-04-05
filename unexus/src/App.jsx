@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Navbar from "./components/NavBar";
 import Hero from "./components/Hero";
@@ -7,7 +7,7 @@ import ListingsGrid from "./components/ListingsGrid";
 import Footer from "./components/Footer";
 import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
-import { ALL_LISTINGS } from "./data/listings";
+import { fetchListings } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 
@@ -20,15 +20,26 @@ function AppInner() {
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
 
+  const [allListings, setAllListings] = useState([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState(null);
+
+  useEffect(() => {
+    fetchListings()
+      .then(setAllListings)
+      .catch((err) => setListingsError(err.message))
+      .finally(() => setListingsLoading(false));
+  }, []);
+
   const filteredListings = searchQuery.trim()
-    ? ALL_LISTINGS.filter(
+    ? allListings.filter(
         (item) =>
           item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.category.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : activeCategory === "All Items"
-    ? ALL_LISTINGS
-    : ALL_LISTINGS.filter((item) => item.category === activeCategory);
+    ? allListings
+    : allListings.filter((item) => item.category === activeCategory);
 
   function handleCategoryChange(category) {
     setActiveCategory(category);
@@ -43,6 +54,11 @@ function AppInner() {
     setShowForm(false);
     setSuccessMessage("🎉 Your listing has been published!");
     setTimeout(() => setSuccessMessage(null), 4000);
+
+    // Pull fresh data so the new listing appears immediately
+    fetchListings()
+      .then(setAllListings)
+      .catch((err) => setListingsError(err.message));
   }
 
   if (!loading && user && (page === "login" || page === "signup")) {
