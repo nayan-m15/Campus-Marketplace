@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Navbar from "./components/NavBar";
 import Hero from "./components/Hero";
@@ -11,15 +11,31 @@ import ProfilePage from "./components/ProfilePage";
 import { ALL_LISTINGS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
+import { supabase } from "./supabaseClient";
 
 // ── Inner app ──────────────────────────────────────────────
 function AppInner() {
   const { user, loading, signOut } = useAuth();
-  const [page, setPage] = useState("home"); // "home" | "login" | "signup" | "profile"
+  const [page, setPage] = useState("home");
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  // ── Lifted avatar state so navbar updates instantly after profile save
+  const [avatarUrl, setAvatarUrl] = useState(null);
+
+  useEffect(() => {
+    if (!user) { setAvatarUrl(null); return; }
+    supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+      });
+  }, [user]);
 
   const filteredListings = searchQuery.trim()
     ? ALL_LISTINGS.filter(
@@ -60,6 +76,7 @@ function AppInner() {
 
   if (page === "login") return <LoginPage onNavigate={handleAuthNavigate} />;
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
+
   if (page === "profile") return (
     <>
       <header>
@@ -67,6 +84,7 @@ function AppInner() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           user={user}
+          avatarUrl={avatarUrl}
           onLogin={() => setPage("login")}
           onSignup={() => setPage("signup")}
           onShowListingForm={() => setShowForm(true)}
@@ -74,7 +92,10 @@ function AppInner() {
           onSignOut={signOut}
         />
       </header>
-      <ProfilePage onBack={() => setPage("home")} />
+      <ProfilePage
+        onBack={() => setPage("home")}
+        onAvatarChange={setAvatarUrl}
+      />
     </>
   );
 
@@ -85,6 +106,7 @@ function AppInner() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           user={user}
+          avatarUrl={avatarUrl}
           onLogin={() => setPage("login")}
           onSignup={() => setPage("signup")}
           onShowListingForm={() => setShowForm(true)}
@@ -92,7 +114,6 @@ function AppInner() {
           onSignOut={signOut}
         />
 
-        {/* Success toast */}
         {successMessage && (
           <div style={{
             position: "fixed",
@@ -113,7 +134,6 @@ function AppInner() {
           </div>
         )}
 
-        {/* Listing form modal */}
         {showForm && (
           <dialog
             className="modal-overlay"
@@ -139,14 +159,12 @@ function AppInner() {
 
       <main>
         <section><Hero /></section>
-
         <nav aria-label="Categories">
           <CategoryBar
             activeCategory={activeCategory}
             onCategoryChange={handleCategoryChange}
           />
         </nav>
-
         <section>
           <ListingsGrid
             listings={filteredListings}

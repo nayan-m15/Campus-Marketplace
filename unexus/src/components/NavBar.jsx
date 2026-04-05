@@ -1,39 +1,21 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
 import "../styles/Navbar.css";
 
 export default function Navbar({
   searchQuery,
   onSearchChange,
   user,
+  avatarUrl,
   onLogin,
   onSignup,
   onSignOut,
   onShowListingForm,
   onProfile,
 }) {
-  const [avatarUrl, setAvatarUrl] = useState(null);
-
-  // Pull display name same way as before
   const displayName =
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     user?.email?.split("@")[0] ||
     "Profile";
-
-  // Load avatar from profiles table whenever user changes
-  useEffect(() => {
-    if (!user) { setAvatarUrl(null); return; }
-
-    supabase
-      .from("profiles")
-      .select("avatar_url")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.avatar_url) setAvatarUrl(data.avatar_url);
-      });
-  }, [user]);
 
   return (
     <header className="navbar">
@@ -74,7 +56,6 @@ export default function Navbar({
                 </button>
               </li>
 
-              {/* Profile button — shows avatar if set, otherwise 👤 + name */}
               <li>
                 <button
                   className="navbar__link navbar__link--user"

@@ -3,8 +3,8 @@ import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import "../styles/ProfilePage.css";
 
-// SA universities & colleges (abbreviated list — extend as needed)
-const SA_INSTITUTIONS = [
+// ── SA Public Universities ───────────────────────────────────
+const PUBLIC_UNIVERSITIES = [
   "University of Cape Town (UCT)",
   "University of the Witwatersrand (Wits)",
   "Stellenbosch University",
@@ -20,15 +20,48 @@ const SA_INSTITUTIONS = [
   "Sol Plaatje University",
   "University of Zululand",
   "Walter Sisulu University",
+  "Nelson Mandela University",
+  "UNISA",
   "Cape Peninsula University of Technology (CPUT)",
   "Durban University of Technology (DUT)",
   "Mangosuthu University of Technology (MUT)",
   "Tshwane University of Technology (TUT)",
   "Vaal University of Technology (VUT)",
   "Central University of Technology (CUT)",
-  "Nelson Mandela University",
-  "UNISA",
-  "Other",
+];
+
+// ── SA Private Colleges & Universities ──────────────────────
+const PRIVATE_INSTITUTIONS = [
+  "Varsity College",
+  "Rosebank College",
+  "Boston City Campus",
+  "Damelin",
+  "IIE MSA (Midrand, Sandton, etc.)",
+  "Richfield Graduate Institute",
+  "Regent Business School",
+  "AFDA (Film & Drama)",
+  "Red & Yellow Creative School",
+  "Open Window School of Visual Communication",
+  "Inscape Design College",
+  "Greenside Design Center",
+  "The Animation School",
+  "Vega School",
+  "STADIO (formerly Embury/LISOF)",
+  "Educor (Damelin/CityVarsity)",
+  "CityVarsity",
+  "DC Academy",
+  "Pearson Institute of Higher Education",
+  "Monash South Africa",
+  "Milpark Business School",
+  "MANCOSA",
+  "Regenesys Business School",
+  "IMM Graduate School",
+  "SACAP (SA College of Applied Psychology)",
+  "The Independent Institute of Education (IIE)",
+  "Cornerstone Institute",
+  "Christel House",
+  "Lyceum College",
+  "Academy of Learning",
 ];
 
 const SA_CITIES = [
@@ -38,7 +71,54 @@ const SA_CITIES = [
   "George", "Grahamstown", "Mahikeng", "Other",
 ];
 
-export default function ProfilePage({ onBack }) {
+// ── Profile completion config ────────────────────────────────
+const COMPLETION_FIELDS = [
+  { key: "avatar", label: "Profile photo" },
+  { key: "name", label: "Full name" },
+  { key: "display_name", label: "Display name" },
+  { key: "about", label: "About you" },
+  { key: "city", label: "City" },
+  { key: "institution", label: "Institution" },
+  { key: "birthdate", label: "Date of birth" },
+  { key: "sex", label: "Sex" },
+  { key: "phone", label: "Phone number" },
+];
+
+function CompletionBar({ form, avatarPreview }) {
+  const filled = COMPLETION_FIELDS.filter(({ key }) => {
+    if (key === "avatar") return !!avatarPreview;
+    return !!form[key];
+  });
+  const pct = Math.round((filled.length / COMPLETION_FIELDS.length) * 100);
+
+  const color = pct < 40 ? "#ef4444" : pct < 75 ? "#f4a120" : "#16a34a";
+  const missing = COMPLETION_FIELDS.filter(({ key }) => {
+    if (key === "avatar") return !avatarPreview;
+    return !form[key];
+  });
+
+  return (
+    <div className="profile-completion">
+      <div className="profile-completion__header">
+        <span className="profile-completion__label">Profile completeness</span>
+        <span className="profile-completion__pct" style={{ color }}>{pct}%</span>
+      </div>
+      <div className="profile-completion__track">
+        <div
+          className="profile-completion__fill"
+          style={{ width: `${pct}%`, background: color }}
+        />
+      </div>
+      {missing.length > 0 && (
+        <p className="profile-completion__hint">
+          Still missing: {missing.map((f) => f.label).join(", ")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function ProfilePage({ onBack, onAvatarChange }) {
   const { user } = useAuth();
   const fileInputRef = useRef(null);
 
@@ -47,6 +127,7 @@ export default function ProfilePage({ onBack }) {
   const [toast, setToast] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
+  const [memberSince, setMemberSince] = useState(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -59,34 +140,39 @@ export default function ProfilePage({ onBack }) {
     phone: "",
   });
 
-  // Load existing profile on mount
+  // Load profile + member since
   useEffect(() => {
     if (!user) return;
 
-    async function loadProfile() {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (data) {
-        setForm({
-          name: data.name || "",
-          display_name: data.display_name || "",
-          about: data.about || "",
-          city: data.city || "",
-          institution: data.institution || "",
-          birthdate: data.birthdate || "",
-          sex: data.sex || "",
-          phone: data.phone || "",
-        });
-        if (data.avatar_url) setAvatarPreview(data.avatar_url);
-      }
-      setLoading(false);
+    // Member since comes from auth metadata
+    if (user.created_at) {
+      setMemberSince(new Date(user.created_at).toLocaleDateString("en-ZA", {
+        month: "long",
+        year: "numeric",
+      }));
     }
 
-    loadProfile();
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setForm({
+            name: data.name || "",
+            display_name: data.display_name || "",
+            about: data.about || "",
+            city: data.city || "",
+            institution: data.institution || "",
+            birthdate: data.birthdate || "",
+            sex: data.sex || "",
+            phone: data.phone || "",
+          });
+          if (data.avatar_url) setAvatarPreview(data.avatar_url);
+        }
+        setLoading(false);
+      });
   }, [user]);
 
   const handleAvatarChange = (e) => {
@@ -112,7 +198,6 @@ export default function ProfilePage({ onBack }) {
     try {
       let avatarUrl = avatarPreview;
 
-      // Upload new avatar if changed
       if (avatarFile) {
         const ext = avatarFile.name.split(".").pop();
         const filePath = `${user.id}/avatar.${ext}`;
@@ -127,10 +212,14 @@ export default function ProfilePage({ onBack }) {
           .from("avatars")
           .getPublicUrl(filePath);
 
-        avatarUrl = urlData.publicUrl + `?t=${Date.now()}`; // bust cache
+        avatarUrl = urlData.publicUrl + `?t=${Date.now()}`;
+        setAvatarPreview(avatarUrl);
+        setAvatarFile(null);
+
+        // ── Instantly update navbar avatar ──
+        onAvatarChange?.(avatarUrl);
       }
 
-      // Upsert profile row
       const { error } = await supabase.from("profiles").upsert(
         {
           id: user.id,
@@ -149,8 +238,6 @@ export default function ProfilePage({ onBack }) {
       );
 
       if (error) throw new Error(error.message);
-
-      setAvatarFile(null);
       showToast("✅ Profile saved!");
     } catch (err) {
       showToast("⚠️ " + err.message);
@@ -179,13 +266,17 @@ export default function ProfilePage({ onBack }) {
       {toast && <div className="profile-toast">{toast}</div>}
 
       <div className="profile-page__inner">
-        {/* Back */}
-        <button className="profile-page__back" onClick={onBack}>
-          ← Back
-        </button>
+        <button className="profile-page__back" onClick={onBack}>← Back</button>
+
+        {/* Completion bar card */}
+        <div className="profile-card">
+          <div style={{ padding: "20px 32px" }}>
+            <CompletionBar form={form} avatarPreview={avatarPreview} />
+          </div>
+        </div>
 
         <div className="profile-card">
-          {/* ── Avatar & name header ── */}
+          {/* Avatar & name header */}
           <div className="profile-card__avatar-section">
             <div className="profile-card__avatar-wrap">
               {avatarPreview ? (
@@ -214,13 +305,17 @@ export default function ProfilePage({ onBack }) {
             <div className="profile-card__avatar-info">
               <h2>{form.display_name || form.name || "Your Profile"}</h2>
               <p>{user?.email}</p>
+              {memberSince && (
+                <p style={{ fontSize: 12, color: "var(--gray-400)", marginTop: 4 }}>
+                  🗓 Member since {memberSince}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* ── Form body ── */}
+          {/* Form body */}
           <div className="profile-card__body">
 
-            {/* Personal */}
             <p className="profile-section-title">Personal</p>
 
             <div className="profile-field-row">
@@ -251,11 +346,7 @@ export default function ProfilePage({ onBack }) {
             <div className="profile-field-row">
               <div className="profile-field">
                 <label htmlFor="pf-sex">Sex</label>
-                <select
-                  id="pf-sex"
-                  value={form.sex}
-                  onChange={(e) => set("sex", e.target.value)}
-                >
+                <select id="pf-sex" value={form.sex} onChange={(e) => set("sex", e.target.value)}>
                   <option value="">Select…</option>
                   <option>Male</option>
                   <option>Female</option>
@@ -286,50 +377,36 @@ export default function ProfilePage({ onBack }) {
               <span className="profile-field__hint">{form.about.length}/300</span>
             </div>
 
-            {/* Location & institution */}
             <p className="profile-section-title">Location & Institution</p>
 
             <div className="profile-field-row">
               <div className="profile-field">
                 <label htmlFor="pf-city">City</label>
-                <select
-                  id="pf-city"
-                  value={form.city}
-                  onChange={(e) => set("city", e.target.value)}
-                >
+                <select id="pf-city" value={form.city} onChange={(e) => set("city", e.target.value)}>
                   <option value="">Select city…</option>
-                  {SA_CITIES.map((c) => (
-                    <option key={c}>{c}</option>
-                  ))}
+                  {SA_CITIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div className="profile-field">
                 <label htmlFor="pf-institution">University / College</label>
-                <select
-                  id="pf-institution"
-                  value={form.institution}
-                  onChange={(e) => set("institution", e.target.value)}
-                >
+                <select id="pf-institution" value={form.institution} onChange={(e) => set("institution", e.target.value)}>
                   <option value="">Select institution…</option>
-                  {SA_INSTITUTIONS.map((i) => (
-                    <option key={i}>{i}</option>
-                  ))}
+                  <optgroup label="Public Universities">
+                    {PUBLIC_UNIVERSITIES.map((i) => <option key={i}>{i}</option>)}
+                  </optgroup>
+                  <optgroup label="Private Colleges & Universities">
+                    {PRIVATE_INSTITUTIONS.map((i) => <option key={i}>{i}</option>)}
+                  </optgroup>
                 </select>
               </div>
             </div>
 
-            {/* Contact */}
             <p className="profile-section-title">Contact</p>
 
             <div className="profile-field-row">
               <div className="profile-field">
                 <label htmlFor="pf-email">Email</label>
-                <input
-                  id="pf-email"
-                  type="email"
-                  value={user?.email || ""}
-                  readOnly
-                />
+                <input id="pf-email" type="email" value={user?.email || ""} readOnly />
                 <span className="profile-field__hint">Managed via your login</span>
               </div>
               <div className="profile-field">
@@ -347,13 +424,8 @@ export default function ProfilePage({ onBack }) {
 
           </div>
 
-          {/* ── Save ── */}
           <div className="profile-card__footer">
-            <button
-              className="profile-save-btn"
-              onClick={handleSave}
-              disabled={saving}
-            >
+            <button className="profile-save-btn" onClick={handleSave} disabled={saving}>
               {saving ? "Saving…" : "Save profile"}
             </button>
           </div>
