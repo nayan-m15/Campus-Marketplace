@@ -8,10 +8,19 @@ import Footer from "./components/Footer";
 import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
 import ProfilePage from "./components/ProfilePage";
+import ProfileSetupPage from "./components/ProfileSetupPage";
 import { ALL_LISTINGS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
+
+// Required fields that must be filled before accessing the app
+const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
+
+function isProfileComplete(profile) {
+  if (!profile) return false;
+  return REQUIRED_PROFILE_FIELDS.every((f) => !!profile[f]);
+}
 
 // ── Inner app ──────────────────────────────────────────────
 function AppInner() {
@@ -21,19 +30,35 @@ function AppInner() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
-
-  // ── Lifted avatar state so navbar updates instantly after profile save
   const [avatarUrl, setAvatarUrl] = useState(null);
 
+  // Profile check state
+  const [profileChecked, setProfileChecked] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState(false);
+
+  // When user logs in, check if their profile is complete
   useEffect(() => {
-    if (!user) { setAvatarUrl(null); return; }
+    if (!user) {
+      setProfileChecked(false);
+      setNeedsSetup(false);
+      setAvatarUrl(null);
+      return;
+    }
+
     supabase
       .from("profiles")
-      .select("avatar_url")
+      .select("name, sex, birthdate, province, institution, avatar_url")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+        setNeedsSetup(!isProfileComplete(data));
+        setProfileChecked(true);
+      })
+      .catch(() => {
+        // No profile row yet — definitely needs setup
+        setNeedsSetup(true);
+        setProfileChecked(true);
       });
   }, [user]);
 
@@ -62,11 +87,17 @@ function AppInner() {
     setTimeout(() => setSuccessMessage(null), 4000);
   }
 
+  function handleSetupComplete() {
+    setNeedsSetup(false);
+    setPage("home");
+  }
+
   if (!loading && user && (page === "login" || page === "signup")) {
     setPage("home");
   }
 
-  if (loading) {
+  // Show spinner while auth or profile check is in progress
+  if (loading || (user && !profileChecked)) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font)", color: "var(--gray-600)" }}>
         Loading…
@@ -76,6 +107,11 @@ function AppInner() {
 
   if (page === "login") return <LoginPage onNavigate={handleAuthNavigate} />;
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
+
+  // ── Profile setup gate — no navbar, can't escape ──
+  if (user && needsSetup) {
+    return <ProfileSetupPage onComplete={handleSetupComplete} />;
+  }
 
   if (page === "profile") return (
     <>
