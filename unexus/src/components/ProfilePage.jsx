@@ -3,73 +3,143 @@ import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import "../styles/ProfilePage.css";
 
-// ── SA Public Universities ───────────────────────────────────
-const PUBLIC_UNIVERSITIES = [
-  "University of Cape Town (UCT)",
-  "University of the Witwatersrand (Wits)",
-  "Stellenbosch University",
-  "University of Pretoria (UP)",
-  "University of KwaZulu-Natal (UKZN)",
-  "University of Johannesburg (UJ)",
-  "Rhodes University",
-  "University of the Free State (UFS)",
-  "North-West University (NWU)",
-  "University of the Western Cape (UWC)",
-  "University of Limpopo",
-  "University of Mpumalanga",
-  "Sol Plaatje University",
-  "University of Zululand",
-  "Walter Sisulu University",
-  "Nelson Mandela University",
-  "UNISA",
-  "Cape Peninsula University of Technology (CPUT)",
-  "Durban University of Technology (DUT)",
-  "Mangosuthu University of Technology (MUT)",
-  "Tshwane University of Technology (TUT)",
-  "Vaal University of Technology (VUT)",
-  "Central University of Technology (CUT)",
-];
+// ── Institutions by Province ─────────────────────────────────
+const INSTITUTIONS_BY_PROVINCE = {
+  "Gauteng": {
+    public: [
+      "University of the Witwatersrand (Wits)",
+      "University of Pretoria (UP)",
+      "University of Johannesburg (UJ)",
+      "Tshwane University of Technology (TUT)",
+      "Vaal University of Technology (VUT)",
+      "UNISA",
+    ],
+    private: [
+      "Varsity College (Johannesburg / Pretoria)",
+      "Rosebank College (Johannesburg)",
+      "Boston City Campus (Johannesburg / Pretoria)",
+      "Damelin (Johannesburg / Pretoria)",
+      "IIE MSA (Midrand / Sandton)",
+      "Richfield Graduate Institute (Johannesburg)",
+      "Regent Business School (Johannesburg)",
+      "Milpark Business School",
+      "Regenesys Business School",
+      "MANCOSA (Johannesburg)",
+      "SACAP (Johannesburg)",
+      "Pearson Institute of Higher Education",
+      "Vega School (Johannesburg)",
+      "DC Academy",
+      "The Animation School (Johannesburg)",
+      "Academy of Learning (Johannesburg)",
+    ],
+  },
+  "Western Cape": {
+    public: [
+      "University of Cape Town (UCT)",
+      "Stellenbosch University",
+      "University of the Western Cape (UWC)",
+      "Cape Peninsula University of Technology (CPUT)",
+    ],
+    private: [
+      "Varsity College (Cape Town)",
+      "Rosebank College (Cape Town)",
+      "Boston City Campus (Cape Town)",
+      "Damelin (Cape Town)",
+      "Red & Yellow Creative School",
+      "Open Window School of Visual Communication",
+      "Inscape Design College (Cape Town)",
+      "Greenside Design Center (Cape Town)",
+      "AFDA (Cape Town)",
+      "Cornerstone Institute",
+      "CityVarsity",
+      "SACAP (Cape Town)",
+      "IMM Graduate School (Cape Town)",
+    ],
+  },
+  "KwaZulu-Natal": {
+    public: [
+      "University of KwaZulu-Natal (UKZN)",
+      "Durban University of Technology (DUT)",
+      "Mangosuthu University of Technology (MUT)",
+      "University of Zululand",
+    ],
+    private: [
+      "Varsity College (Durban / Westville)",
+      "Rosebank College (Durban)",
+      "Boston City Campus (Durban)",
+      "Damelin (Durban)",
+      "Richfield Graduate Institute (Durban)",
+      "MANCOSA (Durban)",
+      "SACAP (Durban)",
+      "IMM Graduate School (Durban)",
+    ],
+  },
+  "Eastern Cape": {
+    public: [
+      "Rhodes University",
+      "Walter Sisulu University",
+      "Nelson Mandela University",
+      "University of Fort Hare",
+    ],
+    private: [
+      "Varsity College (East London / Port Elizabeth)",
+      "Boston City Campus (Port Elizabeth)",
+      "Damelin (Port Elizabeth)",
+      "Richfield Graduate Institute (East London)",
+    ],
+  },
+  "Free State": {
+    public: [
+      "University of the Free State (UFS)",
+      "Central University of Technology (CUT)",
+    ],
+    private: [
+      "Varsity College (Bloemfontein)",
+      "Boston City Campus (Bloemfontein)",
+      "Damelin (Bloemfontein)",
+      "Academy of Learning (Bloemfontein)",
+    ],
+  },
+  "North West": {
+    public: [
+      "North-West University (NWU)",
+    ],
+    private: [
+      "Varsity College (Potchefstroom)",
+      "Boston City Campus (Rustenburg)",
+      "Academy of Learning (Rustenburg)",
+    ],
+  },
+  "Limpopo": {
+    public: [
+      "University of Limpopo",
+    ],
+    private: [
+      "Boston City Campus (Polokwane)",
+      "Richfield Graduate Institute (Polokwane)",
+      "Academy of Learning (Polokwane)",
+    ],
+  },
+  "Mpumalanga": {
+    public: [
+      "University of Mpumalanga",
+    ],
+    private: [
+      "Boston City Campus (Nelspruit)",
+      "Academy of Learning (Nelspruit)",
+    ],
+  },
+  "Northern Cape": {
+    public: [
+      "Sol Plaatje University",
+    ],
+    private: [
+      "Academy of Learning (Kimberley)",
+    ],
+  },
+};
 
-// ── SA Private Colleges & Universities ──────────────────────
-const PRIVATE_INSTITUTIONS = [
-  "Varsity College",
-  "Rosebank College",
-  "Boston City Campus",
-  "Damelin",
-  "IIE MSA (Midrand, Sandton, etc.)",
-  "Richfield Graduate Institute",
-  "Regent Business School",
-  "AFDA (Film & Drama)",
-  "Red & Yellow Creative School",
-  "Open Window School of Visual Communication",
-  "Inscape Design College",
-  "Greenside Design Center",
-  "The Animation School",
-  "Vega School",
-  "STADIO (formerly Embury/LISOF)",
-  "Educor (Damelin/CityVarsity)",
-  "CityVarsity",
-  "DC Academy",
-  "Pearson Institute of Higher Education",
-  "Monash South Africa",
-  "Milpark Business School",
-  "MANCOSA",
-  "Regenesys Business School",
-  "IMM Graduate School",
-  "SACAP (SA College of Applied Psychology)",
-  "The Independent Institute of Education (IIE)",
-  "Cornerstone Institute",
-  "Christel House",
-  "Lyceum College",
-  "Academy of Learning",
-];
-
-const SA_CITIES = [
-  "Johannesburg", "Cape Town", "Durban", "Pretoria", "Port Elizabeth",
-  "Bloemfontein", "East London", "Kimberley", "Polokwane", "Nelspruit",
-  "Rustenburg", "Pietermaritzburg", "Potchefstroom", "Stellenbosch",
-  "George", "Grahamstown", "Mahikeng", "Other",
-];
+const PROVINCES = Object.keys(INSTITUTIONS_BY_PROVINCE);
 
 // ── Profile completion config ────────────────────────────────
 const COMPLETION_FIELDS = [
@@ -77,20 +147,20 @@ const COMPLETION_FIELDS = [
   { key: "name", label: "Full name" },
   { key: "display_name", label: "Display name" },
   { key: "about", label: "About you" },
-  { key: "city", label: "City" },
+  { key: "province", label: "Province" },
   { key: "institution", label: "Institution" },
   { key: "birthdate", label: "Date of birth" },
   { key: "sex", label: "Sex" },
   { key: "phone", label: "Phone number" },
 ];
 
+// ── Completion Bar ───────────────────────────────────────────
 function CompletionBar({ form, avatarPreview }) {
   const filled = COMPLETION_FIELDS.filter(({ key }) => {
     if (key === "avatar") return !!avatarPreview;
     return !!form[key];
   });
   const pct = Math.round((filled.length / COMPLETION_FIELDS.length) * 100);
-
   const color = pct < 40 ? "#ef4444" : pct < 75 ? "#f4a120" : "#16a34a";
   const missing = COMPLETION_FIELDS.filter(({ key }) => {
     if (key === "avatar") return !avatarPreview;
@@ -118,6 +188,7 @@ function CompletionBar({ form, avatarPreview }) {
   );
 }
 
+// ── Main Component ───────────────────────────────────────────
 export default function ProfilePage({ onBack, onAvatarChange }) {
   const { user } = useAuth();
   const fileInputRef = useRef(null);
@@ -133,23 +204,33 @@ export default function ProfilePage({ onBack, onAvatarChange }) {
     name: "",
     display_name: "",
     about: "",
-    city: "",
+    province: "",
     institution: "",
     birthdate: "",
     sex: "",
     phone: "",
   });
 
-  // Load profile + member since
+  // Institutions available for the selected province
+  const provinceData = INSTITUTIONS_BY_PROVINCE[form.province];
+  const availableInstitutions = provinceData
+    ? [
+        { group: "Public Universities", items: provinceData.public },
+        { group: "Private Colleges & Universities", items: provinceData.private },
+      ]
+    : [];
+
+  // Load profile on mount
   useEffect(() => {
     if (!user) return;
 
-    // Member since comes from auth metadata
     if (user.created_at) {
-      setMemberSince(new Date(user.created_at).toLocaleDateString("en-ZA", {
-        month: "long",
-        year: "numeric",
-      }));
+      setMemberSince(
+        new Date(user.created_at).toLocaleDateString("en-ZA", {
+          month: "long",
+          year: "numeric",
+        })
+      );
     }
 
     supabase
@@ -163,7 +244,7 @@ export default function ProfilePage({ onBack, onAvatarChange }) {
             name: data.name || "",
             display_name: data.display_name || "",
             about: data.about || "",
-            city: data.city || "",
+            province: data.province || "",
             institution: data.institution || "",
             birthdate: data.birthdate || "",
             sex: data.sex || "",
@@ -174,6 +255,11 @@ export default function ProfilePage({ onBack, onAvatarChange }) {
         setLoading(false);
       });
   }, [user]);
+
+  // Clear institution when province changes
+  const handleProvinceChange = (val) => {
+    setForm((f) => ({ ...f, province: val, institution: "" }));
+  };
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
@@ -215,8 +301,6 @@ export default function ProfilePage({ onBack, onAvatarChange }) {
         avatarUrl = urlData.publicUrl + `?t=${Date.now()}`;
         setAvatarPreview(avatarUrl);
         setAvatarFile(null);
-
-        // ── Instantly update navbar avatar ──
         onAvatarChange?.(avatarUrl);
       }
 
@@ -226,7 +310,7 @@ export default function ProfilePage({ onBack, onAvatarChange }) {
           name: form.name.trim() || null,
           display_name: form.display_name.trim() || null,
           about: form.about.trim() || null,
-          city: form.city || null,
+          province: form.province || null,
           institution: form.institution || null,
           birthdate: form.birthdate || null,
           sex: form.sex || null,
@@ -268,7 +352,7 @@ export default function ProfilePage({ onBack, onAvatarChange }) {
       <div className="profile-page__inner">
         <button className="profile-page__back" onClick={onBack}>← Back</button>
 
-        {/* Completion bar card */}
+        {/* Completion bar */}
         <div className="profile-card">
           <div style={{ padding: "20px 32px" }}>
             <CompletionBar form={form} avatarPreview={avatarPreview} />
@@ -276,7 +360,7 @@ export default function ProfilePage({ onBack, onAvatarChange }) {
         </div>
 
         <div className="profile-card">
-          {/* Avatar & name header */}
+          {/* Avatar header */}
           <div className="profile-card__avatar-section">
             <div className="profile-card__avatar-wrap">
               {avatarPreview ? (
@@ -381,22 +465,40 @@ export default function ProfilePage({ onBack, onAvatarChange }) {
 
             <div className="profile-field-row">
               <div className="profile-field">
-                <label htmlFor="pf-city">City</label>
-                <select id="pf-city" value={form.city} onChange={(e) => set("city", e.target.value)}>
-                  <option value="">Select city…</option>
-                  {SA_CITIES.map((c) => <option key={c}>{c}</option>)}
+                <label htmlFor="pf-province">Province</label>
+                <select
+                  id="pf-province"
+                  value={form.province}
+                  onChange={(e) => handleProvinceChange(e.target.value)}
+                >
+                  <option value="">Select province…</option>
+                  {PROVINCES.map((p) => <option key={p}>{p}</option>)}
                 </select>
               </div>
+
               <div className="profile-field">
-                <label htmlFor="pf-institution">University / College</label>
-                <select id="pf-institution" value={form.institution} onChange={(e) => set("institution", e.target.value)}>
-                  <option value="">Select institution…</option>
-                  <optgroup label="Public Universities">
-                    {PUBLIC_UNIVERSITIES.map((i) => <option key={i}>{i}</option>)}
-                  </optgroup>
-                  <optgroup label="Private Colleges & Universities">
-                    {PRIVATE_INSTITUTIONS.map((i) => <option key={i}>{i}</option>)}
-                  </optgroup>
+                <label htmlFor="pf-institution">
+                  University / College
+                  {!form.province && (
+                    <span style={{ fontWeight: 400, color: "#bbb", marginLeft: 6 }}>
+                      (select province first)
+                    </span>
+                  )}
+                </label>
+                <select
+                  id="pf-institution"
+                  value={form.institution}
+                  onChange={(e) => set("institution", e.target.value)}
+                  disabled={!form.province}
+                >
+                  <option value="">
+                    {form.province ? "Select institution…" : "Select province first"}
+                  </option>
+                  {availableInstitutions.map(({ group, items }) => (
+                    <optgroup key={group} label={group}>
+                      {items.map((i) => <option key={i}>{i}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
             </div>
