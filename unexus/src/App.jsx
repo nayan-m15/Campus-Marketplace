@@ -11,6 +11,7 @@ import { ALL_LISTINGS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import Draggable from 'react-draggable'; 
+import MessagesPage from "./pages/MessagesPage";
 
 // ── Inner app — has access to AuthContext ──────────────────
 function AppInner() {
@@ -68,6 +69,10 @@ function AppInner() {
     return <SignupPage onNavigate={handleAuthNavigate} />;
   }
 
+  if (page === "messages") {
+    return <MessagesPage onBack={() => setPage("home")} />;
+  }
+
   return (
     <>
       <header>
@@ -78,6 +83,7 @@ function AppInner() {
           onLogin={() => setPage("login")}
           onSignup={() => setPage("signup")}
           onShowListingForm = {() => setShowForm(true)}
+          onMessages={() => setPage("messages")} 
           onSignOut={signOut}
         />
         

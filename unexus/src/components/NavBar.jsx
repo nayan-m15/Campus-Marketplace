@@ -1,6 +1,6 @@
 import "../styles/Navbar.css";
 
-export default function Navbar({ searchQuery, onSearchChange, user, onLogin, onSignup, onSignOut, onShowListingForm }) {
+export default function Navbar({ searchQuery, onSearchChange, user, onLogin, onSignup, onSignOut, onShowListingForm, onMessages }) {
   // Pull a display name from the user object (Google gives display_name, email fallback)
   const displayName = user?.user_metadata?.full_name
     || user?.user_metadata?.name
@@ -43,7 +43,7 @@ export default function Navbar({ searchQuery, onSearchChange, user, onLogin, onS
             // ── Logged-in state ──────────────────────────────
             <>
               <li>
-                <button className="navbar__link">
+                <button className="navbar__link" onClick={onMessages}>
                   Messages
                 </button>
               </li>

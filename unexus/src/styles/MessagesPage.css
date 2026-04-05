@@ -1,0 +1,77 @@
+/* Page layout */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #0A0A0A;
+  font-family: "Geist", "DM Sans", "Inter", sans-serif;
+}
+
+/* Top bar */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: #0D0D0D;
+  border-bottom: 1px solid #1A1A1A;
+  flex-shrink: 0;
+}
+
+/* Back link */
+.back-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #888;
+  text-decoration: none;
+  font-size: 13.5px;
+  transition: color 0.15s;
+}
+
+.back-link:hover {
+  color: #fff;
+}
+
+/* Error badge */
+.error-badge {
+  color: #FF6B6B;
+  font-size: 13px;
+  background: rgba(255, 107, 107, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 107, 107, 0.2);
+}
+
+/* Main panel */
+.panel {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Full center (loading / empty state) */
+.full-center {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0A0A0A;
+}
+
+/* Spinner */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #1E1E1E;
+  border-top-color: #00C896;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
