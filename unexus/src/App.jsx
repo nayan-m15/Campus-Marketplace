@@ -9,6 +9,8 @@ import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
 import { ALL_LISTINGS } from "./data/listings";
 import "./styles/index.css";
+import ListingForm from "./components/ListingForm";
+import Draggable from 'react-draggable'; 
 
 // ── Inner app — has access to AuthContext ──────────────────
 function AppInner() {
@@ -16,6 +18,7 @@ function AppInner() {
   const [page, setPage] = useState("home"); // "home" | "login" | "signup"
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showForm, setShowForm] = useState(false); 
 
   // Filtered listings
   const filteredListings = searchQuery.trim()
@@ -74,8 +77,28 @@ function AppInner() {
           user={user}
           onLogin={() => setPage("login")}
           onSignup={() => setPage("signup")}
+          onShowListingForm = {() => setShowForm(true)}
           onSignOut={signOut}
         />
+        
+          {showForm && (
+            <dialog 
+              className="modal-overlay" 
+              open
+              onClick={() => setShowForm(false)}
+            >
+              <article className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <button 
+                  className="modal-close" 
+                  onClick={() => setShowForm(false)}
+                  aria-label="Close modal"
+                >
+                  ×
+                </button>
+                <ListingForm onClose={() => setShowForm(false)} />
+              </article>
+            </dialog>
+          )}
       </header>
 
       <main>
