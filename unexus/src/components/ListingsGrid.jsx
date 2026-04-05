@@ -25,8 +25,7 @@ export default function ListingsGrid({
           {heading}
         </h2>
         <p style={{ color: "var(--gray-600)", fontSize: 14, marginTop: 4 }}>
-          ↗ {listings.length} item{listings.length !== 1 ? "s" : ""} available
-          near you
+          ↗ {listings.length} item{listings.length !== 1 ? "s" : ""} available near you
         </p>
       </header>
 
@@ -43,7 +42,13 @@ export default function ListingsGrid({
         <ul className="listings-grid">
           {listings.map((item) => (
             <li key={item.id}>
-              <ListingCard item={item} onClick={() => onListingClick?.(item)} />
+              <ListingCard
+                item={item}
+                onClick={() => {
+                  console.log("CLICKED LISTING:", item);
+                  onListingClick({ ...item });
+                }}
+              />
             </li>
           ))}
         </ul>

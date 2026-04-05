@@ -39,7 +39,7 @@ function ListingDetailsModal({ item, onClose }) {
   }, [item, onClose]);
 
   if (!item) return null;
-
+  console.log("SELECTED ITEM:", item);
   const images =
     Array.isArray(item.image_urls) && item.image_urls.length > 0
       ? item.image_urls
@@ -160,31 +160,36 @@ function ListingDetailsModal({ item, onClose }) {
                 <p>{item.description?.trim() || "No description provided."}</p>
               </div>
 
-              <div className="item-modal-contact">
-                <h3>Message seller</h3>
+             <div className="item-modal-contact">
+  <h3>Message seller</h3>
 
-                <textarea
-                  className="item-modal-textarea"
-                  placeholder={`Hi, is "${item.title}" still available?`}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={4}
-                />
+  <p style={{ marginBottom: "12px", color: "var(--gray-700)" }}>
+    <strong>Joined the platform in:</strong>{" "}
+    {item.joined_year ? item.joined_year : "Unknown"}
+  </p>
 
-                {sendError && <p className="item-modal-error">{sendError}</p>}
-                {sendSuccess && (
-                  <p className="item-modal-success">{sendSuccess}</p>
-                )}
+  <textarea
+    className="item-modal-textarea"
+    placeholder={`Hi, is "${item.title}" still available?`}
+    value={message}
+    onChange={(e) => setMessage(e.target.value)}
+    rows={4}
+  />
 
-                <button
-                  type="button"
-                  className="item-modal-send-btn"
-                  onClick={handleSendMessage}
-                  disabled={sending}
-                >
-                  {sending ? "Sending..." : "Send message"}
-                </button>
-              </div>
+  {sendError && <p className="item-modal-error">{sendError}</p>}
+  {sendSuccess && (
+    <p className="item-modal-success">{sendSuccess}</p>
+  )}
+
+  <button
+    type="button"
+    className="item-modal-send-btn"
+    onClick={handleSendMessage}
+    disabled={sending}
+  >
+    {sending ? "Sending..." : "Send message"}
+  </button>
+</div>
             </div>
           </div>
         </section>

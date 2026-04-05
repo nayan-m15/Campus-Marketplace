@@ -1,31 +1,28 @@
-import { supabase } from "../supabaseClient"; // ← adjust path to match your project structure
+import { supabase } from "../supabaseClient";
 
 // ─── Static Config ────────────────────────────────────────────────────────────
 
 export const CATEGORIES = [
-  { label: "All Items",   emoji: "🛍️" },
-  { label: "Textbooks",   emoji: "📚" },
+  { label: "All Items", emoji: "🛍️" },
+  { label: "Textbooks", emoji: "📚" },
   { label: "Electronics", emoji: "💻" },
-  { label: "Furniture",   emoji: "🛋️" },
-  { label: "Clothing",    emoji: "👕" },
-  { label: "Sports",      emoji: "⚽" },
+  { label: "Furniture", emoji: "🛋️" },
+  { label: "Clothing", emoji: "👕" },
+  { label: "Sports", emoji: "⚽" },
   { label: "Instruments", emoji: "🎸" },
-  { label: "Stationery",  emoji: "✏️" },
-  { label: "Other",       emoji: "📦" },
+  { label: "Stationery", emoji: "✏️" },
+  { label: "Other", emoji: "📦" },
 ];
 
 export const CONDITION_COLORS = {
-  Excellent:  "#10b981",
+  Excellent: "#10b981",
   "Like New": "#3b82f6",
-  Good:       "#f59e0b",
-  Fair:       "#ef4444",
+  Good: "#f59e0b",
+  Fair: "#ef4444",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Formats a raw numeric price from the DB into a display string.
- */
 function formatPrice(price) {
   if (price === null || price === undefined) return "R 0";
   return `R ${Number(price).toLocaleString("en-ZA")}`;
@@ -36,90 +33,122 @@ function getCategoryEmoji(category) {
   return match ? match.emoji : "📦";
 }
 
-/**
- * Returns a shortened seller label from a UUID.
- * NOTE: Replace this with a profiles table join once you have one.
- * In Supabase, create a `profiles` table with columns (id uuid, display_name text)
- * that mirrors auth.users, then join on user_id to get real names.
- */
-function formatSeller(userId) {
-  if (!userId) return "Unknown";
-  return userId.slice(0, 8);
+function getJoinedYear(createdAt) {
+  if (!createdAt) return null;
+
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.getFullYear();
 }
 
-//Data Fetching 
+function getSellerName(profile, userId) {
+  if (profile?.display_name?.trim()) return profile.display_name;
+  if (profile?.name?.trim()) return profile.name;
+  if (userId) return userId.slice(0, 8);
+  return "Unknown";
+}
 
-/**
- * Fetches all listings from Supabase and normalises them
- * into the shape expected by your UI components.
- *
- * ⚠️  CATEGORY: Your `listings` table currently has no `category` column.
- *     Add one (type: text) in Supabase and populate it when users create listings.
- *     Until then, every listing will fall back to "Other".
- *
- * Usage:
- *   const listings = await fetchListings();
- *   const filtered = listings.filter(l => l.category === "Electronics");
- */
+function normaliseListing(listing, profile) {
+  const category = listing.category ?? "Other";
+
+  return {
+    id: listing.id,
+    title: listing.title,
+    description: listing.description ?? "",
+    price: formatPrice(listing.price),
+    category,
+    condition: listing.condition ?? "Good",
+    seller: getSellerName(profile, listing.user_id),
+    user_id: listing.user_id,
+    approximate_location: profile?.province ?? "Location not provided",
+    joined_year: getJoinedYear(profile?.created_at),
+    distance: "0 km",
+    image_url: listing.image_url ?? null,
+    emoji: listing.image_url ? null : getCategoryEmoji(category),
+  };
+}
+
+// ─── Data Fetching ────────────────────────────────────────────────────────────
+
 export async function fetchListings() {
-  const { data, error } = await supabase
+  const { data: listings, error: listingsError } = await supabase
     .from("listings")
     .select("id, title, description, price, condition, user_id, image_url, category")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Failed to fetch listings:", error.message);
-    throw error;
+  console.log("LISTINGS:", listings);
+  console.log("LISTINGS ERROR:", listingsError);
+
+  if (listingsError) {
+    console.error("Failed to fetch listings:", listingsError.message);
+    throw listingsError;
   }
 
-  return data.map((listing) => {
-    const category = listing.category ?? "Other";
+  const userIds = [
+    ...new Set((listings || []).map((listing) => listing.user_id).filter(Boolean)),
+  ];
 
-    return {
-      id:          listing.id,
-      title:       listing.title,
-      description: listing.description ?? "",
-      price:       formatPrice(listing.price),
-      category:    category,
-      condition:   listing.condition ?? "Good",
-      seller:      formatSeller(listing.user_id),
-      distance:    "0 km",                          // placeholder — add geolocation later
-      image_url:   listing.image_url ?? null,
-      emoji:       listing.image_url              
-                     ? null
-                     : getCategoryEmoji(category),
-    };
-  });
+  console.log("USER IDS:", userIds);
+
+  let profilesMap = {};
+
+  if (userIds.length > 0) {
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, display_name, name, province, created_at")
+      .in("id", userIds);
+
+    console.log("PROFILES:", profiles);
+    console.log("PROFILES ERROR:", profilesError);
+
+    if (profilesError) {
+      console.error("Failed to fetch profiles:", profilesError.message);
+    } else {
+      profilesMap = Object.fromEntries(
+        profiles.map((profile) => [profile.id, profile])
+      );
+    }
+  }
+
+  console.log("PROFILES MAP:", profilesMap);
+
+  const normalisedListings = (listings || []).map((listing) =>
+    normaliseListing(listing, profilesMap[listing.user_id])
+  );
+
+  console.log("NORMALISED LISTINGS:", normalisedListings);
+
+  return normalisedListings;
 }
 
-/**
- * Fetches a single listing by its UUID.
- * Useful for a listing detail/modal view.
- */
 export async function fetchListingById(id) {
-  const { data, error } = await supabase
+  const { data: listing, error: listingError } = await supabase
     .from("listings")
     .select("id, title, description, price, condition, user_id, image_url, category")
     .eq("id", id)
     .single();
 
-  if (error) {
-    console.error("Failed to fetch listing:", error.message);
-    throw error;
+  if (listingError) {
+    console.error("Failed to fetch listing:", listingError.message);
+    throw listingError;
   }
 
-  const category = data.category ?? "Other";
+  let profile = null;
 
-  return {
-    id:          data.id,
-    title:       data.title,
-    description: data.description ?? "",
-    price:       formatPrice(data.price),
-    category:    category,
-    condition:   data.condition ?? "Good",
-    seller:      formatSeller(data.user_id),
-    distance:    "0 km",
-    image_url:   data.image_url ?? null,
-    emoji:       data.image_url ? null : getCategoryEmoji(category),
-  };
+  if (listing.user_id) {
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, display_name, name, province, created_at")
+      .eq("id", listing.user_id)
+      .single();
+
+    if (profileError) {
+      console.error("Failed to fetch seller profile:", profileError.message);
+    } else {
+      profile = profileData;
+    }
+  }
+
+  return normaliseListing(listing, profile);
 }
