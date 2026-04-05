@@ -1,12 +1,21 @@
 import "../styles/Navbar.css";
 
-export default function Navbar({ searchQuery, onSearchChange, user, onLogin, onSignup, onSignOut, onShowListingForm }) {
-  // Pull a display name from the user object (Google gives display_name, email fallback)
-  const displayName = user?.user_metadata?.full_name
-    || user?.user_metadata?.name
-    || user?.email?.split("@")[0]
-    || "Profile";
-
+export default function Navbar({
+  searchQuery,
+  onSearchChange,
+  user,
+  avatarUrl,
+  onLogin,
+  onSignup,
+  onSignOut,
+  onShowListingForm,
+  onProfile,
+}) {
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "Profile";
 
   return (
     <header className="navbar">
@@ -40,18 +49,38 @@ export default function Navbar({ searchQuery, onSearchChange, user, onLogin, onS
       <nav aria-label="User navigation">
         <ul className="navbar__links">
           {user ? (
-            // ── Logged-in state ──────────────────────────────
             <>
               <li>
                 <button className="navbar__link">
                   Messages
                 </button>
               </li>
+
               <li>
-                <button className="navbar__link navbar__link--user" title={user.email}>
-                  👤 {displayName}
+                <button
+                  className="navbar__link navbar__link--user"
+                  title={user.email}
+                  onClick={onProfile}
+                >
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Profile"
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <span>👤</span>
+                  )}
+                  {displayName}
                 </button>
               </li>
+
               <li>
                 <button className="navbar__link" onClick={onSignOut}>
                   Sign Out
@@ -64,7 +93,6 @@ export default function Navbar({ searchQuery, onSearchChange, user, onLogin, onS
               </li>
             </>
           ) : (
-            // ── Logged-out state ─────────────────────────────
             <>
               <li>
                 <button className="navbar__link" onClick={onLogin}>
