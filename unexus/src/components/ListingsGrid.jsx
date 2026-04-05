@@ -1,14 +1,18 @@
 import ListingCard from "./ListingCard";
 import "../styles/ListingCard.css";
 
-export default function ListingsGrid({ listings, searchQuery, activeCategory }) {
+export default function ListingsGrid({
+  listings,
+  searchQuery,
+  activeCategory,
+  onListingClick,
+}) {
   const heading = searchQuery.trim()
     ? `Results for "${searchQuery}"`
     : activeCategory;
 
   return (
     <section style={{ padding: "36px 40px", maxWidth: 1280, margin: "0 auto" }}>
-      {/* Section Header */}
       <header style={{ marginBottom: 24 }}>
         <h2
           style={{
@@ -26,7 +30,6 @@ export default function ListingsGrid({ listings, searchQuery, activeCategory }) 
         </p>
       </header>
 
-      {/* Empty State */}
       {listings.length === 0 ? (
         <section className="listings-empty" aria-live="polite">
           <p className="listings-empty__icon">🔍</p>
@@ -40,7 +43,7 @@ export default function ListingsGrid({ listings, searchQuery, activeCategory }) 
         <ul className="listings-grid">
           {listings.map((item) => (
             <li key={item.id}>
-              <ListingCard item={item} />
+              <ListingCard item={item} onClick={() => onListingClick?.(item)} />
             </li>
           ))}
         </ul>

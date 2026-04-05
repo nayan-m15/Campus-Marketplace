@@ -23,9 +23,7 @@ function StarRating({ rating = 0, count }) {
 
   return (
     <section className="listing-card__rating" aria-label={`${rating} out of 5 stars`}>
-      <ul className="listing-card__stars">
-        {stars}
-      </ul>
+      <ul className="listing-card__stars">{stars}</ul>
       {count != null && (
         <span className="listing-card__review-count">({count})</span>
       )}
@@ -33,15 +31,32 @@ function StarRating({ rating = 0, count }) {
   );
 }
 
-export default function ListingCard({ item }) {
+export default function ListingCard({ item, onClick }) {
   const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
 
+  function handleKeyDown(e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick?.();
+    }
+  }
+
   return (
-    <article className="listing-card">
-      {/* ── Image Area ── */}
+    <article
+      className="listing-card"
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open details for ${item.title}`}
+    >
       <figure className="listing-card__image-wrap">
         {item.image_url ? (
-          <img src={item.image_url} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img
+            src={item.image_url}
+            alt={item.title}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
         ) : (
           <figure className="listing-card__image-placeholder" aria-hidden="true">
             <span>{item.emoji}</span>
@@ -49,9 +64,7 @@ export default function ListingCard({ item }) {
         )}
       </figure>
 
-      {/* ── Card Body ── */}
       <section className="listing-card__body">
-        {/* Title + Condition Badge */}
         <header className="listing-card__header">
           <h3 className="listing-card__title">{item.title}</h3>
           <p
@@ -65,7 +78,6 @@ export default function ListingCard({ item }) {
           </p>
         </header>
 
-        {/* Pricing */}
         <section className="listing-card__pricing">
           <span className="listing-card__price">
             {item.pricePrefix && (
@@ -78,13 +90,11 @@ export default function ListingCard({ item }) {
           )}
         </section>
 
-        {/* Seller & Distance */}
         <section className="listing-card__meta">
           <p className="listing-card__seller">👤 {item.seller}</p>
           <p className="listing-card__distance">📍 {item.distance}</p>
         </section>
 
-        {/* Star rating */}
         <StarRating rating={item.rating ?? 0} count={item.reviewCount} />
       </section>
     </article>
