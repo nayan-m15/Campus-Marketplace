@@ -90,9 +90,9 @@ export default function Hero() {
             ["Verified Students"],
             ["Secure Trade Center"],
             ["Safe Payments"],
-          ].map(([icon, label]) => (
+          ].map(([label]) => (
             <li key={label} className="hero__badge">
-              <span>{icon}</span> {label}
+              {label}
             </li>
           ))}
         </ul>
