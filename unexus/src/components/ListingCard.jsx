@@ -40,8 +40,8 @@ export default function ListingCard({ item }) {
     <article className="listing-card">
       {/* ── Image Area ── */}
       <figure className="listing-card__image-wrap">
-        {item.imageUrl ? (
-          <img src={item.imageUrl} alt={item.title} />
+        {item.image_url ? (
+          <img src={item.image_url} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <figure className="listing-card__image-placeholder" aria-hidden="true">
             <span>{item.emoji}</span>
