@@ -95,7 +95,7 @@ function AppInner() {
                 >
                   ×
                 </button>
-                <ListingForm onClose={() => setShowForm(false)} />
+                <ListingForm onCancel={() => setShowForm(false)} />
               </article>
             </dialog>
           )}
