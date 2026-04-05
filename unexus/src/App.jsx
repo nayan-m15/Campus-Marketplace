@@ -10,17 +10,16 @@ import SignupPage from "./components/SignupPage";
 import { ALL_LISTINGS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
-import Draggable from 'react-draggable'; 
 
 // ── Inner app — has access to AuthContext ──────────────────
 function AppInner() {
   const { user, loading, signOut } = useAuth();
-  const [page, setPage] = useState("home"); // "home" | "login" | "signup"
+  const [page, setPage] = useState("home");
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [searchQuery, setSearchQuery] = useState("");
-  const [showForm, setShowForm] = useState(false); 
+  const [showForm, setShowForm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(null);
 
-  // Filtered listings
   const filteredListings = searchQuery.trim()
     ? ALL_LISTINGS.filter(
         (item) =>
@@ -36,22 +35,20 @@ function AppInner() {
     setSearchQuery("");
   }
 
-  // After login/signup, send user home
   function handleAuthNavigate(target) {
-    if (target === "home") {
-      setPage("home");
-    } else {
-      setPage(target);
-    }
+    setPage(target === "home" ? "home" : target);
   }
 
-  // When user logs in successfully, AuthContext updates → go home
-  // We detect this: if user is set and we're on login/signup, redirect home
+  function handleListingSuccess() {
+    setShowForm(false);
+    setSuccessMessage("🎉 Your listing has been published!");
+    setTimeout(() => setSuccessMessage(null), 4000);
+  }
+
   if (!loading && user && (page === "login" || page === "signup")) {
     setPage("home");
   }
 
-  // Show a minimal spinner while Supabase resolves the session
   if (loading) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font)", color: "var(--gray-600)" }}>
@@ -60,13 +57,8 @@ function AppInner() {
     );
   }
 
-  if (page === "login") {
-    return <LoginPage onNavigate={handleAuthNavigate} />;
-  }
-
-  if (page === "signup") {
-    return <SignupPage onNavigate={handleAuthNavigate} />;
-  }
+  if (page === "login") return <LoginPage onNavigate={handleAuthNavigate} />;
+  if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
 
   return (
     <>
@@ -77,34 +69,57 @@ function AppInner() {
           user={user}
           onLogin={() => setPage("login")}
           onSignup={() => setPage("signup")}
-          onShowListingForm = {() => setShowForm(true)}
+          onShowListingForm={() => setShowForm(true)}
           onSignOut={signOut}
         />
-        
-          {showForm && (
-            <dialog 
-              className="modal-overlay" 
-              open
-              onClick={() => setShowForm(false)}
-            >
-              <article className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <button 
-                  className="modal-close" 
-                  onClick={() => setShowForm(false)}
-                  aria-label="Close modal"
-                >
-                  ×
-                </button>
-                <ListingForm onCancel={() => setShowForm(false)} />
-              </article>
-            </dialog>
-          )}
+
+        {/* ── Success toast ── */}
+        {successMessage && (
+          <div style={{
+            position: "fixed",
+            top: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#111",
+            color: "#fff",
+            padding: "12px 24px",
+            borderRadius: 10,
+            fontWeight: 600,
+            fontSize: 14,
+            zIndex: 9999,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+            whiteSpace: "nowrap",
+          }}>
+            {successMessage}
+          </div>
+        )}
+
+        {/* ── Listing form modal ── */}
+        {showForm && (
+          <dialog
+            className="modal-overlay"
+            open
+            onClick={() => setShowForm(false)}
+          >
+            <article className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="modal-close"
+                onClick={() => setShowForm(false)}
+                aria-label="Close modal"
+              >
+                ×
+              </button>
+              <ListingForm
+                onCancel={() => setShowForm(false)}
+                onSuccess={handleListingSuccess}
+              />
+            </article>
+          </dialog>
+        )}
       </header>
 
       <main>
-        <section>
-          <Hero />
-        </section>
+        <section><Hero /></section>
 
         <nav aria-label="Categories">
           <CategoryBar
@@ -122,14 +137,11 @@ function AppInner() {
         </section>
       </main>
 
-      <footer>
-        <Footer />
-      </footer>
+      <footer><Footer /></footer>
     </>
   );
 }
 
-// ── Root — wraps everything in AuthProvider ────────────────
 export default function App() {
   return (
     <AuthProvider>

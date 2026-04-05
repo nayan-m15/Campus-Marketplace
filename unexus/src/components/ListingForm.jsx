@@ -1,9 +1,11 @@
 import { useState, useRef, useCallback } from "react";
 import { CONDITION_COLORS } from "../data/listings";
+import { supabase } from "../supabaseClient";
 import "../styles/ListingForm.css";
 
 const CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"];
 
+// ── Image Upload Zone ────────────────────────────────────────
 function ImageUploadZone({ preview, onChange }) {
   const fileInputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
@@ -67,6 +69,7 @@ function ImageUploadZone({ preview, onChange }) {
   );
 }
 
+// ── Condition Selector ───────────────────────────────────────
 function ConditionSelector({ value, onChange }) {
   return (
     <div className="lf__condition-row" role="radiogroup" aria-label="Item condition">
@@ -95,14 +98,17 @@ function ConditionSelector({ value, onChange }) {
   );
 }
 
-export default function ListingForm({ onSubmit, onCancel }) {
+// ── Main Form ────────────────────────────────────────────────
+export default function ListingForm({ onCancel, onSuccess }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState("");
   const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   const handleImageChange = (file, preview) => {
     setImageFile(file);
@@ -120,20 +126,62 @@ export default function ListingForm({ onSubmit, onCancel }) {
     return next;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
       return;
     }
-    setSubmitted(true);
-    onSubmit?.({
-      imageFile,
-      imagePreview,
-      title: name.trim(),
-      price: `R ${Number(price).toFixed(2)}`,
-      condition,
-    });
+
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      // 1. Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error("You must be logged in to post a listing.");
+
+      // 2. Upload image to Supabase Storage
+      let imageUrl = null;
+      if (imageFile) {
+        const ext = imageFile.name.split(".").pop();
+        const filePath = `${user.id}/${Date.now()}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("listing-images")
+          .upload(filePath, imageFile, { upsert: false });
+
+        if (uploadError) throw new Error("Image upload failed: " + uploadError.message);
+
+        const { data: urlData } = supabase.storage
+          .from("listing-images")
+          .getPublicUrl(filePath);
+
+        imageUrl = urlData.publicUrl;
+      }
+
+      // 3. Insert the listing row — matches your exact schema
+      const { error: insertError } = await supabase
+        .from("listings")
+        .insert({
+          user_id: user.id,
+          title: name.trim(),
+          description: description.trim() || null,
+          price: Number(price),
+          condition,
+          image_url: imageUrl,
+        });
+
+      if (insertError) throw new Error("Failed to save listing: " + insertError.message);
+
+      // 4. Done — notify parent
+      onSuccess?.();
+      onCancel?.();
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const isReady = imagePreview && name.trim() && price && Number(price) > 0 && condition;
@@ -141,6 +189,7 @@ export default function ListingForm({ onSubmit, onCancel }) {
   return (
     <main className="lf__wrapper">
       <article className="lf__card">
+
         {/* ── Header ── */}
         <header className="lf__header">
           <h2 className="lf__title">List an Item</h2>
@@ -155,9 +204,7 @@ export default function ListingForm({ onSubmit, onCancel }) {
 
         {/* ── Item Name ── */}
         <section className="lf__section">
-          <label className="lf__label" htmlFor="lf-name">
-            Item name
-          </label>
+          <label className="lf__label" htmlFor="lf-name">Item name</label>
           <input
             id="lf-name"
             type="text"
@@ -176,11 +223,35 @@ export default function ListingForm({ onSubmit, onCancel }) {
           {errors.name && <p id="lf-name-error" className="lf__error" role="alert">{errors.name}</p>}
         </section>
 
+        {/* ── Description ── */}
+        <section className="lf__section">
+          <label className="lf__label" htmlFor="lf-description">
+            Description{" "}
+            <span style={{ fontWeight: 400, color: "#bbb", textTransform: "none", letterSpacing: 0 }}>
+              (optional)
+            </span>
+          </label>
+          <textarea
+            id="lf-description"
+            className="lf__input"
+            placeholder="Describe the item — age, any wear, what's included, reason for selling…"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={600}
+            rows={3}
+            style={{
+              height: "auto",
+              padding: "10px 14px",
+              resize: "vertical",
+              lineHeight: 1.5,
+              fontFamily: "inherit",
+            }}
+          />
+        </section>
+
         {/* ── Price ── */}
         <section className="lf__section">
-          <label className="lf__label" htmlFor="lf-price">
-            Asking price
-          </label>
+          <label className="lf__label" htmlFor="lf-price">Asking price</label>
           <div className="lf__price-wrap">
             <span className="lf__currency" aria-hidden="true">R</span>
             <input
@@ -204,9 +275,7 @@ export default function ListingForm({ onSubmit, onCancel }) {
 
         {/* ── Condition ── */}
         <section className="lf__section">
-          <label className="lf__label" id="lf-condition-label">
-            Condition
-          </label>
+          <label className="lf__label" id="lf-condition-label">Condition</label>
           <ConditionSelector value={condition} onChange={(c) => {
             setCondition(c);
             setErrors((er) => ({ ...er, condition: undefined }));
@@ -214,23 +283,36 @@ export default function ListingForm({ onSubmit, onCancel }) {
           {errors.condition && <p className="lf__error" role="alert">{errors.condition}</p>}
         </section>
 
+        {/* ── Submit Error ── */}
+        {submitError && (
+          <section className="lf__section">
+            <p className="lf__error" role="alert">⚠️ {submitError}</p>
+          </section>
+        )}
+
         {/* ── Actions ── */}
         <footer className="lf__actions">
           {onCancel && (
-            <button type="button" className="lf__btn lf__btn--ghost" onClick={onCancel}>
+            <button
+              type="button"
+              className="lf__btn lf__btn--ghost"
+              onClick={onCancel}
+              disabled={submitting}
+            >
               Cancel
             </button>
           )}
           <button
             type="button"
-            className={`lf__btn lf__btn--primary ${!isReady ? "lf__btn--disabled" : ""}`}
+            className={`lf__btn lf__btn--primary ${(!isReady || submitting) ? "lf__btn--disabled" : ""}`}
             onClick={handleSubmit}
-            disabled={submitted}
-            aria-disabled={!isReady}
+            disabled={!isReady || submitting}
+            aria-disabled={!isReady || submitting}
           >
-            {submitted ? "Publishing…" : "Publish listing"}
+            {submitting ? "Publishing…" : "Publish listing"}
           </button>
         </footer>
+
       </article>
     </main>
   );
