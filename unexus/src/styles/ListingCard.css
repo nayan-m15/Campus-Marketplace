@@ -209,3 +209,204 @@
   font-size: 14px;
   margin-bottom: 20px;
 }
+
+/* ── Item Details Modal ────────────────────────────────── */
+.item-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.item-modal-content {
+  position: relative;
+  width: min(760px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  border: none;
+  border-radius: 24px;
+  padding: 18px;
+  background: #f3f4f6;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.item-modal-layout { display: block; }
+
+.item-modal-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.item-modal-right-column--full {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.item-modal-top-card,
+.item-modal-bottom-card {
+  width: 100%;
+  box-sizing: border-box;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.item-modal-top-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.item-modal-top-image,
+.item-modal-top-placeholder {
+  width: 110px;
+  height: 110px;
+  border-radius: 16px;
+  object-fit: cover;
+  background: #f7f7f7;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+}
+
+.item-modal-top-text {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.item-modal-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #111827;
+}
+
+.item-modal-condition {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  background: #f3f4f6;
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+.item-modal-price {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #111;
+}
+
+.item-modal-price-prefix {
+  font-size: 15px;
+  font-weight: 500;
+  color: #666;
+}
+
+.item-modal-meta {
+  display: grid;
+  gap: 12px;
+  font-size: 15px;
+  color: #4b5563;
+}
+.item-modal-meta p { margin: 0; }
+
+.item-modal-description {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #ececec;
+}
+.item-modal-description h3 { margin: 0 0 8px; font-size: 16px; color: #111827; }
+.item-modal-description p { margin: 0; font-size: 14px; line-height: 1.6; color: #4b5563; white-space: pre-wrap; }
+
+.item-modal-contact {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #ececec;
+}
+.item-modal-contact h3 { margin: 0 0 8px; font-size: 16px; color: #111827; }
+
+.item-modal-textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  margin-top: 8px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+.item-modal-textarea:focus { border-color: #9ca3af; }
+
+.item-modal-send-btn {
+  background: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: opacity 0.15s;
+}
+.item-modal-send-btn:hover { opacity: 0.88; }
+.item-modal-send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.item-modal-error { color: #b91c1c; font-size: 13px; margin-bottom: 10px; }
+.item-modal-success { color: #15803d; font-size: 13px; margin-bottom: 10px; }
+
+.item-modal-content::-webkit-scrollbar { width: 6px; }
+.item-modal-content::-webkit-scrollbar-track { background: transparent; }
+.item-modal-content::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.28); border-radius: 999px; }
+.item-modal-content::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.45); }
+
+@media (max-width: 900px) {
+  .item-modal-content { width: min(94vw, 94vw); padding: 16px; }
+  .item-modal-top-image, .item-modal-top-placeholder { width: 90px; height: 90px; }
+  .item-modal-title { font-size: 22px; }
+  .item-modal-price { font-size: 22px; }
+}
+
+/* ── Message Seller Button (on card) ───────────────────── */
+.listing-card__msg-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 14px;
+  border-radius: 50px;
+  border: 1.5px solid var(--green);
+  background: transparent;
+  color: var(--green);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.listing-card__msg-btn:hover {
+  background: var(--green);
+  color: #fff;
+  transform: translateY(-1px);
+}

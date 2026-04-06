@@ -1,6 +1,6 @@
 import "../styles/Hero.css";
 import { useState, useEffect, useRef } from "react";
-import { ALL_LISTINGS, CONDITION_COLORS } from "../data/listings";
+import { fetchListings, CONDITION_COLORS } from "../data/listings";
 
 
 export default function Hero() {
@@ -9,7 +9,13 @@ export default function Hero() {
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef(null);
 
-  const topListings = ALL_LISTINGS.slice(0,6); 
+  const [topListings, setTopListings] = useState([]);
+
+  useEffect(() => {
+    fetchListings()
+      .then((data) => setTopListings(data.slice(0, 6)))
+      .catch((err) => console.error("Hero failed to load listings:", err));
+  }, []);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % topListings.length);
@@ -84,33 +90,44 @@ export default function Hero() {
             ["Verified Students"],
             ["Secure Trade Center"],
             ["Safe Payments"],
-          ].map(([icon, label]) => (
+          ].map(([label]) => (
             <li key={label} className="hero__badge">
-              <span>{icon}</span> {label}
+              {label}
             </li>
           ))}
         </ul>
+
+
       </header>
+
+
       {/* Carousel Section */}
-        <section 
-          className="hero__carousel" 
+      {topListings.length === 0 ? (
+        <section className="hero__carousel" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ color: "rgba(255,255,255,0.6)" }}>Loading listings…</p>
+        </section>
+      ) : (
+        <section
+          className="hero__carousel"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
           <section className="carousel-container">
-            <section 
+            <section
               className="carousel-track"
               style={{ transform: `translateX(-${currentSlide * 100}%)` }}
             >
               {topListings.map((listing) => (
                 <article key={listing.id} className="carousel-slide">
                   <article className="listing-card">
-                    
+
                     <figure className="listing-image">
-                      <span className="listing-emoji">{listing.emoji}</span>
-                      <figcaption className="listing-badge">
-                        {listing.category}
-                      </figcaption>
+                      {listing.image_url ? (
+                        <img src={listing.image_url} alt={listing.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <span className="listing-emoji">{listing.emoji}</span>
+                      )}
+                      <figcaption className="listing-badge">{listing.category}</figcaption>
                     </figure>
 
                     <section className="listing-details">
@@ -118,27 +135,23 @@ export default function Hero() {
 
                       <p className="listing-seller-info">
                         <span className="listing-seller">{listing.seller}</span>
-                        <span className="listing-distance">
-                          📍 {listing.distance}
-                        </span>
+                        <span className="listing-distance">📍 {listing.distance}</span>
                       </p>
 
                       <p className="listing-price-condition">
                         <span className="listing-price">{listing.price}</span>
-                        <span 
+                        <span
                           className="listing-condition"
-                          style={{ 
+                          style={{
                             backgroundColor: `${CONDITION_COLORS[listing.condition]}20`,
-                            color: CONDITION_COLORS[listing.condition]
+                            color: CONDITION_COLORS[listing.condition],
                           }}
                         >
                           {listing.condition}
                         </span>
                       </p>
 
-                      <button className="listing-button">
-                        View Details →
-                      </button>
+                      <button className="listing-button">View Details →</button>
                     </section>
 
                   </article>
@@ -146,40 +159,22 @@ export default function Hero() {
               ))}
             </section>
 
-            {/* Navigation Buttons */}
-            <button 
-              className="carousel-nav carousel-nav--prev" 
-              onClick={prevSlide}
-              aria-label="Previous slide"
-            >
-              ‹
-            </button>
+            <button className="carousel-nav carousel-nav--prev" onClick={prevSlide} aria-label="Previous slide">‹</button>
+            <button className="carousel-nav carousel-nav--next" onClick={nextSlide} aria-label="Next slide">›</button>
 
-            <button 
-              className="carousel-nav carousel-nav--next" 
-              onClick={nextSlide}
-              aria-label="Next slide"
-            >
-              ›
-            </button>
-
-            {/* Dots Indicator */}
             <nav className="carousel-dots">
               {topListings.map((_, index) => (
                 <button
-                  key={index}
-                  className={`carousel-dot ${
-                    index === currentSlide ? 'carousel-dot--active' : ''
-                  }`}
+                  key={index}  
+                  className={`carousel-dot ${index === currentSlide ? "carousel-dot--active" : ""}`}
                   onClick={() => goToSlide(index)}
                   aria-label={`Go to slide ${index + 1}`}
                 />
               ))}
             </nav>
-
           </section>
         </section>
-
+      )}
     </section>
   );
 }
