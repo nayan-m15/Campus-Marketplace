@@ -27,11 +27,30 @@ export default function SignupPage({ onNavigate }) {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password);
+    const { data, error } = await signUp(email, password);
     setLoading(false);
 
-    if (error) setError(error.message);
-    else setSuccess(true);
+    if (error) {
+      // Supabase returns a generic message for existing emails to prevent
+      // enumeration — but we can catch the specific case and show a clear message
+      if (
+        error.message?.toLowerCase().includes("already registered") ||
+        error.message?.toLowerCase().includes("user already exists") ||
+        error.status === 422
+      ) {
+        setError("An account with this email already exists. Try signing in instead.");
+      } else {
+        setError(error.message);
+      }
+      return;
+    }
+
+    // Supabase returns a user but with no session when email confirmation is on.
+    // If there's a session it means confirmation is off and they're logged in.
+    if (data?.user && !data?.session) {
+      setSuccess(true);
+    }
+    // If session exists, AuthContext picks it up and App re-renders automatically
   }
 
   async function handleGoogle() {

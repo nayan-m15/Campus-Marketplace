@@ -18,6 +18,18 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null);
+
+        // For Google OAuth sign-ins, ensure a profile row exists.
+        // We only insert the id — ProfileSetupPage will fill the rest.
+        // Using upsert so it's safe to call multiple times.
+        if (event === "SIGNED_IN" && session?.user) {
+          supabase
+            .from("profiles")
+            .upsert({ id: session.user.id }, { onConflict: "id", ignoreDuplicates: true })
+            .then(({ error }) => {
+              if (error) console.error("Profile row ensure error:", error.message);
+            });
+        }
       }
     );
 

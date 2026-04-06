@@ -8,11 +8,20 @@ import Footer from "./components/Footer";
 import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
 import ProfilePage from "./components/ProfilePage";
+import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import { fetchListings } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
+
+// Required fields that must be filled before accessing the app
+const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
+
+function isProfileComplete(profile) {
+  if (!profile) return false;
+  return REQUIRED_PROFILE_FIELDS.every((f) => !!profile[f]);
+}
 
 // ── Item Details Modal ─────────────────────────────────────
 function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
@@ -87,9 +96,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
         content: message.trim(),
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
 
       setMessage("");
       setSendSuccess("Message sent! Opening conversation…");
@@ -267,6 +274,10 @@ function AppInner() {
   const [msgRecipientId, setMsgRecipientId] = useState(null);
   const [msgListingTitle, setMsgListingTitle] = useState(null);
 
+  // Profile setup gate
+  const [profileChecked, setProfileChecked] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState(false);
+
   useEffect(() => {
     fetchListings()
       .then(setAllListings)
@@ -274,19 +285,29 @@ function AppInner() {
       .finally(() => setListingsLoading(false));
   }, []);
 
+  // When user logs in, check if their profile is complete
   useEffect(() => {
     if (!user) {
+      setProfileChecked(false);
+      setNeedsSetup(false);
       setAvatarUrl(null);
       return;
     }
 
     supabase
       .from("profiles")
-      .select("avatar_url")
+      .select("name, sex, birthdate, province, institution, avatar_url")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+        setNeedsSetup(!isProfileComplete(data));
+        setProfileChecked(true);
+      })
+      .catch(() => {
+        // No profile row yet — needs setup
+        setNeedsSetup(true);
+        setProfileChecked(true);
       });
   }, [user]);
 
@@ -330,6 +351,11 @@ function AppInner() {
     setPage("messages");
   }
 
+  function handleSetupComplete() {
+    setNeedsSetup(false);
+    setPage("home");
+  }
+
   function goHome() {
     setPage("home");
     setSearchQuery("");
@@ -339,7 +365,8 @@ function AppInner() {
     setPage("home");
   }
 
-  if (loading) {
+  // Show spinner while auth OR profile check is in progress
+  if (loading || (user && !profileChecked)) {
     return (
       <div
         style={{
@@ -358,6 +385,11 @@ function AppInner() {
 
   if (page === "login") return <LoginPage onNavigate={handleAuthNavigate} />;
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
+
+  // ── Profile setup gate — no navbar, can't escape ──
+  if (user && needsSetup) {
+    return <ProfileSetupPage onComplete={handleSetupComplete} />;
+  }
 
   const navbarProps = {
     searchQuery,
