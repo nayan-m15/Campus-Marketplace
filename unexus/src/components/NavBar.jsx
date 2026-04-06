@@ -11,6 +11,7 @@ export default function Navbar({
   onShowListingForm,
   onProfile,
   onMessages,
+  onHome,
 }) {
   const displayName =
     user?.user_metadata?.full_name ||
@@ -20,11 +21,11 @@ export default function Navbar({
 
   return (
     <header className="navbar">
-      {/* Logo */}
-      <section className="navbar__logo" aria-label="Homepage">
+      {/* Logo — always navigates home */}
+      <button className="navbar__logo" aria-label="Go to homepage" onClick={onHome}>
         <strong className="navbar__logo-icon">UX</strong>
         <span className="navbar__logo-text">Unexus</span>
-      </section>
+      </button>
 
       {/* Search */}
       <form className="navbar__search" role="search" onSubmit={(e) => e.preventDefault()}>

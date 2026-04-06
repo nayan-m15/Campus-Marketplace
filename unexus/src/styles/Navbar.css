@@ -113,3 +113,21 @@
 .navbar__list-btn {
   margin-left: 8px;
 }
+
+/* Logo as button */
+.navbar__logo {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.navbar__logo:hover .navbar__logo-text,
+.navbar__logo:focus .navbar__logo-text {
+  color: var(--gray-900);
+}
+
+.navbar__logo:hover .navbar__logo-icon,
+.navbar__logo:focus .navbar__logo-icon {
+  background: var(--green);
+}
