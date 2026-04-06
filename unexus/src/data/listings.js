@@ -1,6 +1,6 @@
 import { supabase } from "../supabaseClient";
 
-// ─── Static Config ────────────────────────────────────────────────────────────
+// ─── Static Config ─────────────────────────────────────────
 
 export const CATEGORIES = [
   { label: "All Items", emoji: "🛍️" },
@@ -21,7 +21,27 @@ export const CONDITION_COLORS = {
   Fair: "#ef4444",
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Mock fallback (used if Supabase fails) ─────────────────
+
+const MOCK_LISTINGS = [
+  {
+    id: 1,
+    title: "Calculus Textbook 8th Ed.",
+    description: "Good condition university textbook.",
+    price: "R 320",
+    category: "Textbooks",
+    condition: "Good",
+    seller: "Mock User",
+    user_id: "mock-user",
+    approximate_location: "Gauteng",
+    joined_year: 2026,
+    distance: "0.3 km",
+    image_url: null,
+    emoji: "📚",
+  },
+];
+
+// ─── Helpers ───────────────────────────────────────────────
 
 function formatPrice(price) {
   if (price === null || price === undefined) return "R 0";
@@ -35,11 +55,8 @@ function getCategoryEmoji(category) {
 
 function getJoinedYear(createdAt) {
   if (!createdAt) return null;
-
   const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return null;
-
-  return date.getFullYear();
+  return Number.isNaN(date.getTime()) ? null : date.getFullYear();
 }
 
 function getSellerName(profile, userId) {
@@ -56,7 +73,10 @@ function normaliseListing(listing, profile) {
     id: listing.id,
     title: listing.title,
     description: listing.description ?? "",
-    price: formatPrice(listing.price),
+    price:
+      typeof listing.price === "string"
+        ? listing.price
+        : formatPrice(listing.price),
     category,
     condition: listing.condition ?? "Good",
     seller: getSellerName(profile, listing.user_id),
@@ -69,75 +89,60 @@ function normaliseListing(listing, profile) {
   };
 }
 
-// ─── Data Fetching ────────────────────────────────────────────────────────────
+// ─── Main Fetch Function ───────────────────────────────────
 
 export async function fetchListings() {
-  const { data: listings, error: listingsError } = await supabase
-    .from("listings")
-    .select("id, title, description, price, condition, user_id, image_url, category")
-    .order("created_at", { ascending: false });
+  try {
+    const { data: listings, error } = await supabase
+      .from("listings")
+      .select("id, title, description, price, condition, user_id, image_url, category")
+      .order("created_at", { ascending: false });
 
-  console.log("LISTINGS:", listings);
-  console.log("LISTINGS ERROR:", listingsError);
+    if (error) throw error;
 
-  if (listingsError) {
-    console.error("Failed to fetch listings:", listingsError.message);
-    throw listingsError;
-  }
+    const userIds = [
+      ...new Set((listings || []).map((l) => l.user_id).filter(Boolean)),
+    ];
 
-  const userIds = [
-    ...new Set((listings || []).map((listing) => listing.user_id).filter(Boolean)),
-  ];
+    let profilesMap = {};
 
-  console.log("USER IDS:", userIds);
+    if (userIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, display_name, name, province, created_at")
+        .in("id", userIds);
 
-  let profilesMap = {};
-
-  if (userIds.length > 0) {
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id, display_name, name, province, created_at")
-      .in("id", userIds);
-
-    console.log("PROFILES:", profiles);
-    console.log("PROFILES ERROR:", profilesError);
-
-    if (profilesError) {
-      console.error("Failed to fetch profiles:", profilesError.message);
-    } else {
-      profilesMap = Object.fromEntries(
-        profiles.map((profile) => [profile.id, profile])
-      );
+      if (profilesError) {
+        console.error("Failed to fetch profiles:", profilesError.message);
+      } else {
+        profilesMap = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
+      }
     }
+
+    return (listings || []).map((listing) =>
+      normaliseListing(listing, profilesMap[listing.user_id])
+    );
+  } catch (err) {
+    console.error("Using mock listings due to error:", err.message);
+    return MOCK_LISTINGS;
   }
-
-  console.log("PROFILES MAP:", profilesMap);
-
-  const normalisedListings = (listings || []).map((listing) =>
-    normaliseListing(listing, profilesMap[listing.user_id])
-  );
-
-  console.log("NORMALISED LISTINGS:", normalisedListings);
-
-  return normalisedListings;
 }
 
+// ─── Single Listing ────────────────────────────────────────
+
 export async function fetchListingById(id) {
-  const { data: listing, error: listingError } = await supabase
+  const { data: listing, error } = await supabase
     .from("listings")
     .select("id, title, description, price, condition, user_id, image_url, category")
     .eq("id", id)
     .single();
 
-  if (listingError) {
-    console.error("Failed to fetch listing:", listingError.message);
-    throw listingError;
-  }
+  if (error) throw error;
 
   let profile = null;
 
   if (listing.user_id) {
-    const { data: profileData, error: profileError } = await supabase
+    const { data, error: profileError } = await supabase
       .from("profiles")
       .select("id, display_name, name, province, created_at")
       .eq("id", listing.user_id)
@@ -146,7 +151,7 @@ export async function fetchListingById(id) {
     if (profileError) {
       console.error("Failed to fetch seller profile:", profileError.message);
     } else {
-      profile = profileData;
+      profile = data;
     }
   }
 

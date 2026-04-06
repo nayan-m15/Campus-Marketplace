@@ -2,13 +2,14 @@ import ListingCard from "./ListingCard";
 import "../styles/ListingCard.css";
 
 export default function ListingsGrid({
-  listings,
-  searchQuery,
-  activeCategory,
+  listings = [],
+  searchQuery = "",
+  activeCategory = "All Items",
   onListingClick,
+  onMessageSeller,
 }) {
   const heading = searchQuery.trim()
-    ? `Results for "${searchQuery}"`
+    ? `Results for "${searchQuery.trim()}"`
     : activeCategory;
 
   return (
@@ -36,7 +37,9 @@ export default function ListingsGrid({
           <p className="listings-empty__subtitle">
             Be the first to list something in this category!
           </p>
-          <button className="btn-primary">+ List an Item</button>
+          <button className="btn-primary" type="button">
+            + List an Item
+          </button>
         </section>
       ) : (
         <ul className="listings-grid">
@@ -44,10 +47,8 @@ export default function ListingsGrid({
             <li key={item.id}>
               <ListingCard
                 item={item}
-                onClick={() => {
-                  console.log("CLICKED LISTING:", item);
-                  onListingClick({ ...item });
-                }}
+                onClick={() => onListingClick?.({ ...item })}
+                onMessageSeller={onMessageSeller}
               />
             </li>
           ))}

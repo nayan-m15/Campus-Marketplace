@@ -7,13 +7,15 @@ import ListingsGrid from "./components/ListingsGrid";
 import Footer from "./components/Footer";
 import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
+import ProfilePage from "./components/ProfilePage";
+import MessagesPage from "./components/MessagesPage";
 import { fetchListings } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
 
-// ── Item details popup ────────────────────────────────────
-function ListingDetailsModal({ item, onClose }) {
+// ── Item Details Modal ─────────────────────────────────────
+function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
@@ -56,40 +58,46 @@ function ListingDetailsModal({ item, onClose }) {
       return;
     }
 
+    if (!user) {
+      setSendError("You must be logged in to send a message.");
+      setSendSuccess("");
+      return;
+    }
+
+    if (!item.user_id) {
+      setSendError("Seller information is missing.");
+      setSendSuccess("");
+      return;
+    }
+
+    if (user.id === item.user_id) {
+      setSendError("You cannot message yourself about your own listing.");
+      setSendSuccess("");
+      return;
+    }
+
     setSending(true);
     setSendError("");
     setSendSuccess("");
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        throw new Error("You must be logged in to send a message.");
-      }
-
-      if (!item.user_id) {
-        throw new Error("Seller information is missing.");
-      }
-
-      if (user.id === item.user_id) {
-        throw new Error("You cannot message yourself about your own listing.");
-      }
-
-      const { error: insertError } = await supabase.from("messages").insert({
+      const { error } = await supabase.from("messages").insert({
         sender_id: user.id,
         receiver_id: item.user_id,
         content: message.trim(),
       });
 
-      if (insertError) {
-        throw new Error(insertError.message);
+      if (error) {
+        throw new Error(error.message);
       }
 
       setMessage("");
-      setSendSuccess("Message sent successfully.");
+      setSendSuccess("Message sent! Opening conversation…");
+
+      setTimeout(() => {
+        onClose();
+        onMessageSeller(item);
+      }, 1000);
     } catch (err) {
       setSendError(err.message || "Failed to send message.");
     } finally {
@@ -166,7 +174,7 @@ function ListingDetailsModal({ item, onClose }) {
                 </p>
 
                 <p>
-                  <strong>Joined in:</strong> 2026
+                  <strong>Joined in:</strong> {item.joined_year || 2026}
                 </p>
 
                 {item.category && (
@@ -183,30 +191,54 @@ function ListingDetailsModal({ item, onClose }) {
               <div className="item-modal-contact">
                 <h3>Message seller</h3>
 
-                <textarea
-                  className="item-modal-textarea"
-                  placeholder={`Hi, is the ${
-                    item.title || "item"
-                  } still available?`}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={3}
-                />
+                {!user ? (
+                  <p className="item-modal-error">
+                    Please <strong>log in</strong> to message this seller.
+                  </p>
+                ) : (
+                  <>
+                    <textarea
+                      className="item-modal-textarea"
+                      placeholder={`Hi, is the ${
+                        item.title || "item"
+                      } still available?`}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      rows={3}
+                    />
 
-                {sendError && <p className="item-modal-error">{sendError}</p>}
+                    {sendError && (
+                      <p className="item-modal-error">{sendError}</p>
+                    )}
 
-                {sendSuccess && (
-                  <p className="item-modal-success">{sendSuccess}</p>
+                    {sendSuccess && (
+                      <p className="item-modal-success">{sendSuccess}</p>
+                    )}
+
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className="item-modal-send-btn"
+                        onClick={handleSendMessage}
+                        disabled={sending}
+                      >
+                        {sending ? "Sending..." : "Send message"}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="item-modal-send-btn"
+                        style={{ background: "var(--green)" }}
+                        onClick={() => {
+                          onClose();
+                          onMessageSeller(item);
+                        }}
+                      >
+                        Open chat
+                      </button>
+                    </div>
+                  </>
                 )}
-
-                <button
-                  type="button"
-                  className="item-modal-send-btn"
-                  onClick={handleSendMessage}
-                  disabled={sending}
-                >
-                  {sending ? "Sending..." : "Send message"}
-                </button>
               </div>
             </div>
           </div>
@@ -216,7 +248,7 @@ function ListingDetailsModal({ item, onClose }) {
   );
 }
 
-// ── Inner app — has access to AuthContext ──────────────────
+// ── Inner App ──────────────────────────────────────────────
 function AppInner() {
   const { user, loading, signOut } = useAuth();
 
@@ -231,12 +263,32 @@ function AppInner() {
   const [listingsLoading, setListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState(null);
 
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [msgRecipientId, setMsgRecipientId] = useState(null);
+  const [msgListingTitle, setMsgListingTitle] = useState(null);
+
   useEffect(() => {
     fetchListings()
       .then(setAllListings)
       .catch((err) => setListingsError(err.message))
       .finally(() => setListingsLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setAvatarUrl(null);
+      return;
+    }
+
+    supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+      });
+  }, [user]);
 
   const filteredListings = searchQuery.trim()
     ? allListings.filter(
@@ -245,8 +297,8 @@ function AppInner() {
           item.category.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : activeCategory === "All Items"
-        ? allListings
-        : allListings.filter((item) => item.category === activeCategory);
+    ? allListings
+    : allListings.filter((item) => item.category === activeCategory);
 
   function handleCategoryChange(category) {
     setActiveCategory(category);
@@ -265,6 +317,22 @@ function AppInner() {
     fetchListings()
       .then(setAllListings)
       .catch((err) => setListingsError(err.message));
+  }
+
+  function handleMessageSeller(item) {
+    if (!user) {
+      setPage("login");
+      return;
+    }
+
+    setMsgRecipientId(item.user_id || null);
+    setMsgListingTitle(item.title);
+    setPage("messages");
+  }
+
+  function goHome() {
+    setPage("home");
+    setSearchQuery("");
   }
 
   if (!loading && user && (page === "login" || page === "signup")) {
@@ -291,18 +359,58 @@ function AppInner() {
   if (page === "login") return <LoginPage onNavigate={handleAuthNavigate} />;
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
 
+  const navbarProps = {
+    searchQuery,
+    onSearchChange: setSearchQuery,
+    user,
+    avatarUrl,
+    onLogin: () => setPage("login"),
+    onSignup: () => setPage("signup"),
+    onShowListingForm: () => setShowForm(true),
+    onProfile: () => setPage("profile"),
+    onMessages: () => {
+      setMsgRecipientId(null);
+      setMsgListingTitle(null);
+      setPage("messages");
+    },
+    onSignOut: signOut,
+    onHome: goHome,
+  };
+
+  if (page === "profile") {
+    return (
+      <>
+        <header>
+          <Navbar {...navbarProps} />
+        </header>
+        <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} />
+      </>
+    );
+  }
+
+  if (page === "messages") {
+    return (
+      <>
+        <header>
+          <Navbar {...navbarProps} />
+        </header>
+        <MessagesPage
+          initialRecipientId={msgRecipientId}
+          initialListingTitle={msgListingTitle}
+          onBack={() => {
+            setMsgRecipientId(null);
+            setMsgListingTitle(null);
+            goHome();
+          }}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <header>
-        <Navbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          user={user}
-          onLogin={() => setPage("login")}
-          onSignup={() => setPage("signup")}
-          onShowListingForm={() => setShowForm(true)}
-          onSignOut={signOut}
-        />
+        <Navbar {...navbarProps} />
 
         {successMessage && (
           <div
@@ -340,10 +448,10 @@ function AppInner() {
                 className="modal-close"
                 onClick={() => setShowForm(false)}
                 aria-label="Close modal"
+                type="button"
               >
                 ×
               </button>
-
               <ListingForm
                 onCancel={() => setShowForm(false)}
                 onSuccess={handleListingSuccess}
@@ -355,6 +463,8 @@ function AppInner() {
         <ListingDetailsModal
           item={selectedListing}
           onClose={() => setSelectedListing(null)}
+          onMessageSeller={handleMessageSeller}
+          user={user}
         />
       </header>
 
@@ -377,7 +487,7 @@ function AppInner() {
             </p>
           ) : listingsLoading ? (
             <p style={{ padding: "24px 40px", color: "var(--gray-600)" }}>
-              Loading listings...
+              Loading listings…
             </p>
           ) : (
             <ListingsGrid
@@ -385,6 +495,7 @@ function AppInner() {
               searchQuery={searchQuery}
               activeCategory={activeCategory}
               onListingClick={setSelectedListing}
+              onMessageSeller={handleMessageSeller}
             />
           )}
         </section>
