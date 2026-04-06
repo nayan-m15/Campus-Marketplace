@@ -34,7 +34,9 @@ const MOCK_LISTINGS = [
     seller: "Mock User",
     user_id: "mock-user",
     approximate_location: "Gauteng",
+    joined_year: 2026,
     distance: "0.3 km",
+    image_url: null,
     emoji: "📚",
   },
 ];
@@ -71,9 +73,10 @@ function normaliseListing(listing, profile) {
     id: listing.id,
     title: listing.title,
     description: listing.description ?? "",
-    price: typeof listing.price === "string"
-      ? listing.price
-      : formatPrice(listing.price),
+    price:
+      typeof listing.price === "string"
+        ? listing.price
+        : formatPrice(listing.price),
     category,
     condition: listing.condition ?? "Good",
     seller: getSellerName(profile, listing.user_id),
@@ -86,7 +89,7 @@ function normaliseListing(listing, profile) {
   };
 }
 
-// ─── MAIN FETCH FUNCTION (THIS FIXES YOUR ERROR) ───────────
+// ─── Main Fetch Function ───────────────────────────────────
 
 export async function fetchListings() {
   try {
@@ -104,14 +107,16 @@ export async function fetchListings() {
     let profilesMap = {};
 
     if (userIds.length > 0) {
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, display_name, name, province, created_at")
         .in("id", userIds);
 
-      profilesMap = Object.fromEntries(
-        (profiles || []).map((p) => [p.id, p])
-      );
+      if (profilesError) {
+        console.error("Failed to fetch profiles:", profilesError.message);
+      } else {
+        profilesMap = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
+      }
     }
 
     return (listings || []).map((listing) =>
@@ -128,7 +133,7 @@ export async function fetchListings() {
 export async function fetchListingById(id) {
   const { data: listing, error } = await supabase
     .from("listings")
-    .select("*")
+    .select("id, title, description, price, condition, user_id, image_url, category")
     .eq("id", id)
     .single();
 
@@ -137,13 +142,17 @@ export async function fetchListingById(id) {
   let profile = null;
 
   if (listing.user_id) {
-    const { data } = await supabase
+    const { data, error: profileError } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, display_name, name, province, created_at")
       .eq("id", listing.user_id)
       .single();
 
-    profile = data;
+    if (profileError) {
+      console.error("Failed to fetch seller profile:", profileError.message);
+    } else {
+      profile = data;
+    }
   }
 
   return normaliseListing(listing, profile);

@@ -8,7 +8,6 @@ export default function ListingsGrid({
   onListingClick,
   onMessageSeller,
 }) {
-  // Safely trim searchQuery
   const heading = searchQuery.trim()
     ? `Results for "${searchQuery.trim()}"`
     : activeCategory;
@@ -38,7 +37,9 @@ export default function ListingsGrid({
           <p className="listings-empty__subtitle">
             Be the first to list something in this category!
           </p>
-          <button className="btn-primary">+ List an Item</button>
+          <button className="btn-primary" type="button">
+            + List an Item
+          </button>
         </section>
       ) : (
         <ul className="listings-grid">
