@@ -1,18 +1,31 @@
 import { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+
 import Navbar from "./components/NavBar";
 import Hero from "./components/Hero";
 import CategoryBar from "./components/CategoryBar";
 import ListingsGrid from "./components/ListingsGrid";
 import Footer from "./components/Footer";
+
 import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
 import ProfilePage from "./components/ProfilePage";
+import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
+
 import { fetchListings } from "./data/listings";
-import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
+
+import "./styles/index.css";
+
+// ── Profile Completion Logic ───────────────────────────────
+const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
+
+function isProfileComplete(profile) {
+  if (!profile) return false;
+  return REQUIRED_PROFILE_FIELDS.every((f) => !!profile[f]);
+}
 
 // ── Item Details Modal ─────────────────────────────────────
 function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
@@ -54,25 +67,16 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
   async function handleSendMessage() {
     if (!message.trim()) {
       setSendError("Please enter a message.");
-      setSendSuccess("");
       return;
     }
 
     if (!user) {
-      setSendError("You must be logged in to send a message.");
-      setSendSuccess("");
+      setSendError("You must be logged in.");
       return;
     }
 
-    if (!item.user_id) {
-      setSendError("Seller information is missing.");
-      setSendSuccess("");
-      return;
-    }
-
-    if (user.id === item.user_id) {
-      setSendError("You cannot message yourself about your own listing.");
-      setSendSuccess("");
+    if (!item.user_id || user.id === item.user_id) {
+      setSendError("Invalid recipient.");
       return;
     }
 
@@ -87,12 +91,10 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
         content: message.trim(),
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
 
       setMessage("");
-      setSendSuccess("Message sent! Opening conversation…");
+      setSendSuccess("Message sent!");
 
       setTimeout(() => {
         onClose();
@@ -107,142 +109,27 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
 
   return (
     <div className="item-modal-overlay" onClick={onClose}>
-      <article
-        className="item-modal-content"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          className="modal-close"
-          onClick={onClose}
-          aria-label="Close item details"
-          type="button"
-        >
-          ×
-        </button>
+      <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>×</button>
 
-        <section className="item-modal-layout">
-          <div className="item-modal-right-column item-modal-right-column--full">
-            <div className="item-modal-top-card">
-              <div className="item-modal-top-row">
-                {firstImage ? (
-                  <img
-                    src={firstImage}
-                    alt={item.title || "Listing image"}
-                    className="item-modal-top-image"
-                  />
-                ) : (
-                  <div className="item-modal-top-placeholder">
-                    <span>{item.emoji || "📦"}</span>
-                  </div>
-                )}
+        <h2>{item.title}</h2>
+        <p>{item.description}</p>
 
-                <div className="item-modal-top-text">
-                  <h2 className="item-modal-title">
-                    {item.title || "Untitled listing"}
-                  </h2>
+        {user && (
+          <>
+            <textarea
+              placeholder={`Hi, is the ${item.title} still available?`}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+            {sendError && <p className="item-modal-error">{sendError}</p>}
+            {sendSuccess && <p className="item-modal-success">{sendSuccess}</p>}
 
-                  <span className="item-modal-condition">
-                    {item.condition || "Good"}
-                  </span>
-
-                  <p className="item-modal-price">
-                    {item.pricePrefix && (
-                      <span className="item-modal-price-prefix">
-                        {item.pricePrefix}{" "}
-                      </span>
-                    )}
-                    {item.price || "Price not available"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="item-modal-description-card">
-              <h3>Description</h3>
-              <p>{item.description?.trim() || "No description provided."}</p>
-            </div>
-
-            <div className="item-modal-bottom-card">
-              <div className="item-modal-meta">
-                <p>
-                  <strong>Seller:</strong> {item.seller || "Unknown seller"}
-                </p>
-
-                <p>
-                  <strong>Approximate location:</strong>{" "}
-                  {item.approximate_location || "Location not provided"}
-                </p>
-
-                <p>
-                  <strong>Joined in:</strong> {item.joined_year || 2026}
-                </p>
-
-                {item.category && (
-                  <p>
-                    <strong>Category:</strong> {item.category}
-                  </p>
-                )}
-
-                <p>
-                  <strong>Distance:</strong> {item.distance || "0 km"}
-                </p>
-              </div>
-
-              <div className="item-modal-contact">
-                <h3>Message seller</h3>
-
-                {!user ? (
-                  <p className="item-modal-error">
-                    Please <strong>log in</strong> to message this seller.
-                  </p>
-                ) : (
-                  <>
-                    <textarea
-                      className="item-modal-textarea"
-                      placeholder={`Hi, is the ${
-                        item.title || "item"
-                      } still available?`}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      rows={3}
-                    />
-
-                    {sendError && (
-                      <p className="item-modal-error">{sendError}</p>
-                    )}
-
-                    {sendSuccess && (
-                      <p className="item-modal-success">{sendSuccess}</p>
-                    )}
-
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        className="item-modal-send-btn"
-                        onClick={handleSendMessage}
-                        disabled={sending}
-                      >
-                        {sending ? "Sending..." : "Send message"}
-                      </button>
-
-                      <button
-                        type="button"
-                        className="item-modal-send-btn"
-                        style={{ background: "var(--green)" }}
-                        onClick={() => {
-                          onClose();
-                          onMessageSeller(item);
-                        }}
-                      >
-                        Open chat
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
+            <button onClick={handleSendMessage} disabled={sending}>
+              {sending ? "Sending..." : "Send"}
+            </button>
+          </>
+        )}
       </article>
     </div>
   );
@@ -255,6 +142,7 @@ function AppInner() {
   const [page, setPage] = useState("home");
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [searchQuery, setSearchQuery] = useState("");
+
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
   const [selectedListing, setSelectedListing] = useState(null);
@@ -267,6 +155,10 @@ function AppInner() {
   const [msgRecipientId, setMsgRecipientId] = useState(null);
   const [msgListingTitle, setMsgListingTitle] = useState(null);
 
+  const [profileChecked, setProfileChecked] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState(false);
+
+  // Fetch listings
   useEffect(() => {
     fetchListings()
       .then(setAllListings)
@@ -274,19 +166,28 @@ function AppInner() {
       .finally(() => setListingsLoading(false));
   }, []);
 
+  // Profile check
   useEffect(() => {
     if (!user) {
       setAvatarUrl(null);
+      setProfileChecked(false);
+      setNeedsSetup(false);
       return;
     }
 
     supabase
       .from("profiles")
-      .select("avatar_url")
+      .select("name, sex, birthdate, province, institution, avatar_url")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+        setNeedsSetup(!isProfileComplete(data));
+        setProfileChecked(true);
+      })
+      .catch(() => {
+        setNeedsSetup(true);
+        setProfileChecked(true);
       });
   }, [user]);
 
@@ -300,32 +201,15 @@ function AppInner() {
     ? allListings
     : allListings.filter((item) => item.category === activeCategory);
 
-  function handleCategoryChange(category) {
-    setActiveCategory(category);
-    setSearchQuery("");
-  }
-
-  function handleAuthNavigate(target) {
-    setPage(target === "home" ? "home" : target);
-  }
-
-  function handleListingSuccess() {
-    setShowForm(false);
-    setSuccessMessage("🎉 Your listing has been published!");
-    setTimeout(() => setSuccessMessage(null), 4000);
-
-    fetchListings()
-      .then(setAllListings)
-      .catch((err) => setListingsError(err.message));
+  function handleSetupComplete() {
+    setNeedsSetup(false);
+    setPage("home");
   }
 
   function handleMessageSeller(item) {
-    if (!user) {
-      setPage("login");
-      return;
-    }
+    if (!user) return setPage("login");
 
-    setMsgRecipientId(item.user_id || null);
+    setMsgRecipientId(item.user_id);
     setMsgListingTitle(item.title);
     setPage("messages");
   }
@@ -335,29 +219,16 @@ function AppInner() {
     setSearchQuery("");
   }
 
-  if (!loading && user && (page === "login" || page === "signup")) {
-    setPage("home");
+  if (loading || (user && !profileChecked)) {
+    return <div style={{ textAlign: "center", marginTop: 100 }}>Loading...</div>;
   }
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "var(--font)",
-          color: "var(--gray-600)",
-        }}
-      >
-        Loading…
-      </div>
-    );
-  }
+  if (page === "login") return <LoginPage onNavigate={setPage} />;
+  if (page === "signup") return <SignupPage onNavigate={setPage} />;
 
-  if (page === "login") return <LoginPage onNavigate={handleAuthNavigate} />;
-  if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
+  if (user && needsSetup) {
+    return <ProfileSetupPage onComplete={handleSetupComplete} />;
+  }
 
   const navbarProps = {
     searchQuery,
@@ -368,40 +239,19 @@ function AppInner() {
     onSignup: () => setPage("signup"),
     onShowListingForm: () => setShowForm(true),
     onProfile: () => setPage("profile"),
-    onMessages: () => {
-      setMsgRecipientId(null);
-      setMsgListingTitle(null);
-      setPage("messages");
-    },
+    onMessages: () => setPage("messages"),
     onSignOut: signOut,
     onHome: goHome,
   };
 
-  if (page === "profile") {
-    return (
-      <>
-        <header>
-          <Navbar {...navbarProps} />
-        </header>
-        <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} />
-      </>
-    );
-  }
-
   if (page === "messages") {
     return (
       <>
-        <header>
-          <Navbar {...navbarProps} />
-        </header>
+        <Navbar {...navbarProps} />
         <MessagesPage
           initialRecipientId={msgRecipientId}
           initialListingTitle={msgListingTitle}
-          onBack={() => {
-            setMsgRecipientId(null);
-            setMsgListingTitle(null);
-            goHome();
-          }}
+          onBack={goHome}
         />
       </>
     );
@@ -409,101 +259,27 @@ function AppInner() {
 
   return (
     <>
-      <header>
-        <Navbar {...navbarProps} />
+      <Navbar {...navbarProps} />
+      <Hero />
+      <CategoryBar
+        activeCategory={activeCategory}
+        onCategoryChange={setActiveCategory}
+      />
 
-        {successMessage && (
-          <div
-            style={{
-              position: "fixed",
-              top: 20,
-              left: "50%",
-              transform: "translateX(-50%)",
-              background: "#111",
-              color: "#fff",
-              padding: "12px 24px",
-              borderRadius: 10,
-              fontWeight: 600,
-              fontSize: 14,
-              zIndex: 9999,
-              boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {successMessage}
-          </div>
-        )}
+      <ListingsGrid
+        listings={filteredListings}
+        onListingClick={setSelectedListing}
+        onMessageSeller={handleMessageSeller}
+      />
 
-        {showForm && (
-          <dialog
-            className="modal-overlay"
-            open
-            onClick={() => setShowForm(false)}
-          >
-            <article
-              className="modal-content"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                className="modal-close"
-                onClick={() => setShowForm(false)}
-                aria-label="Close modal"
-                type="button"
-              >
-                ×
-              </button>
-              <ListingForm
-                onCancel={() => setShowForm(false)}
-                onSuccess={handleListingSuccess}
-              />
-            </article>
-          </dialog>
-        )}
+      <Footer />
 
-        <ListingDetailsModal
-          item={selectedListing}
-          onClose={() => setSelectedListing(null)}
-          onMessageSeller={handleMessageSeller}
-          user={user}
-        />
-      </header>
-
-      <main>
-        <section>
-          <Hero />
-        </section>
-
-        <nav aria-label="Categories">
-          <CategoryBar
-            activeCategory={activeCategory}
-            onCategoryChange={handleCategoryChange}
-          />
-        </nav>
-
-        <section>
-          {listingsError ? (
-            <p style={{ padding: "24px 40px", color: "crimson" }}>
-              {listingsError}
-            </p>
-          ) : listingsLoading ? (
-            <p style={{ padding: "24px 40px", color: "var(--gray-600)" }}>
-              Loading listings…
-            </p>
-          ) : (
-            <ListingsGrid
-              listings={filteredListings}
-              searchQuery={searchQuery}
-              activeCategory={activeCategory}
-              onListingClick={setSelectedListing}
-              onMessageSeller={handleMessageSeller}
-            />
-          )}
-        </section>
-      </main>
-
-      <footer>
-        <Footer />
-      </footer>
+      <ListingDetailsModal
+        item={selectedListing}
+        onClose={() => setSelectedListing(null)}
+        onMessageSeller={handleMessageSeller}
+        user={user}
+      />
     </>
   );
 }
