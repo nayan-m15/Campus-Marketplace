@@ -10,6 +10,7 @@ export default function Navbar({
   onSignOut,
   onShowListingForm,
   onProfile,
+  onMessages,
 }) {
   const displayName =
     user?.user_metadata?.full_name ||
@@ -26,11 +27,7 @@ export default function Navbar({
       </section>
 
       {/* Search */}
-      <form
-        className="navbar__search"
-        role="search"
-        onSubmit={(e) => e.preventDefault()}
-      >
+      <form className="navbar__search" role="search" onSubmit={(e) => e.preventDefault()}>
         <label className="navbar__search-icon" aria-hidden="true">
           <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" />
@@ -51,7 +48,10 @@ export default function Navbar({
           {user ? (
             <>
               <li>
-                <button className="navbar__link">
+                <button className="navbar__link" onClick={onMessages}>
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
                   Messages
                 </button>
               </li>
@@ -66,13 +66,7 @@ export default function Navbar({
                     <img
                       src={avatarUrl}
                       alt="Profile"
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                        flexShrink: 0,
-                      }}
+                      style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
                     />
                   ) : (
                     <span>👤</span>
@@ -86,6 +80,7 @@ export default function Navbar({
                   Sign Out
                 </button>
               </li>
+
               <li>
                 <button className="btn-primary navbar__list-btn" onClick={onShowListingForm}>
                   <span>+</span> List Item
@@ -95,9 +90,7 @@ export default function Navbar({
           ) : (
             <>
               <li>
-                <button className="navbar__link" onClick={onLogin}>
-                  Log In
-                </button>
+                <button className="navbar__link" onClick={onLogin}>Log In</button>
               </li>
               <li>
                 <button className="btn-primary navbar__list-btn" onClick={onSignup}>

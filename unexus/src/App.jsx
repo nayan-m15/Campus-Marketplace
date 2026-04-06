@@ -8,25 +8,83 @@ import Footer from "./components/Footer";
 import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
 import ProfilePage from "./components/ProfilePage";
-import { ALL_LISTINGS } from "./data/listings";
-import "./styles/index.css";
+import MessagesPage from "./components/MessagesPage";
 import ListingForm from "./components/ListingForm";
+import { fetchListings } from "./data/listings";
 import { supabase } from "./supabaseClient";
+import "./styles/index.css";
 
-// ── Inner app ──────────────────────────────────────────────
+// ── Modal ────────────────────────────────────────────────
+function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
+  if (!item) return null;
+
+  return (
+    <div className="item-modal-overlay" onClick={onClose}>
+      <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>×</button>
+
+        <h2>{item.title}</h2>
+        <p>{item.price}</p>
+        <p>{item.description || "No description provided."}</p>
+
+        <p><strong>Seller:</strong> {item.seller}</p>
+        <p><strong>Location:</strong> {item.approximate_location}</p>
+
+        {user && user.id !== item.user_id && (
+          <button onClick={() => onMessageSeller(item)}>
+            💬 Message Seller
+          </button>
+        )}
+      </article>
+    </div>
+  );
+}
+
+// ── Inner App ────────────────────────────────────────────
 function AppInner() {
   const { user, loading, signOut } = useAuth();
+
   const [page, setPage] = useState("home");
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [successMessage, setSuccessMessage] = useState(null);
+  const [selectedListing, setSelectedListing] = useState(null);
 
-  // ── Lifted avatar state so navbar updates instantly after profile save
+  const [allListings, setAllListings] = useState([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState(null);
+
   const [avatarUrl, setAvatarUrl] = useState(null);
 
+  const [msgRecipientId, setMsgRecipientId] = useState(null);
+  const [msgListingTitle, setMsgListingTitle] = useState(null);
+
+  // ── Fetch listings ─────────────────────────────────────
   useEffect(() => {
-    if (!user) { setAvatarUrl(null); return; }
+    loadListings();
+  }, []);
+
+  async function loadListings() {
+    setListingsLoading(true);
+    setListingsError(null);
+
+    try {
+      const data = await fetchListings();
+      setAllListings(data);
+    } catch (err) {
+      setListingsError(err.message);
+    } finally {
+      setListingsLoading(false);
+    }
+  }
+
+  // ── Load avatar ────────────────────────────────────────
+  useEffect(() => {
+    if (!user) {
+      setAvatarUrl(null);
+      return;
+    }
+
     supabase
       .from("profiles")
       .select("avatar_url")
@@ -37,148 +95,135 @@ function AppInner() {
       });
   }, [user]);
 
+  // ── Filtering ──────────────────────────────────────────
   const filteredListings = searchQuery.trim()
-    ? ALL_LISTINGS.filter(
+    ? allListings.filter(
         (item) =>
           item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.category.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : activeCategory === "All Items"
-    ? ALL_LISTINGS
-    : ALL_LISTINGS.filter((item) => item.category === activeCategory);
+    ? allListings
+    : allListings.filter((item) => item.category === activeCategory);
 
   function handleCategoryChange(category) {
     setActiveCategory(category);
     setSearchQuery("");
   }
 
-  function handleAuthNavigate(target) {
-    setPage(target === "home" ? "home" : target);
-  }
-
   function handleListingSuccess() {
     setShowForm(false);
-    setSuccessMessage("🎉 Your listing has been published!");
-    setTimeout(() => setSuccessMessage(null), 4000);
+    loadListings(); // 🔥 refetch after posting
   }
 
+  function handleMessageSeller(item) {
+    if (!user) {
+      setPage("login");
+      return;
+    }
+    setMsgRecipientId(item.user_id);
+    setMsgListingTitle(item.title);
+    setPage("messages");
+  }
+
+  function openMessages() {
+    setMsgRecipientId(null);
+    setMsgListingTitle(null);
+    setPage("messages");
+  }
+
+  // ── Routing guards ─────────────────────────────────────
   if (!loading && user && (page === "login" || page === "signup")) {
     setPage("home");
   }
 
   if (loading) {
+    return <div style={{ padding: 40 }}>Loading…</div>;
+  }
+
+  if (page === "login") return <LoginPage onNavigate={setPage} />;
+  if (page === "signup") return <SignupPage onNavigate={setPage} />;
+
+  const navbarProps = {
+    searchQuery,
+    onSearchChange: setSearchQuery,
+    user,
+    avatarUrl,
+    onLogin: () => setPage("login"),
+    onSignup: () => setPage("signup"),
+    onShowListingForm: () => setShowForm(true),
+    onProfile: () => setPage("profile"),
+    onMessages: openMessages,
+    onSignOut: signOut,
+  };
+
+  if (page === "profile") {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font)", color: "var(--gray-600)" }}>
-        Loading…
-      </div>
+      <>
+        <Navbar {...navbarProps} />
+        <ProfilePage onBack={() => setPage("home")} onAvatarChange={setAvatarUrl} />
+      </>
     );
   }
 
-  if (page === "login") return <LoginPage onNavigate={handleAuthNavigate} />;
-  if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
-
-  if (page === "profile") return (
-    <>
-      <header>
-        <Navbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          user={user}
-          avatarUrl={avatarUrl}
-          onLogin={() => setPage("login")}
-          onSignup={() => setPage("signup")}
-          onShowListingForm={() => setShowForm(true)}
-          onProfile={() => setPage("profile")}
-          onSignOut={signOut}
+  if (page === "messages") {
+    return (
+      <>
+        <Navbar {...navbarProps} />
+        <MessagesPage
+          initialRecipientId={msgRecipientId}
+          initialListingTitle={msgListingTitle}
+          onBack={() => setPage("home")}
         />
-      </header>
-      <ProfilePage
-        onBack={() => setPage("home")}
-        onAvatarChange={setAvatarUrl}
-      />
-    </>
-  );
+      </>
+    );
+  }
 
   return (
     <>
-      <header>
-        <Navbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          user={user}
-          avatarUrl={avatarUrl}
-          onLogin={() => setPage("login")}
-          onSignup={() => setPage("signup")}
-          onShowListingForm={() => setShowForm(true)}
-          onProfile={() => setPage("profile")}
-          onSignOut={signOut}
+      <Navbar {...navbarProps} />
+
+      <Hero />
+
+      <CategoryBar
+        activeCategory={activeCategory}
+        onCategoryChange={handleCategoryChange}
+      />
+
+      {showForm && (
+        <ListingForm
+          onCancel={() => setShowForm(false)}
+          onSuccess={handleListingSuccess}
         />
+      )}
 
-        {successMessage && (
-          <div style={{
-            position: "fixed",
-            top: 20,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#111",
-            color: "#fff",
-            padding: "12px 24px",
-            borderRadius: 10,
-            fontWeight: 600,
-            fontSize: 14,
-            zIndex: 9999,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-            whiteSpace: "nowrap",
-          }}>
-            {successMessage}
-          </div>
-        )}
+      {listingsError && (
+        <p style={{ color: "red", padding: 20 }}>{listingsError}</p>
+      )}
 
-        {showForm && (
-          <dialog
-            className="modal-overlay"
-            open
-            onClick={() => setShowForm(false)}
-          >
-            <article className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <button
-                className="modal-close"
-                onClick={() => setShowForm(false)}
-                aria-label="Close modal"
-              >
-                ×
-              </button>
-              <ListingForm
-                onCancel={() => setShowForm(false)}
-                onSuccess={handleListingSuccess}
-              />
-            </article>
-          </dialog>
-        )}
-      </header>
+      {listingsLoading ? (
+        <p style={{ padding: 20 }}>Loading listings…</p>
+      ) : (
+        <ListingsGrid
+          listings={filteredListings}
+          onListingClick={setSelectedListing}
+          onMessageSeller={handleMessageSeller}
+        />
+      )}
 
-      <main>
-        <section><Hero /></section>
-        <nav aria-label="Categories">
-          <CategoryBar
-            activeCategory={activeCategory}
-            onCategoryChange={handleCategoryChange}
-          />
-        </nav>
-        <section>
-          <ListingsGrid
-            listings={filteredListings}
-            searchQuery={searchQuery}
-            activeCategory={activeCategory}
-          />
-        </section>
-      </main>
+      <ListingDetailsModal
+        item={selectedListing}
+        onClose={() => setSelectedListing(null)}
+        onMessageSeller={handleMessageSeller}
+        user={user}
+      />
 
-      <footer><Footer /></footer>
+      <Footer />
     </>
   );
 }
 
+// ── Wrapper ──────────────────────────────────────────────
 export default function App() {
   return (
     <AuthProvider>
