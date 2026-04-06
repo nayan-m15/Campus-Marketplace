@@ -39,7 +39,7 @@ function ListingDetailsModal({ item, onClose }) {
   }, [item, onClose]);
 
   if (!item) return null;
-  console.log("SELECTED ITEM:", item);
+
   const images =
     Array.isArray(item.image_urls) && item.image_urls.length > 0
       ? item.image_urls
@@ -107,6 +107,7 @@ function ListingDetailsModal({ item, onClose }) {
           className="modal-close"
           onClick={onClose}
           aria-label="Close item details"
+          type="button"
         >
           ×
         </button>
@@ -118,7 +119,7 @@ function ListingDetailsModal({ item, onClose }) {
                 {firstImage ? (
                   <img
                     src={firstImage}
-                    alt={item.title}
+                    alt={item.title || "Listing image"}
                     className="item-modal-top-image"
                   />
                 ) : (
@@ -128,68 +129,85 @@ function ListingDetailsModal({ item, onClose }) {
                 )}
 
                 <div className="item-modal-top-text">
-                  <h2 className="item-modal-title">{item.title}</h2>
-                  <span className="item-modal-condition">{item.condition}</span>
+                  <h2 className="item-modal-title">
+                    {item.title || "Untitled listing"}
+                  </h2>
+
+                  <span className="item-modal-condition">
+                    {item.condition || "Good"}
+                  </span>
+
                   <p className="item-modal-price">
                     {item.pricePrefix && (
                       <span className="item-modal-price-prefix">
                         {item.pricePrefix}{" "}
                       </span>
                     )}
-                    {item.price}
+                    {item.price || "Price not available"}
                   </p>
                 </div>
               </div>
             </div>
 
+            <div className="item-modal-description-card">
+              <h3>Description</h3>
+              <p>{item.description?.trim() || "No description provided."}</p>
+            </div>
+
             <div className="item-modal-bottom-card">
               <div className="item-modal-meta">
-                <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
+                <p>
+                  <strong>Seller:</strong> {item.seller || "Unknown seller"}
+                </p>
+
                 <p>
                   <strong>Approximate location:</strong>{" "}
                   {item.approximate_location || "Location not provided"}
                 </p>
-                <p><strong>Distance:</strong> {item.distance || "0 km"}</p>
+
+                <p>
+                  <strong>Joined in:</strong> 2026
+                </p>
+
                 {item.category && (
-                  <p><strong>Category:</strong> {item.category}</p>
+                  <p>
+                    <strong>Category:</strong> {item.category}
+                  </p>
                 )}
+
+                <p>
+                  <strong>Distance:</strong> {item.distance || "0 km"}
+                </p>
               </div>
 
-              <div className="item-modal-description">
-                <h3>Description</h3>
-                <p>{item.description?.trim() || "No description provided."}</p>
+              <div className="item-modal-contact">
+                <h3>Message seller</h3>
+
+                <textarea
+                  className="item-modal-textarea"
+                  placeholder={`Hi, is the ${
+                    item.title || "item"
+                  } still available?`}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={3}
+                />
+
+                {sendError && <p className="item-modal-error">{sendError}</p>}
+
+                {sendSuccess && (
+                  <p className="item-modal-success">{sendSuccess}</p>
+                )}
+
+                <button
+                  type="button"
+                  className="item-modal-send-btn"
+                  onClick={handleSendMessage}
+                  disabled={sending}
+                >
+                  {sending ? "Sending..." : "Send message"}
+                </button>
               </div>
-
-             <div className="item-modal-contact">
-  <h3>Message seller</h3>
-
-  <p style={{ marginBottom: "12px", color: "var(--gray-700)" }}>
-    <strong>Joined the platform in:</strong>{" "}
-    {item.joined_year ? item.joined_year : "Unknown"}
-  </p>
-
-  <textarea
-    className="item-modal-textarea"
-    placeholder={`Hi, is "${item.title}" still available?`}
-    value={message}
-    onChange={(e) => setMessage(e.target.value)}
-    rows={4}
-  />
-
-  {sendError && <p className="item-modal-error">{sendError}</p>}
-  {sendSuccess && (
-    <p className="item-modal-success">{sendSuccess}</p>
-  )}
-
-  <button
-    type="button"
-    className="item-modal-send-btn"
-    onClick={handleSendMessage}
-    disabled={sending}
-  >
-    {sending ? "Sending..." : "Send message"}
-  </button>
-</div>
             </div>
           </div>
         </section>
