@@ -814,7 +814,7 @@ const NAV_ITEMS = [
   { key: "transactions", label: "All Transactions",     icon: "📋" },
 ];
 
-export default function TradeFacilityDashboard() {
+export default function TradeFacilityDashboard({onSignOut}) {
   const [activeView,    setActiveView]    = useState("overview");
   const [transactions,  setTransactions]  = useState(INITIAL_TRANSACTIONS);
   const [bookings,      setBookings]      = useState(INITIAL_BOOKINGS);
@@ -940,9 +940,13 @@ export default function TradeFacilityDashboard() {
             <p className="staff-name">Staff · Nomsa</p>
             <p className="staff-email">nomsa@campus.ac.za</p>
           </section>
-          <button className="sidebar__signout-btn" aria-label="Sign out" title="Sign out">
+          {onSignOut && (
+            <button className="sidebar__signout-btn" 
+            onClick={onSignOut}
+            aria-label="Sign out" title="Sign out">
             ⏻
-          </button>
+            </button>
+          )}
         </footer>
       </aside>
 

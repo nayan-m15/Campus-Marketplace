@@ -1278,3 +1278,27 @@ dialog.confirm-dialog::backdrop {
   .bookings-controls { padding-left: 16px; padding-right: 16px; }
   .booking-list { padding-left: 16px; padding-right: 16px; }
 }
+
+/* ── Sidebar sign-out button ── */
+.sidebar__signout-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--gray-400);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sidebar__signout-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
