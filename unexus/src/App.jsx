@@ -14,6 +14,7 @@ import { fetchListings } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
+import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
 
 // Required fields that must be filled before accessing the app
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
@@ -279,6 +280,8 @@ function AppInner() {
   const [profileChecked, setProfileChecked] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
 
+  const[isStaff, setIsStaff] = useState(false); 
+
   useEffect(() => {
     fetchListings()
       .then(setAllListings)
@@ -292,12 +295,13 @@ function AppInner() {
       setProfileChecked(false);
       setNeedsSetup(false);
       setAvatarUrl(null);
+      setIsStaff(false); 
       return;
     }
 
     supabase
       .from("profiles")
-      .select("name, display_name, sex, birthdate, province, institution, avatar_url")
+      .select("name, display_name, sex, birthdate, province, institution, avatar_url, role")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
@@ -305,11 +309,13 @@ function AppInner() {
         if (data?.display_name || data?.name) {            
             setProfileName(data.display_name || data.name);
         }
+        setIsStaff(data?.role === "staff"); 
         setNeedsSetup(!isProfileComplete(data));
         setProfileChecked(true);
       })
       .catch(() => {
         // No profile row yet — needs setup
+        setIsStaff(false); 
         setNeedsSetup(true);
         setProfileChecked(true);
       });
@@ -393,6 +399,10 @@ function AppInner() {
   // ── Profile setup gate — no navbar, can't escape ──
   if (user && needsSetup) {
     return <ProfileSetupPage onComplete={handleSetupComplete} />;
+  }
+
+  if(user && isStaff){
+    return <TradeFacilityDashboard onSignOut={signOut}/>
   }
 
   const navbarProps = {
