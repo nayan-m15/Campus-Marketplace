@@ -10,6 +10,7 @@ import SignupPage from "./components/SignupPage";
 import ProfilePage from "./components/ProfilePage";
 import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
+import AdminDashboard from "./components/AdminDashboard.jsx"; 
 import { fetchListings } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
@@ -278,6 +279,9 @@ function AppInner() {
   const [profileChecked, setProfileChecked] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
 
+  // ── NEW: admin role state ──────────────────────────────
+  const [isAdmin, setIsAdmin] = useState(false);
+
   useEffect(() => {
     fetchListings()
       .then(setAllListings)
@@ -285,27 +289,29 @@ function AppInner() {
       .finally(() => setListingsLoading(false));
   }, []);
 
-  // When user logs in, check if their profile is complete
+  // When user logs in, check profile completeness AND role
   useEffect(() => {
     if (!user) {
       setProfileChecked(false);
       setNeedsSetup(false);
       setAvatarUrl(null);
+      setIsAdmin(false); 
       return;
     }
 
     supabase
       .from("profiles")
-      .select("name, sex, birthdate, province, institution, avatar_url")
+      .select("name, sex, birthdate, province, institution, avatar_url, role") 
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+        setIsAdmin(data?.role === "admin"); 
         setNeedsSetup(!isProfileComplete(data));
         setProfileChecked(true);
       })
       .catch(() => {
-        // No profile row yet — needs setup
+        setIsAdmin(false);
         setNeedsSetup(true);
         setProfileChecked(true);
       });
@@ -389,6 +395,11 @@ function AppInner() {
   // ── Profile setup gate — no navbar, can't escape ──
   if (user && needsSetup) {
     return <ProfileSetupPage onComplete={handleSetupComplete} />;
+  }
+
+  // ── NEW: Admin gate — renders AdminDashboard instead of normal app ──
+  if (user && isAdmin) {
+    return <AdminDashboard onSignOut={signOut} />;
   }
 
   const navbarProps = {

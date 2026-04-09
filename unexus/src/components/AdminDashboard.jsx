@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "../styles/AdminDashboard.css"
+import "../styles/AdminDashboard.css";
 
 // ── Constants ────────────────────────────────────────────────
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -417,7 +417,7 @@ function ReportsPanel() {
 }
 
 // ── Main Component ─────────────────────────────────────────────
-export default function AdminDashboard() {
+export default function AdminDashboard({ onSignOut }) {
   const [activeTab, setActiveTab] = useState("facilities");
   const [facilities, setFacilities] = useState(INITIAL_FACILITIES);
   const [toastVisible, setToastVisible] = useState(false);
@@ -473,6 +473,16 @@ export default function AdminDashboard() {
             <p className="admin-name">Admin User</p>
             <p className="admin-email">admin@un.com</p>
           </hgroup>
+          {onSignOut && (
+            <button
+              className="sidebar__signout-btn"
+              onClick={onSignOut}
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              ⏻
+            </button>
+          )}
         </footer>
       </nav>
 

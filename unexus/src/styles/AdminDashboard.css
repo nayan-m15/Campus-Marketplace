@@ -275,7 +275,7 @@ body {
 }
 
 /* ──────────────────────────────────────────
-   SHARED BUTTON STYLES (from existing CSS)
+   SHARED BUTTON STYLES
 ────────────────────────────────────────── */
 .btn-primary {
   background: var(--green);
@@ -370,7 +370,6 @@ body {
 }
 
 .facility-card--open {
-  border-color: var(--green);
   border-color: rgba(16, 185, 129, 0.4);
 }
 
@@ -931,7 +930,7 @@ body {
 
   .sidebar__brand {
     border-bottom: none;
-    border-right: 1px solid rgba(255,255,255,0.07);
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
     padding: 14px 16px 14px 0;
   }
 
@@ -961,4 +960,28 @@ body {
   .dashboard-topbar {
     padding: 14px 16px;
   }
+}
+
+/* ── Sidebar sign-out button ── */
+.sidebar__signout-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--gray-400);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sidebar__signout-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
 }
