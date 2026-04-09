@@ -106,6 +106,7 @@ function FacilityCard({ facility, onUpdate }) {
   const openDays = DAYS.filter((d) => facility.hours[d].open).length;
 
   return (
+   <section className="AdminDash">
     <article className={`facility-card ${expanded ? "facility-card--open" : ""}`}>
       <header className="facility-card__header" onClick={() => setExpanded(!expanded)}>
         <span className="facility-card__icon">{facility.icon}</span>
@@ -196,6 +197,7 @@ function FacilityCard({ facility, onUpdate }) {
         </section>
       )}
     </article>
+    </section> 
   );
 }
 
@@ -439,7 +441,7 @@ export default function AdminDashboard({ onSignOut }) {
   ];
 
   return (
-    <>
+    <section className="admin-dashboard-wrapper">
       <SaveToast visible={toastVisible} />
 
       {/* Sidebar */}
@@ -508,6 +510,6 @@ export default function AdminDashboard({ onSignOut }) {
         )}
         {activeTab === "reports" && <ReportsPanel />}
       </main>
-    </>
+    </section>
   );
 }
