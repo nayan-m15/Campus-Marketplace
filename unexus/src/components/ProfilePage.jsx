@@ -189,7 +189,7 @@ function CompletionBar({ form, avatarPreview }) {
 }
 
 // ── Main Component ───────────────────────────────────────────
-export default function ProfilePage({ onBack, onAvatarChange }) {
+export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
   const { user } = useAuth();
   const fileInputRef = useRef(null);
 
@@ -322,6 +322,7 @@ export default function ProfilePage({ onBack, onAvatarChange }) {
       );
 
       if (error) throw new Error(error.message);
+      onNameChange?.(form.display_name.trim() || form.name.trim());
       showToast("✅ Profile saved!");
     } catch (err) {
       showToast("⚠️ " + err.message);

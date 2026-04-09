@@ -5,6 +5,7 @@ export default function Navbar({
   onSearchChange,
   user,
   avatarUrl,
+  profileName,
   onLogin,
   onSignup,
   onSignOut,
@@ -14,6 +15,7 @@ export default function Navbar({
   onHome,
 }) {
   const displayName =
+  profileName ||
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     user?.email?.split("@")[0] ||

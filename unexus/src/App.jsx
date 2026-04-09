@@ -271,6 +271,7 @@ function AppInner() {
   const [listingsError, setListingsError] = useState(null);
 
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [profileName, setProfileName] = useState(null);
   const [msgRecipientId, setMsgRecipientId] = useState(null);
   const [msgListingTitle, setMsgListingTitle] = useState(null);
 
@@ -296,11 +297,14 @@ function AppInner() {
 
     supabase
       .from("profiles")
-      .select("name, sex, birthdate, province, institution, avatar_url")
+      .select("name, display_name, sex, birthdate, province, institution, avatar_url")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+        if (data?.display_name || data?.name) {            
+            setProfileName(data.display_name || data.name);
+        }
         setNeedsSetup(!isProfileComplete(data));
         setProfileChecked(true);
       })
@@ -396,6 +400,7 @@ function AppInner() {
     onSearchChange: setSearchQuery,
     user,
     avatarUrl,
+    profileName,
     onLogin: () => setPage("login"),
     onSignup: () => setPage("signup"),
     onShowListingForm: () => setShowForm(true),
@@ -415,7 +420,7 @@ function AppInner() {
         <header>
           <Navbar {...navbarProps} />
         </header>
-        <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} />
+        <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} onNameChange={setProfileName}/>
       </>
     );
   }
