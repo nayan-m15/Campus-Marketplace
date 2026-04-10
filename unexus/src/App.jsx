@@ -60,26 +60,10 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
   const firstImage = images[0] || null;
 
   async function handleSendMessage() {
-    if (!message.trim()) {
-      setSendError("Please enter a message.");
-      setSendSuccess("");
-      return;
-    }
-    if (!user) {
-      setSendError("You must be logged in to send a message.");
-      setSendSuccess("");
-      return;
-    }
-    if (!item.user_id) {
-      setSendError("Seller information is missing.");
-      setSendSuccess("");
-      return;
-    }
-    if (user.id === item.user_id) {
-      setSendError("You cannot message yourself about your own listing.");
-      setSendSuccess("");
-      return;
-    }
+    if (!message.trim()) { setSendError("Please enter a message."); setSendSuccess(""); return; }
+    if (!user) { setSendError("You must be logged in to send a message."); setSendSuccess(""); return; }
+    if (!item.user_id) { setSendError("Seller information is missing."); setSendSuccess(""); return; }
+    if (user.id === item.user_id) { setSendError("You cannot message yourself about your own listing."); setSendSuccess(""); return; }
 
     setSending(true);
     setSendError("");
@@ -91,16 +75,10 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
         receiver_id: item.user_id,
         content: message.trim(),
       });
-
       if (error) throw new Error(error.message);
-
       setMessage("");
       setSendSuccess("Message sent! Opening conversation…");
-
-      setTimeout(() => {
-        onClose();
-        onMessageSeller(item);
-      }, 1000);
+      setTimeout(() => { onClose(); onMessageSeller(item); }, 1000);
     } catch (err) {
       setSendError(err.message || "Failed to send message.");
     } finally {
@@ -109,72 +87,77 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
   }
 
   return (
-    <dialog open onClick={onClose}>
-      <article onClick={(e) => e.stopPropagation()}>
-        <header>
-          <button onClick={onClose}>×</button>
-        </header>
+    <div className="item-modal-overlay" onClick={onClose}>
+      <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Close item details" type="button">×</button>
 
-        <section>
-          <article>
-            <header>
-              <figure>
+        <section className="item-modal-layout">
+          <div className="item-modal-right-column item-modal-right-column--full">
+
+            <div className="item-modal-top-card">
+              <div className="item-modal-top-row">
                 {firstImage ? (
-                  <img src={firstImage} alt={item.title} />
+                  <img src={firstImage} alt={item.title || "Listing image"} className="item-modal-top-image" />
                 ) : (
-                  <figcaption>{item.emoji || "📦"}</figcaption>
+                  <div className="item-modal-top-placeholder"><span>{item.emoji || "📦"}</span></div>
                 )}
-              </figure>
+                <div className="item-modal-top-text">
+                  <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
+                  <span className="item-modal-condition">{item.condition || "Good"}</span>
+                  <p className="item-modal-price">
+                    {item.pricePrefix && <span className="item-modal-price-prefix">{item.pricePrefix} </span>}
+                    {item.price || "Price not available"}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-              <section>
-                <h2>{item.title}</h2>
-                <p>{item.condition}</p>
-                <p>{item.price}</p>
-              </section>
-            </header>
-            </article>
+            <div className="item-modal-description-card">
+              <h3>Description</h3>
+              <p>{item.description?.trim() || "No description provided."}</p>
+            </div>
 
-          <article>
-            <h3>Description</h3>
-            <p>{item.description || "No description"}</p>
-          </article>
+            <div className="item-modal-bottom-card">
+              <div className="item-modal-meta">
+                <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
+                <p><strong>Approximate location:</strong> {item.approximate_location || "Location not provided"}</p>
+                <p><strong>Joined in:</strong> {item.joined_year || 2026}</p>
+                {item.category && <p><strong>Category:</strong> {item.category}</p>}
+                <p><strong>Distance:</strong> {item.distance || "0 km"}</p>
+              </div>
 
-          <article>
-            <section>
-              <p><strong>Seller:</strong> {item.seller}</p>
-              <p><strong>Location:</strong> {item.approximate_location}</p>
-            </section>
+              <div className="item-modal-contact">
+                <h3>Message seller</h3>
+                {!user ? (
+                  <p className="item-modal-error">Please <strong>log in</strong> to message this seller.</p>
+                ) : (
+                  <>
+                    <textarea
+                      className="item-modal-textarea"
+                      placeholder={`Hi, is the ${item.title || "item"} still available?`}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      rows={3}
+                    />
+                    {sendError && <p className="item-modal-error">{sendError}</p>}
+                    {sendSuccess && <p className="item-modal-success">{sendSuccess}</p>}
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button type="button" className="item-modal-send-btn" onClick={handleSendMessage} disabled={sending}>
+                        {sending ? "Sending..." : "Send message"}
+                      </button>
+                      <button type="button" className="item-modal-send-btn" style={{ background: "var(--green)" }} onClick={() => { onClose(); onMessageSeller(item); }}>
+                        Open chat
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
 
-            <aside>
-              <h3>Message seller</h3>
-
-              {!user ? (
-                <p>Login to message</p>
-              ) : (
-                <>
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                  />
-
-                  {sendError && <p>{sendError}</p>}
-                  {sendSuccess && <p>{sendSuccess}</p>}
-
-                  <footer>
-                    <button onClick={handleSendMessage} disabled={sending}>
-                      {sending ? "Sending..." : "Send"}
-                    </button>
-                    <button onClick={() => onMessageSeller(item)}>
-                      Chat
-                    </button>
-                  </footer>
-                </>
-              )}
-            </aside>
-          </article>
+          </div>
         </section>
       </article>
-    </dialog>
+    </div>
   );
 }
 
