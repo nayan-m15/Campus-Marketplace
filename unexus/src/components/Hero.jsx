@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { fetchListings, CONDITION_COLORS } from "../data/listings";
 
 
-export default function Hero() {
+export default function Hero({ onListingClick }) {
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -151,7 +151,9 @@ export default function Hero() {
                         </span>
                       </p>
 
-                      <button className="listing-button">View Details →</button>
+                      <button className="listing-button" onClick={() => onListingClick(listing)}>
+                        View Details →
+                      </button>
                     </section>
 
                   </article>
