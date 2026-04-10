@@ -413,7 +413,7 @@ function AppInner() {
       </header>
 
       <main>
-        <section><Hero /></section>
+        <section><Hero onListingClick={setSelectedListing} /></section>
 
         <nav aria-label="Categories">
           {/* ── All new filter props wired in ── */}
