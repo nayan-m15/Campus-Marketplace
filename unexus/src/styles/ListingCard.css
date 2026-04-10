@@ -550,3 +550,21 @@
   .item-modal-top-row { flex-direction: column; align-items: flex-start; }
   .item-modal-top-image, .item-modal-top-placeholder { width: 100%; max-width: 220px; height: 160px; }
 }
+/* ── Seller name as clickable link (looks like plain text) ─── */
+.listing-card__seller--link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: inherit;
+  color: #888;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline;
+}
+
+.listing-card__seller--link:hover {
+  color: #8FA38A;
+}
