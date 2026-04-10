@@ -26,10 +26,18 @@ function isProfileComplete(profile) {
 
 // ── Item Details Modal ─────────────────────────────────────
 function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(
+    `Hi, is the ${item?.title || "item"} still available?`
+  );
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState("");
+
+  useEffect(() => {
+    if (item) {
+      setMessage(`Hi, is the ${item.title || "item"} still available?`);
+    }
+  }, [item?.id]);
 
   useEffect(() => {
     function handleEscape(e) {
@@ -42,7 +50,6 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
     return () => {
       window.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "";
-      setMessage("");
       setSendError("");
       setSendSuccess("");
     };
@@ -134,7 +141,6 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
                   <>
                     <textarea
                       className="item-modal-textarea"
-                      placeholder={`Hi, is the ${item.title || "item"} still available?`}
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       rows={3}
