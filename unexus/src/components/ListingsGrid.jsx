@@ -1,14 +1,19 @@
 import ListingCard from "./ListingCard";
 import "../styles/ListingCard.css";
 
-export default function ListingsGrid({ listings, searchQuery, activeCategory }) {
+export default function ListingsGrid({
+  listings = [],
+  searchQuery = "",
+  activeCategory = "All Items",
+  onListingClick,
+  onMessageSeller,
+}) {
   const heading = searchQuery.trim()
-    ? `Results for "${searchQuery}"`
+    ? `Results for "${searchQuery.trim()}"`
     : activeCategory;
 
   return (
     <section style={{ padding: "36px 40px", maxWidth: 1280, margin: "0 auto" }}>
-      {/* Section Header */}
       <header style={{ marginBottom: 24 }}>
         <h2
           style={{
@@ -21,12 +26,10 @@ export default function ListingsGrid({ listings, searchQuery, activeCategory }) 
           {heading}
         </h2>
         <p style={{ color: "var(--gray-600)", fontSize: 14, marginTop: 4 }}>
-          ↗ {listings.length} item{listings.length !== 1 ? "s" : ""} available
-          near you
+          ↗ {listings.length} item{listings.length !== 1 ? "s" : ""} available near you
         </p>
       </header>
 
-      {/* Empty State */}
       {listings.length === 0 ? (
         <section className="listings-empty" aria-live="polite">
           <p className="listings-empty__icon">🔍</p>
@@ -34,13 +37,19 @@ export default function ListingsGrid({ listings, searchQuery, activeCategory }) 
           <p className="listings-empty__subtitle">
             Be the first to list something in this category!
           </p>
-          <button className="btn-primary">+ List an Item</button>
+          <button className="btn-primary" type="button">
+            + List an Item
+          </button>
         </section>
       ) : (
         <ul className="listings-grid">
           {listings.map((item) => (
             <li key={item.id}>
-              <ListingCard item={item} />
+              <ListingCard
+                item={item}
+                onClick={() => onListingClick?.({ ...item })}
+                onMessageSeller={onMessageSeller}
+              />
             </li>
           ))}
         </ul>

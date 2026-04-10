@@ -1,3 +1,7 @@
+import { supabase } from "../supabaseClient";
+
+// ─── Static Config ─────────────────────────────────────────
+
 export const CATEGORIES = [
   { label: "All Items", emoji: "🛍️" },
   { label: "Textbooks", emoji: "📚" },
@@ -17,135 +21,141 @@ export const CONDITION_COLORS = {
   Fair: "#ef4444",
 };
 
-export const ALL_LISTINGS = [
+export const CONDITIONS = ["All Conditions", ...Object.keys(CONDITION_COLORS)];
+
+// ─── Mock fallback (used if Supabase fails) ─────────────────
+
+const MOCK_LISTINGS = [
   {
     id: 1,
     title: "Calculus Textbook 8th Ed.",
+    description: "Good condition university textbook.",
     price: "R 320",
     category: "Textbooks",
     condition: "Good",
-    seller: "Thabo M.",
+    seller: "Mock User",
+    user_id: "mock-user",
+    approximate_location: "Gauteng",
+    joined_year: 2026,
     distance: "0.3 km",
+    image_url: null,
     emoji: "📚",
-  },
-  {
-    id: 2,
-    title: "Dell Laptop i5 16GB RAM",
-    price: "R 7,500",
-    category: "Electronics",
-    condition: "Excellent",
-    seller: "Priya K.",
-    distance: "1.1 km",
-    emoji: "💻",
-  },
-  {
-    id: 3,
-    title: "Study Desk & Chair Set",
-    price: "R 950",
-    category: "Furniture",
-    condition: "Fair",
-    seller: "Lebo N.",
-    distance: "0.6 km",
-    emoji: "🛋️",
-  },
-  {
-    id: 4,
-    title: "Nike Tracksuit (M)",
-    price: "R 480",
-    category: "Clothing",
-    condition: "Like New",
-    seller: "James T.",
-    distance: "0.2 km",
-    emoji: "👕",
-  },
-  {
-    id: 5,
-    title: "Biology: Life on Earth",
-    price: "R 210",
-    category: "Textbooks",
-    condition: "Good",
-    seller: "Ama D.",
-    distance: "0.4 km",
-    emoji: "📚",
-  },
-  {
-    id: 6,
-    title: "Introduction to Economics",
-    price: "R 180",
-    category: "Textbooks",
-    condition: "Fair",
-    seller: "Ryan P.",
-    distance: "0.8 km",
-    emoji: "📚",
-  },
-  {
-    id: 7,
-    title: "Apple iPad Air 2023",
-    price: "R 12,000",
-    category: "Electronics",
-    condition: "Excellent",
-    seller: "Sarah L.",
-    distance: "0.5 km",
-    emoji: "💻",
-  },
-  {
-    id: 8,
-    title: "Sony WH-1000XM4 Headphones",
-    price: "R 3,200",
-    category: "Electronics",
-    condition: "Like New",
-    seller: "Mike W.",
-    distance: "0.9 km",
-    emoji: "🎧",
-  },
-  {
-    id: 9,
-    title: "Bookshelf (5 Shelves)",
-    price: "R 550",
-    category: "Furniture",
-    condition: "Good",
-    seller: "Nomsa V.",
-    distance: "1.2 km",
-    emoji: "🛋️",
-  },
-  {
-    id: 10,
-    title: "Puffer Jacket (L)",
-    price: "R 600",
-    category: "Clothing",
-    condition: "Like New",
-    seller: "Keanu M.",
-    distance: "0.3 km",
-    emoji: "🧥",
-  },
-  {
-    id: 11,
-    title: 'Mountain Bike 26"',
-    price: "R 2,800",
-    category: "Sports",
-    condition: "Good",
-    seller: "Tumi B.",
-    distance: "1.5 km",
-    emoji: "🚵",
-  },
-  {
-    id: 12,
-    title: "Acoustic Guitar + Case",
-    price: "R 1,400",
-    category: "Instruments",
-    condition: "Good",
-    seller: "Cara H.",
-    distance: "0.7 km",
-    emoji: "🎸",
-  },
-  {
-    id: 13,
-    title: "Mini Fridge (60L)",
-    price: "R 1,100",
-    category: "Other",
-    condition: "Fair",
-    seller: "Joe K.",
-    distance: "0.4 km",
-    emoji: "🧊",
   },
 ];
+
+// ─── Helpers ───────────────────────────────────────────────
+
+function formatPrice(price) {
+  if (price === null || price === undefined) return "R 0";
+  return `R ${Number(price).toLocaleString("en-ZA")}`;
+}
+
+function getCategoryEmoji(category) {
+  const match = CATEGORIES.find((c) => c.label === category);
+  return match ? match.emoji : "📦";
+}
+
+function getJoinedYear(createdAt) {
+  if (!createdAt) return null;
+  const date = new Date(createdAt);
+  return Number.isNaN(date.getTime()) ? null : date.getFullYear();
+}
+
+function getSellerName(profile, userId) {
+  if (profile?.display_name?.trim()) return profile.display_name;
+  if (profile?.name?.trim()) return profile.name;
+  if (userId) return userId.slice(0, 8);
+  return "Unknown";
+}
+
+function normaliseListing(listing, profile) {
+  const category = listing.category ?? "Other";
+
+  return {
+    id: listing.id,
+    title: listing.title,
+    description: listing.description ?? "",
+    price:
+      typeof listing.price === "string"
+        ? listing.price
+        : formatPrice(listing.price),
+    category,
+    condition: listing.condition ?? "Good",
+    seller: getSellerName(profile, listing.user_id),
+    user_id: listing.user_id,
+    approximate_location: profile?.province ?? "Location not provided",
+    joined_year: getJoinedYear(profile?.created_at),
+    distance: "0 km",
+    image_url: listing.image_url ?? null,
+    emoji: listing.image_url ? null : getCategoryEmoji(category),
+  };
+}
+
+// ─── Main Fetch Function ───────────────────────────────────
+
+export async function fetchListings() {
+  try {
+    const { data: listings, error } = await supabase
+      .from("listings")
+      .select("id, title, description, price, condition, user_id, image_url, category")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    const userIds = [
+      ...new Set((listings || []).map((l) => l.user_id).filter(Boolean)),
+    ];
+
+    let profilesMap = {};
+
+    if (userIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, display_name, name, province, created_at")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.error("Failed to fetch profiles:", profilesError.message);
+      } else {
+        profilesMap = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
+      }
+    }
+
+    return (listings || []).map((listing) =>
+      normaliseListing(listing, profilesMap[listing.user_id])
+    );
+  } catch (err) {
+    console.error("Using mock listings due to error:", err.message);
+    return MOCK_LISTINGS;
+  }
+}
+
+// ─── Single Listing ────────────────────────────────────────
+
+export async function fetchListingById(id) {
+  const { data: listing, error } = await supabase
+    .from("listings")
+    .select("id, title, description, price, condition, user_id, image_url, category")
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+
+  let profile = null;
+
+  if (listing.user_id) {
+    const { data, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, display_name, name, province, created_at")
+      .eq("id", listing.user_id)
+      .single();
+
+    if (profileError) {
+      console.error("Failed to fetch seller profile:", profileError.message);
+    } else {
+      profile = data;
+    }
+  }
+
+  return normaliseListing(listing, profile);
+}

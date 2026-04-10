@@ -14,26 +14,21 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
 
-    // Listen for auth changes (login, logout, Google OAuth, token refresh)
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log("Auth event:", event);
-        console.log("Session user:", session?.user);
         setUser(session?.user ?? null);
 
-        // Insert or update user in public.users on every sign in
+        // For Google OAuth sign-ins, ensure a profile row exists.
+        // We only insert the id — ProfileSetupPage will fill the rest.
+        // Using upsert so it's safe to call multiple times.
         if (event === "SIGNED_IN" && session?.user) {
-          const { email, user_metadata } = session.user;
-          supabase.from("users").upsert(
-            {
-              name: user_metadata?.full_name || user_metadata?.name || email.split("@")[0],
-              email: email,
-              created_at: new Date().toISOString(),
-            },
-            { onConflict: "email" }
-          ).then(({ error }) => {
-            if (error) console.error("Error upserting user:", error.message);
-          });
+          supabase
+            .from("profiles")
+            .upsert({ id: session.user.id }, { onConflict: "id", ignoreDuplicates: true })
+            .then(({ error }) => {
+              if (error) console.error("Profile row ensure error:", error.message);
+            });
         }
       }
     );
@@ -43,16 +38,6 @@ export function AuthProvider({ children }) {
 
   const signUp = async (email, password) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
-
-    // Insert into public.users immediately after signup
-    if (!error && data.user) {
-      await supabase.from("users").insert({
-        name: email.split("@")[0],
-        email: email,
-        created_at: new Date().toISOString(),
-      });
-    }
-
     return { data, error };
   };
 

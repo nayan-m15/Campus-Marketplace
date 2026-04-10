@@ -1,0 +1,451 @@
+.lf__wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px 40px;
+}
+
+/* ── Card Shell ──────────────────────────────────────────────── */
+.lf__card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07), 0 4px 20px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 480px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.lf__header {
+  padding: 24px 24px 0;
+  margin-bottom: 20px;
+}
+
+.lf__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 4px;
+  line-height: 1.25;
+}
+
+.lf__subtitle {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+}
+
+/* ── Section Spacing ─────────────────────────────────────────── */
+.lf__section {
+  padding: 0 24px 18px;
+}
+
+/* ── Image Upload Zone ───────────────────────────────────────── */
+.lf__image-zone {
+  position: relative;
+  width: 100%;
+  padding-top: 62%; /* close to the card's 4:3 feel */
+  border-radius: 14px;
+  border: 2px dashed #e0e0e0;
+  background: #f9f9f9;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.lf__image-zone:hover,
+.lf__image-zone:focus-visible {
+  border-color: #f4a120;
+  background: #fffaf3;
+  outline: none;
+}
+
+.lf__image-zone--drag {
+  border-color: #f4a120;
+  background: #fffaf3;
+}
+
+.lf__image-zone--filled {
+  border-style: solid;
+  border-color: #e8e8e8;
+}
+
+/* Upload prompt (empty state) */
+.lf__upload-prompt {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px;
+}
+
+.lf__upload-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.lf__upload-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+}
+
+.lf__upload-hint {
+  font-size: 11.5px;
+  color: #aaa;
+  text-align: center;
+}
+
+/* Preview image */
+.lf__image-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 12px;
+}
+
+/* Hover overlay on filled zone */
+.lf__image-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.lf__image-zone--filled:hover .lf__image-overlay {
+  opacity: 1;
+}
+
+.lf__image-overlay-icon {
+  font-size: 24px;
+}
+
+.lf__image-overlay-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Hidden native input */
+.lf__file-input {
+  display: none;
+}
+
+/* ── Field Label ─────────────────────────────────────────────── */
+.lf__label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 7px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ── Text / Number Input ─────────────────────────────────────── */
+.lf__input {
+  width: 100%;
+  height: 44px;
+  border: 1.5px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 14px;
+  color: #111;
+  background: #fafafa;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  -moz-appearance: textfield;
+}
+
+.lf__input::-webkit-inner-spin-button,
+.lf__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.lf__input::placeholder {
+  color: #c0c0c0;
+}
+
+.lf__input:hover {
+  border-color: #ccc;
+  background: #fff;
+}
+
+.lf__input:focus {
+  border-color: #f4a120;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(244, 161, 32, 0.12);
+}
+
+.lf__input--error {
+  border-color: #e44;
+  background: #fff8f8;
+}
+
+.lf__input--error:focus {
+  border-color: #e44;
+  box-shadow: 0 0 0 3px rgba(238, 68, 68, 0.1);
+}
+
+/* ── Price Field ─────────────────────────────────────────────── */
+.lf__price-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lf__currency {
+  position: absolute;
+  left: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  pointer-events: none;
+  user-select: none;
+}
+
+.lf__input--price {
+  padding-left: 28px;
+}
+
+/* ── Error Message ───────────────────────────────────────────── */
+.lf__error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #e44;
+}
+
+/* ── Condition Badge Selector ────────────────────────────────── */
+.lf__condition-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lf__condition-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #e0e0e0;
+  background: transparent;
+  color: #bbb;
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s, border-color 0.16s, transform 0.12s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.lf__condition-badge:hover {
+  border-color: var(--badge-color, #999);
+  color: var(--badge-color, #666);
+  background: var(--badge-bg, transparent);
+}
+
+.lf__condition-badge--selected {
+  background: var(--badge-bg, #eee);
+  color: var(--badge-color, #333);
+  border-color: var(--badge-border, #bbb);
+  transform: scale(1.04);
+}
+
+/* ── Action Buttons ──────────────────────────────────────────── */
+.lf__actions {
+  padding: 4px 24px 24px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.lf__btn {
+  height: 44px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.18s, transform 0.12s, opacity 0.18s;
+  padding: 0 24px;
+  outline: none;
+}
+
+.lf__btn:active {
+  transform: scale(0.97);
+}
+
+/* Ghost / cancel */
+.lf__btn--ghost {
+  background: #f3f3f3;
+  color: #666;
+}
+
+.lf__btn--ghost:hover {
+  background: #ebebeb;
+}
+
+/* Primary / submit */
+.lf__btn--primary {
+  background: #f4a120;
+  color: #fff;
+  flex: 1;
+}
+
+.lf__btn--primary:hover:not(.lf__btn--disabled) {
+  background: #e0921a;
+}
+
+.lf__btn--primary:focus-visible {
+  box-shadow: 0 0 0 3px rgba(244, 161, 32, 0.3);
+}
+
+/* Disabled state */
+.lf__btn--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Divider between sections ────────────────────────────────── */
+.lf__section + .lf__section {
+  border-top: 1px solid #f4f4f4;
+  padding-top: 18px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .lf__wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+}
+
+  .lf__card {
+    border-radius: 16px;
+    max-width: 100%;
+  }
+
+  .lf__header {
+    padding: 20px 18px 0;
+  }
+
+  .lf__section {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .lf__actions {
+    padding: 4px 18px 20px;
+    flex-direction: column;
+  }
+
+  .lf__btn {
+    width: 100%;
+  }
+
+  .lf__condition-row {
+    gap: 6px;
+  }
+}
+
+/* Modal overlay - dark background behind the popup */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  margin: 0;
+  padding: 10px 24px 24px;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+}
+.modal-overlay::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* Modal content container */
+.modal-content {
+  position: relative;
+  background: transparent;
+  border: none;
+  padding: 24px 0 0;
+  margin: 0;
+  width: auto;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  scrollbar-width: thin;              /* Firefox */
+  scrollbar-color: #cfcfcf transparent;
+}
+
+/* Chrome, Edge, Safari */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: -18px;
+  z-index: 20;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 999px;
+  background: white;
+  color: #222;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.modal-close:hover {
+  background: #f5f5f5;
+}
+.draggable-modal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0);
+  width: 500px;
+  max-width: 90%;
+  cursor: default;
+}

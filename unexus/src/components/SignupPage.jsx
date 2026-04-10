@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { supabase } from "../supabaseClient";
 import "../styles/Auth.css";
 
 export default function SignupPage({ onNavigate }) {
@@ -14,37 +13,45 @@ export default function SignupPage({ onNavigate }) {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   async function handleSubmit(e) {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
 
-  if (password !== confirm) {
-    setError("Passwords do not match.");
-    return;
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    const { data, error } = await signUp(email, password);
+    setLoading(false);
+
+    if (error) {
+      // Supabase returns a generic message for existing emails to prevent
+      // enumeration — but we can catch the specific case and show a clear message
+      if (
+        error.message?.toLowerCase().includes("already registered") ||
+        error.message?.toLowerCase().includes("user already exists") ||
+        error.status === 422
+      ) {
+        setError("An account with this email already exists. Try signing in instead.");
+      } else {
+        setError(error.message);
+      }
+      return;
+    }
+
+    // Supabase returns a user but with no session when email confirmation is on.
+    // If there's a session it means confirmation is off and they're logged in.
+    if (data?.user && !data?.session) {
+      setSuccess(true);
+    }
+    // If session exists, AuthContext picks it up and App re-renders automatically
   }
-  if (password.length < 6) {
-    setError("Password must be at least 6 characters.");
-    return;
-  }
-
-  // Check if email already exists in your users table
-  const { data: existingUser } = await supabase
-    .from("users")
-    .select("email")
-    .eq("email", email)
-    .single();
-
-  if (existingUser) {
-    setError("Email rate limit exceeded.");
-    return;
-  }
-
-  setLoading(true);
-  const { error } = await signUp(email, password);
-  setLoading(false);
-
-  if (error) setError(error.message);
-  else setSuccess(true);
-}
 
   async function handleGoogle() {
     setError("");
@@ -77,7 +84,7 @@ export default function SignupPage({ onNavigate }) {
       <div className="auth-card">
         {/* Logo */}
         <div className="auth-logo">
-          <span className="auth-logo__icon">UX</span>
+          <span className="auth-logo__icon"><img src="/favicon.png" alt="UX Logo" className="navbar__logo-img" /></span>
           <span className="auth-logo__text">Unexus</span>
         </div>
 
