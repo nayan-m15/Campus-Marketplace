@@ -14,6 +14,7 @@ export default function Navbar({
   onProfile,
   onMessages,
   onHome,
+  onYourListings,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -117,7 +118,7 @@ export default function Navbar({
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => { onShowListingForm?.(); setMenuOpen(false); }}>
+                    <button onClick={() => { onYourListings?.(); setMenuOpen(false); }}>
                       Your Listings
                     </button>
                   </li>

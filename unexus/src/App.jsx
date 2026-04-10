@@ -16,7 +16,7 @@ import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
 import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
-
+import YourListingsPage from "./components/YourListingsPage";
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
 function isProfileComplete(profile) {
@@ -197,6 +197,7 @@ function AppInner() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
 
+
   useEffect(() => {
     fetchListings()
       .then(setAllListings)
@@ -359,6 +360,7 @@ if (priceSort === "newest")         result = [...result].sort((a, b) => new Date
     },
     onSignOut: signOut,
     onHome: goHome,
+    onYourListings: () => setPage("yourlistings"),
   };
 
   if (page === "profile") {
@@ -383,6 +385,14 @@ if (priceSort === "newest")         result = [...result].sort((a, b) => new Date
             goHome();
           }}
         />
+      </>
+    );
+  }
+    if (page === "yourlistings") {
+    return (
+      <>
+        <header><Navbar {...navbarProps} /></header>
+        <YourListingsPage onBack={goHome} />
       </>
     );
   }
