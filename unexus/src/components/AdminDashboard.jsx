@@ -2,6 +2,7 @@ import { useState } from "react";
 import "../styles/AdminDashboard.css";
 import { supabase } from "../supabaseClient";
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // ── Constants (Marketplace Reports) ─────────────────────────────
 const MARKETPLACE_REPORT_TYPES = [
@@ -318,16 +319,85 @@ function ReportsPanel() {
   };
 
   const downloadPDF = () => {
-    const doc = new jsPDF();
-    let y = 10;
+  if (!reportData.length) return;
 
-    reportData.forEach((row) => {
-      doc.text(JSON.stringify(row), 10, y);
-      y += 10;
-    });
+  const doc = new jsPDF();
 
-    doc.save("report.pdf");
-  };
+  // ── Title ─────────────────────────────
+  doc.setFontSize(18);
+  doc.text("Unexus Marketplace Report", 14, 20);
+
+  // ── Subtitle (Report Type) ────────────
+  doc.setFontSize(12);
+  doc.text(
+    MARKETPLACE_REPORT_TYPES.find(r => r.value === reportType)?.label || "",
+    14,
+    28
+  );
+
+  // ── Date Info ─────────────────────────
+  doc.setFontSize(10);
+  doc.text(
+    `Date Range: ${dateFrom} to ${dateTo}`,
+    14,
+    34
+  );
+  doc.text(
+    `Generated: ${new Date().toLocaleDateString()}`,
+    14,
+    40
+  );
+
+  // ── Table Data ────────────────────────
+  const columns = Object.keys(reportData[0]);
+  const rows = reportData.map(row => columns.map(col => row[col]));
+
+  autoTable(doc, {
+    startY: 45,
+    head: [columns],
+    body: rows,
+
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+    },
+
+    headStyles: {
+      fillColor: [41, 128, 185], // blue header
+      textColor: 255,
+      halign: "center",
+    },
+
+    bodyStyles: {
+      halign: "center",
+    },
+
+    alternateRowStyles: {
+      fillColor: [245, 245, 245],
+    },
+
+    margin: { top: 45 },
+  });
+
+  // ── Footer ────────────────────────────
+  const pageHeight = doc.internal.pageSize.height;
+
+  doc.setFontSize(9);
+  doc.text(
+    "Unexus Reporting System",
+    14,
+    pageHeight - 10
+  );
+
+  doc.text(
+    `Page 1`,
+    pageHeight - 20,
+    pageHeight - 10
+  );
+
+  // ── Save ──────────────────────────────
+  doc.save(`report-${reportType}.pdf`);
+};
 
   const handleDownload = () => {
     if (format === "csv") downloadCSV();
