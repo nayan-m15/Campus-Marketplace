@@ -2,8 +2,7 @@ import "../styles/Hero.css";
 import { useState, useEffect, useRef } from "react";
 import { fetchListings, CONDITION_COLORS } from "../data/listings";
 
-
-export default function Hero({ onListingClick }) {
+export default function Hero({ onListingClick, onBrowseClick }) {
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -29,14 +28,13 @@ export default function Hero({ onListingClick }) {
     setCurrentSlide(index);
   };
 
-  
   useEffect(() => {
     if (!isPaused) {
       intervalRef.current = setInterval(() => {
         nextSlide();
-      }, 4000); 
+      }, 4000);
     }
-    
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -44,16 +42,8 @@ export default function Hero({ onListingClick }) {
     };
   }, [isPaused, currentSlide]);
 
-  // Pause on hover
-  const handleMouseEnter = () => {
-    setIsPaused(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsPaused(false);
-  };
-
-
+  const handleMouseEnter = () => setIsPaused(true);
+  const handleMouseLeave = () => setIsPaused(false);
 
   return (
     <section className="hero">
@@ -74,6 +64,7 @@ export default function Hero({ onListingClick }) {
           <button
             className="btn-primary"
             style={{ fontSize: 15, padding: "13px 28px" }}
+            onClick={onBrowseClick}
           >
             Start Browsing →
           </button>
@@ -96,10 +87,7 @@ export default function Hero({ onListingClick }) {
             </li>
           ))}
         </ul>
-
-
       </header>
-
 
       {/* Carousel Section */}
       {topListings.length === 0 ? (
@@ -167,7 +155,7 @@ export default function Hero({ onListingClick }) {
             <nav className="carousel-dots">
               {topListings.map((_, index) => (
                 <button
-                  key={index}  
+                  key={index}
                   className={`carousel-dot ${index === currentSlide ? "carousel-dot--active" : ""}`}
                   onClick={() => goToSlide(index)}
                   aria-label={`Go to slide ${index + 1}`}
