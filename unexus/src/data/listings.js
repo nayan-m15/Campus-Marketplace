@@ -21,6 +21,8 @@ export const CONDITION_COLORS = {
   Fair: "#ef4444",
 };
 
+export const CONDITIONS = ["All Conditions", ...Object.keys(CONDITION_COLORS)];
+
 // ─── Mock fallback (used if Supabase fails) ─────────────────
 
 const MOCK_LISTINGS = [

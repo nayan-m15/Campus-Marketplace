@@ -25,7 +25,7 @@ export default function Navbar({
     <header className="navbar">
       {/* Logo — always navigates home */}
       <button className="navbar__logo" aria-label="Go to homepage" onClick={onHome}>
-        <strong className="navbar__logo-icon">UX</strong>
+        <strong className="navbar__logo-icon"><img src="/favicon.png" alt="UX Logo" className="navbar__logo-img" /></strong>
         <span className="navbar__logo-text">Unexus</span>
       </button>
 

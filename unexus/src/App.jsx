@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Navbar from "./components/NavBar";
 import Hero from "./components/Hero";
-import CategoryBar from "./components/CategoryBar";
+import CategoryBar from "./components/FilterBar.jsx";
 import ListingsGrid from "./components/ListingsGrid";
 import Footer from "./components/Footer";
 import LoginPage from "./components/LoginPage";
@@ -10,12 +10,13 @@ import SignupPage from "./components/SignupPage";
 import ProfilePage from "./components/ProfilePage";
 import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
+import AdminDashboard from "./components/AdminDashboard.jsx";
 import { fetchListings } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
+import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
 
-// Required fields that must be filled before accessing the app
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
 function isProfileComplete(profile) {
@@ -34,12 +35,10 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
     function handleEscape(e) {
       if (e.key === "Escape") onClose();
     }
-
     if (item) {
       window.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
     }
-
     return () => {
       window.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "";
@@ -61,29 +60,10 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
   const firstImage = images[0] || null;
 
   async function handleSendMessage() {
-    if (!message.trim()) {
-      setSendError("Please enter a message.");
-      setSendSuccess("");
-      return;
-    }
-
-    if (!user) {
-      setSendError("You must be logged in to send a message.");
-      setSendSuccess("");
-      return;
-    }
-
-    if (!item.user_id) {
-      setSendError("Seller information is missing.");
-      setSendSuccess("");
-      return;
-    }
-
-    if (user.id === item.user_id) {
-      setSendError("You cannot message yourself about your own listing.");
-      setSendSuccess("");
-      return;
-    }
+    if (!message.trim()) { setSendError("Please enter a message."); setSendSuccess(""); return; }
+    if (!user) { setSendError("You must be logged in to send a message."); setSendSuccess(""); return; }
+    if (!item.user_id) { setSendError("Seller information is missing."); setSendSuccess(""); return; }
+    if (user.id === item.user_id) { setSendError("You cannot message yourself about your own listing."); setSendSuccess(""); return; }
 
     setSending(true);
     setSendError("");
@@ -95,16 +75,10 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
         receiver_id: item.user_id,
         content: message.trim(),
       });
-
       if (error) throw new Error(error.message);
-
       setMessage("");
       setSendSuccess("Message sent! Opening conversation…");
-
-      setTimeout(() => {
-        onClose();
-        onMessageSeller(item);
-      }, 1000);
+      setTimeout(() => { onClose(); onMessageSeller(item); }, 1000);
     } catch (err) {
       setSendError(err.message || "Failed to send message.");
     } finally {
@@ -114,50 +88,24 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
 
   return (
     <div className="item-modal-overlay" onClick={onClose}>
-      <article
-        className="item-modal-content"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          className="modal-close"
-          onClick={onClose}
-          aria-label="Close item details"
-          type="button"
-        >
-          ×
-        </button>
+      <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Close item details" type="button">×</button>
 
         <section className="item-modal-layout">
           <div className="item-modal-right-column item-modal-right-column--full">
+
             <div className="item-modal-top-card">
               <div className="item-modal-top-row">
                 {firstImage ? (
-                  <img
-                    src={firstImage}
-                    alt={item.title || "Listing image"}
-                    className="item-modal-top-image"
-                  />
+                  <img src={firstImage} alt={item.title || "Listing image"} className="item-modal-top-image" />
                 ) : (
-                  <div className="item-modal-top-placeholder">
-                    <span>{item.emoji || "📦"}</span>
-                  </div>
+                  <div className="item-modal-top-placeholder"><span>{item.emoji || "📦"}</span></div>
                 )}
-
                 <div className="item-modal-top-text">
-                  <h2 className="item-modal-title">
-                    {item.title || "Untitled listing"}
-                  </h2>
-
-                  <span className="item-modal-condition">
-                    {item.condition || "Good"}
-                  </span>
-
+                  <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
+                  <span className="item-modal-condition">{item.condition || "Good"}</span>
                   <p className="item-modal-price">
-                    {item.pricePrefix && (
-                      <span className="item-modal-price-prefix">
-                        {item.pricePrefix}{" "}
-                      </span>
-                    )}
+                    {item.pricePrefix && <span className="item-modal-price-prefix">{item.pricePrefix} </span>}
                     {item.price || "Price not available"}
                   </p>
                 </div>
@@ -171,76 +119,33 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
 
             <div className="item-modal-bottom-card">
               <div className="item-modal-meta">
-                <p>
-                  <strong>Seller:</strong> {item.seller || "Unknown seller"}
-                </p>
-
-                <p>
-                  <strong>Approximate location:</strong>{" "}
-                  {item.approximate_location || "Location not provided"}
-                </p>
-
-                <p>
-                  <strong>Joined in:</strong> {item.joined_year || 2026}
-                </p>
-
-                {item.category && (
-                  <p>
-                    <strong>Category:</strong> {item.category}
-                  </p>
-                )}
-
-                <p>
-                  <strong>Distance:</strong> {item.distance || "0 km"}
-                </p>
+                <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
+                <p><strong>Approximate location:</strong> {item.approximate_location || "Location not provided"}</p>
+                <p><strong>Joined in:</strong> {item.joined_year || 2026}</p>
+                {item.category && <p><strong>Category:</strong> {item.category}</p>}
+                <p><strong>Distance:</strong> {item.distance || "0 km"}</p>
               </div>
 
               <div className="item-modal-contact">
                 <h3>Message seller</h3>
-
                 {!user ? (
-                  <p className="item-modal-error">
-                    Please <strong>log in</strong> to message this seller.
-                  </p>
+                  <p className="item-modal-error">Please <strong>log in</strong> to message this seller.</p>
                 ) : (
                   <>
                     <textarea
                       className="item-modal-textarea"
-                      placeholder={`Hi, is the ${
-                        item.title || "item"
-                      } still available?`}
+                      placeholder={`Hi, is the ${item.title || "item"} still available?`}
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       rows={3}
                     />
-
-                    {sendError && (
-                      <p className="item-modal-error">{sendError}</p>
-                    )}
-
-                    {sendSuccess && (
-                      <p className="item-modal-success">{sendSuccess}</p>
-                    )}
-
+                    {sendError && <p className="item-modal-error">{sendError}</p>}
+                    {sendSuccess && <p className="item-modal-success">{sendSuccess}</p>}
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        className="item-modal-send-btn"
-                        onClick={handleSendMessage}
-                        disabled={sending}
-                      >
+                      <button type="button" className="item-modal-send-btn" onClick={handleSendMessage} disabled={sending}>
                         {sending ? "Sending..." : "Send message"}
                       </button>
-
-                      <button
-                        type="button"
-                        className="item-modal-send-btn"
-                        style={{ background: "var(--green)" }}
-                        onClick={() => {
-                          onClose();
-                          onMessageSeller(item);
-                        }}
-                      >
+                      <button type="button" className="item-modal-send-btn" style={{ background: "var(--green)" }} onClick={() => { onClose(); onMessageSeller(item); }}>
                         Open chat
                       </button>
                     </div>
@@ -248,6 +153,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
                 )}
               </div>
             </div>
+
           </div>
         </section>
       </article>
@@ -261,6 +167,11 @@ function AppInner() {
 
   const [page, setPage] = useState("home");
   const [activeCategory, setActiveCategory] = useState("All Items");
+  // ── NEW: condition + price filter state ───────────────────
+  const [activeCondition, setActiveCondition] = useState("All Conditions");
+  const [priceSort, setPriceSort] = useState("");
+  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
+  // ─────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -275,9 +186,10 @@ function AppInner() {
   const [msgRecipientId, setMsgRecipientId] = useState(null);
   const [msgListingTitle, setMsgListingTitle] = useState(null);
 
-  // Profile setup gate
   const [profileChecked, setProfileChecked] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
 
   useEffect(() => {
     fetchListings()
@@ -286,48 +198,87 @@ function AppInner() {
       .finally(() => setListingsLoading(false));
   }, []);
 
-  // When user logs in, check if their profile is complete
   useEffect(() => {
     if (!user) {
       setProfileChecked(false);
       setNeedsSetup(false);
       setAvatarUrl(null);
+      setIsAdmin(false);
+      setIsStaff(false);
       return;
     }
 
     supabase
       .from("profiles")
-      .select("name, display_name, sex, birthdate, province, institution, avatar_url")
+      .select("name, display_name, sex, birthdate, province, institution, avatar_url, role")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
-        if (data?.display_name || data?.name) {            
-            setProfileName(data.display_name || data.name);
+        setIsAdmin(data?.role === "admin");
+        if (data?.display_name || data?.name) {
+          setProfileName(data.display_name || data.name);
         }
+        setIsStaff(data?.role === "staff");
         setNeedsSetup(!isProfileComplete(data));
         setProfileChecked(true);
       })
       .catch(() => {
-        // No profile row yet — needs setup
+        setIsStaff(false);
+        setIsAdmin(false);
         setNeedsSetup(true);
         setProfileChecked(true);
       });
   }, [user]);
 
-  const filteredListings = searchQuery.trim()
-    ? allListings.filter(
-        (item) =>
-          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.category.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : activeCategory === "All Items"
-    ? allListings
-    : allListings.filter((item) => item.category === activeCategory);
+  // ── Updated: applies category, search, condition, and price ──
+  const filteredListings = (() => {
+  const numericPrice = (item) =>
+    Number(String(item.price).replace(/[^0-9.]/g, ""));
+
+  let result = allListings.filter((item) => {
+    const searchMatch = searchQuery.trim()
+      ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.category.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+
+    const categoryMatch =
+      searchQuery.trim() || activeCategory === "All Items"
+        ? true
+        : item.category === activeCategory;
+
+    const conditionMatch =
+      activeCondition === "All Conditions" || item.condition === activeCondition;
+
+    const minOk =
+      priceSort !== "custom" ||
+      priceRange.min === "" ||
+      numericPrice(item) >= Number(priceRange.min);
+
+    const maxOk =
+      priceSort !== "custom" ||
+      priceRange.max === "" ||
+      numericPrice(item) <= Number(priceRange.max);
+
+    return searchMatch && categoryMatch && conditionMatch && minOk && maxOk;
+  });
+
+  if (priceSort === "asc")  result = [...result].sort((a, b) => numericPrice(a) - numericPrice(b));
+  if (priceSort === "desc") result = [...result].sort((a, b) => numericPrice(b) - numericPrice(a));
+
+  return result;
+  })();
 
   function handleCategoryChange(category) {
     setActiveCategory(category);
     setSearchQuery("");
+  }
+
+  // ── NEW: reset all secondary filters together ─────────────
+  function handleClearFilters() {
+    setActiveCondition("All Conditions");
+    setPriceRange({ min: "", max: "" });
+    setPriceSort("");
   }
 
   function handleAuthNavigate(target) {
@@ -338,7 +289,6 @@ function AppInner() {
     setShowForm(false);
     setSuccessMessage("🎉 Your listing has been published!");
     setTimeout(() => setSuccessMessage(null), 4000);
-
     fetchListings()
       .then(setAllListings)
       .catch((err) => setListingsError(err.message));
@@ -349,7 +299,6 @@ function AppInner() {
       setPage("login");
       return;
     }
-
     setMsgRecipientId(item.user_id || null);
     setMsgListingTitle(item.title);
     setPage("messages");
@@ -369,19 +318,9 @@ function AppInner() {
     setPage("home");
   }
 
-  // Show spinner while auth OR profile check is in progress
   if (loading || (user && !profileChecked)) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "var(--font)",
-          color: "var(--gray-600)",
-        }}
-      >
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font)", color: "var(--gray-600)" }}>
         Loading…
       </div>
     );
@@ -390,10 +329,9 @@ function AppInner() {
   if (page === "login") return <LoginPage onNavigate={handleAuthNavigate} />;
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
 
-  // ── Profile setup gate — no navbar, can't escape ──
-  if (user && needsSetup) {
-    return <ProfileSetupPage onComplete={handleSetupComplete} />;
-  }
+  if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
+  if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} />;
+  if (user && isAdmin) return <AdminDashboard onSignOut={signOut} />;
 
   const navbarProps = {
     searchQuery,
@@ -417,10 +355,8 @@ function AppInner() {
   if (page === "profile") {
     return (
       <>
-        <header>
-          <Navbar {...navbarProps} />
-        </header>
-        <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} onNameChange={setProfileName}/>
+        <header><Navbar {...navbarProps} /></header>
+        <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} onNameChange={setProfileName} />
       </>
     );
   }
@@ -428,9 +364,7 @@ function AppInner() {
   if (page === "messages") {
     return (
       <>
-        <header>
-          <Navbar {...navbarProps} />
-        </header>
+        <header><Navbar {...navbarProps} /></header>
         <MessagesPage
           initialRecipientId={msgRecipientId}
           initialListingTitle={msgListingTitle}
@@ -450,49 +384,16 @@ function AppInner() {
         <Navbar {...navbarProps} />
 
         {successMessage && (
-          <div
-            style={{
-              position: "fixed",
-              top: 20,
-              left: "50%",
-              transform: "translateX(-50%)",
-              background: "#111",
-              color: "#fff",
-              padding: "12px 24px",
-              borderRadius: 10,
-              fontWeight: 600,
-              fontSize: 14,
-              zIndex: 9999,
-              boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "#111", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", whiteSpace: "nowrap" }}>
             {successMessage}
           </div>
         )}
 
         {showForm && (
-          <dialog
-            className="modal-overlay"
-            open
-            onClick={() => setShowForm(false)}
-          >
-            <article
-              className="modal-content"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                className="modal-close"
-                onClick={() => setShowForm(false)}
-                aria-label="Close modal"
-                type="button"
-              >
-                ×
-              </button>
-              <ListingForm
-                onCancel={() => setShowForm(false)}
-                onSuccess={handleListingSuccess}
-              />
+          <dialog className="modal-overlay" open onClick={() => setShowForm(false)}>
+            <article className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setShowForm(false)} aria-label="Close modal" type="button">×</button>
+              <ListingForm onCancel={() => setShowForm(false)} onSuccess={handleListingSuccess} />
             </article>
           </dialog>
         )}
@@ -506,26 +407,27 @@ function AppInner() {
       </header>
 
       <main>
-        <section>
-          <Hero />
-        </section>
+        <section><Hero /></section>
 
         <nav aria-label="Categories">
+          {/* ── All new filter props wired in ── */}
           <CategoryBar
             activeCategory={activeCategory}
             onCategoryChange={handleCategoryChange}
+            activeCondition={activeCondition}
+            onConditionChange={setActiveCondition}
+            priceSort={priceSort}
+            onPriceSortChange={setPriceSort}
+            priceRange={priceRange}
+            onPriceRangeChange={setPriceRange}
           />
         </nav>
 
         <section>
           {listingsError ? (
-            <p style={{ padding: "24px 40px", color: "crimson" }}>
-              {listingsError}
-            </p>
+            <p style={{ padding: "24px 40px", color: "crimson" }}>{listingsError}</p>
           ) : listingsLoading ? (
-            <p style={{ padding: "24px 40px", color: "var(--gray-600)" }}>
-              Loading listings…
-            </p>
+            <p style={{ padding: "24px 40px", color: "var(--gray-600)" }}>Loading listings…</p>
           ) : (
             <ListingsGrid
               listings={filteredListings}
@@ -538,9 +440,7 @@ function AppInner() {
         </section>
       </main>
 
-      <footer>
-        <Footer />
-      </footer>
+      <footer><Footer /></footer>
     </>
   );
 }

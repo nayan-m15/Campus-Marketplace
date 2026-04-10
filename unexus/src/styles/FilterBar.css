@@ -1,0 +1,187 @@
+/* ── Wrapper ─────────────────────────────────────────────── */
+.filter-bar {
+  background: #fff;
+  border-bottom: 1px solid var(--gray-100);
+  padding: 0 32px;
+  position: sticky;
+  top: 64px;
+  z-index: 90;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Fieldset reset + layout ─────────────────────────────── */
+.filter-bar__fieldset {
+  border: none;
+  margin: 0;
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-bar__legend {
+  /* Visually hidden but readable by screen readers */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Individual filter label + select pairs ──────────────── */
+.filter-bar__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.filter-bar__label-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.filter-bar__select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 8px 32px 8px 12px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font);
+  color: var(--gray-800);
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  min-width: 148px;
+}
+
+.filter-bar__select:hover {
+  border-color: var(--green);
+}
+
+.filter-bar__select:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+/* ── Custom range fieldset ───────────────────────────────── */
+.filter-bar__range-fieldset {
+  border: 1.5px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 6px 14px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: range-reveal 0.15s ease;
+}
+
+@keyframes range-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.filter-bar__range-legend {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 4px;
+}
+
+.filter-bar__range-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+/* Reuse label-text size but smaller for range context */
+.filter-bar__range-label .filter-bar__label-text {
+  font-size: 11px;
+}
+
+.filter-bar__range-input {
+  width: 72px;
+  padding: 5px 8px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: var(--font);
+  color: var(--gray-800);
+  background: #fff;
+  transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+
+.filter-bar__range-input::-webkit-outer-spin-button,
+.filter-bar__range-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.filter-bar__range-input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+.filter-bar__range-sep {
+  color: var(--gray-400);
+  font-size: 14px;
+  font-weight: 500;
+  user-select: none;
+}
+
+/* ── Clear button ────────────────────────────────────────── */
+.filter-bar__clear {
+  margin-left: auto;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  border: 1.5px solid #ef4444;
+  background: transparent;
+  color: #ef4444;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.filter-bar__clear:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .filter-bar {
+    padding: 0 16px;
+  }
+
+  .filter-bar__fieldset {
+    gap: 10px;
+  }
+
+  .filter-bar__select {
+    min-width: 120px;
+  }
+
+  .filter-bar__clear {
+    margin-left: 0;
+    width: 100%;
+  }
+}
