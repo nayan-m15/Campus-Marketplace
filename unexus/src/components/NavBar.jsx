@@ -27,56 +27,6 @@ export default function Navbar({
   return (
     <header className="navbar">
 
-      {/* ── Hamburger ── */}
-      <div className="navbar__hamburger-wrap">
-        <button
-          className="navbar__hamburger"
-          aria-label="Open menu"
-          onClick={() => setMenuOpen((prev) => !prev)}
-        >
-          <span /><span /><span />
-        </button>
-
-        {menuOpen && (
-          <>
-            {/* clicking outside closes it */}
-            <div className="navbar__menu-backdrop" onClick={() => setMenuOpen(false)} />
-
-            <nav className="navbar__menu" aria-label="Side menu">
-              <ul>
-                <li>
-                  <button onClick={() => { onProfile?.(); setMenuOpen(false); }}>
-                    👤 Profile
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => { onShowListingForm?.(); setMenuOpen(false); }}>
-                    📦 Your Listings
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => { setMenuOpen(false); }}>
-                    ❤️ Wishlist
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => { setMenuOpen(false); }}>
-                    ⚙️ Settings
-                  </button>
-                </li>
-                {user && (
-                  <li>
-                    <button onClick={() => { onSignOut?.(); setMenuOpen(false); }}>
-                      🚪 Sign Out
-                    </button>
-                  </li>
-                )}
-              </ul>
-            </nav>
-          </>
-        )}
-      </div>
-
       {/* Logo */}
       <button className="navbar__logo" aria-label="Go to homepage" onClick={onHome}>
         <strong className="navbar__logo-icon">
@@ -143,6 +93,55 @@ export default function Navbar({
           )}
         </ul>
       </nav>
+
+      {/* ── Hamburger (right side) ── */}
+      <div className="navbar__hamburger-wrap">
+        <button
+          className="navbar__hamburger"
+          aria-label="Open menu"
+          onClick={() => setMenuOpen((prev) => !prev)}
+        >
+          <span /><span /><span />
+        </button>
+
+        {menuOpen && (
+          <>
+            <div className="navbar__menu-backdrop" onClick={() => setMenuOpen(false)} />
+            <nav className="navbar__menu" aria-label="Side menu">
+              <ul>
+                <li>
+                  <button onClick={() => { onProfile?.(); setMenuOpen(false); }}>
+                    Profile
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { onShowListingForm?.(); setMenuOpen(false); }}>
+                    Your Listings
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setMenuOpen(false); }}>
+                    Wishlist
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setMenuOpen(false); }}>
+                    Settings
+                  </button>
+                </li>
+                {user && (
+                  <li>
+                    <button onClick={() => { onSignOut?.(); setMenuOpen(false); }}>
+                      Sign Out
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </nav>
+          </>
+        )}
+      </div>
+
     </header>
   );
 }

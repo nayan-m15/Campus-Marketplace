@@ -201,3 +201,7 @@
   background: #f0fdf4;
   color: var(--green);
 }
+.navbar__menu {
+  right: 0;
+  left: auto;
+}
