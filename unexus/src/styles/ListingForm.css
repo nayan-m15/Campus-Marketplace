@@ -6,7 +6,7 @@
 
 /* ── Card Shell ──────────────────────────────────────────────── */
 .lf__card {
-  background: #fff;
+  background: #f4f7f4;
   border-radius: 20px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07), 0 4px 20px rgba(0, 0, 0, 0.06);
   width: 100%;
@@ -48,7 +48,7 @@
   padding-top: 62%; /* close to the card's 4:3 feel */
   border-radius: 14px;
   border: 2px dashed #e0e0e0;
-  background: #f9f9f9;
+  background: #f7faf7;
   cursor: pointer;
   overflow: hidden;
   transition: border-color 0.2s, background 0.2s;
@@ -56,13 +56,13 @@
 
 .lf__image-zone:hover,
 .lf__image-zone:focus-visible {
-  border-color: #f4a120;
+  border-color: #647A67;
   background: #fffaf3;
   outline: none;
 }
 
 .lf__image-zone--drag {
-  border-color: #f4a120;
+  border-color: #647A67;
   background: #fffaf3;
 }
 
@@ -163,7 +163,7 @@
   padding: 0 14px;
   font-size: 14px;
   color: #111;
-  background: #fafafa;
+  background: #f8faf8;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
@@ -181,18 +181,18 @@
 
 .lf__input:hover {
   border-color: #ccc;
-  background: #fff;
+  background: #f4f7f4;
 }
 
 .lf__input:focus {
-  border-color: #f4a120;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(244, 161, 32, 0.12);
+  border-color: #647A67;
+  background: #f4f7f4;
+  box-shadow: 0 0 0 3px rgba(143, 163, 138, 0.15);
 }
 
 .lf__input--error {
   border-color: #e44;
-  background: #fff8f8;
+  background: #fdf5f5;
 }
 
 .lf__input--error:focus {
@@ -299,17 +299,17 @@
 
 /* Primary / submit */
 .lf__btn--primary {
-  background: #f4a120;
+  background: #647A67;
   color: #fff;
   flex: 1;
 }
 
 .lf__btn--primary:hover:not(.lf__btn--disabled) {
-  background: #e0921a;
+  background: #4d6150;
 }
 
 .lf__btn--primary:focus-visible {
-  box-shadow: 0 0 0 3px rgba(244, 161, 32, 0.3);
+  box-shadow: 0 0 0 3px rgba(143, 163, 138, 0.3);
 }
 
 /* Disabled state */
@@ -430,7 +430,7 @@
   height: 36px;
   border: none;
   border-radius: 999px;
-  background: white;
+  background: #f4f7f4;
   color: #222;
   font-size: 24px;
   line-height: 1;
@@ -442,7 +442,7 @@
   background: #f5f5f5;
 }
 .draggable-modal {
-  background: white;
+  background: #f4f7f4;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0);
   width: 500px;

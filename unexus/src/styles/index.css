@@ -10,17 +10,40 @@
 }
 
 :root {
-  --green: #10b981;
-  --green-dark: #059669;
-  --navy: #0f172a;
-  --gray-50: #f8f9fa;
-  --gray-100: #f0f0f0;
-  --gray-200: #e5e7eb;
-  --gray-400: #9ca3af;
-  --gray-600: #6b7280;
-  --gray-800: #374151;
-  --gray-900: #111827;
+  /* === NEW COLOUR SCHEME === */
+  --green: #8FA38A;           /* warm sage — primary accent */
+  --green-dark: #647A67;      /* mid sage — dark variant */
+  --green-light: #A9C5A0;     /* soft sage — light variant */
+  --green-glow: rgba(143, 163, 138, 0.18);
+
+  --navy: #020402;            /* near-black */
+  --navy-mid: #1F241F;        /* dark charcoal green */
+
+  --mint: #C5EFCB;            /* lightest mint — highlight */
+  --mint-pale: #C6DEC6;       /* pale sage */
+  --sage-mid: #B8D2B3;        /* medium pale sage */
+  --sage-soft: #A9C5A0;       /* soft sage */
+  --forest: #3C433B;          /* forest dark */
+
+  --amber: #f59e0b;
+  --amber-light: #fcd34d;
+
+  --gray-50: #f4f6f4;
+  --gray-100: #eceeed;
+  --gray-200: #dde3dc;
+  --gray-400: #8FA38A;
+  --gray-500: #758173;
+  --gray-600: #647A67;
+  --gray-800: #3C433B;
+  --gray-900: #1F241F;
+
   --font: 'DM Sans', 'Segoe UI', sans-serif;
+
+  /* Gradient tokens */
+  --grad-hero: linear-gradient(135deg, #020402 0%, #1F241F 50%, #020402 100%);
+  --grad-card-hover: linear-gradient(135deg, rgba(143,163,138,0.06) 0%, rgba(100,122,103,0.02) 100%);
+  --grad-green: linear-gradient(135deg, #8FA38A 0%, #647A67 100%);
+  --grad-cta: linear-gradient(135deg, #020402 0%, #1F241F 60%, #020402 100%);
 }
 
 body {
@@ -32,7 +55,7 @@ body {
 
 /* ── Shared Button Styles ── */
 .btn-primary {
-  background: var(--green);
+  background: var(--grad-green);
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -44,31 +67,34 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: background 0.15s, transform 0.1s;
+  transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
   font-family: var(--font);
   white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(143, 163, 138, 0.35);
 }
 
 .btn-primary:hover {
-  background: var(--green-dark);
+  filter: brightness(1.1);
   transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(143, 163, 138, 0.45);
 }
 
 .btn-outline {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  border: 2px solid rgba(255, 255, 255, 0.65);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
   border-radius: 50px;
   padding: 11px 24px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  backdrop-filter: blur(4px);
-  transition: background 0.15s;
+  backdrop-filter: blur(8px);
+  transition: background 0.15s, border-color 0.15s;
   font-family: var(--font);
   white-space: nowrap;
 }
 
 .btn-outline:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.6);
 }

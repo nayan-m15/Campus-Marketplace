@@ -11,7 +11,7 @@ import ProfilePage from "./components/ProfilePage";
 import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
-import { fetchListings } from "./data/listings";
+import { fetchListings, CONDITIONS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
@@ -269,8 +269,11 @@ function AppInner() {
     return searchMatch && categoryMatch && conditionMatch && minOk && maxOk;
   });
 
-  if (priceSort === "asc")  result = [...result].sort((a, b) => numericPrice(a) - numericPrice(b));
-  if (priceSort === "desc") result = [...result].sort((a, b) => numericPrice(b) - numericPrice(a));
+if (priceSort === "price_asc")      result = [...result].sort((a, b) => numericPrice(a) - numericPrice(b));
+if (priceSort === "price_desc")     result = [...result].sort((a, b) => numericPrice(b) - numericPrice(a));
+if (priceSort === "condition_asc")  result = [...result].sort((a, b) => CONDITIONS.indexOf(b.condition) - CONDITIONS.indexOf(a.condition));
+if (priceSort === "condition_desc") result = [...result].sort((a, b) => CONDITIONS.indexOf(a.condition) - CONDITIONS.indexOf(b.condition));
+if (priceSort === "newest")         result = [...result].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   return result;
   })();
