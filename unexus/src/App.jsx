@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Navbar from "./components/NavBar";
 import Hero from "./components/Hero";
@@ -173,11 +173,9 @@ function AppInner() {
 
   const [page, setPage] = useState("home");
   const [activeCategory, setActiveCategory] = useState("All Items");
-  // ── NEW: condition + price filter state ───────────────────
   const [activeCondition, setActiveCondition] = useState("All Conditions");
   const [priceSort, setPriceSort] = useState("");
   const [priceRange, setPriceRange] = useState({ min: "", max: "" });
-  // ─────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -197,6 +195,12 @@ function AppInner() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
 
+  // ── Ref for the filter bar nav so Hero can scroll to it ──
+  const filterBarRef = useRef(null);
+
+  function handleScrollToListings() {
+    filterBarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   useEffect(() => {
     fetchListings()
@@ -217,66 +221,65 @@ function AppInner() {
 
     supabase
       .from("profiles")
-      .select("name, display_name, sex, birthdate, province, institution, avatar_url, role")
+      .select("name, avatar_url, role, sex, birthdate, province, institution")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
-        if (data?.avatar_url) setAvatarUrl(data.avatar_url);
-        setIsAdmin(data?.role === "admin");
-        if (data?.display_name || data?.name) {
-          setProfileName(data.display_name || data.name);
+        if (data) {
+          setAvatarUrl(data.avatar_url || null);
+          setProfileName(data.name || null);
+          setIsAdmin(data.role === "admin");
+          setIsStaff(data.role === "staff");
+          setNeedsSetup(!isProfileComplete(data));
+        } else {
+          setNeedsSetup(true);
         }
-        setIsStaff(data?.role === "staff");
-        setNeedsSetup(!isProfileComplete(data));
         setProfileChecked(true);
       })
-      .catch(() => {
-        setIsStaff(false);
-        setIsAdmin(false);
-        setNeedsSetup(true);
-        setProfileChecked(true);
-      });
+      .catch(() => setProfileChecked(true));
   }, [user]);
 
-  // ── Updated: applies category, search, condition, and price ──
+  function numericPrice(item) {
+    if (!item?.price) return 0;
+    const n = parseFloat(String(item.price).replace(/[^0-9.]/g, ""));
+    return isNaN(n) ? 0 : n;
+  }
+
   const filteredListings = (() => {
-  const numericPrice = (item) =>
-    Number(String(item.price).replace(/[^0-9.]/g, ""));
+    let result = allListings.filter((item) => {
+      const searchMatch = searchQuery.trim()
+        ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.category.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
 
-  let result = allListings.filter((item) => {
-    const searchMatch = searchQuery.trim()
-      ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchQuery.toLowerCase())
-      : true;
+      const categoryMatch =
+        searchQuery.trim() || activeCategory === "All Items"
+          ? true
+          : item.category === activeCategory;
 
-    const categoryMatch =
-      searchQuery.trim() || activeCategory === "All Items"
-        ? true
-        : item.category === activeCategory;
+      const conditionMatch =
+        activeCondition === "All Conditions" || item.condition === activeCondition;
 
-    const conditionMatch =
-      activeCondition === "All Conditions" || item.condition === activeCondition;
+      const minOk =
+        priceSort !== "custom" ||
+        priceRange.min === "" ||
+        numericPrice(item) >= Number(priceRange.min);
 
-    const minOk =
-      priceSort !== "custom" ||
-      priceRange.min === "" ||
-      numericPrice(item) >= Number(priceRange.min);
+      const maxOk =
+        priceSort !== "custom" ||
+        priceRange.max === "" ||
+        numericPrice(item) <= Number(priceRange.max);
 
-    const maxOk =
-      priceSort !== "custom" ||
-      priceRange.max === "" ||
-      numericPrice(item) <= Number(priceRange.max);
+      return searchMatch && categoryMatch && conditionMatch && minOk && maxOk;
+    });
 
-    return searchMatch && categoryMatch && conditionMatch && minOk && maxOk;
-  });
+    if (priceSort === "price_asc")      result = [...result].sort((a, b) => numericPrice(a) - numericPrice(b));
+    if (priceSort === "price_desc")     result = [...result].sort((a, b) => numericPrice(b) - numericPrice(a));
+    if (priceSort === "condition_asc")  result = [...result].sort((a, b) => CONDITIONS.indexOf(b.condition) - CONDITIONS.indexOf(a.condition));
+    if (priceSort === "condition_desc") result = [...result].sort((a, b) => CONDITIONS.indexOf(a.condition) - CONDITIONS.indexOf(b.condition));
+    if (priceSort === "newest")         result = [...result].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-if (priceSort === "price_asc")      result = [...result].sort((a, b) => numericPrice(a) - numericPrice(b));
-if (priceSort === "price_desc")     result = [...result].sort((a, b) => numericPrice(b) - numericPrice(a));
-if (priceSort === "condition_asc")  result = [...result].sort((a, b) => CONDITIONS.indexOf(b.condition) - CONDITIONS.indexOf(a.condition));
-if (priceSort === "condition_desc") result = [...result].sort((a, b) => CONDITIONS.indexOf(a.condition) - CONDITIONS.indexOf(b.condition));
-if (priceSort === "newest")         result = [...result].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-  return result;
+    return result;
   })();
 
   function handleCategoryChange(category) {
@@ -284,7 +287,6 @@ if (priceSort === "newest")         result = [...result].sort((a, b) => new Date
     setSearchQuery("");
   }
 
-  // ── NEW: reset all secondary filters together ─────────────
   function handleClearFilters() {
     setActiveCondition("All Conditions");
     setPriceRange({ min: "", max: "" });
@@ -426,10 +428,13 @@ if (priceSort === "newest")         result = [...result].sort((a, b) => new Date
       </header>
 
       <main>
-        <section><Hero onListingClick={setSelectedListing} /></section>
+        <section>
+          {/* Pass the scroll callback down to Hero */}
+          <Hero onListingClick={setSelectedListing} onBrowseClick={handleScrollToListings} />
+        </section>
 
-        <nav aria-label="Categories">
-          {/* ── All new filter props wired in ── */}
+        {/* Attach ref here — this is what gets scrolled into view */}
+        <nav aria-label="Categories" ref={filterBarRef}>
           <CategoryBar
             activeCategory={activeCategory}
             onCategoryChange={handleCategoryChange}
