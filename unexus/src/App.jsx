@@ -15,6 +15,7 @@ import { fetchListings } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
+import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
 
 // Required fields that must be filled before accessing the app
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
@@ -283,6 +284,8 @@ function AppInner() {
   // ── NEW: admin role state ──────────────────────────────
   const [isAdmin, setIsAdmin] = useState(false);
 
+  const[isStaff, setIsStaff] = useState(false); 
+
   useEffect(() => {
     fetchListings()
       .then(setAllListings)
@@ -297,6 +300,7 @@ function AppInner() {
       setNeedsSetup(false);
       setAvatarUrl(null);
       setIsAdmin(false); 
+      setIsStaff(false); 
       return;
     }
 
@@ -311,10 +315,13 @@ function AppInner() {
         if (data?.display_name || data?.name) {            
             setProfileName(data.display_name || data.name);
         }
+        setIsStaff(data?.role === "staff"); 
         setNeedsSetup(!isProfileComplete(data));
         setProfileChecked(true);
       })
       .catch(() => {
+        // No profile row yet — needs setup
+        setIsStaff(false); 
         setIsAdmin(false);
         setNeedsSetup(true);
         setProfileChecked(true);
@@ -399,6 +406,10 @@ function AppInner() {
   // ── Profile setup gate — no navbar, can't escape ──
   if (user && needsSetup) {
     return <ProfileSetupPage onComplete={handleSetupComplete} />;
+  }
+
+  if(user && isStaff){
+    return <TradeFacilityDashboard onSignOut={signOut}/>
   }
 
   // ── NEW: Admin gate — renders AdminDashboard instead of normal app ──
