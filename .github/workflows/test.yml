@@ -1,32 +1,26 @@
-name: Run Tests
+name: CI
 
 on:
   push:
+    branches: ["**"]
   pull_request:
+    branches: ["**"]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          
+          node-version: 20
+
       - name: Install dependencies
-        run: |
-          cd unexus
-          npm install
-          
-      - name: List files for debugging
-        run: |
-          cd unexus
-          ls -la
-          ls -la src/ || echo "src folder not found"
-          
-      - name: Run tests with verbose output
-        run: |
-          cd unexus
-          npm test -- --reporter=verbose
+        run: npm install
+
+      - name: Run tests
+        run: npm run test:run
