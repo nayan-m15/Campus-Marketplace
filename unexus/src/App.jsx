@@ -8,6 +8,7 @@ import Footer from "./components/Footer";
 import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
 import ProfilePage from "./components/ProfilePage";
+import PublicProfilePage from "./components/PublicProfilePage";
 import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
@@ -201,6 +202,9 @@ function AppInner() {
   function handleScrollToListings() {
     filterBarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+  // ── Public profile state ───────────────────────────────────
+  const [publicProfileId, setPublicProfileId] = useState(null);
+  const [prevPage, setPrevPage] = useState("home");
 
   useEffect(() => {
     fetchListings()
@@ -316,6 +320,17 @@ function AppInner() {
     setPage("messages");
   }
 
+  function handleSellerClick(sellerId) {
+    // If clicking your own name, go to your editable profile
+    if (user && sellerId === user.id) {
+      setPage("profile");
+      return;
+    }
+    setPrevPage("home");
+    setPublicProfileId(sellerId);
+    setPage("publicProfile");
+  }
+
   function handleSetupComplete() {
     setNeedsSetup(false);
     setPage("home");
@@ -374,6 +389,27 @@ function AppInner() {
     );
   }
 
+  if (page === "publicProfile" && publicProfileId) {
+    return (
+      <>
+        <header><Navbar {...navbarProps} /></header>
+        <PublicProfilePage
+          userId={publicProfileId}
+          onBack={() => setPage(prevPage)}
+          onMessageSeller={
+            user
+              ? () => {
+                  setMsgRecipientId(publicProfileId);
+                  setMsgListingTitle(null);
+                  setPage("messages");
+                }
+              : null
+          }
+        />
+      </>
+    );
+  }
+
   if (page === "messages") {
     return (
       <>
@@ -385,6 +421,11 @@ function AppInner() {
             setMsgRecipientId(null);
             setMsgListingTitle(null);
             goHome();
+          }}
+          onViewProfile={(sellerId) => {
+            setPrevPage("messages");
+            setPublicProfileId(sellerId);
+            setPage("publicProfile");
           }}
         />
       </>
@@ -459,6 +500,7 @@ function AppInner() {
               activeCategory={activeCategory}
               onListingClick={setSelectedListing}
               onMessageSeller={handleMessageSeller}
+              onSellerClick={handleSellerClick}
             />
           )}
         </section>

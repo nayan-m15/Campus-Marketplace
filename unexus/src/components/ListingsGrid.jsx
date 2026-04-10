@@ -7,6 +7,7 @@ export default function ListingsGrid({
   activeCategory = "All Items",
   onListingClick,
   onMessageSeller,
+  onSellerClick,
 }) {
   const heading = searchQuery.trim()
     ? `Results for "${searchQuery.trim()}"`
@@ -49,6 +50,7 @@ export default function ListingsGrid({
                 item={item}
                 onClick={() => onListingClick?.({ ...item })}
                 onMessageSeller={onMessageSeller}
+                onSellerClick={onSellerClick}
               />
             </li>
           ))}
