@@ -1,7 +1,20 @@
 import { useState } from "react";
 import "../styles/AdminDashboard.css";
+import { supabase } from "../supabaseClient";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-// ── Constants ────────────────────────────────────────────────
+// ── Constants (Marketplace Reports) ─────────────────────────────
+const MARKETPLACE_REPORT_TYPES = [
+  { value: "overview", label: "Listings Overview" },
+  { value: "category", label: "Category Breakdown" },
+  { value: "trend", label: "Listings Trend" },
+  { value: "condition", label: "Condition Distribution" },
+  { value: "top_sellers", label: "Top Sellers" },
+  { value: "price_distribution", label: "Price Distribution" },
+];
+
+// ── Constants (Facility Management) ─────────────────────────────
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const INITIAL_FACILITIES = [
@@ -52,21 +65,7 @@ const INITIAL_FACILITIES = [
   },
 ];
 
-const REPORT_TYPES = [
-  { value: "bookings", label: "Booking Summary" },
-  { value: "revenue", label: "Revenue Report" },
-  { value: "utilisation", label: "Facility Utilisation" },
-  { value: "users", label: "User Activity" },
-  { value: "cancellations", label: "Cancellations & No-shows" },
-];
-
-const MOCK_REPORT_ROWS = [
-  { facility: "Sports Hall", bookings: 142, utilisation: "78%", revenue: "R 4 260", cancellations: 11 },
-  { facility: "Library Study Rooms", bookings: 318, utilisation: "91%", revenue: "R 0", cancellations: 24 },
-  { facility: "Computer Lab", bookings: 205, utilisation: "65%", revenue: "R 1 025", cancellations: 8 },
-];
-
-// ── Sub-components ────────────────────────────────────────────
+// ── Sub-components (Facility Management) ────────────────────────
 
 function SaveToast({ visible }) {
   return (
@@ -106,98 +105,98 @@ function FacilityCard({ facility, onUpdate }) {
   const openDays = DAYS.filter((d) => facility.hours[d].open).length;
 
   return (
-   <section className="AdminDash">
-    <article className={`facility-card ${expanded ? "facility-card--open" : ""}`}>
-      <header className="facility-card__header" onClick={() => setExpanded(!expanded)}>
-        <span className="facility-card__icon">{facility.icon}</span>
-        <hgroup className="facility-card__title-group">
-          <h3 className="facility-card__name">{facility.name}</h3>
-          <p className="facility-card__meta">
-            {openDays} day{openDays !== 1 ? "s" : ""} open · {facility.capacity} slots/session
-          </p>
-        </hgroup>
-        <span className="facility-card__chevron" aria-hidden="true">
-          {expanded ? "▲" : "▼"}
-        </span>
-      </header>
+    <section className="AdminDash">
+      <article className={`facility-card ${expanded ? "facility-card--open" : ""}`}>
+        <header className="facility-card__header" onClick={() => setExpanded(!expanded)}>
+          <span className="facility-card__icon">{facility.icon}</span>
+          <hgroup className="facility-card__title-group">
+            <h3 className="facility-card__name">{facility.name}</h3>
+            <p className="facility-card__meta">
+              {openDays} day{openDays !== 1 ? "s" : ""} open · {facility.capacity} slots/session
+            </p>
+          </hgroup>
+          <span className="facility-card__chevron" aria-hidden="true">
+            {expanded ? "▲" : "▼"}
+          </span>
+        </header>
 
-      {expanded && (
-        <section className="facility-card__body">
-          {/* Slot capacity */}
-          <fieldset className="capacity-fieldset">
-            <legend className="fieldset-legend">Slot Capacity per Session</legend>
-            <label className="capacity-label" htmlFor={`cap-${facility.id}`}>
-              Max participants
-            </label>
-            <input
-              id={`cap-${facility.id}`}
-              type="number"
-              min="1"
-              max="500"
-              value={facility.capacity}
-              onChange={(e) => updateCapacity(e.target.value)}
-              className="capacity-input"
-            />
-          </fieldset>
+        {expanded && (
+          <section className="facility-card__body">
+            {/* Slot capacity */}
+            <fieldset className="capacity-fieldset">
+              <legend className="fieldset-legend">Slot Capacity per Session</legend>
+              <label className="capacity-label" htmlFor={`cap-${facility.id}`}>
+                Max participants
+              </label>
+              <input
+                id={`cap-${facility.id}`}
+                type="number"
+                min="1"
+                max="500"
+                value={facility.capacity}
+                onChange={(e) => updateCapacity(e.target.value)}
+                className="capacity-input"
+              />
+            </fieldset>
 
-          {/* Operating hours */}
-          <fieldset className="hours-fieldset">
-            <legend className="fieldset-legend">Operating Hours</legend>
-            <ul className="hours-list" role="list">
-              {DAYS.map((day) => {
-                const slot = facility.hours[day];
-                return (
-                  <li key={day} className={`hours-row ${!slot.open ? "hours-row--closed" : ""}`}>
-                    <label className="toggle-label">
-                      <input
-                        type="checkbox"
-                        className="toggle-checkbox"
-                        checked={slot.open}
-                        onChange={() => toggleDay(day)}
-                        aria-label={`${day} open`}
-                      />
-                      <span className="toggle-track" aria-hidden="true">
-                        <span className="toggle-thumb" />
-                      </span>
-                      <span className="day-name">{day}</span>
-                    </label>
-
-                    {slot.open ? (
-                      <span className="time-inputs">
-                        <label className="sr-only" htmlFor={`${facility.id}-${day}-start`}>
-                          Open time
-                        </label>
+            {/* Operating hours */}
+            <fieldset className="hours-fieldset">
+              <legend className="fieldset-legend">Operating Hours</legend>
+              <ul className="hours-list" role="list">
+                {DAYS.map((day) => {
+                  const slot = facility.hours[day];
+                  return (
+                    <li key={day} className={`hours-row ${!slot.open ? "hours-row--closed" : ""}`}>
+                      <label className="toggle-label">
                         <input
-                          id={`${facility.id}-${day}-start`}
-                          type="time"
-                          value={slot.start}
-                          onChange={(e) => updateHour(day, "start", e.target.value)}
-                          className="time-input"
+                          type="checkbox"
+                          className="toggle-checkbox"
+                          checked={slot.open}
+                          onChange={() => toggleDay(day)}
+                          aria-label={`${day} open`}
                         />
-                        <span className="time-separator">–</span>
-                        <label className="sr-only" htmlFor={`${facility.id}-${day}-end`}>
-                          Close time
-                        </label>
-                        <input
-                          id={`${facility.id}-${day}-end`}
-                          type="time"
-                          value={slot.end}
-                          onChange={(e) => updateHour(day, "end", e.target.value)}
-                          className="time-input"
-                        />
-                      </span>
-                    ) : (
-                      <span className="closed-badge">Closed</span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </fieldset>
-        </section>
-      )}
-    </article>
-    </section> 
+                        <span className="toggle-track" aria-hidden="true">
+                          <span className="toggle-thumb" />
+                        </span>
+                        <span className="day-name">{day}</span>
+                      </label>
+
+                      {slot.open ? (
+                        <span className="time-inputs">
+                          <label className="sr-only" htmlFor={`${facility.id}-${day}-start`}>
+                            Open time
+                          </label>
+                          <input
+                            id={`${facility.id}-${day}-start`}
+                            type="time"
+                            value={slot.start}
+                            onChange={(e) => updateHour(day, "start", e.target.value)}
+                            className="time-input"
+                          />
+                          <span className="time-separator">–</span>
+                          <label className="sr-only" htmlFor={`${facility.id}-${day}-end`}>
+                            Close time
+                          </label>
+                          <input
+                            id={`${facility.id}-${day}-end`}
+                            type="time"
+                            value={slot.end}
+                            onChange={(e) => updateHour(day, "end", e.target.value)}
+                            className="time-input"
+                          />
+                        </span>
+                      ) : (
+                        <span className="closed-badge">Closed</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </fieldset>
+          </section>
+        )}
+      </article>
+    </section>
   );
 }
 
@@ -225,22 +224,184 @@ function FacilityPanel({ facilities, onUpdate, onSave }) {
   );
 }
 
+// ── Reports Panel (Marketplace Reports with Supabase) ───────────
 function ReportsPanel() {
-  const [reportType, setReportType] = useState("bookings");
+  const [reportType, setReportType] = useState("overview");
   const [dateFrom, setDateFrom] = useState("2025-03-01");
   const [dateTo, setDateTo] = useState("2025-03-31");
-  const [facility, setFacility] = useState("all");
   const [format, setFormat] = useState("table");
+  const [reportData, setReportData] = useState([]);
   const [generated, setGenerated] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleGenerate = () => {
+  const fetchReport = async () => {
+    let query;
+
+    switch (reportType) {
+      case "overview":
+        query = supabase.rpc("get_listings_overview", {
+          start_date: dateFrom,
+          end_date: dateTo,
+        });
+        break;
+
+      case "category":
+        query = supabase.rpc("get_category_report", {
+          start_date: dateFrom,
+          end_date: dateTo,
+        });
+        break;
+
+      case "trend":
+        query = supabase.rpc("get_trend_report", {
+          start_date: dateFrom,
+          end_date: dateTo,
+        });
+        break;
+
+      case "condition":
+        query = supabase.rpc("get_condition_report", {
+          start_date: dateFrom,
+          end_date: dateTo,
+        });
+        break;
+
+      case "top_sellers":
+        query = supabase.rpc("get_top_sellers", {
+          start_date: dateFrom,
+          end_date: dateTo,
+        });
+        break;
+
+      case "price_distribution":
+        query = supabase.rpc("get_price_distribution", {
+          start_date: dateFrom,
+          end_date: dateTo,
+        });
+        break;
+
+      default:
+        return;
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("REPORT ERROR:", error);
+      alert("Failed to generate report. Check console.");
+      return;
+    }
+
+    setReportData(data || []);
+    setGenerated(true);
+  };
+
+  const handleGenerate = async () => {
     setLoading(true);
     setGenerated(false);
-    setTimeout(() => {
-      setLoading(false);
-      setGenerated(true);
-    }, 900);
+    await fetchReport();
+    setLoading(false);
+  };
+
+  const downloadCSV = () => {
+    if (!reportData.length) return;
+
+    const headers = Object.keys(reportData[0]).join(",");
+    const rows = reportData.map(r => Object.values(r).join(",")).join("\n");
+
+    const blob = new Blob([headers + "\n" + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "report.csv";
+    link.click();
+  };
+
+  const downloadPDF = () => {
+  if (!reportData.length) return;
+
+  const doc = new jsPDF();
+
+  // ── Title ─────────────────────────────
+  doc.setFontSize(18);
+  doc.text("Unexus Marketplace Report", 14, 20);
+
+  // ── Subtitle (Report Type) ────────────
+  doc.setFontSize(12);
+  doc.text(
+    MARKETPLACE_REPORT_TYPES.find(r => r.value === reportType)?.label || "",
+    14,
+    28
+  );
+
+  // ── Date Info ─────────────────────────
+  doc.setFontSize(10);
+  doc.text(
+    `Date Range: ${dateFrom} to ${dateTo}`,
+    14,
+    34
+  );
+  doc.text(
+    `Generated: ${new Date().toLocaleDateString()}`,
+    14,
+    40
+  );
+
+  // ── Table Data ────────────────────────
+  const columns = Object.keys(reportData[0]);
+  const rows = reportData.map(row => columns.map(col => row[col]));
+
+  autoTable(doc, {
+    startY: 45,
+    head: [columns],
+    body: rows,
+
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+    },
+
+    headStyles: {
+      fillColor: [41, 128, 185], // blue header
+      textColor: 255,
+      halign: "center",
+    },
+
+    bodyStyles: {
+      halign: "center",
+    },
+
+    alternateRowStyles: {
+      fillColor: [245, 245, 245],
+    },
+
+    margin: { top: 45 },
+  });
+
+  // ── Footer ────────────────────────────
+  const pageHeight = doc.internal.pageSize.height;
+
+  doc.setFontSize(9);
+  doc.text(
+    "Unexus Reporting System",
+    14,
+    pageHeight - 10
+  );
+
+  doc.text(
+    `Page 1`,
+    pageHeight - 20,
+    pageHeight - 10
+  );
+
+  // ── Save ──────────────────────────────
+  doc.save(`report-${reportType}.pdf`);
+};
+
+  const handleDownload = () => {
+    if (format === "csv") downloadCSV();
+    if (format === "pdf") downloadPDF();
   };
 
   return (
@@ -248,7 +409,7 @@ function ReportsPanel() {
       <header className="panel__header">
         <hgroup>
           <h2 id="reports-heading" className="panel__title">Generate Reports</h2>
-          <p className="panel__subtitle">Export detailed analytics for any date range and facility.</p>
+          <p className="panel__subtitle">Export marketplace analytics based on listings data.</p>
         </hgroup>
       </header>
 
@@ -269,24 +430,9 @@ function ReportsPanel() {
                 onChange={(e) => setReportType(e.target.value)}
                 className="field-select"
               >
-                {REPORT_TYPES.map((r) => (
+                {MARKETPLACE_REPORT_TYPES.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
-              </select>
-            </li>
-
-            <li className="report-field">
-              <label htmlFor="facility-filter" className="field-label">Facility</label>
-              <select
-                id="facility-filter"
-                value={facility}
-                onChange={(e) => setFacility(e.target.value)}
-                className="field-select"
-              >
-                <option value="all">All Facilities</option>
-                <option value="1">Sports Hall</option>
-                <option value="2">Library Study Rooms</option>
-                <option value="3">Computer Lab</option>
               </select>
             </li>
 
@@ -344,7 +490,7 @@ function ReportsPanel() {
             )}
           </button>
           {generated && (
-            <button type="button" className="btn-export">
+            <button type="button" className="btn-export" onClick={handleDownload}>
               <span aria-hidden="true">⬇︎</span> Download {format.toUpperCase()}
             </button>
           )}
@@ -357,16 +503,17 @@ function ReportsPanel() {
         </figure>
       )}
 
-      {generated && !loading && (
+      {generated && !loading && reportData.length > 0 && (
         <section className="report-preview" aria-labelledby="preview-heading">
           <header className="report-preview__header">
             <h3 id="preview-heading" className="report-preview__title">
-              {REPORT_TYPES.find((r) => r.value === reportType)?.label}
-              <span className="report-preview__badge">March 2025</span>
+              {MARKETPLACE_REPORT_TYPES.find((r) => r.value === reportType)?.label}
+              <span className="report-preview__badge">
+                {new Date(dateFrom).toLocaleDateString()} – {new Date(dateTo).toLocaleDateString()}
+              </span>
             </h3>
             <p className="report-preview__meta">
-              {facility === "all" ? "All Facilities" : INITIAL_FACILITIES.find(f => f.id === parseInt(facility))?.name}
-              · Generated {new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
+              Generated {new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
             </p>
           </header>
 
@@ -374,42 +521,20 @@ function ReportsPanel() {
             <table className="report-table">
               <thead>
                 <tr>
-                  <th scope="col">Facility</th>
-                  <th scope="col">Bookings</th>
-                  <th scope="col">Utilisation</th>
-                  <th scope="col">Revenue</th>
-                  <th scope="col">Cancellations</th>
+                  {Object.keys(reportData[0]).map((key) => (
+                    <th key={key} scope="col">{key}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {MOCK_REPORT_ROWS.map((row) => (
-                  <tr key={row.facility}>
-                    <td>{row.facility}</td>
-                    <td>{row.bookings}</td>
-                    <td>
-                      <span className="util-bar-wrap" role="presentation">
-                        <span
-                          className="util-bar"
-                          style={{ width: row.utilisation }}
-                          aria-hidden="true"
-                        />
-                        <span>{row.utilisation}</span>
-                      </span>
-                    </td>
-                    <td>{row.revenue}</td>
-                    <td>{row.cancellations}</td>
+                {reportData.map((row, idx) => (
+                  <tr key={idx}>
+                    {Object.values(row).map((val, i) => (
+                      <td key={i}>{val?.toString()}</td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr>
-                  <th scope="row">Total</th>
-                  <td>665</td>
-                  <td>78%</td>
-                  <td>R 5 285</td>
-                  <td>43</td>
-                </tr>
-              </tfoot>
             </table>
           </figure>
         </section>
@@ -418,7 +543,7 @@ function ReportsPanel() {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────
+// ── Main AdminDashboard Component ───────────────────────────────
 export default function AdminDashboard({ onSignOut }) {
   const [activeTab, setActiveTab] = useState("facilities");
   const [facilities, setFacilities] = useState(INITIAL_FACILITIES);
@@ -493,7 +618,7 @@ export default function AdminDashboard({ onSignOut }) {
         <header className="dashboard-topbar">
           <hgroup>
             <h2 className="topbar-title">
-              {activeTab === "facilities" ? "🏛️ Facility Configuration" : "📊 Reports"}
+              {activeTab === "facilities" ? "🏛️ Facility Configuration" : "📊 Marketplace Reports"}
             </h2>
             <p className="topbar-date">
               {new Date().toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
