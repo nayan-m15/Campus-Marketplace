@@ -11,8 +11,8 @@
 
 body {
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  background-color: #f8f9fa;
-  color: #111827;
+  background-color: #f5f8f5;
+  color: #1F241F;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -26,7 +26,7 @@ body {
 
 .sidebar {
   flex: 0 0 280px;
-  background: #0f172a;
+  background: #020402;
   color: #e5e7eb;
   display: flex;
   flex-direction: column;
@@ -39,7 +39,7 @@ body {
 
 .dashboard-main {
   flex: 1;
-  background: #f8f9fa;
+  background: #f5f8f5;
   overflow-x: auto;
   padding: 0 32px 32px 32px;
 }
@@ -94,7 +94,7 @@ body {
 .sidebar__role {
   font-size: 0.7rem;
   font-weight: 500;
-  color: #9ca3af;
+  color: #8FA38A;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -127,7 +127,7 @@ body {
 }
 
 .sidebar__nav-btn:hover {
-  background: #1e293b;
+  background: #1F241F;
   color: white;
 }
 
@@ -153,7 +153,7 @@ body {
 }
 
 .admin-avatar {
-  background: #334155;
+  background: #3C433B;
   width: 40px;
   height: 40px;
   border-radius: 40px;
@@ -178,12 +178,12 @@ body {
 
 .admin-email {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: #8FA38A;
 }
 
 .sidebar__signout-btn {
   background: transparent;
-  border: 1px solid #334155;
+  border: 1px solid #3C433B;
   width: 36px;
   height: 36px;
   border-radius: 36px;
@@ -197,14 +197,14 @@ body {
 }
 
 .sidebar__signout-btn:hover {
-  background: #1e293b;
-  border-color: #6b7280;
+  background: #1F241F;
+  border-color: #758173;
   color: white;
 }
 
 /* ----- DASHBOARD TOPBAR ----- */
 .dashboard-topbar {
-  background: white;
+  background: #f4f7f4;
   border-radius: 16px;
   padding: 20px 28px;
   margin: 24px 0 28px 0;
@@ -215,19 +215,19 @@ body {
 .topbar-title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #0f172a;
+  color: #020402;
   letter-spacing: -0.3px;
 }
 
 .topbar-date {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #758173;
   margin-top: 6px;
 }
 
 /* ----- PANELS (shared) ----- */
 .panel {
-  background: white;
+  background: #f4f7f4;
   border-radius: 16px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
   border: 1px solid #e5e7eb;
@@ -248,12 +248,12 @@ body {
 .panel__title {
   font-size: 1.3rem;
   font-weight: 600;
-  color: #0f172a;
+  color: #020402;
 }
 
 .panel__subtitle {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #758173;
   margin-top: 4px;
 }
 
@@ -285,7 +285,7 @@ body {
 }
 
 .btn-export {
-  background: white;
+  background: #f4f7f4;
   border: 1px solid #e5e7eb;
   padding: 10px 20px;
   border-radius: 40px;
@@ -296,12 +296,12 @@ body {
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #374151;
+  color: #647A67;
 }
 
 .btn-export:hover {
-  background: #f8f9fa;
-  border-color: #9ca3af;
+  background: #f5f8f5;
+  border-color: #8FA38A;
 }
 
 /* ----- FACILITY LIST & CARDS ----- */
@@ -314,7 +314,7 @@ body {
 }
 
 .facility-card {
-  background: white;
+  background: #f4f7f4;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   transition: all 0.2s ease;
@@ -337,7 +337,7 @@ body {
 }
 
 .facility-card__header:hover {
-  background: #f8f9fa;
+  background: #f5f8f5;
 }
 
 .facility-card__icon {
@@ -353,18 +353,18 @@ body {
 .facility-card__name {
   font-weight: 600;
   font-size: 1.1rem;
-  color: #0f172a;
+  color: #020402;
 }
 
 .facility-card__meta {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #758173;
   margin-top: 2px;
 }
 
 .facility-card__chevron {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: #8FA38A;
   transition: transform 0.2s;
 }
 
@@ -375,7 +375,7 @@ body {
 .facility-card__body {
   padding: 0 24px 24px 24px;
   border-top: 1px solid #f0f0f0;
-  background: #f8f9fa;
+  background: #f5f8f5;
   animation: fadeSlide 0.2s ease;
 }
 
@@ -397,7 +397,7 @@ body {
   border-radius: 10px;
   padding: 18px 20px;
   margin-top: 20px;
-  background: white;
+  background: #f4f7f4;
 }
 
 .fieldset-legend {
@@ -405,8 +405,8 @@ body {
   font-size: 0.85rem;
   padding: 0 10px;
   margin-left: -6px;
-  color: #0f172a;
-  background: white;
+  color: #020402;
+  background: #f4f7f4;
   width: auto;
   border-radius: 40px;
 }
@@ -416,7 +416,7 @@ body {
   font-size: 0.8rem;
   font-weight: 500;
   margin-bottom: 8px;
-  color: #374151;
+  color: #647A67;
 }
 
 .capacity-input {
@@ -477,7 +477,7 @@ body {
   display: inline-block;
   width: 44px;
   height: 24px;
-  background: #9ca3af;
+  background: #8FA38A;
   border-radius: 32px;
   transition: background 0.2s;
   position: relative;
@@ -489,7 +489,7 @@ body {
   left: 3px;
   width: 18px;
   height: 18px;
-  background: white;
+  background: #f4f7f4;
   border-radius: 50%;
   transition: transform 0.2s;
 }
@@ -506,7 +506,7 @@ body {
   font-weight: 500;
   font-size: 0.9rem;
   min-width: 48px;
-  color: #374151;
+  color: #647A67;
 }
 
 .time-inputs {
@@ -521,7 +521,7 @@ body {
   padding: 6px 8px;
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
   font-size: 0.8rem;
-  background: white;
+  background: #f4f7f4;
   transition: all 0.2s ease;
 }
 
@@ -532,7 +532,7 @@ body {
 }
 
 .time-separator {
-  color: #6b7280;
+  color: #758173;
 }
 
 .closed-badge {
@@ -541,7 +541,7 @@ body {
   border-radius: 40px;
   font-size: 0.7rem;
   font-weight: 500;
-  color: #374151;
+  color: #647A67;
 }
 
 /* ----- REPORT PANEL STYLES ----- */
@@ -567,7 +567,7 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #374151;
+  color: #647A67;
 }
 
 .field-select,
@@ -577,7 +577,7 @@ body {
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  background: white;
+  background: #f4f7f4;
   transition: all 0.2s ease;
 }
 
@@ -704,7 +704,7 @@ input:checked + .format-chip {
 
 .report-preview__meta {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #758173;
   margin-top: 6px;
 }
 
@@ -722,7 +722,7 @@ input:checked + .format-chip {
 }
 
 .report-table thead tr {
-  background: #f8f9fa;
+  background: #f5f8f5;
   border-bottom: 1px solid #e5e7eb;
 }
 
@@ -737,7 +737,7 @@ input:checked + .format-chip {
 }
 
 .report-table tfoot {
-  background: #f8f9fa;
+  background: #f5f8f5;
   font-weight: 600;
 }
 
@@ -760,7 +760,7 @@ input:checked + .format-chip {
   position: fixed;
   bottom: 28px;
   right: 28px;
-  background: #0f172a;
+  background: #020402;
   color: white;
   padding: 12px 20px;
   border-radius: 60px;
