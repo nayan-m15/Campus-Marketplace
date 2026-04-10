@@ -131,3 +131,73 @@
 .navbar__logo:focus .navbar__logo-text {
   color: #fff;
 }
+/* Hamburger */
+.navbar__hamburger-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.navbar__hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.navbar__hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--gray-800);
+  border-radius: 2px;
+}
+
+/* Backdrop */
+.navbar__menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+/* Dropdown */
+.navbar__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 100;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.navbar__menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.navbar__menu li button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-family: var(--font);
+  cursor: pointer;
+  color: var(--gray-800);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar__menu li button:hover {
+  background: #f0fdf4;
+  color: var(--green);
+}
