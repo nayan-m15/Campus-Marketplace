@@ -51,95 +51,99 @@ export default function Navbar({
         />
       </form>
 
-      {/* Right nav */}
-      <nav aria-label="User navigation">
-        <ul className="navbar__links">
-          {user ? (
-            <>
-              <li>
-                <button className="navbar__link" onClick={onMessages}>
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                  Messages
-                </button>
-              </li>
-              <li>
-                <button className="navbar__link navbar__link--user" title={user.email} onClick={onProfile}>
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="Profile" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                  ) : (
-                    <span>👤</span>
-                  )}
-                  {displayName}
-                </button>
-              </li>
-              <li><button className="navbar__link" onClick={onSignOut}>Sign Out</button></li>
-              <li>
-                <button className="btn-primary navbar__list-btn" onClick={onShowListingForm}>
-                  <span>+</span> List Item
-                </button>
-              </li>
-            </>
-          ) : (
-            <>
-              <li><button className="navbar__link" onClick={onLogin}>Log In</button></li>
-              <li>
-                <button className="btn-primary navbar__list-btn" onClick={onSignup}>
-                  Sign Up Free
-                </button>
-              </li>
-            </>
-          )}
-        </ul>
-      </nav>
+      {/* Right side — nav + hamburger grouped */}
+      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
 
-      {/* ── Hamburger (right side) ── */}
-      <div className="navbar__hamburger-wrap">
-        <button
-          className="navbar__hamburger"
-          aria-label="Open menu"
-          onClick={() => setMenuOpen((prev) => !prev)}
-        >
-          <span /><span /><span />
-        </button>
+        <nav aria-label="User navigation">
+          <ul className="navbar__links">
+            {user ? (
+              <>
+                <li>
+                  <button className="navbar__link" onClick={onMessages}>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    Messages
+                  </button>
+                </li>
+                <li>
+                  <button className="navbar__link navbar__link--user" title={user.email} onClick={onProfile}>
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Profile" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    ) : (
+                      <span>👤</span>
+                    )}
+                    {displayName}
+                  </button>
+                </li>
+                <li><button className="navbar__link" onClick={onSignOut}>Sign Out</button></li>
+                <li>
+                  <button className="btn-primary navbar__list-btn" onClick={onShowListingForm}>
+                    <span>+</span> List Item
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                <li><button className="navbar__link" onClick={onLogin}>Log In</button></li>
+                <li>
+                  <button className="btn-primary navbar__list-btn" onClick={onSignup}>
+                    Sign Up Free
+                  </button>
+                </li>
+              </>
+            )}
+          </ul>
+        </nav>
 
-        {menuOpen && (
-          <>
-            <div className="navbar__menu-backdrop" onClick={() => setMenuOpen(false)} />
-            <nav className="navbar__menu" aria-label="Side menu">
-              <ul>
-                <li>
-                  <button onClick={() => { onProfile?.(); setMenuOpen(false); }}>
-                    Profile
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => { onShowListingForm?.(); setMenuOpen(false); }}>
-                    Your Listings
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => { setMenuOpen(false); }}>
-                    Wishlist
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => { setMenuOpen(false); }}>
-                    Settings
-                  </button>
-                </li>
-                {user && (
+        {/* Hamburger */}
+        <div className="navbar__hamburger-wrap">
+          <button
+            className="navbar__hamburger"
+            aria-label="Open menu"
+            onClick={() => setMenuOpen((prev) => !prev)}
+          >
+            <span /><span /><span />
+          </button>
+
+          {menuOpen && (
+            <>
+              <div className="navbar__menu-backdrop" onClick={() => setMenuOpen(false)} />
+              <nav className="navbar__menu" aria-label="Side menu">
+                <ul>
                   <li>
-                    <button onClick={() => { onSignOut?.(); setMenuOpen(false); }}>
-                      Sign Out
+                    <button onClick={() => { onProfile?.(); setMenuOpen(false); }}>
+                      Profile
                     </button>
                   </li>
-                )}
-              </ul>
-            </nav>
-          </>
-        )}
+                  <li>
+                    <button onClick={() => { onShowListingForm?.(); setMenuOpen(false); }}>
+                      Your Listings
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => { setMenuOpen(false); }}>
+                      Wishlist
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => { setMenuOpen(false); }}>
+                      Settings
+                    </button>
+                  </li>
+                  {user && (
+                    <li>
+                      <button onClick={() => { onSignOut?.(); setMenuOpen(false); }}>
+                        Sign Out
+                      </button>
+                    </li>
+                  )}
+                </ul>
+              </nav>
+            </>
+          )}
+        </div>
+
       </div>
 
     </header>
