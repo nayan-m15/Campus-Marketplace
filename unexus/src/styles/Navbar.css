@@ -39,8 +39,6 @@
   color: #fff;
   font-size: 14px;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #8FA38A 0%, #647A67 100%);
-  box-shadow: 0 2px 12px rgba(143, 163, 138, 0.4);
 }
 
 .navbar__logo-img {
