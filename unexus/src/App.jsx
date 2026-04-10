@@ -8,6 +8,7 @@ import Footer from "./components/Footer";
 import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
 import ProfilePage from "./components/ProfilePage";
+import PublicProfilePage from "./components/PublicProfilePage";
 import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
@@ -173,11 +174,9 @@ function AppInner() {
 
   const [page, setPage] = useState("home");
   const [activeCategory, setActiveCategory] = useState("All Items");
-  // ── NEW: condition + price filter state ───────────────────
   const [activeCondition, setActiveCondition] = useState("All Conditions");
   const [priceSort, setPriceSort] = useState("");
   const [priceRange, setPriceRange] = useState({ min: "", max: "" });
-  // ─────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -196,6 +195,9 @@ function AppInner() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
+
+  // ── Public profile state ───────────────────────────────────
+  const [publicProfileId, setPublicProfileId] = useState(null);
 
   useEffect(() => {
     fetchListings()
@@ -239,43 +241,43 @@ function AppInner() {
 
   // ── Updated: applies category, search, condition, and price ──
   const filteredListings = (() => {
-  const numericPrice = (item) =>
-    Number(String(item.price).replace(/[^0-9.]/g, ""));
+    const numericPrice = (item) =>
+      Number(String(item.price).replace(/[^0-9.]/g, ""));
 
-  let result = allListings.filter((item) => {
-    const searchMatch = searchQuery.trim()
-      ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchQuery.toLowerCase())
-      : true;
+    let result = allListings.filter((item) => {
+      const searchMatch = searchQuery.trim()
+        ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.category.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
 
-    const categoryMatch =
-      searchQuery.trim() || activeCategory === "All Items"
-        ? true
-        : item.category === activeCategory;
+      const categoryMatch =
+        searchQuery.trim() || activeCategory === "All Items"
+          ? true
+          : item.category === activeCategory;
 
-    const conditionMatch =
-      activeCondition === "All Conditions" || item.condition === activeCondition;
+      const conditionMatch =
+        activeCondition === "All Conditions" || item.condition === activeCondition;
 
-    const minOk =
-      priceSort !== "custom" ||
-      priceRange.min === "" ||
-      numericPrice(item) >= Number(priceRange.min);
+      const minOk =
+        priceSort !== "custom" ||
+        priceRange.min === "" ||
+        numericPrice(item) >= Number(priceRange.min);
 
-    const maxOk =
-      priceSort !== "custom" ||
-      priceRange.max === "" ||
-      numericPrice(item) <= Number(priceRange.max);
+      const maxOk =
+        priceSort !== "custom" ||
+        priceRange.max === "" ||
+        numericPrice(item) <= Number(priceRange.max);
 
-    return searchMatch && categoryMatch && conditionMatch && minOk && maxOk;
-  });
+      return searchMatch && categoryMatch && conditionMatch && minOk && maxOk;
+    });
 
-if (priceSort === "price_asc")      result = [...result].sort((a, b) => numericPrice(a) - numericPrice(b));
-if (priceSort === "price_desc")     result = [...result].sort((a, b) => numericPrice(b) - numericPrice(a));
-if (priceSort === "condition_asc")  result = [...result].sort((a, b) => CONDITIONS.indexOf(b.condition) - CONDITIONS.indexOf(a.condition));
-if (priceSort === "condition_desc") result = [...result].sort((a, b) => CONDITIONS.indexOf(a.condition) - CONDITIONS.indexOf(b.condition));
-if (priceSort === "newest")         result = [...result].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    if (priceSort === "price_asc")      result = [...result].sort((a, b) => numericPrice(a) - numericPrice(b));
+    if (priceSort === "price_desc")     result = [...result].sort((a, b) => numericPrice(b) - numericPrice(a));
+    if (priceSort === "condition_asc")  result = [...result].sort((a, b) => CONDITIONS.indexOf(b.condition) - CONDITIONS.indexOf(a.condition));
+    if (priceSort === "condition_desc") result = [...result].sort((a, b) => CONDITIONS.indexOf(a.condition) - CONDITIONS.indexOf(b.condition));
+    if (priceSort === "newest")         result = [...result].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-  return result;
+    return result;
   })();
 
   function handleCategoryChange(category) {
@@ -283,7 +285,6 @@ if (priceSort === "newest")         result = [...result].sort((a, b) => new Date
     setSearchQuery("");
   }
 
-  // ── NEW: reset all secondary filters together ─────────────
   function handleClearFilters() {
     setActiveCondition("All Conditions");
     setPriceRange({ min: "", max: "" });
@@ -311,6 +312,16 @@ if (priceSort === "newest")         result = [...result].sort((a, b) => new Date
     setMsgRecipientId(item.user_id || null);
     setMsgListingTitle(item.title);
     setPage("messages");
+  }
+
+  function handleSellerClick(sellerId) {
+    // If clicking your own name, go to your editable profile
+    if (user && sellerId === user.id) {
+      setPage("profile");
+      return;
+    }
+    setPublicProfileId(sellerId);
+    setPage("publicProfile");
   }
 
   function handleSetupComplete() {
@@ -370,6 +381,27 @@ if (priceSort === "newest")         result = [...result].sort((a, b) => new Date
     );
   }
 
+  if (page === "publicProfile" && publicProfileId) {
+    return (
+      <>
+        <header><Navbar {...navbarProps} /></header>
+        <PublicProfilePage
+          userId={publicProfileId}
+          onBack={() => setPage("home")}
+          onMessageSeller={
+            user
+              ? () => {
+                  setMsgRecipientId(publicProfileId);
+                  setMsgListingTitle(null);
+                  setPage("messages");
+                }
+              : null
+          }
+        />
+      </>
+    );
+  }
+
   if (page === "messages") {
     return (
       <>
@@ -419,7 +451,6 @@ if (priceSort === "newest")         result = [...result].sort((a, b) => new Date
         <section><Hero onListingClick={setSelectedListing} /></section>
 
         <nav aria-label="Categories">
-          {/* ── All new filter props wired in ── */}
           <CategoryBar
             activeCategory={activeCategory}
             onCategoryChange={handleCategoryChange}
@@ -444,6 +475,7 @@ if (priceSort === "newest")         result = [...result].sort((a, b) => new Date
               activeCategory={activeCategory}
               onListingClick={setSelectedListing}
               onMessageSeller={handleMessageSeller}
+              onSellerClick={handleSellerClick}
             />
           )}
         </section>

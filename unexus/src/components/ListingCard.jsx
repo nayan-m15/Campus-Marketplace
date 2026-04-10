@@ -40,7 +40,7 @@ function StarRating({ rating = 0, count }) {
   );
 }
 
-export default function ListingCard({ item, onClick, onMessageSeller }) {
+export default function ListingCard({ item, onClick, onMessageSeller, onSellerClick }) {
   const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
 
   function handleKeyDown(e) {
@@ -105,7 +105,21 @@ export default function ListingCard({ item, onClick, onMessageSeller }) {
         </section>
 
         <section className="listing-card__meta">
-          <p className="listing-card__seller">👤 {item.seller}</p>
+          {onSellerClick && item.user_id ? (
+            <button
+              className="listing-card__seller listing-card__seller--link"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSellerClick(item.user_id, item.seller);
+              }}
+              type="button"
+              aria-label={`View profile of ${item.seller}`}
+            >
+              👤 {item.seller}
+            </button>
+          ) : (
+            <p className="listing-card__seller">👤 {item.seller}</p>
+          )}
           <p className="listing-card__distance">📍 {item.distance}</p>
         </section>
 

@@ -357,3 +357,16 @@
   .profile-field-row { grid-template-columns: 1fr; }
   .profile-save-btn { width: 100%; }
 }
+/* ── Public profile read-only value ─────────────────────────── */
+.profile-public-value {
+  width: 100%;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #020402;
+  background: #eef3ee;
+  font-family: var(--font);
+  box-sizing: border-box;
+  line-height: 1.4;
+}
