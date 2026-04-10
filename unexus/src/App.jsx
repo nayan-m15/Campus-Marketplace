@@ -198,6 +198,7 @@ function AppInner() {
 
   // ── Public profile state ───────────────────────────────────
   const [publicProfileId, setPublicProfileId] = useState(null);
+  const [prevPage, setPrevPage] = useState("home");
 
   useEffect(() => {
     fetchListings()
@@ -320,6 +321,7 @@ function AppInner() {
       setPage("profile");
       return;
     }
+    setPrevPage("home");
     setPublicProfileId(sellerId);
     setPage("publicProfile");
   }
@@ -387,7 +389,7 @@ function AppInner() {
         <header><Navbar {...navbarProps} /></header>
         <PublicProfilePage
           userId={publicProfileId}
-          onBack={() => setPage("home")}
+          onBack={() => setPage(prevPage)}
           onMessageSeller={
             user
               ? () => {
@@ -413,6 +415,11 @@ function AppInner() {
             setMsgRecipientId(null);
             setMsgListingTitle(null);
             goHome();
+          }}
+          onViewProfile={(sellerId) => {
+            setPrevPage("messages");
+            setPublicProfileId(sellerId);
+            setPage("publicProfile");
           }}
         />
       </>

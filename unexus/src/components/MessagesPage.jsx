@@ -35,7 +35,7 @@ function Avatar({ url, name, size = 40 }) {
 }
 
 // ── Main Component ─────────────────────────────────────────
-export default function MessagesPage({ initialRecipientId = null, initialListingTitle = null, onBack }) {
+export default function MessagesPage({ initialRecipientId = null, initialListingTitle = null, onBack, onViewProfile }) {
   const { user } = useAuth();
 
   const [conversations, setConversations] = useState([]);
@@ -314,7 +314,7 @@ export default function MessagesPage({ initialRecipientId = null, initialListing
                 <>
                   <Avatar url={activePeer.avatar_url} name={peerName(activePeer)} size={38} />
                   <div className="msg-chat__header-info">
-                    <span className="msg-chat__header-name">{peerName(activePeer)}</span>
+                    <button className="msg-chat__header-name msg-chat__header-name--link" onClick={() => onViewProfile?.(activePeer.id)} type="button">{peerName(activePeer)}</button>
                     {activePeer.institution && (
                       <span className="msg-chat__header-sub">{activePeer.institution}</span>
                     )}
