@@ -17,7 +17,7 @@ export default function Navbar({
   onYourListings,
   onWishlist,
   wishlistCount = 0,
-  onSettings, 
+  unreadCount = 0,      // ← NEW: total unread message count
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -65,10 +65,36 @@ export default function Navbar({
             {user ? (
               <>
                 <li>
-                  <button className="navbar__link" onClick={onMessages}>
-                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
+                  {/* ── Messages button with Instagram-style unread bubble ── */}
+                  <button className="navbar__link" onClick={onMessages} style={{ position: "relative" }}>
+                    <span style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      {unreadCount > 0 && (
+                        <span style={{
+                          position: "absolute",
+                          top: -6,
+                          right: -7,
+                          background: "#53d769",
+                          color: "#fff",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          borderRadius: "50%",
+                          minWidth: 16,
+                          height: 16,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "0 3px",
+                          boxShadow: "0 0 0 2px var(--gray-900, #1a1a1a)",
+                          pointerEvents: "none",
+                        }}>
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
+                    </span>
                     Messages
                   </button>
                 </li>
@@ -153,7 +179,7 @@ export default function Navbar({
                   </li>
 
                   <li>
-                    <button onClick={() => { onSettings?.(); setMenuOpen(false); }}>
+                    <button onClick={() => { setMenuOpen(false); }}>
                       Settings
                     </button>
                   </li>
