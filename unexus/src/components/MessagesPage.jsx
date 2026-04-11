@@ -247,6 +247,14 @@ export default function MessagesPage({
         setActiveId((curActive) => {
           if (curActive === peerId) {
             setMessages((prev) => {
+              if (msg.sender_id === user.id) {
+                const hasOptimistic = prev.find((m) => m.id === null && m.content === msg.content && m.sender_id === msg.sender_id);
+                if (hasOptimistic) {
+                  return prev.map((m) =>
+                    m.id === null && m.content === msg.content && m.sender_id === msg.sender_id ? msg : m
+                  );
+                }
+              }
               if (prev.find((m) => m.id === msg.id)) return prev;
               return [...prev, msg];
             });
