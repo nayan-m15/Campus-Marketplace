@@ -441,6 +441,19 @@
   gap: 22px;
 }
 
+.item-modal-top-main {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.item-modal-top-bottom {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
 .item-modal-carousel {
   display: flex;
   flex-direction: column;
@@ -450,8 +463,8 @@
 
 .item-modal-carousel__frame {
   position: relative;
-  width: min(100%, 620px);
-  aspect-ratio: 16 / 10;
+  width: 100%;
+  aspect-ratio: 16 / 8.5;
   border-radius: 24px;
   overflow: hidden;
   background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
@@ -598,20 +611,22 @@
 
 .item-modal-bottom-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
   gap: 22px;
+  align-items: start;
 }
 
 .item-modal-info {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 .item-modal-description-card {
   padding: 0;
   box-shadow: none;
   background: transparent;
+  width: 100%;
 }
 
 .item-modal-description-card h3 {
@@ -624,7 +639,7 @@
 .item-modal-description-card p {
   margin: 0;
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.65;
   color: var(--gray-500);
   white-space: pre-wrap;
 }
@@ -725,6 +740,7 @@
 
 @media (max-width: 900px) {
   .item-modal-content { width: min(94vw, 760px); }
+  .item-modal-top-bottom { grid-template-columns: 1fr; }
   .item-modal-bottom-card { grid-template-columns: 1fr; }
   .item-modal-title { font-size: 22px; }
   .item-modal-price { font-size: 22px; }

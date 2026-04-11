@@ -120,70 +120,74 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
             <section className="item-modal-layout">
               <div className="item-modal-right-column item-modal-right-column--full">
                 <div className="item-modal-top-card">
-                  <div className="item-modal-carousel">
-                    <div className="item-modal-carousel__frame">
-                      {images.length > 1 && (
-                        <>
-                          <button type="button" className="item-modal-carousel__nav item-modal-carousel__nav--prev" onClick={showPreviousImage} aria-label="Show previous image">{"<"}</button>
-                          <button type="button" className="item-modal-carousel__nav item-modal-carousel__nav--next" onClick={showNextImage} aria-label="Show next image">{">"}</button>
-                        </>
-                      )}
+                  <div className="item-modal-top-main">
+                    <div className="item-modal-carousel">
+                      <div className="item-modal-carousel__frame">
+                        {images.length > 1 && (
+                          <>
+                            <button type="button" className="item-modal-carousel__nav item-modal-carousel__nav--prev" onClick={showPreviousImage} aria-label="Show previous image">{"<"}</button>
+                            <button type="button" className="item-modal-carousel__nav item-modal-carousel__nav--next" onClick={showNextImage} aria-label="Show next image">{">"}</button>
+                          </>
+                        )}
 
-                      {activeImage ? (
-                        <img src={activeImage} alt={item.title || "Listing image"} className="item-modal-top-image" />
-                      ) : (
-                        <div className="item-modal-top-placeholder"><span>{item.emoji || "No Image"}</span></div>
-                      )}
-                    </div>
-
-                    {images.length > 1 && (
-                      <div className="item-modal-carousel__dots" aria-label="Image navigation">
-                        {images.map((image, index) => (
-                          <button
-                            key={`${image}-${index}`}
-                            type="button"
-                            className={`item-modal-carousel__dot${index === currentImageIndex ? " item-modal-carousel__dot--active" : ""}`}
-                            onClick={() => setCurrentImageIndex(index)}
-                            aria-label={`Show image ${index + 1}`}
-                            aria-pressed={index === currentImageIndex}
-                          />
-                        ))}
+                        {activeImage ? (
+                          <img src={activeImage} alt={item.title || "Listing image"} className="item-modal-top-image" />
+                        ) : (
+                          <div className="item-modal-top-placeholder"><span>{item.emoji || "No Image"}</span></div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  <div className="item-modal-top-text">
-                    <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
-
-                    <div className="item-modal-summary">
-                      <p className="item-modal-price">
-                        {item.pricePrefix && <span className="item-modal-price-prefix">{item.pricePrefix} </span>}
-                        {item.price || "Price not available"}
-                      </p>
-                      <span className="item-modal-condition">{item.condition || "Good"}</span>
+                      {images.length > 1 && (
+                        <div className="item-modal-carousel__dots" aria-label="Image navigation">
+                          {images.map((image, index) => (
+                            <button
+                              key={`${image}-${index}`}
+                              type="button"
+                              className={`item-modal-carousel__dot${index === currentImageIndex ? " item-modal-carousel__dot--active" : ""}`}
+                              onClick={() => setCurrentImageIndex(index)}
+                              aria-label={`Show image ${index + 1}`}
+                              aria-pressed={index === currentImageIndex}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {user && onToggleWishlist && (
-                      <button
-                        type="button"
-                        className={`item-modal-wishlist-btn${wishlisted ? " item-modal-wishlist-btn--active" : ""}`}
-                        onClick={() => onToggleWishlist(item.id)}
-                        aria-pressed={wishlisted}
-                        aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                      >
-                        {wishlisted ? "Saved" : "Save to Wishlist"}
-                      </button>
-                    )}
+                    <div className="item-modal-top-bottom">
+                      <div className="item-modal-top-text">
+                        <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
+
+                        <div className="item-modal-summary">
+                          <p className="item-modal-price">
+                            {item.pricePrefix && <span className="item-modal-price-prefix">{item.pricePrefix} </span>}
+                            {item.price || "Price not available"}
+                          </p>
+                          <span className="item-modal-condition">{item.condition || "Good"}</span>
+                        </div>
+
+                        {user && onToggleWishlist && (
+                          <button
+                            type="button"
+                            className={`item-modal-wishlist-btn${wishlisted ? " item-modal-wishlist-btn--active" : ""}`}
+                            onClick={() => onToggleWishlist(item.id)}
+                            aria-pressed={wishlisted}
+                            aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                          >
+                            {wishlisted ? "Saved" : "Save to Wishlist"}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="item-modal-description-card">
+                        <h3>Description</h3>
+                        <p>{item.description?.trim() || "No description provided."}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="item-modal-bottom-card">
                   <div className="item-modal-info">
-                    <div className="item-modal-description-card">
-                      <h3>Description</h3>
-                      <p>{item.description?.trim() || "No description provided."}</p>
-                    </div>
-
                     <div className="item-modal-meta">
                       <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
                       <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
