@@ -12,12 +12,15 @@ import PublicProfilePage from "./components/PublicProfilePage";
 import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
+import WishlistPage from "./components/WishlistPage";
 import { fetchListings, CONDITIONS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
 import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
 import YourListingsPage from "./components/YourListingsPage";
+import { useWishlist } from "./context/useWishlist";
+
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
 function isProfileComplete(profile) {
@@ -26,7 +29,7 @@ function isProfileComplete(profile) {
 }
 
 // ── Item Details Modal ─────────────────────────────────────
-function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
+function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishlisted, onToggleWishlist }) {
   const [message, setMessage] = useState(
     `Hi, is the ${item?.title || "item"} still available?`
   );
@@ -66,6 +69,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
       : [];
 
   const firstImage = images[0] || null;
+  const wishlisted = isWishlisted?.(item.id) ?? false;
 
   async function handleSendMessage() {
     if (!message.trim()) { setSendError("Please enter a message."); setSendSuccess(""); return; }
@@ -116,6 +120,19 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
                     {item.pricePrefix && <span className="item-modal-price-prefix">{item.pricePrefix} </span>}
                     {item.price || "Price not available"}
                   </p>
+
+                  {/* ── Wishlist button in modal ── */}
+                  {user && onToggleWishlist && (
+                    <button
+                      type="button"
+                      className={`item-modal-wishlist-btn${wishlisted ? " item-modal-wishlist-btn--active" : ""}`}
+                      onClick={() => onToggleWishlist(item.id)}
+                      aria-pressed={wishlisted}
+                      aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                    >
+                      {wishlisted ? "♥ Wishlisted" : "♡ Add to Wishlist"}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -196,12 +213,16 @@ function AppInner() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
 
+  // ── Wishlist ───────────────────────────────────────────────
+  const { wishlistItems, isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(user);
+
   // ── Ref for the filter bar nav so Hero can scroll to it ──
   const filterBarRef = useRef(null);
 
   function handleScrollToListings() {
     filterBarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+
   // ── Public profile state ───────────────────────────────────
   const [publicProfileId, setPublicProfileId] = useState(null);
   const [prevPage, setPrevPage] = useState("home");
@@ -321,7 +342,6 @@ function AppInner() {
   }
 
   function handleSellerClick(sellerId) {
-    // If clicking your own name, go to your editable profile
     if (user && sellerId === user.id) {
       setPage("profile");
       return;
@@ -378,6 +398,8 @@ function AppInner() {
     onSignOut: signOut,
     onHome: goHome,
     onYourListings: () => setPage("yourlistings"),
+    onWishlist: () => setPage("wishlist"),
+    wishlistCount: wishlistItems.length,
   };
 
   if (page === "profile") {
@@ -431,11 +453,30 @@ function AppInner() {
       </>
     );
   }
-    if (page === "yourlistings") {
+
+  if (page === "yourlistings") {
     return (
       <>
         <header><Navbar {...navbarProps} /></header>
         <YourListingsPage onBack={goHome} />
+      </>
+    );
+  }
+
+  // ── Wishlist page ──────────────────────────────────────────
+  if (page === "wishlist") {
+    return (
+      <>
+        <header><Navbar {...navbarProps} /></header>
+        <WishlistPage
+          wishlistItems={wishlistItems}
+          loading={wishlistLoading}
+          onListingClick={(item) => {
+            setSelectedListing(item);
+            setPage("home");
+          }}
+          onToggleWishlist={toggleWishlist}
+        />
       </>
     );
   }
@@ -465,16 +506,16 @@ function AppInner() {
           onClose={() => setSelectedListing(null)}
           onMessageSeller={handleMessageSeller}
           user={user}
+          isWishlisted={isWishlisted}
+          onToggleWishlist={user ? toggleWishlist : null}
         />
       </header>
 
       <main>
         <section>
-          {/* Pass the scroll callback down to Hero */}
           <Hero onListingClick={setSelectedListing} onBrowseClick={handleScrollToListings} />
         </section>
 
-        {/* Attach ref here — this is what gets scrolled into view */}
         <nav aria-label="Categories" ref={filterBarRef}>
           <CategoryBar
             activeCategory={activeCategory}
@@ -501,6 +542,9 @@ function AppInner() {
               onListingClick={setSelectedListing}
               onMessageSeller={handleMessageSeller}
               onSellerClick={handleSellerClick}
+              isWishlisted={isWishlisted}
+              onToggleWishlist={user ? toggleWishlist : null}
+              user={user}
             />
           )}
         </section>

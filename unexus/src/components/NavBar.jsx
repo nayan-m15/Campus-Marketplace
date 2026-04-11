@@ -15,6 +15,8 @@ export default function Navbar({
   onMessages,
   onHome,
   onYourListings,
+  onWishlist,          // ← NEW prop
+  wishlistCount = 0,   // ← NEW prop (optional badge)
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -52,7 +54,7 @@ export default function Navbar({
         />
       </form>
 
-      {/* Right side — nav + hamburger grouped */}
+      {/* Right side */}
       <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
 
         <nav aria-label="User navigation">
@@ -122,11 +124,31 @@ export default function Navbar({
                       Your Listings
                     </button>
                   </li>
+
+                  {/* ── Wishlist entry with optional count badge ── */}
                   <li>
-                    <button onClick={() => { setMenuOpen(false); }}>
-                      Wishlist
+                    <button
+                      onClick={() => { onWishlist?.(); setMenuOpen(false); }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}
+                    >
+                      <span>Wishlist</span>
+                      {wishlistCount > 0 && (
+                        <span style={{
+                          background: "#e74c3c",
+                          color: "#fff",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          borderRadius: 20,
+                          padding: "1px 7px",
+                          minWidth: 20,
+                          textAlign: "center",
+                        }}>
+                          {wishlistCount}
+                        </span>
+                      )}
                     </button>
                   </li>
+
                   <li>
                     <button onClick={() => { setMenuOpen(false); }}>
                       Settings

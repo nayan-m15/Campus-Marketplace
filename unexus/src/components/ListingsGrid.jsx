@@ -8,6 +8,10 @@ export default function ListingsGrid({
   onListingClick,
   onMessageSeller,
   onSellerClick,
+  // Wishlist props
+  isWishlisted,
+  onToggleWishlist,
+  user,
 }) {
   const heading = searchQuery.trim()
     ? `Results for "${searchQuery.trim()}"`
@@ -51,6 +55,9 @@ export default function ListingsGrid({
                 onClick={() => onListingClick?.({ ...item })}
                 onMessageSeller={onMessageSeller}
                 onSellerClick={onSellerClick}
+                isWishlisted={isWishlisted?.(item.id) ?? false}
+                onToggleWishlist={onToggleWishlist}
+                user={user}
               />
             </li>
           ))}

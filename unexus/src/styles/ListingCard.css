@@ -47,17 +47,49 @@
   background: linear-gradient(135deg, #e8f0e8, #f0f5f0);
 }
 
-/* ── Like / Wishlist Button ──────────────────────────────
-   Add this button inside .listing-card__image-wrap:
+/* ── Wishlist Heart Button (on card image) ───────────────── */
+.listing-card__wishlist-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: #ccc;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.15s, background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  line-height: 1;
+  backdrop-filter: blur(4px);
+}
 
-   <button
-     className={`listing-card__like ${isLiked ? 'listing-card__like--active' : ''}`}
-     onClick={(e) => { e.stopPropagation(); toggleLike(listing.id); }}
-     aria-label="Add to wishlist"
-   >
-     ♥
-   </button>
-──────────────────────────────────────────────────────── */
+.listing-card__wishlist-btn:hover {
+  color: #8FA38A;
+  transform: scale(1.12);
+  background: #f4f7f4;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.listing-card__wishlist-btn--active {
+  color: #8FA38A;
+  background: #f4f7f4;
+  box-shadow: 0 2px 12px rgba(143, 163, 138, 0.3);
+  animation: like-pop 0.3s ease;
+}
+
+.listing-card__wishlist-btn--active:hover {
+  color: #647A67;
+  transform: scale(1.08);
+}
+
+/* ── Keep the old .listing-card__like alias in case used elsewhere ── */
 .listing-card__like {
   position: absolute;
   top: 10px;
@@ -91,16 +123,12 @@
   color: #8FA38A;
   background: #f4f7f4;
   box-shadow: 0 2px 12px rgba(143, 163, 138, 0.3);
+  animation: like-pop 0.3s ease;
 }
 
 .listing-card__like--active:hover {
   color: #647A67;
   transform: scale(1.08);
-}
-
-/* Liked pulse animation */
-.listing-card__like--active {
-  animation: like-pop 0.3s ease;
 }
 
 @keyframes like-pop {
@@ -444,6 +472,40 @@
   color: #666;
 }
 
+/* ── Wishlist button inside the modal ───────────────────── */
+.item-modal-wishlist-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid #8FA38A;
+  background: transparent;
+  color: #647A67;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.item-modal-wishlist-btn:hover {
+  background: #f4f7f4;
+  box-shadow: 0 2px 10px rgba(143, 163, 138, 0.2);
+}
+
+.item-modal-wishlist-btn--active {
+  background: #f4f7f4;
+  border-color: #647A67;
+  color: #647A67;
+  box-shadow: 0 2px 12px rgba(143, 163, 138, 0.3);
+}
+
+.item-modal-wishlist-btn--active:hover {
+  background: #eef3ee;
+}
+
 .item-modal-description-card h3 {
   margin: 0 0 12px;
   font-size: 16px;
@@ -550,7 +612,8 @@
   .item-modal-top-row { flex-direction: column; align-items: flex-start; }
   .item-modal-top-image, .item-modal-top-placeholder { width: 100%; max-width: 220px; height: 160px; }
 }
-/* ── Seller name as clickable link (looks like plain text) ─── */
+
+/* ── Seller name as clickable link ─────────────────────── */
 .listing-card__seller--link {
   background: none;
   border: none;
