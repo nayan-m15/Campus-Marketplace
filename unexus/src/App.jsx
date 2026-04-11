@@ -31,16 +31,16 @@ function isProfileComplete(profile) {
 
 // ── Item Details Modal ─────────────────────────────────────
 function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishlisted, onToggleWishlist }) {
-  const [message, setMessage] = useState(
-    `Hi, is the ${item?.title || "item"} still available?`
-  );
+  const [message, setMessage] = useState(`Hi, is the ${item?.title || "item"} still available?`);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState("");
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     if (item) {
       setMessage(`Hi, is the ${item.title || "item"} still available?`);
+      setCurrentImageIndex(0);
     }
   }, [item?.id]);
 
@@ -66,11 +66,23 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
     Array.isArray(item.image_urls) && item.image_urls.length > 0
       ? item.image_urls
       : item.image_url
-      ? [item.image_url]
-      : [];
+        ? [item.image_url]
+        : [];
 
-  const firstImage = images[0] || null;
+  const activeImage = images[currentImageIndex] || images[0] || null;
   const wishlisted = isWishlisted?.(item.id) ?? false;
+  const joinedLabel =
+    item.joined_label || (item.joined_year ? String(item.joined_year) : "Not provided");
+
+  function showPreviousImage() {
+    if (images.length <= 1) return;
+    setCurrentImageIndex((index) => (index === 0 ? images.length - 1 : index - 1));
+  }
+
+  function showNextImage() {
+    if (images.length <= 1) return;
+    setCurrentImageIndex((index) => (index === images.length - 1 ? 0 : index + 1));
+  }
 
   async function handleSendMessage() {
     if (!message.trim()) { setSendError("Please enter a message."); setSendSuccess(""); return; }
@@ -90,7 +102,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
       });
       if (error) throw new Error(error.message);
       setMessage("");
-      setSendSuccess("Message sent! Opening conversation…");
+      setSendSuccess("Message sent! Opening conversation...");
       setTimeout(() => { onClose(); onMessageSeller(item); }, 1000);
     } catch (err) {
       setSendError(err.message || "Failed to send message.");
@@ -102,91 +114,115 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
   return (
     <div className="item-modal-overlay" onClick={onClose}>
       <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Close item details" type="button">×</button>
+        <button className="modal-close" onClick={onClose} aria-label="Close item details" type="button">x</button>
 
-        <section className="item-modal-layout">
-          <div className="item-modal-right-column item-modal-right-column--full">
+        <div className="item-modal-scroll">
+          <div className="item-modal-scroll-inner">
+            <section className="item-modal-layout">
+              <div className="item-modal-right-column item-modal-right-column--full">
+                <div className="item-modal-top-card">
+                  <div className="item-modal-carousel">
+                    <div className="item-modal-carousel__frame">
+                      {images.length > 1 && (
+                        <>
+                          <button type="button" className="item-modal-carousel__nav item-modal-carousel__nav--prev" onClick={showPreviousImage} aria-label="Show previous image">{"<"}</button>
+                          <button type="button" className="item-modal-carousel__nav item-modal-carousel__nav--next" onClick={showNextImage} aria-label="Show next image">{">"}</button>
+                        </>
+                      )}
 
-            <div className="item-modal-top-card">
-              <div className="item-modal-top-row">
-                {firstImage ? (
-                  <img src={firstImage} alt={item.title || "Listing image"} className="item-modal-top-image" />
-                ) : (
-                  <div className="item-modal-top-placeholder"><span>{item.emoji || "📦"}</span></div>
-                )}
-                <div className="item-modal-top-text">
-                  <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
-                  <span className="item-modal-condition">{item.condition || "Good"}</span>
-                  <p className="item-modal-price">
-                    {item.pricePrefix && <span className="item-modal-price-prefix">{item.pricePrefix} </span>}
-                    {item.price || "Price not available"}
-                  </p>
+                      {activeImage ? (
+                        <img src={activeImage} alt={item.title || "Listing image"} className="item-modal-top-image" />
+                      ) : (
+                        <div className="item-modal-top-placeholder"><span>{item.emoji || "No Image"}</span></div>
+                      )}
+                    </div>
 
-                  {/* ── Wishlist button in modal ── */}
-                  {user && onToggleWishlist && (
-                    <button
-                      type="button"
-                      className={`item-modal-wishlist-btn${wishlisted ? " item-modal-wishlist-btn--active" : ""}`}
-                      onClick={() => onToggleWishlist(item.id)}
-                      aria-pressed={wishlisted}
-                      aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                    >
-                      {wishlisted ? "♥ Wishlisted" : "♡ Add to Wishlist"}
-                    </button>
-                  )}
+                    {images.length > 1 && (
+                      <div className="item-modal-carousel__dots" aria-label="Image navigation">
+                        {images.map((image, index) => (
+                          <button
+                            key={`${image}-${index}`}
+                            type="button"
+                            className={`item-modal-carousel__dot${index === currentImageIndex ? " item-modal-carousel__dot--active" : ""}`}
+                            onClick={() => setCurrentImageIndex(index)}
+                            aria-label={`Show image ${index + 1}`}
+                            aria-pressed={index === currentImageIndex}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="item-modal-top-text">
+                    <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
+
+                    <div className="item-modal-summary">
+                      <p className="item-modal-price">
+                        {item.pricePrefix && <span className="item-modal-price-prefix">{item.pricePrefix} </span>}
+                        {item.price || "Price not available"}
+                      </p>
+                      <span className="item-modal-condition">{item.condition || "Good"}</span>
+                    </div>
+
+                    {user && onToggleWishlist && (
+                      <button
+                        type="button"
+                        className={`item-modal-wishlist-btn${wishlisted ? " item-modal-wishlist-btn--active" : ""}`}
+                        onClick={() => onToggleWishlist(item.id)}
+                        aria-pressed={wishlisted}
+                        aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                      >
+                        {wishlisted ? "Saved" : "Save to Wishlist"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="item-modal-bottom-card">
+                  <div className="item-modal-info">
+                    <div className="item-modal-description-card">
+                      <h3>Description</h3>
+                      <p>{item.description?.trim() || "No description provided."}</p>
+                    </div>
+
+                    <div className="item-modal-meta">
+                      <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
+                      <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
+                      <p><strong>Joined since:</strong> {joinedLabel}</p>
+                      {item.category && <p><strong>Category:</strong> {item.category}</p>}
+                      <p><strong>Distance:</strong> {item.distance || "0 km"}</p>
+                    </div>
+                  </div>
+
+                  <div className="item-modal-contact">
+                    <h3>Message seller</h3>
+                    {!user ? (
+                      <p className="item-modal-error">Please <strong>log in</strong> to message this seller.</p>
+                    ) : (
+                      <>
+                        <textarea className="item-modal-textarea" value={message} onChange={(e) => setMessage(e.target.value)} rows={4} />
+                        {sendError && <p className="item-modal-error">{sendError}</p>}
+                        {sendSuccess && <p className="item-modal-success">{sendSuccess}</p>}
+                        <div className="item-modal-actions">
+                          <button type="button" className="item-modal-send-btn" onClick={handleSendMessage} disabled={sending}>
+                            {sending ? "Sending..." : "Send message"}
+                          </button>
+                          <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={() => { onClose(); onMessageSeller(item); }}>
+                            Open chat
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="item-modal-description-card">
-              <h3>Description</h3>
-              <p>{item.description?.trim() || "No description provided."}</p>
-            </div>
-
-            <div className="item-modal-bottom-card">
-              <div className="item-modal-meta">
-                <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
-                <p><strong>Approximate location:</strong> {item.approximate_location || "Location not provided"}</p>
-                <p><strong>Joined in:</strong> {item.joined_year || 2026}</p>
-                {item.category && <p><strong>Category:</strong> {item.category}</p>}
-                <p><strong>Distance:</strong> {item.distance || "0 km"}</p>
-              </div>
-
-              <div className="item-modal-contact">
-                <h3>Message seller</h3>
-                {!user ? (
-                  <p className="item-modal-error">Please <strong>log in</strong> to message this seller.</p>
-                ) : (
-                  <>
-                    <textarea
-                      className="item-modal-textarea"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      rows={3}
-                    />
-                    {sendError && <p className="item-modal-error">{sendError}</p>}
-                    {sendSuccess && <p className="item-modal-success">{sendSuccess}</p>}
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button type="button" className="item-modal-send-btn" onClick={handleSendMessage} disabled={sending}>
-                        {sending ? "Sending..." : "Send message"}
-                      </button>
-                      <button type="button" className="item-modal-send-btn" style={{ background: "var(--green)" }} onClick={() => { onClose(); onMessageSeller(item); }}>
-                        Open chat
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
+            </section>
           </div>
-        </section>
+        </div>
       </article>
     </div>
   );
 }
-
-// ── Inner App ──────────────────────────────────────────────
 function AppInner() {
   const { user, loading, signOut } = useAuth();
 
@@ -221,7 +257,16 @@ function AppInner() {
   const filterBarRef = useRef(null);
 
   function handleScrollToListings() {
-    filterBarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!filterBarRef.current) return;
+
+    const navbarOffset = 76;
+    const filterBarTop =
+      filterBarRef.current.getBoundingClientRect().top + window.scrollY - navbarOffset;
+
+    window.scrollTo({
+      top: Math.max(filterBarTop, 0),
+      behavior: "smooth",
+    });
   }
 
   // ── Public profile state ───────────────────────────────────
