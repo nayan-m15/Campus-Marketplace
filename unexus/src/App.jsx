@@ -20,6 +20,7 @@ import { supabase } from "./supabaseClient";
 import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
 import YourListingsPage from "./components/YourListingsPage";
 import { useWishlist } from "./context/useWishlist";
+import SettingsPage from "./components/SettingsPage";
 
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
@@ -402,6 +403,7 @@ function AppInner() {
     onYourListings: () => setPage("yourlistings"),
     onWishlist: () => setPage("wishlist"),
     wishlistCount: wishlistItems.length,
+    onSettings: () => setPage("settings"),
   };
 
   if (page === "profile") {
@@ -482,6 +484,14 @@ function AppInner() {
       </>
     );
   }
+  if (page === "settings") {
+  return (
+    <>
+      <header><Navbar {...navbarProps} /></header>
+      <SettingsPage onBack={goHome} onSignOut={signOut} />
+    </>
+  );
+}
 
   return (
     <>
