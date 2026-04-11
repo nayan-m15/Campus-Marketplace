@@ -17,12 +17,24 @@ export default function SettingsPage({ onBack, onSignOut }) {
   const [notifMessages, setNotifMessages] = useState(true);
   const [notifListingActivity, setNotifListingActivity] = useState(true);
   const [notifSaved, setNotifSaved] = useState(false);
-
+  // ── Appearance ──
+  const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
   // ── Delete account ──
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteError, setDeleteError] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+function handleDarkMode(val) {
+  setDarkMode(val);
+  if (val) {
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("theme", "dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("theme", "light");
+  }
+}
 
   // ── Load notification prefs from profile ──
   useEffect(() => {
@@ -193,8 +205,8 @@ export default function SettingsPage({ onBack, onSignOut }) {
             />
           </div>
 
-          {passwordError && <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>⚠️ {passwordError}</p>}
-          {passwordMsg && <p style={{ color: "var(--green)", fontSize: 13, margin: 0 }}>✅ {passwordMsg}</p>}
+          {passwordError && <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>{passwordError}</p>}
+          {passwordMsg && <p style={{ color: "var(--green)", fontSize: 13, margin: 0 }}>{passwordMsg}</p>}
 
           <button
             onClick={handleChangePassword}
@@ -240,7 +252,7 @@ export default function SettingsPage({ onBack, onSignOut }) {
             </button>
           </div>
 
-          {notifSaved && <p style={{ color: "var(--green)", fontSize: 13, margin: 0 }}>✅ Preferences saved!</p>}
+          {notifSaved && <p style={{ color: "var(--green)", fontSize: 13, margin: 0 }}>Preferences saved!</p>}
 
           <button
             onClick={handleSaveNotifications}
@@ -250,6 +262,25 @@ export default function SettingsPage({ onBack, onSignOut }) {
           </button>
         </div>
       </section>
+
+            {/* ── Appearance ── */}
+        <section style={sectionStyle}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "#111827" }}>Appearance</h2>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+            <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "#111827" }}>Dark mode</p>
+            <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>Switch between light and dark theme</p>
+            </div>
+            <button
+            style={toggleStyle(darkMode)}
+            onClick={() => handleDarkMode(!darkMode)}
+            aria-label="Toggle dark mode"
+            >
+            <span style={toggleKnobStyle(darkMode)} />
+            </button>
+        </div>
+        </section>
 
       {/* ── Delete Account ── */}
       <section style={{ ...sectionStyle, border: "1px solid #fee2e2" }}>

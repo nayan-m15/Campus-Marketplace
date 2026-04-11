@@ -109,4 +109,24 @@ body {
   border-color: rgba(255, 255, 255, 0.6);
 }
 
+html.dark {
+  --gray-900: #f9fafb;
+  --gray-800: #f3f4f6;
+  --gray-600: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-200: #374151;
+  --gray-100: #1f2937;
+  background: #111827;
+  color: #f9fafb;
+}
 
+html.dark .navbar {
+  background: rgba(17, 24, 39, 0.97);
+  border-bottom-color: #1f2937;
+}
+
+html.dark .listing-card,
+html.dark .filter-bar {
+  background: #1f2937;
+  border-color: #374151;
+}
