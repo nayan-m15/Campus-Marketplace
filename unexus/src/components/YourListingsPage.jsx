@@ -176,24 +176,28 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 {/* Actions */}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
+                    className="your-listings-btn"
                     onClick={() => setEditingItem({ ...item })}
                     style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "var(--gray-800)" }}
                   >
                     Edit
                   </button>
                   <button
+                    className="your-listings-btn" 
                     onClick={() => handleMarkSold(item.id, item.status)}
                     style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "sold" ? "#f0fdf4" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "sold" ? "var(--green)" : "var(--gray-800)" }}
                   >
                     {item.status === "sold" ? "Relist" : " Mark Sold"}
                   </button>
                   <button
+                   className="your-listings-btn"
                     onClick={() => handleMarkTrade(item.id, item.status)}
                     style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "for_trade" ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "for_trade" ? "#3b82f6" : "var(--gray-800)" }}
                   >
                     {item.status === "for_trade" ? "Unlist Trade" : "For Trade"}
                   </button>
                   <button
+                    className="your-listings-btn"
                     onClick={() => setDeleteConfirm(item.id)}
                     style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid #fee2e2", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "#ef4444" }}
                   >
