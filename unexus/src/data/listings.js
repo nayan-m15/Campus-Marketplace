@@ -94,12 +94,18 @@ function normaliseListing(listing, profile) {
 
 // ─── Main Fetch Function ───────────────────────────────────
 
-export async function fetchListings() {
+export async function fetchListings(currentUserId = null) {
   try {
-    const { data: listings, error } = await supabase
+    let query = supabase
       .from("listings")
       .select("id, title, description, price, condition, user_id, image_url, category")
       .order("created_at", { ascending: false });
+
+    if (currentUserId) {
+      query = query.neq("user_id", currentUserId);
+    }
+
+    const { data: listings, error } = await query;
 
     if (error) throw error;
 

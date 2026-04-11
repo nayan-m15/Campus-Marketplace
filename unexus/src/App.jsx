@@ -228,11 +228,11 @@ function AppInner() {
   const [prevPage, setPrevPage] = useState("home");
 
   useEffect(() => {
-    fetchListings()
+    fetchListings(user?.id)
       .then(setAllListings)
       .catch((err) => setListingsError(err.message))
       .finally(() => setListingsLoading(false));
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) {
@@ -326,7 +326,7 @@ function AppInner() {
     setShowForm(false);
     setSuccessMessage("🎉 Your listing has been published!");
     setTimeout(() => setSuccessMessage(null), 4000);
-    fetchListings()
+    fetchListings(user?.id)
       .then(setAllListings)
       .catch((err) => setListingsError(err.message));
   }
