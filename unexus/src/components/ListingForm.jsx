@@ -54,9 +54,9 @@ function ImageScrollStrip({ images, onChange }) {
             style={{
               position: "relative",
               flexShrink: 0,
-              width: 110,
-              height: 110,
-              borderRadius: 12,
+              width: 78,
+              height: 78,
+              borderRadius: 10,
               overflow: "hidden",
               border: i === 0 ? "2px solid var(--amber)" : "1.5px solid var(--gray-200)",
               background: "var(--surface)",
@@ -76,7 +76,7 @@ function ImageScrollStrip({ images, onChange }) {
                 left: 5,
                 background: "var(--amber)",
                 color: "#fff",
-                fontSize: 9,
+                fontSize: 8,
                 fontWeight: 700,
                 padding: "2px 6px",
                 borderRadius: 4,
@@ -132,9 +132,9 @@ function ImageScrollStrip({ images, onChange }) {
             }}
             style={{
               flexShrink: 0,
-              width: 110,
-              height: 110,
-              borderRadius: 12,
+              width: 78,
+              height: 78,
+              borderRadius: 10,
               border: `2px dashed ${draggingOver ? "var(--amber)" : "var(--gray-200)"}`,
               background: draggingOver ? "var(--amber-pale)" : "var(--surface-soft)",
               cursor: "pointer",
@@ -157,10 +157,10 @@ function ImageScrollStrip({ images, onChange }) {
             }}
           >
             <span style={{ fontSize: 24 }}>📷</span>
-            <span style={{ fontSize: 11, color: "var(--gray-500)", fontWeight: 600 }}>
+            <span style={{ fontSize: 10, color: "var(--gray-500)", fontWeight: 600 }}>
               {images.length === 0 ? "Add photo" : "Add more"}
             </span>
-            <span style={{ fontSize: 10, color: "var(--gray-400)" }}>
+            <span style={{ fontSize: 9, color: "var(--gray-400)" }}>
               {images.length}/{MAX_IMAGES}
             </span>
           </div>
