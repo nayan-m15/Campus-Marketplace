@@ -489,4 +489,29 @@
   margin: 0;
 }
 
+html.dark .profile-page {
+  background: #111827;
+}
 
+html.dark .profile-card {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+html.dark .profile-card input,
+html.dark .profile-card select,
+html.dark .profile-card textarea {
+  background: #111827;
+  border-color: #374151;
+  color: #f9fafb;
+}
+
+html.dark .profile-section-title {
+  color: #9ca3af;
+}
+
+html.dark .profile-card h2,
+html.dark .profile-card p,
+html.dark .profile-card label {
+  color: #f9fafb;
+}

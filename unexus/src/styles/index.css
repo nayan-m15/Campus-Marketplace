@@ -110,14 +110,12 @@ body {
 }
 
 html.dark {
-  --gray-900: #f9fafb;
-  --gray-800: #f3f4f6;
-  --gray-600: #d1d5db;
-  --gray-400: #9ca3af;
-  --gray-200: #374151;
-  --gray-100: #1f2937;
   background: #111827;
   color: #f9fafb;
+}
+
+html.dark body {
+  background: #111827;
 }
 
 html.dark .navbar {
@@ -125,8 +123,206 @@ html.dark .navbar {
   border-bottom-color: #1f2937;
 }
 
-html.dark .listing-card,
+html.dark .navbar__logo-text,
+html.dark .navbar__link {
+  color: #f9fafb;
+}
+
+html.dark .navbar__search input {
+  background: #1f2937;
+  border-color: #374151;
+  color: #f9fafb;
+}
+
 html.dark .filter-bar {
   background: #1f2937;
   border-color: #374151;
+}
+
+html.dark .filter-bar__select {
+  background: #111827;
+  color: #f9fafb;
+  border-color: #374151;
+}
+
+html.dark .listing-card {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+html.dark .listing-card__title,
+html.dark .listing-card__price {
+  color: #f9fafb;
+}
+
+html.dark .listing-card__seller,
+html.dark .listing-card__distance {
+  color: #9ca3af;
+}
+
+html.dark main,
+html.dark section {
+  background: #111827;
+}
+/* ── Page backgrounds ── */
+html.dark body,
+html.dark main,
+html.dark section,
+html.dark #root {
+  background: #111827;
+}
+
+/* ── Section/card backgrounds (YourListings, Settings, Profile, Wishlist) ── */
+html.dark article,
+html.dark .lf__card {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+/* ── White blocks/cards with inline styles ── */
+html.dark [style*="background: #fff"],
+html.dark [style*="background:#fff"],
+html.dark [style*="background: white"] {
+  background: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+html.dark [style*="background: #f9fafb"],
+html.dark [style*="background:#f9fafb"] {
+  background: #111827 !important;
+}
+
+/* ── Text colors ── */
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark p,
+html.dark span,
+html.dark label {
+  color: #f9fafb;
+}
+
+html.dark [style*="color: #111827"],
+html.dark [style*="color:#111827"],
+html.dark [style*="color: var(--gray-900)"] {
+  color: #f9fafb !important;
+}
+
+html.dark [style*="color: #374151"],
+html.dark [style*="color:#374151"],
+html.dark [style*="color: var(--gray-800)"] {
+  color: #d1d5db !important;
+}
+
+html.dark [style*="color: #6b7280"],
+html.dark [style*="color: var(--gray-600)"] {
+  color: #9ca3af !important;
+}
+
+/* ── Inputs ── */
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* ── Borders ── */
+html.dark [style*="border: 1px solid #e5e7eb"],
+html.dark [style*="border-color: #e5e7eb"] {
+  border-color: #374151 !important;
+}
+
+/* ── All Items heading on main page ── */
+html.dark .listings-grid__heading,
+html.dark .listings-grid__count {
+  color: #f9fafb !important;
+}
+
+/* ── Buttons that are white ── */
+html.dark button[style*="background: #fff"],
+html.dark button[style*="background:#fff"] {
+  background: #1f2937!important;
+  color: #f9fafb !important;
+  border-color: #374151 !important;
+}
+
+/* ── Footer ── */
+html.dark footer {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #9ca3af !important;
+}
+
+/* ── Modal overlays ── */
+html.dark .item-modal-content,
+html.dark .item-modal-top-card,
+html.dark .item-modal-description-card,
+html.dark .item-modal-bottom-card {
+  background: #1f2937 !important;
+  color: #f9fafb !important;
+}
+/* ── Page wrappers ── */
+html.dark > body > div#root > div,
+html.dark [style*="min-height: 100vh"],
+html.dark [style*="minHeight"] {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+html.dark {
+  --page-bg: #111827;
+  --card-bg: #1f2937;
+  --border-color: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+}
+html.dark {
+  --surface-muted: #111827;
+  --surface: #1f2937;
+  --surface-soft: #374151;
+}
+/* ── YourListings action buttons in dark mode ── */
+html.dark .your-listings-btn {
+  background: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+html.dark .your-listings-btn:hover {
+  background: #4b5563 !important;
+}
+html.dark .settings-label,
+html.dark [style*="color: #374151"] {
+  color: #d1d5db !important;
+}
+
+html.dark [style*="color: #6b7280"] {
+  color: #9ca3af !important;
+}
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark p,
+html.dark label,
+html.dark span {
+  color: #f9fafb !important;
+}
+
+html.dark [style*="color: #111827"],
+html.dark [style*="color: #374151"],
+html.dark [style*="color: #6b7280"] {
+  color: #d1d5db !important;
+}
+
+html.dark section {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
 }

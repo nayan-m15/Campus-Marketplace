@@ -213,3 +213,20 @@
   left: auto;
 }
 
+html.dark .navbar__menu {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+html.dark .navbar__menu li button {
+  color: #f9fafb;
+}
+
+html.dark .navbar__menu li button:hover {
+  background: #374151;
+  color: #f9fafb;
+}
+
+html.dark .navbar__hamburger span {
+  background: #f9fafb;
+}

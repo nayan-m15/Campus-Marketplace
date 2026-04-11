@@ -125,21 +125,21 @@ function handleDarkMode(val) {
   };
 
   const sectionStyle = {
-    background: "#fff",
-    borderRadius: 16,
-    padding: 28,
-    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-    border: "1px solid #e5e7eb",
-    marginBottom: 24,
-  };
+  background: "var(--surface)",
+  borderRadius: 16,
+  padding: 28,
+  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+  border: "1px solid var(--gray-200)",
+  marginBottom: 24,
+};
 
   const labelStyle = {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#374151",
-    marginBottom: 6,
-    display: "block",
-  };
+  fontSize: 13,
+  fontWeight: 600,
+  color: "var(--gray-800)",
+  marginBottom: 6,
+  display: "block",
+};
 
   const toggleStyle = (active) => ({
     width: 44,
@@ -166,22 +166,22 @@ function handleDarkMode(val) {
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f9fafb", padding: "32px 40px", fontFamily: "var(--font)", maxWidth: 600, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", background: "var(--page-bg, #f9fafb)", padding: "32px 40px", fontFamily: "var(--font)", maxWidth: 600, margin: "0 auto" }}>
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
         <button
           onClick={onBack}
-          style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 9, padding: "8px 16px", cursor: "pointer", fontSize: 14, color: "#374151", fontFamily: "var(--font)" }}
+          style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 9, padding: "8px 16px", cursor: "pointer", fontSize: 14, color: "var(--gray-800)", fontFamily: "var(--font)" }}
         >
           ← Back
         </button>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: 0 }}>Settings</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--gray-900)", margin: 0 }}>Settings</h1>
       </div>
 
       {/* ── Change Password ── */}
       <section style={sectionStyle}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "#111827" }}>Change Password</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "var(--gray-900)" }}>Change Password</h2>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
@@ -220,14 +220,14 @@ function handleDarkMode(val) {
 
       {/* ── Notification Preferences ── */}
       <section style={sectionStyle}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "#111827" }}>Notification Preferences</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "var(--gray-900)" }}>Notification Preferences</h2>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "#111827" }}>New messages</p>
-              <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>Get notified when someone messages you</p>
+              <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "var(--gray-900)" }}>New messages</p>
+              <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "2px 0 0" }}>Get notified when someone messages you</p>
             </div>
             <button
               style={toggleStyle(notifMessages)}
@@ -240,8 +240,8 @@ function handleDarkMode(val) {
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "#111827" }}>Listing activity</p>
-              <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>Get notified when someone views or messages about your listing</p>
+              <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "var(--gray-900)" }}>Listing activity</p>
+              <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "2px 0 0" }}>Get notified when someone views or messages about your listing</p>
             </div>
             <button
               style={toggleStyle(notifListingActivity)}
@@ -265,12 +265,12 @@ function handleDarkMode(val) {
 
             {/* ── Appearance ── */}
         <section style={sectionStyle}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "#111827" }}>Appearance</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "var(--gray-900)" }}>Appearance</h2>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-            <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "#111827" }}>Dark mode</p>
-            <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>Switch between light and dark theme</p>
+            <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "var(--gray-900)" }}>Dark mode</p>
+            <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "2px 0 0" }}>Switch between light and dark theme</p>
             </div>
             <button
             style={toggleStyle(darkMode)}
@@ -285,7 +285,7 @@ function handleDarkMode(val) {
       {/* ── Delete Account ── */}
       <section style={{ ...sectionStyle, border: "1px solid #fee2e2" }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: "#ef4444" }}>🗑️ Delete Account</h2>
-        <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>
+        <p style={{ fontSize: 13, color: "var(--gray-600)", marginBottom: 20 }}>
           This permanently deletes your account, all your listings, and all your data. This cannot be undone.
         </p>
 
@@ -298,7 +298,7 @@ function handleDarkMode(val) {
           </button>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", margin: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-800)", margin: 0 }}>
               Type <strong>DELETE</strong> to confirm:
             </p>
             <input
