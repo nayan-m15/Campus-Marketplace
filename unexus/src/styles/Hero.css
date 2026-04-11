@@ -670,4 +670,37 @@
     border-radius: 22px;
   }
 }
+/* ── DARK MODE FIXES FOR HERO CAROUSEL ── */
+
+html.dark .listing-distance {
+  color: #f3f4f6 !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+html.dark .listing-seller {
+  color: #9ca3af !important;
+}
+
+html.dark .listing-title,
+html.dark .listing-price {
+  color: #f9fafb !important;
+}
+
+/* Arrow buttons */
+html.dark .carousel-nav {
+  background: rgba(17, 24, 39, 0.85) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+html.dark .carousel-nav:hover {
+  background: rgba(31, 41, 55, 1) !important;
+}
+
+/* Make arrows more visible */
+html.dark .carousel-nav--prev,
+html.dark .carousel-nav--next {
+  backdrop-filter: blur(6px);
+}
 
