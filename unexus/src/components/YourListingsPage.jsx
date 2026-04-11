@@ -50,6 +50,18 @@ export default function YourListingsPage({ onBack }) {
     );
     showSuccess(newStatus === "sold" ? "Marked as sold!" : "Relisted!");
   }
+  async function handleMarkTrade(id, currentStatus) {
+  const newStatus = currentStatus === "for_trade" ? "active" : "for_trade";
+  const { error } = await supabase
+    .from("listings")
+    .update({ status: newStatus })
+    .eq("id", id);
+  if (error) { setError(error.message); return; }
+  setListings((prev) =>
+    prev.map((l) => (l.id === id ? { ...l, status: newStatus } : l))
+  );
+  showSuccess(newStatus === "for_trade" ? "Listed for trade!" : "Relisted!");
+}
 
   async function handleEditSave(e) {
     e.preventDefault();
@@ -123,12 +135,17 @@ export default function YourListingsPage({ onBack }) {
           return (
             <article key={item.id} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", border: "1px solid var(--gray-200)", opacity: isSold ? 0.7 : 1, position: "relative" }}>
 
-              {/* Sold badge */}
-              {isSold && (
-                <div style={{ position: "absolute", top: 12, left: 12, background: "var(--gray-900)", color: "#fff", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 700, zIndex: 1 }}>
-                  SOLD
-                </div>
-              )}
+              {/* Status badge */}
+                {item.status && item.status !== "active" && (
+                  <div style={{
+                    position: "absolute", top: 12, left: 12, zIndex: 1,
+                    background: item.status === "sold" ? "#111" : "#3b82f6",
+                    color: "#fff", borderRadius: 8, padding: "4px 10px",
+                    fontSize: 12, fontWeight: 700
+                  }}>
+                    {item.status === "sold" ? "SOLD" : "FOR TRADE"}
+                  </div>
+                )}
 
               {/* Image */}
               <div style={{ height: 160, background: "var(--surface-soft)", overflow: "hidden" }}>
@@ -157,19 +174,25 @@ export default function YourListingsPage({ onBack }) {
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
                     onClick={() => setEditingItem({ ...item })}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid var(--gray-200)", background: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "var(--gray-800)" }}
+                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "var(--gray-800)" }}
                   >
-                    ✏️ Edit
+                    Edit
                   </button>
                   <button
                     onClick={() => handleMarkSold(item.id, item.status)}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid var(--gray-200)", background: isSold ? "var(--mint)" : "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: isSold ? "var(--green)" : "var(--gray-800)" }}
+                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "sold" ? "#f0fdf4" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "sold" ? "var(--green)" : "var(--gray-800)" }}
                   >
-                    {isSold ? "✅ Relist" : "🏷️ Mark Sold"}
+                    {item.status === "sold" ? "Relist" : " Mark Sold"}
+                  </button>
+                  <button
+                    onClick={() => handleMarkTrade(item.id, item.status)}
+                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "for_trade" ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "for_trade" ? "#3b82f6" : "var(--gray-800)" }}
+                  >
+                    {item.status === "for_trade" ? "Unlist Trade" : "For Trade"}
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(item.id)}
-                    style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid rgba(199, 91, 74, 0.25)", background: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "var(--danger)" }}
+                    style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid #fee2e2", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "#ef4444" }}
                   >
                     🗑️
                   </button>
@@ -209,7 +232,7 @@ export default function YourListingsPage({ onBack }) {
       {editingItem && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 480, width: "90%", maxHeight: "90vh", overflowY: "auto" }}>
-            <h3 style={{ fontWeight: 800, marginBottom: 24, fontSize: 18 }}>✏️ Edit Listing</h3>
+            <h3 style={{ fontWeight: 800, marginBottom: 24, fontSize: 18 }}>Edit Listing</h3>
             <form onSubmit={handleEditSave} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
