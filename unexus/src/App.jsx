@@ -13,7 +13,7 @@ import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import WishlistPage from "./components/WishlistPage";
-import { fetchListings, CONDITIONS } from "./data/listings";
+import { fetchListings, fetchListingById, CONDITIONS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
@@ -524,8 +524,14 @@ function AppInner() {
         <WishlistPage
           wishlistItems={wishlistItems}
           loading={wishlistLoading}
-          onListingClick={(item) => {
-            setSelectedListing(item);
+          onListingClick={async (item) => {
+            try {
+              const fullListing = await fetchListingById(item.id);
+              setSelectedListing(fullListing);
+            } catch (err) {
+              console.error("Failed to open wishlist listing:", err.message);
+              setSelectedListing(item);
+            }
             setPage("home");
           }}
           onToggleWishlist={toggleWishlist}
