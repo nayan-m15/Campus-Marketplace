@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Navbar from "./components/NavBar";
 import Hero from "./components/Hero";
@@ -13,7 +13,7 @@ import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import WishlistPage from "./components/WishlistPage";
-import { fetchListings, fetchListingById, CONDITIONS } from "./data/listings";
+import { fetchListings, CONDITIONS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
@@ -27,6 +27,37 @@ const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "instit
 function isProfileComplete(profile) {
   if (!profile) return false;
   return REQUIRED_PROFILE_FIELDS.every((f) => !!profile[f]);
+}
+
+// ── Unread message count hook ──────────────────────────────
+function useUnreadCount(user) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) { setUnreadCount(0); return; }
+    supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("receiver_id", user.id)
+      .eq("is_read", false)
+      .eq("is_deleted", false)
+      .then(({ count }) => setUnreadCount(count || 0));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("navbar-unread")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        if (payload.new.receiver_id === user.id) {
+          setUnreadCount((prev) => prev + 1);
+        }
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [user]);
+
+  return [unreadCount, setUnreadCount];
 }
 
 // ── Item Details Modal ─────────────────────────────────────
@@ -254,7 +285,8 @@ function AppInner() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
 
-  // ── Wishlist ───────────────────────────────────────────────
+  // ── Unread message count for navbar badge ─────────────────
+  const [unreadCount, setUnreadCount] = useUnreadCount(user);
   const { wishlistItems, isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(user);
 
   // ── Ref for the filter bar nav so Hero can scroll to it ──
@@ -453,6 +485,7 @@ function AppInner() {
     onWishlist: () => setPage("wishlist"),
     wishlistCount: wishlistItems.length,
     onSettings: () => setPage("settings"),
+    unreadCount,
   };
 
   if (page === "profile") {
@@ -502,6 +535,7 @@ function AppInner() {
             setPublicProfileId(sellerId);
             setPage("publicProfile");
           }}
+          onUnreadChange={setUnreadCount}
         />
       </>
     );
@@ -524,14 +558,8 @@ function AppInner() {
         <WishlistPage
           wishlistItems={wishlistItems}
           loading={wishlistLoading}
-          onListingClick={async (item) => {
-            try {
-              const fullListing = await fetchListingById(item.id);
-              setSelectedListing(fullListing);
-            } catch (err) {
-              console.error("Failed to open wishlist listing:", err.message);
-              setSelectedListing(item);
-            }
+          onListingClick={(item) => {
+            setSelectedListing(item);
             setPage("home");
           }}
           onToggleWishlist={toggleWishlist}
