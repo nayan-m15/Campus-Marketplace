@@ -3,7 +3,7 @@ import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { CONDITION_COLORS } from "../data/listings";
 
-export default function YourListingsPage({ onBack }) {
+export default function YourListingsPage({ onBack, onListingChanged }) {
   const { user } = useAuth();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +36,7 @@ export default function YourListingsPage({ onBack }) {
     setListings((prev) => prev.filter((l) => l.id !== id));
     setDeleteConfirm(null);
     showSuccess("Listing deleted.");
+    onListingChanged?.();
   }
 
   async function handleMarkSold(id, currentStatus) {
@@ -49,6 +50,7 @@ export default function YourListingsPage({ onBack }) {
       prev.map((l) => (l.id === id ? { ...l, status: newStatus } : l))
     );
     showSuccess(newStatus === "sold" ? "Marked as sold!" : "Relisted!");
+    onListingChanged?.();
   }
   async function handleMarkTrade(id, currentStatus) {
   const newStatus = currentStatus === "for_trade" ? "active" : "for_trade";
