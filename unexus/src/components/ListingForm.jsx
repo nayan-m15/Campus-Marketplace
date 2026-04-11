@@ -227,6 +227,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [listingType, setListingType] = useState("active");
  
   const validate = () => {
     const next = {};
@@ -282,7 +283,8 @@ export default function ListingForm({ onCancel, onSuccess }) {
           price: Number(price),
           condition,
           image_url: imageUrls[0],   // first image → existing column
-          image_urls: imageUrls,      // all images → new array column
+          image_urls: imageUrls,
+          status: listingType,      // all images → new array column
         });
  
       if (insertError) throw new Error("Failed to save listing: " + insertError.message);
@@ -384,6 +386,38 @@ export default function ListingForm({ onCancel, onSuccess }) {
             />
           </div>
           {errors.price && <p className="lf__error" role="alert">{errors.price}</p>}
+        </section>
+        {/* ── Listing Type ── */}
+        <section className="lf__section">
+          <label className="lf__label">Listing type</label>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setListingType("active")}
+              style={{
+                flex: 1, padding: "10px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+                cursor: "pointer", fontFamily: "var(--font)", transition: "all 0.15s",
+                border: listingType === "active" ? "2px solid var(--green)" : "1.5px solid var(--gray-200)",
+                background: listingType === "active" ? "#f0fdf4" : "#fff",
+                color: listingType === "active" ? "var(--green)" : "var(--gray-600)",
+              }}
+            >
+              For Sale
+            </button>
+            <button
+              type="button"
+              onClick={() => setListingType("for_trade")}
+              style={{
+                flex: 1, padding: "10px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+                cursor: "pointer", fontFamily: "var(--font)", transition: "all 0.15s",
+                border: listingType === "for_trade" ? "2px solid #3b82f6" : "1.5px solid var(--gray-200)",
+                background: listingType === "for_trade" ? "#eff6ff" : "#fff",
+                color: listingType === "for_trade" ? "#3b82f6" : "var(--gray-600)",
+              }}
+            >
+              For Trade
+            </button>
+          </div>
         </section>
  
         {/* ── Condition ── */}
