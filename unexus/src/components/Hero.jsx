@@ -41,10 +41,10 @@ export default function Hero({
   ]);
 
   useEffect(() => {
-    fetchListings()
+    fetchListings(user?.id)
       .then((data) => setTopListings(data.slice(0, 6)))
       .catch((err) => console.error("Hero failed to load listings:", err));
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     let isMounted = true;

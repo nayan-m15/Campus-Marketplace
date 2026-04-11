@@ -228,11 +228,12 @@ function AppInner() {
   const [prevPage, setPrevPage] = useState("home");
 
   useEffect(() => {
+    if (loading) return;
     fetchListings(user?.id)
       .then(setAllListings)
       .catch((err) => setListingsError(err.message))
       .finally(() => setListingsLoading(false));
-  }, [user?.id]);
+  }, [user?.id, loading]);
 
   useEffect(() => {
     if (!user) {
