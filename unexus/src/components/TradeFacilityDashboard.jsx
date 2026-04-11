@@ -3,7 +3,7 @@ import "../styles/TradeFacilityDashboard.css";
 
 // ── MOCK DATA
 
-const INITIAL_TRANSACTIONS = [
+const INITIAL_TRANSACTIONS = [/*
   {
     id: "TXN-001",
     item: "MacBook Pro M1 (2021)",
@@ -70,11 +70,11 @@ const INITIAL_TRANSACTIONS = [
     collectionId: "BK-011",
     createdAt: "2026-04-03",
   },
-];
+*/];
 
 const TODAY = "2026-04-09";
 
-const INITIAL_BOOKINGS = [
+const INITIAL_BOOKINGS = [/*
   // Drop-offs
   {
     id: "BK-001", type: "dropoff", transactionId: "TXN-001",
@@ -154,7 +154,7 @@ const INITIAL_BOOKINGS = [
     status: "completed", itemName: "Scientific Calculator (Casio fx-991EX)",
     notes: "",
   },
-];
+*/];
 
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 
@@ -935,10 +935,10 @@ export default function TradeFacilityDashboard({onSignOut}) {
         </nav>
 
         <footer className="sidebar__footer">
-          <span className="staff-avatar" aria-hidden="true">SN</span>
+          <span className="staff-avatar" aria-hidden="true">S</span>
           <section className="staff-info">
-            <p className="staff-name">Staff · Nomsa</p>
-            <p className="staff-email">nomsa@campus.ac.za</p>
+            <p className="staff-name">Staff</p>
+            <p className="staff-email">staff@un.com</p>
           </section>
           {onSignOut && (
             <button className="sidebar__signout-btn" 
