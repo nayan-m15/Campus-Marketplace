@@ -15,8 +15,9 @@ export default function Navbar({
   onMessages,
   onHome,
   onYourListings,
-  onWishlist,          // ← NEW prop
-  wishlistCount = 0,   // ← NEW prop (optional badge)
+  onWishlist,
+  wishlistCount = 0,
+  onSettings, 
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -152,7 +153,7 @@ export default function Navbar({
                   </li>
 
                   <li>
-                    <button onClick={() => { setMenuOpen(false); }}>
+                    <button onClick={() => { onSettings?.(); setMenuOpen(false); }}>
                       Settings
                     </button>
                   </li>
