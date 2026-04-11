@@ -36,10 +36,13 @@ const MOCK_LISTINGS = [
     condition: "Good",
     seller: "Mock User",
     user_id: "mock-user",
+    institution: "University of Johannesburg",
     approximate_location: "Gauteng",
     joined_year: 2026,
+    joined_label: "April 2026",
     distance: "0.3 km",
     image_url: null,
+    image_urls: [],
     emoji: "📚",
   },
 ];
@@ -62,6 +65,17 @@ function getJoinedYear(createdAt) {
   return Number.isNaN(date.getTime()) ? null : date.getFullYear();
 }
 
+function getJoinedLabel(createdAt) {
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("en-ZA", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
 function getSellerName(profile, userId) {
   if (profile?.display_name?.trim()) return profile.display_name;
   if (profile?.name?.trim()) return profile.name;
@@ -71,6 +85,10 @@ function getSellerName(profile, userId) {
 
 function normaliseListing(listing, profile) {
   const category = listing.category ?? "Other";
+  const imageUrls = Array.isArray(listing.image_urls)
+    ? listing.image_urls.filter(Boolean)
+    : [];
+  const primaryImage = listing.image_url ?? imageUrls[0] ?? null;
 
   return {
     id: listing.id,
@@ -84,11 +102,16 @@ function normaliseListing(listing, profile) {
     condition: listing.condition ?? "Good",
     seller: getSellerName(profile, listing.user_id),
     user_id: listing.user_id,
+    institution: profile?.institution ?? "",
     approximate_location: profile?.province ?? "Location not provided",
     joined_year: getJoinedYear(profile?.created_at),
+    joined_label: getJoinedLabel(profile?.created_at),
     distance: "0 km",
-    image_url: listing.image_url ?? null,
-    emoji: listing.image_url ? null : getCategoryEmoji(category),
+    image_url: primaryImage,
+    image_urls: primaryImage
+      ? [primaryImage, ...imageUrls.filter((url) => url !== primaryImage)]
+      : imageUrls,
+    emoji: primaryImage ? null : getCategoryEmoji(category),
   };
 }
 
@@ -98,7 +121,7 @@ export async function fetchListings(currentUserId = null) {
   try {
     let query = supabase
       .from("listings")
-      .select("id, title, description, price, condition, user_id, image_url, category")
+      .select("id, title, description, price, condition, user_id, image_url, image_urls, category")
       .order("created_at", { ascending: false });
 
     if (currentUserId) {
@@ -118,7 +141,7 @@ export async function fetchListings(currentUserId = null) {
     if (userIds.length > 0) {
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, display_name, name, province, created_at")
+        .select("id, display_name, name, province, institution, created_at")
         .in("id", userIds);
 
       if (profilesError) {
@@ -142,7 +165,7 @@ export async function fetchListings(currentUserId = null) {
 export async function fetchListingById(id) {
   const { data: listing, error } = await supabase
     .from("listings")
-    .select("id, title, description, price, condition, user_id, image_url, category")
+    .select("id, title, description, price, condition, user_id, image_url, image_urls, category")
     .eq("id", id)
     .single();
 
@@ -153,7 +176,7 @@ export async function fetchListingById(id) {
   if (listing.user_id) {
     const { data, error: profileError } = await supabase
       .from("profiles")
-      .select("id, display_name, name, province, created_at")
+      .select("id, display_name, name, province, institution, created_at")
       .eq("id", listing.user_id)
       .single();
 

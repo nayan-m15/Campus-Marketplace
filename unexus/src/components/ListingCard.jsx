@@ -1,36 +1,6 @@
 import { CONDITION_COLORS } from "../data/listings";
 import "../styles/ListingCard.css";
 
-function StarRating({ rating = 0, count }) {
-  const totalStars = 5;
-  const stars = [];
-
-  for (let i = 1; i <= totalStars; i++) {
-    if (rating >= i) {
-      stars.push(
-        <li key={i} className="listing-card__star listing-card__star--filled">★</li>
-      );
-    } else if (rating >= i - 0.75) {
-      stars.push(
-        <li key={i} className="listing-card__star listing-card__star--half">★</li>
-      );
-    } else {
-      stars.push(
-        <li key={i} className="listing-card__star">★</li>
-      );
-    }
-  }
-
-  return (
-    <section className="listing-card__rating" aria-label={`${rating} out of 5 stars`}>
-      <ul className="listing-card__stars">{stars}</ul>
-      {count != null && (
-        <span className="listing-card__review-count">({count})</span>
-      )}
-    </section>
-  );
-}
-
 export default function ListingCard({
   item,
   onClick,
@@ -129,10 +99,8 @@ export default function ListingCard({
           ) : (
             <p className="listing-card__seller">👤 {item.seller}</p>
           )}
-          <p className="listing-card__distance">📍 {item.distance}</p>
+          <p className="listing-card__institution">🎓 {item.institution || "Institution not provided"}</p>
         </section>
-
-        <StarRating rating={item.rating ?? 0} count={item.reviewCount} />
 
         {onMessageSeller && (
           <button
