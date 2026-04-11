@@ -17,7 +17,8 @@ export default function Navbar({
   onYourListings,
   onWishlist,
   wishlistCount = 0,
-  unreadCount = 0,      // ← NEW: total unread message count
+  unreadCount = 0,
+  onSettings,      // ← NEW: total unread message count
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -179,7 +180,7 @@ export default function Navbar({
                   </li>
 
                   <li>
-                    <button onClick={() => { setMenuOpen(false); }}>
+                    <button onClick={() => { onSettings?.(); setMenuOpen(false); }}>
                       Settings
                     </button>
                   </li>
