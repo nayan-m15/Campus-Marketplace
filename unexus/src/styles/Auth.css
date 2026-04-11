@@ -60,8 +60,6 @@
   font-size: 14px;
   letter-spacing: -0.5px;
   font-family: var(--font);
-  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
-  box-shadow: 0 4px 14px rgba(31, 107, 82, 0.40);
 }
 
 .auth-logo__text {
