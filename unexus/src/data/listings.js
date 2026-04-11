@@ -15,11 +15,11 @@ export const CATEGORIES = [
 ];
 
 export const CONDITION_COLORS = {
-  New: "#10b981",
-  "Like New": "#3b82f6",
-  Good: "#f59e0b",
-  Fair: "#ef4444",
-  Poor: "#9ca3af",
+  New: "#1F6B52",
+  "Like New": "#7D8F86",
+  Good: "#E59D3A",
+  Fair: "#C75B4A",
+  Poor: "#A0AAA2",
 };
 
 export const CONDITIONS = ["All Conditions", ...Object.keys(CONDITION_COLORS)];

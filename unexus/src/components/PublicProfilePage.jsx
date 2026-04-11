@@ -187,7 +187,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.4)", background: "linear-gradient(160deg, #020402 0%, #1F241F 100%)" }}>
+      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.4)", background: "linear-gradient(160deg, var(--navy) 0%, var(--gray-900) 100%)" }}>
         Loading profile…
       </div>
     );

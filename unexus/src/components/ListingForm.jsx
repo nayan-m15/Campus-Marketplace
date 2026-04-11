@@ -58,8 +58,8 @@ function ImageScrollStrip({ images, onChange }) {
               height: 110,
               borderRadius: 12,
               overflow: "hidden",
-              border: i === 0 ? "2px solid #f4a120" : "1.5px solid #e8e8e8",
-              background: "#f7f7f7",
+              border: i === 0 ? "2px solid var(--amber)" : "1.5px solid var(--gray-200)",
+              background: "var(--surface)",
             }}
           >
             <img
@@ -74,7 +74,7 @@ function ImageScrollStrip({ images, onChange }) {
                 position: "absolute",
                 bottom: 5,
                 left: 5,
-                background: "#f4a120",
+                background: "var(--amber)",
                 color: "#fff",
                 fontSize: 9,
                 fontWeight: 700,
@@ -135,8 +135,8 @@ function ImageScrollStrip({ images, onChange }) {
               width: 110,
               height: 110,
               borderRadius: 12,
-              border: `2px dashed ${draggingOver ? "#f4a120" : "#e0e0e0"}`,
-              background: draggingOver ? "#fffaf3" : "#f9f9f9",
+              border: `2px dashed ${draggingOver ? "var(--amber)" : "var(--gray-200)"}`,
+              background: draggingOver ? "var(--amber-pale)" : "var(--surface-soft)",
               cursor: "pointer",
               display: "flex",
               flexDirection: "column",
@@ -146,21 +146,21 @@ function ImageScrollStrip({ images, onChange }) {
               transition: "border-color 0.2s, background 0.2s",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#f4a120";
-              e.currentTarget.style.background = "#fffaf3";
+              e.currentTarget.style.borderColor = "var(--amber)";
+              e.currentTarget.style.background = "var(--amber-pale)";
             }}
             onMouseLeave={(e) => {
               if (!draggingOver) {
-                e.currentTarget.style.borderColor = "#e0e0e0";
-                e.currentTarget.style.background = "#f9f9f9";
+                e.currentTarget.style.borderColor = "var(--gray-200)";
+                e.currentTarget.style.background = "var(--surface-soft)";
               }
             }}
           >
             <span style={{ fontSize: 24 }}>📷</span>
-            <span style={{ fontSize: 11, color: "#aaa", fontWeight: 600 }}>
+            <span style={{ fontSize: 11, color: "var(--gray-500)", fontWeight: 600 }}>
               {images.length === 0 ? "Add photo" : "Add more"}
             </span>
-            <span style={{ fontSize: 10, color: "#ccc" }}>
+            <span style={{ fontSize: 10, color: "var(--gray-400)" }}>
               {images.length}/{MAX_IMAGES}
             </span>
           </div>
@@ -168,7 +168,7 @@ function ImageScrollStrip({ images, onChange }) {
       </div>
  
       {images.length > 0 && (
-        <p style={{ fontSize: 11, color: "#bbb", marginTop: 6 }}>
+        <p style={{ fontSize: 11, color: "var(--gray-400)", marginTop: 6 }}>
           First photo is the cover · scroll to see all · tap × to remove
         </p>
       )}
@@ -341,7 +341,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
         <section className="lf__section">
           <label className="lf__label" htmlFor="lf-description">
             Description{" "}
-            <span style={{ fontWeight: 400, color: "#bbb", textTransform: "none", letterSpacing: 0 }}>
+            <span style={{ fontWeight: 400, color: "var(--gray-400)", textTransform: "none", letterSpacing: 0 }}>
               (optional)
             </span>
           </label>

@@ -72,19 +72,19 @@ export default function YourListingsPage({ onBack }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f9fafb", padding: "32px 40px", fontFamily: "var(--font)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--surface-muted)", padding: "32px 40px", fontFamily: "var(--font)" }}>
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
         <button
           onClick={onBack}
-          style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 9, padding: "8px 16px", cursor: "pointer", fontSize: 14, color: "var(--gray-800)", fontFamily: "var(--font)" }}
+          style={{ background: "none", border: "1px solid var(--gray-200)", borderRadius: 9, padding: "8px 16px", cursor: "pointer", fontSize: 14, color: "var(--gray-800)", fontFamily: "var(--font)" }}
         >
           ← Back
         </button>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--gray-900)", margin: 0 }}>Your Listings</h1>
         {listings.length > 0 && (
-          <span style={{ background: "#f0fdf4", color: "var(--green)", borderRadius: 20, padding: "4px 12px", fontSize: 13, fontWeight: 600 }}>
+          <span style={{ background: "var(--mint)", color: "var(--green)", borderRadius: 20, padding: "4px 12px", fontSize: 13, fontWeight: 600 }}>
             {listings.length} listing{listings.length !== 1 ? "s" : ""}
           </span>
         )}
@@ -92,7 +92,7 @@ export default function YourListingsPage({ onBack }) {
 
       {/* Success toast */}
       {successMsg && (
-        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "#111", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "var(--gray-900)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
           {successMsg}
         </div>
       )}
@@ -121,17 +121,17 @@ export default function YourListingsPage({ onBack }) {
           const isSold = item.status === "sold";
 
           return (
-            <article key={item.id} style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", border: "1px solid #e5e7eb", opacity: isSold ? 0.7 : 1, position: "relative" }}>
+            <article key={item.id} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", border: "1px solid var(--gray-200)", opacity: isSold ? 0.7 : 1, position: "relative" }}>
 
               {/* Sold badge */}
               {isSold && (
-                <div style={{ position: "absolute", top: 12, left: 12, background: "#111", color: "#fff", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 700, zIndex: 1 }}>
+                <div style={{ position: "absolute", top: 12, left: 12, background: "var(--gray-900)", color: "#fff", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 700, zIndex: 1 }}>
                   SOLD
                 </div>
               )}
 
               {/* Image */}
-              <div style={{ height: 160, background: "#f3f4f6", overflow: "hidden" }}>
+              <div style={{ height: 160, background: "var(--surface-soft)", overflow: "hidden" }}>
                 {item.image_url ? (
                   <img src={item.image_url} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : (
@@ -157,19 +157,19 @@ export default function YourListingsPage({ onBack }) {
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
                     onClick={() => setEditingItem({ ...item })}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "var(--gray-800)" }}
+                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid var(--gray-200)", background: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "var(--gray-800)" }}
                   >
                     ✏️ Edit
                   </button>
                   <button
                     onClick={() => handleMarkSold(item.id, item.status)}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: isSold ? "#f0fdf4" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: isSold ? "var(--green)" : "var(--gray-800)" }}
+                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid var(--gray-200)", background: isSold ? "var(--mint)" : "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: isSold ? "var(--green)" : "var(--gray-800)" }}
                   >
                     {isSold ? "✅ Relist" : "🏷️ Mark Sold"}
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(item.id)}
-                    style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid #fee2e2", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "#ef4444" }}
+                    style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid rgba(199, 91, 74, 0.25)", background: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "var(--danger)" }}
                   >
                     🗑️
                   </button>
@@ -183,20 +183,20 @@ export default function YourListingsPage({ onBack }) {
       {/* Delete confirmation modal */}
       {deleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 32, maxWidth: 400, width: "90%", textAlign: "center" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 400, width: "90%", textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
             <h3 style={{ fontWeight: 800, marginBottom: 8 }}>Delete this listing?</h3>
             <p style={{ color: "var(--gray-600)", fontSize: 14, marginBottom: 24 }}>This cannot be undone.</p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
               <button
                 onClick={() => setDeleteConfirm(null)}
-                style={{ padding: "10px 24px", borderRadius: 9, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
+                style={{ padding: "10px 24px", borderRadius: 9, border: "1px solid var(--gray-200)", background: "var(--surface)", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                style={{ padding: "10px 24px", borderRadius: 9, border: "none", background: "#ef4444", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
+                style={{ padding: "10px 24px", borderRadius: 9, border: "none", background: "var(--danger)", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
               >
                 Delete
               </button>
@@ -208,7 +208,7 @@ export default function YourListingsPage({ onBack }) {
       {/* Edit modal */}
       {editingItem && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 32, maxWidth: 480, width: "90%", maxHeight: "90vh", overflowY: "auto" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 480, width: "90%", maxHeight: "90vh", overflowY: "auto" }}>
             <h3 style={{ fontWeight: 800, marginBottom: 24, fontSize: 18 }}>✏️ Edit Listing</h3>
             <form onSubmit={handleEditSave} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
@@ -217,7 +217,7 @@ export default function YourListingsPage({ onBack }) {
                 <input
                   value={editingItem.title}
                   onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
-                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid #e5e7eb", fontSize: 14, fontFamily: "var(--font)", outline: "none" }}
+                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--gray-200)", fontSize: 14, fontFamily: "var(--font)", outline: "none" }}
                   required
                 />
               </label>
@@ -227,7 +227,7 @@ export default function YourListingsPage({ onBack }) {
                 <input
                   value={editingItem.price}
                   onChange={(e) => setEditingItem({ ...editingItem, price: e.target.value })}
-                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid #e5e7eb", fontSize: 14, fontFamily: "var(--font)", outline: "none" }}
+                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--gray-200)", fontSize: 14, fontFamily: "var(--font)", outline: "none" }}
                   required
                 />
               </label>
@@ -237,7 +237,7 @@ export default function YourListingsPage({ onBack }) {
                 <select
                   value={editingItem.condition}
                   onChange={(e) => setEditingItem({ ...editingItem, condition: e.target.value })}
-                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid #e5e7eb", fontSize: 14, fontFamily: "var(--font)", outline: "none" }}
+                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--gray-200)", fontSize: 14, fontFamily: "var(--font)", outline: "none" }}
                 >
                   {["Like New", "Good", "Fair", "Poor"].map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -251,7 +251,7 @@ export default function YourListingsPage({ onBack }) {
                   value={editingItem.description || ""}
                   onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
                   rows={3}
-                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid #e5e7eb", fontSize: 14, fontFamily: "var(--font)", outline: "none", resize: "vertical" }}
+                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--gray-200)", fontSize: 14, fontFamily: "var(--font)", outline: "none", resize: "vertical" }}
                 />
               </label>
 
@@ -259,7 +259,7 @@ export default function YourListingsPage({ onBack }) {
                 <button
                   type="button"
                   onClick={() => setEditingItem(null)}
-                  style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
+                  style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid var(--gray-200)", background: "var(--surface)", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
                 >
                   Cancel
                 </button>

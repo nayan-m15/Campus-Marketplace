@@ -2,7 +2,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(2, 4, 2, 0.92);
+  background: rgba(31, 36, 31, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -88,9 +88,9 @@
 }
 
 .navbar__search input:focus {
-  border-color: rgba(143, 163, 138, 0.6);
+  border-color: rgba(31, 107, 82, 0.60);
   background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 0 3px rgba(143, 163, 138, 0.15);
+  box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.15);
 }
 
 /* Links */
@@ -119,8 +119,8 @@
 }
 
 .navbar__link:hover {
-  background: rgba(143, 163, 138, 0.15);
-  color: #8FA38A;
+  background: rgba(31, 107, 82, 0.15);
+  color: var(--green);
 }
 
 .navbar__list-btn {
@@ -169,7 +169,7 @@
   top: calc(100% + 8px);
   left: 0;
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--gray-200);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   z-index: 100;
@@ -199,10 +199,11 @@
 }
 
 .navbar__menu li button:hover {
-  background: #f0fdf4;
+  background: var(--mint);
   color: var(--green);
 }
 .navbar__menu {
   right: 0;
   left: auto;
 }
+

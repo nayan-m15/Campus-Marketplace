@@ -134,7 +134,7 @@ export default function Navbar({
                       <span>Wishlist</span>
                       {wishlistCount > 0 && (
                         <span style={{
-                          background: "#e74c3c",
+                          background: "var(--amber)",
                           color: "#fff",
                           fontSize: 11,
                           fontWeight: 700,
