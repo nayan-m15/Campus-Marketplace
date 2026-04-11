@@ -28,6 +28,8 @@ export default function Navbar({
     "Profile";
 
   return (
+    <>
+    <div className="navbar-spacer" aria-hidden="true" />
     <header className="navbar">
 
       {/* Logo */}
@@ -170,5 +172,6 @@ export default function Navbar({
       </div>
 
     </header>
+    </>
   );
 }

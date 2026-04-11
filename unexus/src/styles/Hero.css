@@ -1,10 +1,18 @@
 /* ── Hero Shell ────────────────────────────────────────── */
 .hero {
   position: relative;
-  min-height: 560px;
+  padding: 40px 32px 0;
   overflow: hidden;
+}
+
+.hero__main {
+  position: relative;
+  z-index: 2;
+  min-height: 560px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 48px;
 }
 
 /* Rich gradient background instead of plain black */
@@ -44,9 +52,7 @@
 }
 
 .hero__content {
-  position: relative;
-  z-index: 2;
-  padding: 0 64px;
+  padding: 0 32px;
   max-width: 640px;
   align-content: center;
 }
@@ -149,6 +155,11 @@
   border-radius: 16px;
   backdrop-filter: blur(12px);
   width: fit-content;
+}
+
+.hero__stat-group {
+  display: flex;
+  align-items: center;
 }
 
 .hero__stat {
@@ -419,14 +430,14 @@
 .sell-cta {
   position: relative;
   overflow: hidden;
-  padding: 64px 32px;
+  margin: 28px 32px 0;
+  padding: 40px 48px;
   background: linear-gradient(135deg, var(--navy) 0%, var(--gray-900) 60%, var(--navy) 100%);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 0;
+  justify-content: space-between;
+  gap: 32px;
+  border-radius: 28px;
 }
 
 /* Glowing orbs */
@@ -465,7 +476,7 @@
   text-transform: uppercase;
   color: var(--green);
   margin-bottom: 16px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
 }
@@ -489,6 +500,12 @@
   margin-bottom: 16px;
 }
 
+.sell-cta__copy {
+  position: relative;
+  z-index: 1;
+  max-width: 420px;
+}
+
 .sell-cta__sub {
   position: relative;
   z-index: 1;
@@ -496,7 +513,7 @@
   color: rgba(255, 253, 248, 0.84);
   line-height: 1.6;
   max-width: 480px;
-  margin-bottom: 32px;
+  margin-bottom: 0;
 }
 
 .sell-cta__sub strong {
@@ -524,6 +541,32 @@
   text-decoration: none;
 }
 
+.sell-cta__actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.sell-cta__link {
+  border: none;
+  background: none;
+  color: rgba(255, 253, 248, 0.78);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sell-cta__link:hover {
+  color: #fff;
+}
+
 .sell-cta__btn:hover {
   filter: brightness(1.1);
   transform: translateY(-2px);
@@ -549,8 +592,20 @@
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 900px) {
+  .hero {
+    padding: 32px 20px 0;
+  }
+
+  .hero__main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 28px;
+    min-height: auto;
+  }
+
   .hero__content {
-    padding: 0 32px;
+    padding: 0;
+    max-width: none;
   }
 
   .hero__stats {
@@ -565,6 +620,17 @@
   .hero__stat-value {
     font-size: 22px;
   }
+
+  .sell-cta {
+    margin: 20px 0 0;
+    padding: 32px 28px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sell-cta__actions {
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 640px) {
@@ -577,7 +643,7 @@
   }
 
   .hero__content {
-    padding: 0 20px;
+    padding: 0;
   }
 
   .hero__stats {
@@ -600,7 +666,8 @@
   }
 
   .sell-cta {
-    padding: 48px 20px;
+    padding: 28px 20px;
+    border-radius: 22px;
   }
 }
 

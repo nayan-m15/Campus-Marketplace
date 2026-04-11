@@ -513,7 +513,13 @@ function AppInner() {
 
       <main>
         <section>
-          <Hero onListingClick={setSelectedListing} onBrowseClick={handleScrollToListings} />
+          <Hero
+            onListingClick={setSelectedListing}
+            onBrowseClick={handleScrollToListings}
+            onSignupClick={() => setPage("signup")}
+            onLoginClick={() => setPage("login")}
+            user={user}
+          />
         </section>
 
         <nav aria-label="Categories" ref={filterBarRef}>
