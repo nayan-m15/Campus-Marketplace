@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../styles/AdminDashboard.css";
 import { supabase } from "../supabaseClient";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// ── Constants (Marketplace Reports) ─────────────────────────────
+// ── Constants ───────────────────────────────────────────────────
 const MARKETPLACE_REPORT_TYPES = [
   { value: "overview", label: "Listings Overview" },
   { value: "category", label: "Category Breakdown" },
@@ -14,193 +14,133 @@ const MARKETPLACE_REPORT_TYPES = [
   { value: "price_distribution", label: "Price Distribution" },
 ];
 
-// ── Constants (Facility Management) ─────────────────────────────
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const INITIAL_FACILITIES = [
-  {
-    id: 1,
-    name: "Sports Hall",
-    icon: "🏀",
-    capacity: 40,
-    hours: {
-      Mon: { open: true, start: "07:00", end: "21:00" },
-      Tue: { open: true, start: "07:00", end: "21:00" },
-      Wed: { open: true, start: "07:00", end: "21:00" },
-      Thu: { open: true, start: "07:00", end: "21:00" },
-      Fri: { open: true, start: "07:00", end: "18:00" },
-      Sat: { open: true, start: "09:00", end: "15:00" },
-      Sun: { open: false, start: "09:00", end: "13:00" },
-    },
-  },
-  {
-    id: 2,
-    name: "Library Study Rooms",
-    icon: "📚",
-    capacity: 8,
-    hours: {
-      Mon: { open: true, start: "08:00", end: "22:00" },
-      Tue: { open: true, start: "08:00", end: "22:00" },
-      Wed: { open: true, start: "08:00", end: "22:00" },
-      Thu: { open: true, start: "08:00", end: "22:00" },
-      Fri: { open: true, start: "08:00", end: "20:00" },
-      Sat: { open: true, start: "10:00", end: "18:00" },
-      Sun: { open: true, start: "12:00", end: "18:00" },
-    },
-  },
-  {
-    id: 3,
-    name: "Computer Lab",
-    icon: "💻",
-    capacity: 30,
-    hours: {
-      Mon: { open: true, start: "08:00", end: "20:00" },
-      Tue: { open: true, start: "08:00", end: "20:00" },
-      Wed: { open: true, start: "08:00", end: "20:00" },
-      Thu: { open: true, start: "08:00", end: "20:00" },
-      Fri: { open: true, start: "08:00", end: "17:00" },
-      Sat: { open: false, start: "09:00", end: "13:00" },
-      Sun: { open: false, start: "09:00", end: "13:00" },
-    },
-  },
-];
+// Helper: create empty hours object for all days
+const emptyHours = () =>
+  DAYS.reduce((acc, day) => {
+    acc[day] = { open: false, start: "09:00", end: "17:00" };
+    return acc;
+  }, {});
 
-// ── Sub-components (Facility Management) ────────────────────────
-
+// ── Save Toast Component ────────────────────────────────────────
 function SaveToast({ visible }) {
   return (
-    <aside className={`save-toast ${visible ? "save-toast--visible" : ""}`} role="status" aria-live="polite">
-      <span className="save-toast__icon">✓</span>
+    <aside
+      className={`save-toast ${visible ? "save-toast--visible" : ""}`}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <span className="save-toast__icon" aria-hidden="true">✓</span>
       Changes saved successfully
     </aside>
   );
 }
 
-function FacilityCard({ facility, onUpdate }) {
+// ── Facility Card Component ─────────────────────────────────────
+function FacilityCard({ facility, onToggleDay, onTimeChange, onCapacityChange }) {
   const [expanded, setExpanded] = useState(false);
-
-  const toggleDay = (day) => {
-    onUpdate(facility.id, {
-      hours: {
-        ...facility.hours,
-        [day]: { ...facility.hours[day], open: !facility.hours[day].open },
-      },
-    });
-  };
-
-  const updateHour = (day, field, value) => {
-    onUpdate(facility.id, {
-      hours: {
-        ...facility.hours,
-        [day]: { ...facility.hours[day], [field]: value },
-      },
-    });
-  };
-
-  const updateCapacity = (value) => {
-    const parsed = parseInt(value, 10);
-    if (!isNaN(parsed) && parsed > 0) onUpdate(facility.id, { capacity: parsed });
-  };
-
   const openDays = DAYS.filter((d) => facility.hours[d].open).length;
 
   return (
-    <section className="AdminDash">
-      <article className={`facility-card ${expanded ? "facility-card--open" : ""}`}>
-        <header className="facility-card__header" onClick={() => setExpanded(!expanded)}>
-          <span className="facility-card__icon">{facility.icon}</span>
-          <hgroup className="facility-card__title-group">
-            <h3 className="facility-card__name">{facility.name}</h3>
-            <p className="facility-card__meta">
-              {openDays} day{openDays !== 1 ? "s" : ""} open · {facility.capacity} slots/session
-            </p>
-          </hgroup>
-          <span className="facility-card__chevron" aria-hidden="true">
-            {expanded ? "▲" : "▼"}
-          </span>
-        </header>
+    <article className={`facility-card ${expanded ? "facility-card--open" : ""}`}>
+      <header className="facility-card__header" onClick={() => setExpanded(!expanded)}>
+        <span className="facility-card__icon" aria-hidden="true">
+          {facility.icon || "🏢"}
+        </span>
+        <hgroup className="facility-card__title-group">
+          <h3 className="facility-card__name">{facility.name}</h3>
+          <p className="facility-card__meta">
+            {openDays} day{openDays !== 1 ? "s" : ""} open · {facility.capacity} slots/session
+          </p>
+        </hgroup>
+        <span className="facility-card__chevron" aria-hidden="true">
+          {expanded ? "▲" : "▼"}
+        </span>
+      </header>
 
-        {expanded && (
-          <section className="facility-card__body">
-            {/* Slot capacity */}
-            <fieldset className="capacity-fieldset">
-              <legend className="fieldset-legend">Slot Capacity per Session</legend>
-              <label className="capacity-label" htmlFor={`cap-${facility.id}`}>
-                Max participants
-              </label>
-              <input
-                id={`cap-${facility.id}`}
-                type="number"
-                min="1"
-                max="500"
-                value={facility.capacity}
-                onChange={(e) => updateCapacity(e.target.value)}
-                className="capacity-input"
-              />
-            </fieldset>
+      {expanded && (
+        <section className="facility-card__body">
+          {/* Slot capacity */}
+          <fieldset className="capacity-fieldset">
+            <legend className="fieldset-legend">Slot Capacity per Session</legend>
+            <label className="capacity-label" htmlFor={`cap-${facility.id}`}>
+              Max participants
+            </label>
+            <input
+              id={`cap-${facility.id}`}
+              type="number"
+              min="1"
+              max="500"
+              value={facility.capacity}
+              onChange={(e) => onCapacityChange(facility.id, e.target.value)}
+              className="capacity-input"
+            />
+          </fieldset>
 
-            {/* Operating hours */}
-            <fieldset className="hours-fieldset">
-              <legend className="fieldset-legend">Operating Hours</legend>
-              <ul className="hours-list" role="list">
-                {DAYS.map((day) => {
-                  const slot = facility.hours[day];
-                  return (
-                    <li key={day} className={`hours-row ${!slot.open ? "hours-row--closed" : ""}`}>
-                      <label className="toggle-label">
+          {/* Operating hours */}
+          <fieldset className="hours-fieldset">
+            <legend className="fieldset-legend">Operating Hours</legend>
+            <ul className="hours-list" role="list">
+              {DAYS.map((day) => {
+                const slot = facility.hours[day];
+                return (
+                  <li key={day} className={`hours-row ${!slot.open ? "hours-row--closed" : ""}`}>
+                    <label className="toggle-label">
+                      <input
+                        type="checkbox"
+                        className="toggle-checkbox"
+                        checked={slot.open}
+                        onChange={() => onToggleDay(facility.id, day)}
+                        aria-label={`${day} open`}
+                      />
+                      <span className="toggle-track" aria-hidden="true">
+                        <span className="toggle-thumb" />
+                      </span>
+                      <span className="day-name">{day}</span>
+                    </label>
+
+                    {slot.open ? (
+                      <span className="time-inputs">
+                        <label className="sr-only" htmlFor={`${facility.id}-${day}-start`}>
+                          Open time
+                        </label>
                         <input
-                          type="checkbox"
-                          className="toggle-checkbox"
-                          checked={slot.open}
-                          onChange={() => toggleDay(day)}
-                          aria-label={`${day} open`}
+                          id={`${facility.id}-${day}-start`}
+                          type="time"
+                          value={slot.start}
+                          onChange={(e) => onTimeChange(facility.id, day, "start", e.target.value)}
+                          className="time-input"
                         />
-                        <span className="toggle-track" aria-hidden="true">
-                          <span className="toggle-thumb" />
-                        </span>
-                        <span className="day-name">{day}</span>
-                      </label>
-
-                      {slot.open ? (
-                        <span className="time-inputs">
-                          <label className="sr-only" htmlFor={`${facility.id}-${day}-start`}>
-                            Open time
-                          </label>
-                          <input
-                            id={`${facility.id}-${day}-start`}
-                            type="time"
-                            value={slot.start}
-                            onChange={(e) => updateHour(day, "start", e.target.value)}
-                            className="time-input"
-                          />
-                          <span className="time-separator">–</span>
-                          <label className="sr-only" htmlFor={`${facility.id}-${day}-end`}>
-                            Close time
-                          </label>
-                          <input
-                            id={`${facility.id}-${day}-end`}
-                            type="time"
-                            value={slot.end}
-                            onChange={(e) => updateHour(day, "end", e.target.value)}
-                            className="time-input"
-                          />
-                        </span>
-                      ) : (
-                        <span className="closed-badge">Closed</span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </fieldset>
-          </section>
-        )}
-      </article>
-    </section>
+                        <span className="time-separator" aria-hidden="true">–</span>
+                        <label className="sr-only" htmlFor={`${facility.id}-${day}-end`}>
+                          Close time
+                        </label>
+                        <input
+                          id={`${facility.id}-${day}-end`}
+                          type="time"
+                          value={slot.end}
+                          onChange={(e) => onTimeChange(facility.id, day, "end", e.target.value)}
+                          className="time-input"
+                        />
+                      </span>
+                    ) : (
+                      <span className="closed-badge">Closed</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </fieldset>
+        </section>
+      )}
+    </article>
   );
 }
 
-function FacilityPanel({ facilities, onUpdate, onSave }) {
+// ── Facility Panel Component ────────────────────────────────────
+function FacilityPanel({ facilities, onToggleDay, onTimeChange, onCapacityChange, onSave }) {
   return (
     <section className="panel" aria-labelledby="facility-heading">
       <header className="panel__header">
@@ -216,7 +156,12 @@ function FacilityPanel({ facilities, onUpdate, onSave }) {
       <ul className="facility-list" role="list">
         {facilities.map((f) => (
           <li key={f.id}>
-            <FacilityCard facility={f} onUpdate={onUpdate} />
+            <FacilityCard
+              facility={f}
+              onToggleDay={onToggleDay}
+              onTimeChange={onTimeChange}
+              onCapacityChange={onCapacityChange}
+            />
           </li>
         ))}
       </ul>
@@ -224,7 +169,7 @@ function FacilityPanel({ facilities, onUpdate, onSave }) {
   );
 }
 
-// ── Reports Panel (Marketplace Reports with Supabase) ───────────
+// ── Reports Panel Component ─────────────────────────────────────
 function ReportsPanel() {
   const [reportType, setReportType] = useState("overview");
   const [dateFrom, setDateFrom] = useState("2025-03-01");
@@ -236,62 +181,34 @@ function ReportsPanel() {
 
   const fetchReport = async () => {
     let query;
-
     switch (reportType) {
       case "overview":
-        query = supabase.rpc("get_listings_overview", {
-          start_date: dateFrom,
-          end_date: dateTo,
-        });
+        query = supabase.rpc("get_listings_overview", { start_date: dateFrom, end_date: dateTo });
         break;
-
       case "category":
-        query = supabase.rpc("get_category_report", {
-          start_date: dateFrom,
-          end_date: dateTo,
-        });
+        query = supabase.rpc("get_category_report", { start_date: dateFrom, end_date: dateTo });
         break;
-
       case "trend":
-        query = supabase.rpc("get_trend_report", {
-          start_date: dateFrom,
-          end_date: dateTo,
-        });
+        query = supabase.rpc("get_trend_report", { start_date: dateFrom, end_date: dateTo });
         break;
-
       case "condition":
-        query = supabase.rpc("get_condition_report", {
-          start_date: dateFrom,
-          end_date: dateTo,
-        });
+        query = supabase.rpc("get_condition_report", { start_date: dateFrom, end_date: dateTo });
         break;
-
       case "top_sellers":
-        query = supabase.rpc("get_top_sellers", {
-          start_date: dateFrom,
-          end_date: dateTo,
-        });
+        query = supabase.rpc("get_top_sellers", { start_date: dateFrom, end_date: dateTo });
         break;
-
       case "price_distribution":
-        query = supabase.rpc("get_price_distribution", {
-          start_date: dateFrom,
-          end_date: dateTo,
-        });
+        query = supabase.rpc("get_price_distribution", { start_date: dateFrom, end_date: dateTo });
         break;
-
       default:
         return;
     }
-
     const { data, error } = await query;
-
     if (error) {
       console.error("REPORT ERROR:", error);
       alert("Failed to generate report. Check console.");
       return;
     }
-
     setReportData(data || []);
     setGenerated(true);
   };
@@ -305,99 +222,50 @@ function ReportsPanel() {
 
   const downloadCSV = () => {
     if (!reportData.length) return;
-
     const headers = Object.keys(reportData[0]).join(",");
     const rows = reportData.map(r => Object.values(r).join(",")).join("\n");
-
     const blob = new Blob([headers + "\n" + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
     link.href = url;
     link.download = "report.csv";
     link.click();
+    URL.revokeObjectURL(url);
   };
 
   const downloadPDF = () => {
-  if (!reportData.length) return;
+    if (!reportData.length) return;
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Unexus Marketplace Report", 14, 20);
+    doc.setFontSize(12);
+    doc.text(MARKETPLACE_REPORT_TYPES.find(r => r.value === reportType)?.label || "", 14, 28);
+    doc.setFontSize(10);
+    doc.text(`Date Range: ${dateFrom} to ${dateTo}`, 14, 34);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 40);
 
-  const doc = new jsPDF();
+    const columns = Object.keys(reportData[0]);
+    const rows = reportData.map(row => columns.map(col => row[col]));
 
-  // ── Title ─────────────────────────────
-  doc.setFontSize(18);
-  doc.text("Unexus Marketplace Report", 14, 20);
+    autoTable(doc, {
+      startY: 45,
+      head: [columns],
+      body: rows,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: "center" },
+      bodyStyles: { halign: "center" },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { top: 45 },
+    });
 
-  // ── Subtitle (Report Type) ────────────
-  doc.setFontSize(12);
-  doc.text(
-    MARKETPLACE_REPORT_TYPES.find(r => r.value === reportType)?.label || "",
-    14,
-    28
-  );
+    const pageHeight = doc.internal.pageSize.height;
+    const pageWidth = doc.internal.pageSize.width;
+    doc.setFontSize(9);
+    doc.text("Unexus Reporting System", 14, pageHeight - 10);
+    doc.text("Page 1", pageWidth - 20, pageHeight - 10); // fixed x coordinate
 
-  // ── Date Info ─────────────────────────
-  doc.setFontSize(10);
-  doc.text(
-    `Date Range: ${dateFrom} to ${dateTo}`,
-    14,
-    34
-  );
-  doc.text(
-    `Generated: ${new Date().toLocaleDateString()}`,
-    14,
-    40
-  );
-
-  // ── Table Data ────────────────────────
-  const columns = Object.keys(reportData[0]);
-  const rows = reportData.map(row => columns.map(col => row[col]));
-
-  autoTable(doc, {
-    startY: 45,
-    head: [columns],
-    body: rows,
-
-    styles: {
-      fontSize: 9,
-      cellPadding: 3,
-    },
-
-    headStyles: {
-      fillColor: [41, 128, 185], // blue header
-      textColor: 255,
-      halign: "center",
-    },
-
-    bodyStyles: {
-      halign: "center",
-    },
-
-    alternateRowStyles: {
-      fillColor: [245, 245, 245],
-    },
-
-    margin: { top: 45 },
-  });
-
-  // ── Footer ────────────────────────────
-  const pageHeight = doc.internal.pageSize.height;
-
-  doc.setFontSize(9);
-  doc.text(
-    "Unexus Reporting System",
-    14,
-    pageHeight - 10
-  );
-
-  doc.text(
-    `Page 1`,
-    pageHeight - 20,
-    pageHeight - 10
-  );
-
-  // ── Save ──────────────────────────────
-  doc.save(`report-${reportType}.pdf`);
-};
+    doc.save(`report-${reportType}.pdf`);
+  };
 
   const handleDownload = () => {
     if (format === "csv") downloadCSV();
@@ -420,7 +288,6 @@ function ReportsPanel() {
       >
         <fieldset className="report-fieldset">
           <legend className="fieldset-legend">Report Parameters</legend>
-
           <ul className="report-fields" role="list">
             <li className="report-field">
               <label htmlFor="report-type" className="field-label">Report Type</label>
@@ -435,7 +302,6 @@ function ReportsPanel() {
                 ))}
               </select>
             </li>
-
             <li className="report-field">
               <label htmlFor="date-from" className="field-label">From</label>
               <input
@@ -446,7 +312,6 @@ function ReportsPanel() {
                 className="field-input"
               />
             </li>
-
             <li className="report-field">
               <label htmlFor="date-to" className="field-label">To</label>
               <input
@@ -457,9 +322,8 @@ function ReportsPanel() {
                 className="field-input"
               />
             </li>
-
             <li className="report-field">
-              <label className="field-label">Export Format</label>
+              <span className="field-label">Export Format</span>
               <ul className="format-options" role="list">
                 {["table", "csv", "pdf"].map((f_opt) => (
                   <li key={f_opt}>
@@ -546,18 +410,143 @@ function ReportsPanel() {
 // ── Main AdminDashboard Component ───────────────────────────────
 export default function AdminDashboard({ onSignOut }) {
   const [activeTab, setActiveTab] = useState("facilities");
-  const [facilities, setFacilities] = useState(INITIAL_FACILITIES);
+  const [facilities, setFacilities] = useState([]);
   const [toastVisible, setToastVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const updateFacility = (id, changes) => {
+  // Load facilities from Supabase
+  const fetchFacilities = async () => {
+    const { data, error } = await supabase
+      .from("facilities")
+      .select(`
+        id,
+        name,
+        capacity,
+        facility_hours (
+          day,
+          open,
+          start_time,
+          end_time
+        )
+      `);
+    if (error) {
+      console.error("Error fetching facilities:", error);
+      return;
+    }
+
+    const formatted = data.map((f) => {
+      const hours = emptyHours(); // start with all days closed
+      f.facility_hours.forEach((h) => {
+        hours[h.day] = {
+          open: h.open,
+          start: h.start_time,
+          end: h.end_time,
+        };
+      });
+      return {
+        id: f.id,
+        name: f.name,
+        capacity: f.capacity,
+        hours,
+        icon: "🏢", // default icon
+      };
+    });
+    setFacilities(formatted);
+  };
+
+  // Initial load
+  useEffect(() => {
+    fetchFacilities();
+  }, []);
+
+  // ── Local state update helpers (optimistic UI) ────────────────
+  const updateLocalFacility = (id, changes) => {
     setFacilities((prev) =>
       prev.map((f) => (f.id === id ? { ...f, ...changes } : f))
     );
   };
 
-  const handleSave = () => {
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 3000);
+  const handleToggleDay = (id, day) => {
+    setFacilities((prev) =>
+      prev.map((f) => {
+        if (f.id !== id) return f;
+        const newHours = {
+          ...f.hours,
+          [day]: { ...f.hours[day], open: !f.hours[day].open },
+        };
+        return { ...f, hours: newHours };
+      })
+    );
+  };
+
+  const handleTimeChange = (id, day, field, value) => {
+    setFacilities((prev) =>
+      prev.map((f) => {
+        if (f.id !== id) return f;
+        const newHours = {
+          ...f.hours,
+          [day]: { ...f.hours[day], [field]: value },
+        };
+        return { ...f, hours: newHours };
+      })
+    );
+  };
+
+  const handleCapacityChange = (id, rawValue) => {
+    const parsed = parseInt(rawValue, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      updateLocalFacility(id, { capacity: parsed });
+    }
+  };
+
+  // ── Persist changes to Supabase (batch save) ─────────────────
+  const persistFacility = async (facility) => {
+    // Update capacity if changed
+    const original = facilities.find(f => f.id === facility.id);
+    if (original && original.capacity !== facility.capacity) {
+      const { error } = await supabase
+        .from("facilities")
+        .update({ capacity: facility.capacity })
+        .eq("id", facility.id);
+      if (error) console.error(`Error updating capacity for ${facility.id}:`, error);
+    }
+
+    // Update each day's hours
+    for (const day of DAYS) {
+      const newSlot = facility.hours[day];
+      const oldSlot = original?.hours[day];
+      if (!oldSlot || newSlot.open !== oldSlot.open || newSlot.start !== oldSlot.start || newSlot.end !== oldSlot.end) {
+        const { error } = await supabase
+          .from("facility_hours")
+          .upsert({
+            facility_id: facility.id,
+            day,
+            open: newSlot.open,
+            start_time: newSlot.start,
+            end_time: newSlot.end,
+          }, { onConflict: "facility_id,day" });
+        if (error) console.error(`Error upserting hours for ${facility.id} on ${day}:`, error);
+      }
+    }
+  };
+
+  const handleSaveAll = async () => {
+    setIsSaving(true);
+    try {
+      // Persist each facility's changes
+      for (const facility of facilities) {
+        await persistFacility(facility);
+      }
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+      // Refresh data from DB to ensure consistency
+      await fetchFacilities();
+    } catch (err) {
+      console.error("Save failed:", err);
+      alert("Failed to save changes. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const NAV_ITEMS = [
@@ -569,7 +558,7 @@ export default function AdminDashboard({ onSignOut }) {
     <section className="admin-dashboard-wrapper">
       <SaveToast visible={toastVisible} />
 
-      {/* Sidebar */}
+      {/* Sidebar navigation */}
       <nav className="sidebar" aria-label="Admin navigation">
         <header className="sidebar__brand">
           <span className="sidebar__logo" aria-hidden="true">⚡</span>
@@ -629,8 +618,10 @@ export default function AdminDashboard({ onSignOut }) {
         {activeTab === "facilities" && (
           <FacilityPanel
             facilities={facilities}
-            onUpdate={updateFacility}
-            onSave={handleSave}
+            onToggleDay={handleToggleDay}
+            onTimeChange={handleTimeChange}
+            onCapacityChange={handleCapacityChange}
+            onSave={handleSaveAll}
           />
         )}
         {activeTab === "reports" && <ReportsPanel />}
