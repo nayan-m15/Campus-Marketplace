@@ -273,6 +273,7 @@ function AppInner() {
 
   const filteredListings = (() => {
     let result = allListings.filter((item) => {
+      if (item.status === "sold") return false;
       const searchMatch = searchQuery.trim()
         ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.category.toLowerCase().includes(searchQuery.toLowerCase())
