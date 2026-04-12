@@ -33,7 +33,7 @@ export default function LoginPage({ onNavigate }) {
       <div className="auth-card">
         {/* Logo */}
         <div className="auth-logo">
-          <span className="auth-logo__icon"><img src="/favicon.png" alt="UX Logo" className="navbar__logo-img" /></span>
+          <span className="auth-logo__icon"><img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="navbar__logo-img" /></span>
           <span className="auth-logo__text">Unexus</span>
         </div>
 
