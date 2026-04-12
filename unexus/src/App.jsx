@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Navbar from "./components/NavBar";
 import Hero from "./components/Hero";
@@ -8,14 +8,19 @@ import Footer from "./components/Footer";
 import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
 import ProfilePage from "./components/ProfilePage";
+import PublicProfilePage from "./components/PublicProfilePage";
 import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
-import { fetchListings } from "./data/listings";
+import WishlistPage from "./components/WishlistPage";
+import { fetchListings, CONDITIONS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
 import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
+import YourListingsPage from "./components/YourListingsPage";
+import { useWishlist } from "./context/useWishlist";
+import SettingsPage from "./components/SettingsPage";
 
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
@@ -24,12 +29,51 @@ function isProfileComplete(profile) {
   return REQUIRED_PROFILE_FIELDS.every((f) => !!profile[f]);
 }
 
+// ── Unread message count hook ──────────────────────────────
+function useUnreadCount(user) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) { setUnreadCount(0); return; }
+    supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("receiver_id", user.id)
+      .eq("is_read", false)
+      .eq("is_deleted", false)
+      .then(({ count }) => setUnreadCount(count || 0));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("navbar-unread")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        if (payload.new.receiver_id === user.id) {
+          setUnreadCount((prev) => prev + 1);
+        }
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [user]);
+
+  return [unreadCount, setUnreadCount];
+}
+
 // ── Item Details Modal ─────────────────────────────────────
-function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
-  const [message, setMessage] = useState("");
+function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishlisted, onToggleWishlist }) {
+  const [message, setMessage] = useState(`Hi, is the ${item?.title || "item"} still available?`);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState("");
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (item) {
+      setMessage(`Hi, is the ${item.title || "item"} still available?`);
+      setCurrentImageIndex(0);
+    }
+  }, [item?.id]);
 
   useEffect(() => {
     function handleEscape(e) {
@@ -42,7 +86,6 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
     return () => {
       window.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "";
-      setMessage("");
       setSendError("");
       setSendSuccess("");
     };
@@ -54,10 +97,23 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
     Array.isArray(item.image_urls) && item.image_urls.length > 0
       ? item.image_urls
       : item.image_url
-      ? [item.image_url]
-      : [];
+        ? [item.image_url]
+        : [];
 
-  const firstImage = images[0] || null;
+  const activeImage = images[currentImageIndex] || images[0] || null;
+  const wishlisted = isWishlisted?.(item.id) ?? false;
+  const joinedLabel =
+    item.joined_label || (item.joined_year ? String(item.joined_year) : "Not provided");
+
+  function showPreviousImage() {
+    if (images.length <= 1) return;
+    setCurrentImageIndex((index) => (index === 0 ? images.length - 1 : index - 1));
+  }
+
+  function showNextImage() {
+    if (images.length <= 1) return;
+    setCurrentImageIndex((index) => (index === images.length - 1 ? 0 : index + 1));
+  }
 
   async function handleSendMessage() {
     if (!message.trim()) { setSendError("Please enter a message."); setSendSuccess(""); return; }
@@ -77,7 +133,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
       });
       if (error) throw new Error(error.message);
       setMessage("");
-      setSendSuccess("Message sent! Opening conversation…");
+      setSendSuccess("Message sent! Opening conversation...");
       setTimeout(() => { onClose(); onMessageSeller(item); }, 1000);
     } catch (err) {
       setSendError(err.message || "Failed to send message.");
@@ -89,89 +145,127 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user }) {
   return (
     <div className="item-modal-overlay" onClick={onClose}>
       <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Close item details" type="button">×</button>
+        <button className="modal-close" onClick={onClose} aria-label="Close item details" type="button">x</button>
 
-        <section className="item-modal-layout">
-          <div className="item-modal-right-column item-modal-right-column--full">
+        <div className="item-modal-scroll">
+          <div className="item-modal-scroll-inner">
+            <section className="item-modal-layout">
+              <div className="item-modal-right-column item-modal-right-column--full">
+                <div className="item-modal-top-card">
+                  <div className="item-modal-top-main">
+                    <div className="item-modal-carousel">
+                      <div className="item-modal-carousel__frame">
+                        {images.length > 1 && (
+                          <>
+                            <button type="button" className="item-modal-carousel__nav item-modal-carousel__nav--prev" onClick={showPreviousImage} aria-label="Show previous image">{"<"}</button>
+                            <button type="button" className="item-modal-carousel__nav item-modal-carousel__nav--next" onClick={showNextImage} aria-label="Show next image">{">"}</button>
+                          </>
+                        )}
 
-            <div className="item-modal-top-card">
-              <div className="item-modal-top-row">
-                {firstImage ? (
-                  <img src={firstImage} alt={item.title || "Listing image"} className="item-modal-top-image" />
-                ) : (
-                  <div className="item-modal-top-placeholder"><span>{item.emoji || "📦"}</span></div>
-                )}
-                <div className="item-modal-top-text">
-                  <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
-                  <span className="item-modal-condition">{item.condition || "Good"}</span>
-                  <p className="item-modal-price">
-                    {item.pricePrefix && <span className="item-modal-price-prefix">{item.pricePrefix} </span>}
-                    {item.price || "Price not available"}
-                  </p>
+                        {activeImage ? (
+                          <img src={activeImage} alt={item.title || "Listing image"} className="item-modal-top-image" />
+                        ) : (
+                          <div className="item-modal-top-placeholder"><span>{item.emoji || "No Image"}</span></div>
+                        )}
+                      </div>
+
+                      {images.length > 1 && (
+                        <div className="item-modal-carousel__dots" aria-label="Image navigation">
+                          {images.map((image, index) => (
+                            <button
+                              key={`${image}-${index}`}
+                              type="button"
+                              className={`item-modal-carousel__dot${index === currentImageIndex ? " item-modal-carousel__dot--active" : ""}`}
+                              onClick={() => setCurrentImageIndex(index)}
+                              aria-label={`Show image ${index + 1}`}
+                              aria-pressed={index === currentImageIndex}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="item-modal-top-bottom">
+                      <div className="item-modal-top-text">
+                        <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
+
+                        <div className="item-modal-summary">
+                          <p className="item-modal-price">
+                            {item.pricePrefix && <span className="item-modal-price-prefix">{item.pricePrefix} </span>}
+                            {item.price || "Price not available"}
+                          </p>
+                          <span className="item-modal-condition">{item.condition || "Good"}</span>
+                        </div>
+
+                        {user && onToggleWishlist && (
+                          <button
+                            type="button"
+                            className={`item-modal-wishlist-btn${wishlisted ? " item-modal-wishlist-btn--active" : ""}`}
+                            onClick={() => onToggleWishlist(item.id)}
+                            aria-pressed={wishlisted}
+                            aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                          >
+                            {wishlisted ? "Saved" : "Save to Wishlist"}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="item-modal-description-card">
+                        <h3>Description</h3>
+                        <p>{item.description?.trim() || "No description provided."}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="item-modal-bottom-card">
+                  <div className="item-modal-info">
+                    <div className="item-modal-meta">
+                      <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
+                      <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
+                      <p><strong>Joined since:</strong> {joinedLabel}</p>
+                      {item.category && <p><strong>Category:</strong> {item.category}</p>}
+                      <p><strong>Distance:</strong> {item.distance || "0 km"}</p>
+                    </div>
+                  </div>
+
+                  <div className="item-modal-contact">
+                    <h3>Message seller</h3>
+                    {!user ? (
+                      <p className="item-modal-error">Please <strong>log in</strong> to message this seller.</p>
+                    ) : (
+                      <>
+                        <textarea className="item-modal-textarea" value={message} onChange={(e) => setMessage(e.target.value)} rows={4} />
+                        {sendError && <p className="item-modal-error">{sendError}</p>}
+                        {sendSuccess && <p className="item-modal-success">{sendSuccess}</p>}
+                        <div className="item-modal-actions">
+                          <button type="button" className="item-modal-send-btn" onClick={handleSendMessage} disabled={sending}>
+                            {sending ? "Sending..." : "Send message"}
+                          </button>
+                          <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={() => { onClose(); onMessageSeller(item); }}>
+                            Open chat
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="item-modal-description-card">
-              <h3>Description</h3>
-              <p>{item.description?.trim() || "No description provided."}</p>
-            </div>
-
-            <div className="item-modal-bottom-card">
-              <div className="item-modal-meta">
-                <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
-                <p><strong>Approximate location:</strong> {item.approximate_location || "Location not provided"}</p>
-                <p><strong>Joined in:</strong> {item.joined_year || 2026}</p>
-                {item.category && <p><strong>Category:</strong> {item.category}</p>}
-                <p><strong>Distance:</strong> {item.distance || "0 km"}</p>
-              </div>
-
-              <div className="item-modal-contact">
-                <h3>Message seller</h3>
-                {!user ? (
-                  <p className="item-modal-error">Please <strong>log in</strong> to message this seller.</p>
-                ) : (
-                  <>
-                    <textarea
-                      className="item-modal-textarea"
-                      placeholder={`Hi, is the ${item.title || "item"} still available?`}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      rows={3}
-                    />
-                    {sendError && <p className="item-modal-error">{sendError}</p>}
-                    {sendSuccess && <p className="item-modal-success">{sendSuccess}</p>}
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button type="button" className="item-modal-send-btn" onClick={handleSendMessage} disabled={sending}>
-                        {sending ? "Sending..." : "Send message"}
-                      </button>
-                      <button type="button" className="item-modal-send-btn" style={{ background: "var(--green)" }} onClick={() => { onClose(); onMessageSeller(item); }}>
-                        Open chat
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
+            </section>
           </div>
-        </section>
+        </div>
       </article>
     </div>
   );
 }
-
-// ── Inner App ──────────────────────────────────────────────
 function AppInner() {
   const { user, loading, signOut } = useAuth();
 
   const [page, setPage] = useState("home");
   const [activeCategory, setActiveCategory] = useState("All Items");
-  // ── NEW: condition + price filter state ───────────────────
   const [activeCondition, setActiveCondition] = useState("All Conditions");
   const [priceSort, setPriceSort] = useState("");
   const [priceRange, setPriceRange] = useState({ min: "", max: "" });
-  // ─────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -191,12 +285,37 @@ function AppInner() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
 
+  // ── Unread message count for navbar badge ─────────────────
+  const [unreadCount, setUnreadCount] = useUnreadCount(user);
+  const { wishlistItems, isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(user);
+
+  // ── Ref for the filter bar nav so Hero can scroll to it ──
+  const filterBarRef = useRef(null);
+
+  function handleScrollToListings() {
+    if (!filterBarRef.current) return;
+
+    const navbarOffset = 76;
+    const filterBarTop =
+      filterBarRef.current.getBoundingClientRect().top + window.scrollY - navbarOffset;
+
+    window.scrollTo({
+      top: Math.max(filterBarTop, 0),
+      behavior: "smooth",
+    });
+  }
+
+  // ── Public profile state ───────────────────────────────────
+  const [publicProfileId, setPublicProfileId] = useState(null);
+  const [prevPage, setPrevPage] = useState("home");
+
   useEffect(() => {
-    fetchListings()
+    if (loading) return;
+    fetchListings(user?.id)
       .then(setAllListings)
       .catch((err) => setListingsError(err.message))
       .finally(() => setListingsLoading(false));
-  }, []);
+  }, [user?.id, loading]);
 
   useEffect(() => {
     if (!user) {
@@ -210,63 +329,66 @@ function AppInner() {
 
     supabase
       .from("profiles")
-      .select("name, display_name, sex, birthdate, province, institution, avatar_url, role")
+      .select("name, avatar_url, role, sex, birthdate, province, institution")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
-        if (data?.avatar_url) setAvatarUrl(data.avatar_url);
-        setIsAdmin(data?.role === "admin");
-        if (data?.display_name || data?.name) {
-          setProfileName(data.display_name || data.name);
+        if (data) {
+          setAvatarUrl(data.avatar_url || null);
+          setProfileName(data.name || null);
+          setIsAdmin(data.role === "admin");
+          setIsStaff(data.role === "staff");
+          setNeedsSetup(!isProfileComplete(data));
+        } else {
+          setNeedsSetup(true);
         }
-        setIsStaff(data?.role === "staff");
-        setNeedsSetup(!isProfileComplete(data));
         setProfileChecked(true);
       })
-      .catch(() => {
-        setIsStaff(false);
-        setIsAdmin(false);
-        setNeedsSetup(true);
-        setProfileChecked(true);
-      });
+      .catch(() => setProfileChecked(true));
   }, [user]);
 
-  // ── Updated: applies category, search, condition, and price ──
+  function numericPrice(item) {
+    if (!item?.price) return 0;
+    const n = parseFloat(String(item.price).replace(/[^0-9.]/g, ""));
+    return isNaN(n) ? 0 : n;
+  }
+
   const filteredListings = (() => {
-  const numericPrice = (item) =>
-    Number(String(item.price).replace(/[^0-9.]/g, ""));
+    let result = allListings.filter((item) => {
+      if (item.status === "sold") return false;
+      const searchMatch = searchQuery.trim()
+        ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.category.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
 
-  let result = allListings.filter((item) => {
-    const searchMatch = searchQuery.trim()
-      ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchQuery.toLowerCase())
-      : true;
+      const categoryMatch =
+        searchQuery.trim() || activeCategory === "All Items"
+          ? true
+          : item.category === activeCategory;
 
-    const categoryMatch =
-      searchQuery.trim() || activeCategory === "All Items"
-        ? true
-        : item.category === activeCategory;
+      const conditionMatch =
+        activeCondition === "All Conditions" || item.condition === activeCondition;
 
-    const conditionMatch =
-      activeCondition === "All Conditions" || item.condition === activeCondition;
+      const minOk =
+        priceSort !== "custom" ||
+        priceRange.min === "" ||
+        numericPrice(item) >= Number(priceRange.min);
 
-    const minOk =
-      priceSort !== "custom" ||
-      priceRange.min === "" ||
-      numericPrice(item) >= Number(priceRange.min);
+      const maxOk =
+        priceSort !== "custom" ||
+        priceRange.max === "" ||
+        numericPrice(item) <= Number(priceRange.max);
 
-    const maxOk =
-      priceSort !== "custom" ||
-      priceRange.max === "" ||
-      numericPrice(item) <= Number(priceRange.max);
+      return searchMatch && categoryMatch && conditionMatch && minOk && maxOk;
+    });
 
-    return searchMatch && categoryMatch && conditionMatch && minOk && maxOk;
-  });
+    if (priceSort === "price_asc")      result = [...result].sort((a, b) => numericPrice(a) - numericPrice(b));
+    if (priceSort === "price_desc")     result = [...result].sort((a, b) => numericPrice(b) - numericPrice(a));
+    if (priceSort === "condition_asc")  result = [...result].sort((a, b) => CONDITIONS.indexOf(b.condition) - CONDITIONS.indexOf(a.condition));
+    if (priceSort === "condition_desc") result = [...result].sort((a, b) => CONDITIONS.indexOf(a.condition) - CONDITIONS.indexOf(b.condition));
+    if (priceSort === "newest")         result = [...result].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-  if (priceSort === "asc")  result = [...result].sort((a, b) => numericPrice(a) - numericPrice(b));
-  if (priceSort === "desc") result = [...result].sort((a, b) => numericPrice(b) - numericPrice(a));
-
-  return result;
+    return result;
   })();
 
   function handleCategoryChange(category) {
@@ -274,7 +396,6 @@ function AppInner() {
     setSearchQuery("");
   }
 
-  // ── NEW: reset all secondary filters together ─────────────
   function handleClearFilters() {
     setActiveCondition("All Conditions");
     setPriceRange({ min: "", max: "" });
@@ -289,7 +410,7 @@ function AppInner() {
     setShowForm(false);
     setSuccessMessage("🎉 Your listing has been published!");
     setTimeout(() => setSuccessMessage(null), 4000);
-    fetchListings()
+    fetchListings(user?.id)
       .then(setAllListings)
       .catch((err) => setListingsError(err.message));
   }
@@ -302,6 +423,16 @@ function AppInner() {
     setMsgRecipientId(item.user_id || null);
     setMsgListingTitle(item.title);
     setPage("messages");
+  }
+
+  function handleSellerClick(sellerId) {
+    if (user && sellerId === user.id) {
+      setPage("profile");
+      return;
+    }
+    setPrevPage("home");
+    setPublicProfileId(sellerId);
+    setPage("publicProfile");
   }
 
   function handleSetupComplete() {
@@ -350,6 +481,11 @@ function AppInner() {
     },
     onSignOut: signOut,
     onHome: goHome,
+    onYourListings: () => setPage("yourlistings"),
+    onWishlist: () => setPage("wishlist"),
+    wishlistCount: wishlistItems.length,
+    onSettings: () => setPage("settings"),
+    unreadCount,
   };
 
   if (page === "profile") {
@@ -357,6 +493,27 @@ function AppInner() {
       <>
         <header><Navbar {...navbarProps} /></header>
         <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} onNameChange={setProfileName} />
+      </>
+    );
+  }
+
+  if (page === "publicProfile" && publicProfileId) {
+    return (
+      <>
+        <header><Navbar {...navbarProps} /></header>
+        <PublicProfilePage
+          userId={publicProfileId}
+          onBack={() => setPage(prevPage)}
+          onMessageSeller={
+            user
+              ? () => {
+                  setMsgRecipientId(publicProfileId);
+                  setMsgListingTitle(null);
+                  setPage("messages");
+                }
+              : null
+          }
+        />
       </>
     );
   }
@@ -373,10 +530,51 @@ function AppInner() {
             setMsgListingTitle(null);
             goHome();
           }}
+          onViewProfile={(sellerId) => {
+            setPrevPage("messages");
+            setPublicProfileId(sellerId);
+            setPage("publicProfile");
+          }}
+          onUnreadChange={setUnreadCount}
         />
       </>
     );
   }
+
+  if (page === "yourlistings") {
+    return (
+      <>
+        <header><Navbar {...navbarProps} /></header>
+        <YourListingsPage onBack={goHome} />
+      </>
+    );
+  }
+
+  // ── Wishlist page ──────────────────────────────────────────
+  if (page === "wishlist") {
+    return (
+      <>
+        <header><Navbar {...navbarProps} /></header>
+        <WishlistPage
+          wishlistItems={wishlistItems}
+          loading={wishlistLoading}
+          onListingClick={(item) => {
+            setSelectedListing(item);
+            setPage("home");
+          }}
+          onToggleWishlist={toggleWishlist}
+        />
+      </>
+    );
+  }
+  if (page === "settings") {
+  return (
+    <>
+      <header><Navbar {...navbarProps} /></header>
+      <SettingsPage onBack={goHome} onSignOut={signOut} />
+    </>
+  );
+}
 
   return (
     <>
@@ -384,7 +582,7 @@ function AppInner() {
         <Navbar {...navbarProps} />
 
         {successMessage && (
-          <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "#111", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", whiteSpace: "nowrap" }}>
+          <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "var(--gray-900)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", whiteSpace: "nowrap" }}>
             {successMessage}
           </div>
         )}
@@ -403,14 +601,23 @@ function AppInner() {
           onClose={() => setSelectedListing(null)}
           onMessageSeller={handleMessageSeller}
           user={user}
+          isWishlisted={isWishlisted}
+          onToggleWishlist={user ? toggleWishlist : null}
         />
       </header>
 
       <main>
-        <section><Hero /></section>
+        <section>
+          <Hero
+            onListingClick={setSelectedListing}
+            onBrowseClick={handleScrollToListings}
+            onSignupClick={() => setPage("signup")}
+            onLoginClick={() => setPage("login")}
+            user={user}
+          />
+        </section>
 
-        <nav aria-label="Categories">
-          {/* ── All new filter props wired in ── */}
+        <nav aria-label="Categories" ref={filterBarRef}>
           <CategoryBar
             activeCategory={activeCategory}
             onCategoryChange={handleCategoryChange}
@@ -435,6 +642,10 @@ function AppInner() {
               activeCategory={activeCategory}
               onListingClick={setSelectedListing}
               onMessageSeller={handleMessageSeller}
+              onSellerClick={handleSellerClick}
+              isWishlisted={isWishlisted}
+              onToggleWishlist={user ? toggleWishlist : null}
+              user={user}
             />
           )}
         </section>

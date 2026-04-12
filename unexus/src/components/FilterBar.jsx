@@ -64,22 +64,25 @@ export default function FilterBar({
 
         {/* ── Price ── */}
         <label className="filter-bar__label" htmlFor="filter-price">
-          <span className="filter-bar__label-text">Price</span>
+          <span className="filter-bar__label-text">Sort By</span>
           <select
             id="filter-price"
             className="filter-bar__select"
             value={priceSort}
             onChange={(e) => {
-              onPriceSortChange(e.target.value);
-              if (e.target.value !== "custom") {
-                onPriceRangeChange({ min: "", max: "" });
-              }
-            }}
+          onPriceSortChange(e.target.value);
+          if (e.target.value !== "custom") {
+            onPriceRangeChange({ min: "", max: "" });
+          }
+        }}
           >
-            <option value="">Any price</option>
-            <option value="asc">Low → High</option>
-            <option value="desc">High → Low</option>
-            <option value="custom">Custom range</option>
+          <option value="">Any price</option>
+          <option value="price_asc">Price Low → High</option>
+          <option value="price_desc">Price High → Low</option>
+          <option value="condition_asc">Condition Low → High</option>
+          <option value="condition_desc">Condition High → Low</option>
+          <option value="newest">Newest Arrivals</option>
+          <option value="custom">Custom Price Range</option>
           </select>
         </label>
 

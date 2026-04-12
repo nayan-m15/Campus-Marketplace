@@ -1,70 +1,103 @@
+/* ── Hero Shell ────────────────────────────────────────── */
 .hero {
   position: relative;
-  height: 520px;
+  padding: 40px 32px 0;
   overflow: hidden;
-  display: flex;
-  align-items: center;
 }
 
+.hero__main {
+  position: relative;
+  z-index: 2;
+  min-height: 560px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+}
+
+/* Rich gradient background instead of plain black */
 .hero__bg {
   position: absolute;
   inset: 0;
-  background: black; 
+  background: linear-gradient(135deg, var(--navy) 0%, var(--gray-800) 45%, var(--navy) 100%);
+}
+
+/* Animated gradient orbs for depth */
+.hero__bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 80% 60%, rgba(31, 107, 82, 0.15) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 300px at 20% 30%, rgba(229, 157, 58, 0.10) 0%, transparent 65%),
+    radial-gradient(ellipse 300px 200px at 60% 10%, rgba(245, 158, 11, 0.06) 0%, transparent 60%);
+}
+
+/* Grid pattern overlay for editorial feel */
+.hero__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at 50% 50%, black 30%, transparent 80%);
 }
 
 .hero__overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 70% 50%, rgba(116, 148, 253, 0.15) 0%, transparent 80%);
+  background: radial-gradient(ellipse at 70% 50%, rgba(31, 107, 82, 0.08) 0%, transparent 70%);
 }
 
 .hero__content {
-  position: relative;
-  z-index: 2;
-  padding: 0 64px;
-  max-width: 620px;
+  padding: 0 32px;
+  max-width: 640px;
   align-content: center;
 }
 
+/* ── Titles ─────────────────────────────────────────────── */
 .hero__title {
   font-size: 58px;
   font-weight: 800;
   color: #fff;
-  line-height: 1.1;
+  line-height: 1.08;
   letter-spacing: -1.5px;
   margin-bottom: 6px;
   text-align: center;
 }
 
+/* Vivid green gradient text for subtitle */
 .hero__subtitle {
   font-size: 30px;
   font-weight: 800;
   font-style: italic;
-  background: white;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--amber-light);
   line-height: 1.1;
   letter-spacing: -1.5px;
   margin-bottom: 20px;
   text-align: center;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
 }
 
 .hero__description {
-  color: rgb(110, 110, 110);
+  color: rgba(255, 253, 248, 0.88);
   font-size: 16px;
   line-height: 1.7;
   margin-bottom: 36px;
   max-width: 440px;
 }
 
+/* ── Buttons ─────────────────────────────────────────────── */
 .hero__buttons {
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
-  margin-bottom: 40px;
+  margin-bottom: 48px;
 }
 
+/* ── Badges ──────────────────────────────────────────────── */
 .hero__badges {
   display: flex;
   gap: 28px;
@@ -75,30 +108,118 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 253, 248, 0.82);
   font-size: 13px;
   font-weight: 500;
 }
 
-/* Carousel Styles */
+.hero__badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green, var(--green));
+  box-shadow: 0 0 6px rgba(31, 107, 82, 0.80);
+  flex-shrink: 0;
+}
+
+/* ── Stats Row (shown inside hero, data from DB) ──────────── */
+/* 
+  Add this HTML structure inside .hero__content before closing:
+
+  <div class="hero__stats">
+    <div class="hero__stat">
+      <span class="hero__stat-value" id="stat-listings">—</span>
+      <span class="hero__stat-label">Active listings</span>
+    </div>
+    <div class="hero__stat-divider"></div>
+    <div class="hero__stat">
+      <span class="hero__stat-value" id="stat-sellers">—</span>
+      <span class="hero__stat-label">Student sellers</span>
+    </div>
+    <div class="hero__stat-divider"></div>
+    <div class="hero__stat">
+      <span class="hero__stat-value" id="stat-categories">—</span>
+      <span class="hero__stat-label">Categories</span>
+    </div>
+  </div>
+*/
+
+.hero__stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 40px;
+  padding: 20px 28px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  width: fit-content;
+}
+
+.hero__stat-group {
+  display: flex;
+  align-items: center;
+}
+
+.hero__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 28px;
+}
+
+.hero__stat:first-child {
+  padding-left: 0;
+}
+
+.hero__stat:last-child {
+  padding-right: 0;
+}
+
+.hero__stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.8px;
+  line-height: 1;
+}
+
+.hero__stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hero__stat-divider {
+  width: 1px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+/* ── Carousel Styles ─────────────────────────────────────── */
 .hero__carousel {
   width: 100%;
-  max-width: 340px;
+  max-width: 360px;
   margin: 0 auto;
 }
 
-/* Container */
 .carousel-container {
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
-  background: #ffffff;
+  border-radius: 20px;
+  background: var(--surface-muted);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 8px 24px rgba(0, 0, 0, 0.08);
+    0 0 0 1px rgba(255,255,255,0.08),
+    0 24px 64px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(31, 107, 82, 0.18);
 }
 
-/* Track */
 .carousel-track {
   display: flex;
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
@@ -108,27 +229,25 @@
   min-width: 100%;
 }
 
-/* Card */
+/* Card inside carousel */
 .listing-card {
-  background: #ffffff;
+  background: var(--surface-muted);
   border-radius: 14px;
   overflow: hidden;
   margin: 0.75rem;
-  border: 1px solid #f1f3f5;
+  border: 1px solid var(--surface-strong);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .listing-card:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
-/* Image Area */
 .listing-image {
   position: relative;
   height: 140px;
-  background: #f6f7f9; 
+  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -139,12 +258,11 @@
   opacity: 0.9;
 }
 
-/* Badge */
 .listing-badge {
   position: absolute;
   top: 0.6rem;
   right: 0.6rem;
-  background: #111827;
+  background: var(--navy);
   color: white;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
@@ -153,7 +271,6 @@
   letter-spacing: 0.3px;
 }
 
-/* Details */
 .listing-details {
   padding: 0.85rem;
 }
@@ -161,12 +278,11 @@
 .listing-title {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--gray-900);
   margin-bottom: 0.35rem;
   line-height: 1.4;
 }
 
-/* Seller Row */
 .listing-seller-info {
   display: flex;
   justify-content: space-between;
@@ -175,31 +291,30 @@
 }
 
 .listing-seller {
-  color: #6b7280;
+  color: var(--gray-500);
 }
 
 .listing-distance {
-  color: #059669;
-  background: #ecfdf5;
+  color: var(--green-dark);
+  background: var(--mint-pale);
   padding: 0.15rem 0.4rem;
   border-radius: 6px;
   font-weight: 500;
 }
 
-/* Price Section */
 .listing-price-condition {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.6rem;
   padding-top: 0.4rem;
-  border-top: 1px solid #f1f3f5;
+  border-top: 1px solid var(--surface-strong);
 }
 
 .listing-price {
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--gray-900);
 }
 
 .listing-condition {
@@ -207,14 +322,13 @@
   font-weight: 600;
   padding: 0.2rem 0.5rem;
   border-radius: 6px;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--mint);
+  color: var(--green-dark);
 }
 
-/* CTA Button */
 .listing-button {
   width: 100%;
-  background: #111827;
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
   color: white;
   border: none;
   padding: 0.5rem;
@@ -223,10 +337,12 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(31, 107, 82, 0.30);
 }
 
 .listing-button:hover {
-  background: #000;
+  filter: brightness(1.08);
+  box-shadow: 0 4px 14px rgba(31, 107, 82, 0.40);
 }
 
 /* Navigation Buttons */
@@ -237,9 +353,9 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 1px solid #e5e7eb;
-  background: white;
-  color: #111827;
+  border: 1px solid var(--gray-200);
+  background: var(--surface-muted);
+  color: var(--gray-900);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -251,13 +367,8 @@
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-.carousel-nav--prev {
-  left: 0.5rem;
-}
-
-.carousel-nav--next {
-  right: 0.5rem;
-}
+.carousel-nav--prev { left: 0.5rem; }
+.carousel-nav--next { right: 0.5rem; }
 
 /* Dots */
 .carousel-dots {
@@ -273,7 +384,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #d1d5db;
+  background: var(--gray-300);
   border: none;
   transition: all 0.25s ease;
 }
@@ -281,7 +392,7 @@
 .carousel-dot--active {
   width: 16px;
   border-radius: 4px;
-  background: #111827;
+  background: var(--green);
 }
 
 /* Progress Bar */
@@ -292,7 +403,7 @@
   left: 0;
   height: 2px;
   width: 100%;
-  background: #e5e7eb;
+  background: var(--gray-200);
 }
 
 .carousel-container::before {
@@ -302,11 +413,294 @@
   left: 0;
   height: 2px;
   width: 0%;
-  background: #111827;
+  background: linear-gradient(90deg, var(--green), var(--green-light));
   animation: progressBar 4s linear infinite;
+  z-index: 1;
 }
 
 @keyframes progressBar {
   from { width: 0%; }
-  to { width: 100%; }
+  to   { width: 100%; }
 }
+
+/* ── "Got something to sell?" CTA Banner ────────────────────
+   Add class="sell-cta--hidden" to the element when user is logged in.
+   Your JSX: <section className={`sell-cta ${user ? 'sell-cta--hidden' : ''}`}>
+────────────────────────────────────────────────────────────── */
+.sell-cta {
+  position: relative;
+  overflow: hidden;
+  margin: 28px 32px 0;
+  padding: 40px 48px;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--gray-900) 60%, var(--navy) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  border-radius: 28px;
+}
+
+/* Glowing orbs */
+.sell-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 500px 300px at 30% 50%, rgba(31, 107, 82, 0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 250px at 80% 50%, rgba(229, 157, 58, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Grid lines */
+.sell-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+.sell-cta--hidden {
+  display: none !important;
+}
+
+.sell-cta__eyebrow {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sell-cta__eyebrow::before,
+.sell-cta__eyebrow::after {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: rgba(31, 107, 82, 0.40);
+}
+
+.sell-cta__heading {
+  position: relative;
+  z-index: 1;
+  font-size: 42px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -1.2px;
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+
+.sell-cta__copy {
+  position: relative;
+  z-index: 1;
+  max-width: 420px;
+}
+
+.sell-cta__sub {
+  position: relative;
+  z-index: 1;
+  font-size: 16px;
+  color: rgba(255, 253, 248, 0.84);
+  line-height: 1.6;
+  max-width: 480px;
+  margin-bottom: 0;
+}
+
+.sell-cta__sub strong {
+  color: rgba(255,255,255,0.9);
+  font-weight: 600;
+}
+
+.sell-cta__btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 6px 24px rgba(31, 107, 82, 0.40);
+  text-decoration: none;
+}
+
+.sell-cta__actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.sell-cta__link {
+  border: none;
+  background: none;
+  color: rgba(255, 253, 248, 0.78);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sell-cta__link:hover {
+  color: #fff;
+}
+
+.sell-cta__btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 32px rgba(31, 107, 82, 0.50);
+}
+
+.sell-cta__btn-arrow {
+  font-size: 18px;
+  transition: transform 0.2s;
+}
+
+.sell-cta__btn:hover .sell-cta__btn-arrow {
+  transform: translateX(4px);
+}
+
+.sell-cta__fine {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .hero {
+    padding: 32px 20px 0;
+  }
+
+  .hero__main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 28px;
+    min-height: auto;
+  }
+
+  .hero__content {
+    padding: 0;
+    max-width: none;
+  }
+
+  .hero__stats {
+    gap: 0;
+    padding: 16px 20px;
+  }
+
+  .hero__stat {
+    padding: 0 18px;
+  }
+
+  .hero__stat-value {
+    font-size: 22px;
+  }
+
+  .sell-cta {
+    margin: 20px 0 0;
+    padding: 32px 28px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sell-cta__actions {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero__title {
+    font-size: 40px;
+  }
+
+  .hero__subtitle {
+    font-size: 22px;
+  }
+
+  .hero__content {
+    padding: 0;
+  }
+
+  .hero__stats {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .hero__stat-divider {
+    display: none;
+  }
+
+  .hero__stat {
+    padding: 0 12px;
+  }
+
+  .sell-cta__heading {
+    font-size: 30px;
+  }
+
+  .sell-cta {
+    padding: 28px 20px;
+    border-radius: 22px;
+  }
+}
+/* ── DARK MODE FIXES FOR HERO CAROUSEL ── */
+
+html.dark .listing-distance {
+  color: #f3f4f6 !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+html.dark .listing-seller {
+  color: #9ca3af !important;
+}
+
+html.dark .listing-title,
+html.dark .listing-price {
+  color: #f9fafb !important;
+}
+
+/* Arrow buttons */
+html.dark .carousel-nav {
+  background: rgba(17, 24, 39, 0.85) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+html.dark .carousel-nav:hover {
+  background: rgba(31, 41, 55, 1) !important;
+}
+
+/* Make arrows more visible */
+html.dark .carousel-nav--prev,
+html.dark .carousel-nav--next {
+  backdrop-filter: blur(6px);
+}
+

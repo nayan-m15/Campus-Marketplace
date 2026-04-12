@@ -10,29 +10,62 @@
 }
 
 :root {
-  --green: #10b981;
-  --green-dark: #059669;
-  --navy: #0f172a;
-  --gray-50: #f8f9fa;
-  --gray-100: #f0f0f0;
-  --gray-200: #e5e7eb;
-  --gray-400: #9ca3af;
-  --gray-600: #6b7280;
-  --gray-800: #374151;
-  --gray-900: #111827;
+  --green: #1F6B52;
+  --green-dark: #174E3D;
+  --green-light: #A9B99F;
+  --green-glow: rgba(31, 107, 82, 0.18);
+
+  --navy: #1F241F;
+  --navy-mid: #2C332D;
+
+  --mint: #E3EFE6;
+  --mint-pale: #EEF4EF;
+  --sage-mid: #C7D4C4;
+  --sage-soft: #A9B99F;
+  --forest: #31473C;
+
+  --amber: #E59D3A;
+  --amber-light: #F1C57A;
+  --amber-pale: #F8E8CE;
+
+  --danger: #C75B4A;
+  --danger-soft: #F7E5E1;
+  --info: #7D8F86;
+  --info-soft: #EDF1ED;
+
+  --surface: #FFFDF8;
+  --surface-muted: #F7F4EC;
+  --surface-soft: #F1EEE6;
+  --surface-strong: #E7E2D7;
+
+  --gray-50: #F7F4EC;
+  --gray-100: #F1EEE6;
+  --gray-200: #D9DED6;
+  --gray-300: #C7CDC3;
+  --gray-400: #A9B99F;
+  --gray-500: #5F6B63;
+  --gray-600: #4B574F;
+  --gray-800: #31473C;
+  --gray-900: #1F241F;
+
   --font: 'DM Sans', 'Segoe UI', sans-serif;
+
+  --grad-hero: linear-gradient(135deg, var(--gray-900) 0%, #2C332D 45%, #174E3D 100%);
+  --grad-card-hover: linear-gradient(135deg, rgba(31, 107, 82, 0.08) 0%, rgba(169, 185, 159, 0.08) 100%);
+  --grad-green: linear-gradient(135deg, #1F6B52 0%, #174E3D 100%);
+  --grad-cta: linear-gradient(135deg, var(--gray-900) 0%, #2C332D 55%, #174E3D 100%);
 }
 
 body {
   font-family: var(--font);
-  background: var(--gray-50);
+  background: var(--surface-muted);
   color: var(--gray-900);
   min-height: 100vh;
 }
 
 /* ── Shared Button Styles ── */
 .btn-primary {
-  background: var(--green);
+  background: var(--grad-green);
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -44,31 +77,252 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: background 0.15s, transform 0.1s;
+  transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
   font-family: var(--font);
   white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(31, 107, 82, 0.28);
 }
 
 .btn-primary:hover {
-  background: var(--green-dark);
+  filter: brightness(1.1);
   transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(31, 107, 82, 0.36);
 }
 
 .btn-outline {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  border: 2px solid rgba(255, 255, 255, 0.65);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
   border-radius: 50px;
   padding: 11px 24px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  backdrop-filter: blur(4px);
-  transition: background 0.15s;
+  backdrop-filter: blur(8px);
+  transition: background 0.15s, border-color 0.15s;
   font-family: var(--font);
   white-space: nowrap;
 }
 
 .btn-outline:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+html.dark {
+  background: #111827;
+  color: #f9fafb;
+}
+
+html.dark body {
+  background: #111827;
+}
+
+html.dark .navbar {
+  background: rgba(17, 24, 39, 0.97);
+  border-bottom-color: #1f2937;
+}
+
+html.dark .navbar__logo-text,
+html.dark .navbar__link {
+  color: #f9fafb;
+}
+
+html.dark .navbar__search input {
+  background: #1f2937;
+  border-color: #374151;
+  color: #f9fafb;
+}
+
+html.dark .filter-bar {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+html.dark .filter-bar__select {
+  background: #111827;
+  color: #f9fafb;
+  border-color: #374151;
+}
+
+html.dark .listing-card {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+html.dark .listing-card__title,
+html.dark .listing-card__price {
+  color: #f9fafb;
+}
+
+html.dark .listing-card__seller,
+html.dark .listing-card__distance {
+  color: #9ca3af;
+}
+
+html.dark main,
+html.dark section {
+  background: #111827;
+}
+/* ── Page backgrounds ── */
+html.dark body,
+html.dark main,
+html.dark section,
+html.dark #root {
+  background: #111827;
+}
+
+/* ── Section/card backgrounds (YourListings, Settings, Profile, Wishlist) ── */
+html.dark article,
+html.dark .lf__card {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+/* ── White blocks/cards with inline styles ── */
+html.dark [style*="background: #fff"],
+html.dark [style*="background:#fff"],
+html.dark [style*="background: white"] {
+  background: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+html.dark [style*="background: #f9fafb"],
+html.dark [style*="background:#f9fafb"] {
+  background: #111827 !important;
+}
+
+/* ── Text colors ── */
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark p,
+html.dark span,
+html.dark label {
+  color: #f9fafb;
+}
+
+html.dark [style*="color: #111827"],
+html.dark [style*="color:#111827"],
+html.dark [style*="color: var(--gray-900)"] {
+  color: #f9fafb !important;
+}
+
+html.dark [style*="color: #374151"],
+html.dark [style*="color:#374151"],
+html.dark [style*="color: var(--gray-800)"] {
+  color: #d1d5db !important;
+}
+
+html.dark [style*="color: #6b7280"],
+html.dark [style*="color: var(--gray-600)"] {
+  color: #9ca3af !important;
+}
+
+/* ── Inputs ── */
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* ── Borders ── */
+html.dark [style*="border: 1px solid #e5e7eb"],
+html.dark [style*="border-color: #e5e7eb"] {
+  border-color: #374151 !important;
+}
+
+/* ── All Items heading on main page ── */
+html.dark .listings-grid__heading,
+html.dark .listings-grid__count {
+  color: #f9fafb !important;
+}
+
+/* ── Buttons that are white ── */
+html.dark button[style*="background: #fff"],
+html.dark button[style*="background:#fff"] {
+  background: #1f2937!important;
+  color: #f9fafb !important;
+  border-color: #374151 !important;
+}
+
+/* ── Footer ── */
+html.dark footer {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #9ca3af !important;
+}
+
+/* ── Modal overlays ── */
+html.dark .item-modal-content,
+html.dark .item-modal-top-card,
+html.dark .item-modal-description-card,
+html.dark .item-modal-bottom-card {
+  background: #1f2937 !important;
+  color: #f9fafb !important;
+}
+/* ── Page wrappers ── */
+html.dark > body > div#root > div,
+html.dark [style*="min-height: 100vh"],
+html.dark [style*="minHeight"] {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+html.dark {
+  --page-bg: #111827;
+  --card-bg: #1f2937;
+  --border-color: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+}
+html.dark {
+  --surface-muted: #111827;
+  --surface: #1f2937;
+  --surface-soft: #374151;
+}
+/* ── YourListings action buttons in dark mode ── */
+html.dark .your-listings-btn {
+  background: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+html.dark .your-listings-btn:hover {
+  background: #4b5563 !important;
+}
+html.dark .settings-label,
+html.dark [style*="color: #374151"] {
+  color: #d1d5db !important;
+}
+
+html.dark [style*="color: #6b7280"] {
+  color: #9ca3af !important;
+}
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark p,
+html.dark label,
+html.dark span {
+  color: #f9fafb !important;
+}
+
+html.dark [style*="color: #111827"],
+html.dark [style*="color: #374151"],
+html.dark [style*="color: #6b7280"] {
+  color: #d1d5db !important;
+}
+
+html.dark section {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
 }

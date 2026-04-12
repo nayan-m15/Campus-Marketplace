@@ -34,12 +34,65 @@ function Avatar({ url, name, size = 40 }) {
   );
 }
 
+// ── Read Ticks ─────────────────────────────────────────────
+// status: "sending" | "sent" | "read"
+function ReadTicks({ status }) {
+  if (status === "sending") {
+    return (
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: 4, opacity: 0.5, flexShrink: 0 }}>
+        <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M8 5v3.2l2 1.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  const isRead = status === "read";
+  const color = isRead ? "#53d769" : "currentColor";
+  const opacity = isRead ? 1 : 0.5;
+
+  return (
+    <svg
+      width="20"
+      height="14"
+      viewBox="0 0 20 14"
+      fill="none"
+      style={{ marginLeft: 4, flexShrink: 0 }}
+    >
+    <path
+      d="M4.3 8.7 L5.5 11 L10.5 2"
+      stroke={color}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity={isRead ? 0.9 : 1}
+    />
+
+    <path
+      d="M9.8 8.7 L11 11 L16 2"
+      stroke={color}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────
-export default function MessagesPage({ initialRecipientId = null, initialListingTitle = null, onBack }) {
+export default function MessagesPage({
+  initialRecipientId = null,
+  initialListingTitle = null,
+  onBack,
+  onViewProfile,
+  onUnreadChange,   // ← NEW: callback(count) so parent can update navbar badge
+}) {
   const { user } = useAuth();
 
   const [conversations, setConversations] = useState([]);
   const [convsLoading, setConvsLoading] = useState(true);
+
+  // unreadByPeer: { [peerId]: number }
+  const [unreadByPeer, setUnreadByPeer] = useState({});
 
   const [activeId, setActiveId] = useState(null);
   const [activePeer, setActivePeer] = useState(null);
@@ -54,24 +107,40 @@ export default function MessagesPage({ initialRecipientId = null, initialListing
   const textareaRef = useRef(null);
   const realtimeRef = useRef(null);
 
-  // ── Load conversations ────────────────────────────────────
+  // ── Notify parent of total unread count ──────────────────
+  useEffect(() => {
+    const total = Object.values(unreadByPeer).reduce((sum, n) => sum + n, 0);
+    onUnreadChange?.(total);
+  }, [unreadByPeer, onUnreadChange]);
+
+  // ── Load conversations + unread counts ───────────────────
   const loadConversations = useCallback(async () => {
     if (!user) return;
     setConvsLoading(true);
 
     const { data: msgs } = await supabase
       .from("messages")
-      .select("id, created_at, sender_id, receiver_id, content")
+      .select("id, created_at, sender_id, receiver_id, content, is_read")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
     if (!msgs) { setConvsLoading(false); return; }
 
+    // Build per-peer last message map
     const peerMap = new Map();
+    const unreadMap = {};
+
     for (const m of msgs) {
       const peerId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
       if (!peerMap.has(peerId)) peerMap.set(peerId, m);
+
+      // Count unread messages sent TO me (not from me) that aren't read
+      if (m.receiver_id === user.id && !m.is_read) {
+        unreadMap[peerId] = (unreadMap[peerId] || 0) + 1;
+      }
     }
+
+    setUnreadByPeer(unreadMap);
 
     const peerIds = [...peerMap.keys()].filter(Boolean);
     let profiles = [];
@@ -107,6 +176,25 @@ export default function MessagesPage({ initialRecipientId = null, initialListing
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRecipientId, user]);
 
+  // ── Mark messages as read ────────────────────────────────
+  const markAsRead = useCallback(async (peerId) => {
+    if (!peerId || !user) return;
+    // Update DB: mark all messages from this peer to me as read
+    await supabase
+      .from("messages")
+      .update({ is_read: true })
+      .eq("receiver_id", user.id)
+      .eq("sender_id", peerId)
+      .eq("is_read", false);
+
+    // Clear local unread count for this peer
+    setUnreadByPeer((prev) => {
+      const next = { ...prev };
+      delete next[peerId];
+      return next;
+    });
+  }, [user]);
+
   // ── Open a chat ───────────────────────────────────────────
   const openChat = useCallback(async (peerId) => {
     if (!peerId) return;
@@ -132,12 +220,15 @@ export default function MessagesPage({ initialRecipientId = null, initialListing
     setMessages(msgs || []);
     setMsgsLoading(false);
 
+    // Mark as read now that we've opened the chat
+    await markAsRead(peerId);
+
     setConversations((prev) => {
       const exists = prev.find((c) => c.peerId === peerId);
       if (exists) return prev;
       return [{ peerId, profile: profile || { id: peerId }, lastMsg: null }, ...prev];
     });
-  }, [user]);
+  }, [user, markAsRead]);
 
   // ── Realtime ──────────────────────────────────────────────
   useEffect(() => {
@@ -156,9 +247,29 @@ export default function MessagesPage({ initialRecipientId = null, initialListing
         setActiveId((curActive) => {
           if (curActive === peerId) {
             setMessages((prev) => {
+              if (msg.sender_id === user.id) {
+                const hasOptimistic = prev.find((m) => m.id === null && m.content === msg.content && m.sender_id === msg.sender_id);
+                if (hasOptimistic) {
+                  return prev.map((m) =>
+                    m.id === null && m.content === msg.content && m.sender_id === msg.sender_id ? msg : m
+                  );
+                }
+              }
               if (prev.find((m) => m.id === msg.id)) return prev;
               return [...prev, msg];
             });
+            // Auto-mark as read if conversation is open
+            if (msg.receiver_id === user.id) {
+              markAsRead(peerId);
+            }
+          } else {
+            // Increment unread count if this peer's chat isn't open
+            if (msg.receiver_id === user.id) {
+              setUnreadByPeer((prev) => ({
+                ...prev,
+                [peerId]: (prev[peerId] || 0) + 1,
+              }));
+            }
           }
           return curActive;
         });
@@ -169,11 +280,20 @@ export default function MessagesPage({ initialRecipientId = null, initialListing
           return [{ peerId, profile: null, lastMsg: msg }, ...prev];
         });
       })
+      // ── Listen for is_read updates so sender's ticks turn green in real-time ──
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
+        const updated = payload.new;
+        // Only care if the updated message was sent by me and is now read
+        if (updated.sender_id !== user.id) return;
+        setMessages((prev) =>
+          prev.map((m) => m.id === updated.id ? { ...m, is_read: updated.is_read } : m)
+        );
+      })
       .subscribe();
 
     realtimeRef.current = channel;
     return () => supabase.removeChannel(channel);
-  }, [user]);
+  }, [user, markAsRead]);
 
   // ── Scroll to bottom ──────────────────────────────────────
   useEffect(() => {
@@ -195,14 +315,30 @@ export default function MessagesPage({ initialRecipientId = null, initialListing
     setSending(true);
     setDraft("");
 
-    const { error } = await supabase.from("messages").insert({
+    // Optimistically add message (no id yet → shows clock tick)
+    const optimistic = {
+      id: null,
       sender_id: user.id,
       receiver_id: activeId,
       content: text,
       created_at: new Date().toISOString(),
+      is_read: false,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+
+    const { error } = await supabase.from("messages").insert({
+      sender_id: user.id,
+      receiver_id: activeId,
+      content: text,
+      created_at: optimistic.created_at,
     });
 
-    if (error) { console.error(error.message); setDraft(text); }
+    if (error) {
+      console.error(error.message);
+      setDraft(text);
+      // Remove the optimistic message on failure
+      setMessages((prev) => prev.filter((m) => m !== optimistic));
+    }
     setSending(false);
     textareaRef.current?.focus();
     await loadConversations();
@@ -271,30 +407,59 @@ export default function MessagesPage({ initialRecipientId = null, initialListing
             </li>
           )}
 
-          {filteredConvs.map((conv) => (
-            <li key={conv.peerId}>
-              <button
-                className={`msg-conv-item ${activeId === conv.peerId ? "msg-conv-item--active" : ""}`}
-                onClick={() => openChat(conv.peerId)}
-              >
-                <Avatar url={conv.profile?.avatar_url} name={peerName(conv.profile)} size={46} />
-                <div className="msg-conv-item__body">
-                  <div className="msg-conv-item__top">
-                    <span className="msg-conv-item__name">{peerName(conv.profile)}</span>
-                    {conv.lastMsg && (
-                      <span className="msg-conv-item__time">{timeLabel(conv.lastMsg.created_at)}</span>
-                    )}
+          {filteredConvs.map((conv) => {
+            const unread = unreadByPeer[conv.peerId] || 0;
+            const isActive = activeId === conv.peerId;
+            return (
+              <li key={conv.peerId}>
+                <button
+                  className={`msg-conv-item ${isActive ? "msg-conv-item--active" : ""} ${unread > 0 && !isActive ? "msg-conv-item--unread" : ""}`}
+                  onClick={() => openChat(conv.peerId)}
+                >
+                  <Avatar url={conv.profile?.avatar_url} name={peerName(conv.profile)} size={46} />
+                  <div className="msg-conv-item__body">
+                    <div className="msg-conv-item__top">
+                      <span className={`msg-conv-item__name ${unread > 0 && !isActive ? "msg-conv-item__name--unread" : ""}`}>
+                        {peerName(conv.profile)}
+                      </span>
+                      {conv.lastMsg && (
+                        <span className="msg-conv-item__time">{timeLabel(conv.lastMsg.created_at)}</span>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                      {conv.lastMsg && (
+                        <span className={`msg-conv-item__preview ${unread > 0 && !isActive ? "msg-conv-item__preview--unread" : ""}`}>
+                          {conv.lastMsg.sender_id === user.id ? "You: " : ""}
+                          {conv.lastMsg.content}
+                        </span>
+                      )}
+
+                      {/* ── WhatsApp-style unread badge ── */}
+                      {unread > 0 && !isActive && (
+                        <span style={{
+                          background: "#25d366",
+                          color: "#fff",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          borderRadius: "50%",
+                          minWidth: 20,
+                          height: 20,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "0 4px",
+                          flexShrink: 0,
+                        }}>
+                          {unread > 99 ? "99+" : unread}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {conv.lastMsg && (
-                    <span className="msg-conv-item__preview">
-                      {conv.lastMsg.sender_id === user.id ? "You: " : ""}
-                      {conv.lastMsg.content}
-                    </span>
-                  )}
-                </div>
-              </button>
-            </li>
-          ))}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </aside>
 
@@ -314,7 +479,7 @@ export default function MessagesPage({ initialRecipientId = null, initialListing
                 <>
                   <Avatar url={activePeer.avatar_url} name={peerName(activePeer)} size={38} />
                   <div className="msg-chat__header-info">
-                    <span className="msg-chat__header-name">{peerName(activePeer)}</span>
+                    <button className="msg-chat__header-name msg-chat__header-name--link" onClick={() => onViewProfile?.(activePeer.id)} type="button">{peerName(activePeer)}</button>
                     {activePeer.institution && (
                       <span className="msg-chat__header-sub">{activePeer.institution}</span>
                     )}
@@ -340,13 +505,19 @@ export default function MessagesPage({ initialRecipientId = null, initialListing
                   <div className="msg-date-divider"><span>{dateLabel(date)}</span></div>
                   {msgs.map((msg) => {
                     const mine = msg.sender_id === user.id;
+                    const tickStatus = !msg.id
+                      ? "sending"
+                      : msg.is_read
+                      ? "read"
+                      : "sent";
                     return (
                       <div key={msg.id} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
                         {!mine && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
                         <div className={`msg-bubble ${mine ? "msg-bubble--mine" : "msg-bubble--theirs"}`}>
                           <p>{msg.content}</p>
-                          <span className="msg-bubble__time">
+                          <span className="msg-bubble__time" style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
                             {new Date(msg.created_at).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
+                            {mine && <ReadTicks status={tickStatus} />}
                           </span>
                         </div>
                       </div>

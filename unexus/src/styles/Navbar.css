@@ -1,17 +1,24 @@
+.navbar-spacer {
+  height: 64px;
+}
+
 .navbar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.97);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--gray-100);
+  background: rgba(31, 36, 31, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
   height: 64px;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
-  gap: 16px;
+  box-shadow: 0 1px 20px rgba(0, 0, 0, 0.3);
+  gap: 4px;
 }
 
 /* Logo */
@@ -21,6 +28,10 @@
   gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
 }
 
 .navbar__logo-icon {
@@ -35,14 +46,15 @@
   font-size: 14px;
   letter-spacing: -0.5px;
 }
-.navbar__logo-img{
+
+.navbar__logo-img {
   border-radius: 10px;
 }
 
 .navbar__logo-text {
   font-weight: 800;
   font-size: 18px;
-  color: var(--gray-900);
+  color: #fff;
   letter-spacing: -0.3px;
 }
 
@@ -58,7 +70,7 @@
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--gray-400);
+  color: rgba(255, 255, 255, 0.35);
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -67,19 +79,24 @@
 .navbar__search input {
   width: 100%;
   padding: 10px 16px 10px 40px;
-  border: 1.5px solid var(--gray-200);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 50px;
   font-size: 14px;
   outline: none;
-  color: var(--gray-800);
-  background: #f9fafb;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
   font-family: var(--font);
   transition: border-color 0.15s, background 0.15s;
 }
 
+.navbar__search input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
 .navbar__search input:focus {
-  border-color: var(--green);
-  background: #fff;
+  border-color: rgba(31, 107, 82, 0.60);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.15);
 }
 
 /* Links */
@@ -95,7 +112,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--gray-800);
+  color: rgba(255, 255, 255, 0.75);
   font-size: 14px;
   font-weight: 500;
   padding: 6px 10px;
@@ -108,7 +125,7 @@
 }
 
 .navbar__link:hover {
-  background: #f0fdf4;
+  background: rgba(31, 107, 82, 0.15);
   color: var(--green);
 }
 
@@ -116,20 +133,100 @@
   margin-left: 8px;
 }
 
-/* Logo as button */
-.navbar__logo {
+.navbar__logo:hover .navbar__logo-text,
+.navbar__logo:focus .navbar__logo-text {
+  color: #fff;
+}
+/* Hamburger */
+.navbar__hamburger-wrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: 0px;
+}
+
+.navbar__hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 6px;
 }
 
-.navbar__logo:hover .navbar__logo-text,
-.navbar__logo:focus .navbar__logo-text {
-  color: var(--gray-900);
+.navbar__hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--gray-800);
+  border-radius: 2px;
 }
 
-.navbar__logo:hover .navbar__logo-icon,
-.navbar__logo:focus .navbar__logo-icon {
-  background: var(--green);
+/* Backdrop */
+.navbar__menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+/* Dropdown */
+.navbar__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 100;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.navbar__menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.navbar__menu li button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-family: var(--font);
+  cursor: pointer;
+  color: var(--gray-800);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar__menu li button:hover {
+  background: var(--mint);
+  color: var(--green);
+}
+.navbar__menu {
+  right: 0;
+  left: auto;
+}
+
+html.dark .navbar__menu {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+html.dark .navbar__menu li button {
+  color: #f9fafb;
+}
+
+html.dark .navbar__menu li button:hover {
+  background: #374151;
+  color: #f9fafb;
+}
+
+html.dark .navbar__hamburger span {
+  background: #f9fafb;
 }

@@ -7,6 +7,11 @@ export default function ListingsGrid({
   activeCategory = "All Items",
   onListingClick,
   onMessageSeller,
+  onSellerClick,
+  // Wishlist props
+  isWishlisted,
+  onToggleWishlist,
+  user,
 }) {
   const heading = searchQuery.trim()
     ? `Results for "${searchQuery.trim()}"`
@@ -49,6 +54,10 @@ export default function ListingsGrid({
                 item={item}
                 onClick={() => onListingClick?.({ ...item })}
                 onMessageSeller={onMessageSeller}
+                onSellerClick={onSellerClick}
+                isWishlisted={isWishlisted?.(item.id) ?? false}
+                onToggleWishlist={onToggleWishlist}
+                user={user}
               />
             </li>
           ))}

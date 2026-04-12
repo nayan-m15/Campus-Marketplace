@@ -1,46 +1,16 @@
 import { CONDITION_COLORS } from "../data/listings";
 import "../styles/ListingCard.css";
 
-function StarRating({ rating = 0, count }) {
-  const totalStars = 5;
-  const stars = [];
-
-  for (let i = 1; i <= totalStars; i++) {
-    if (rating >= i) {
-      stars.push(
-        <li key={i} className="listing-card__star listing-card__star--filled">
-          ★
-        </li>
-      );
-    } else if (rating >= i - 0.75) {
-      stars.push(
-        <li key={i} className="listing-card__star listing-card__star--half">
-          ★
-        </li>
-      );
-    } else {
-      stars.push(
-        <li key={i} className="listing-card__star">
-          ★
-        </li>
-      );
-    }
-  }
-
-  return (
-    <section
-      className="listing-card__rating"
-      aria-label={`${rating} out of 5 stars`}
-    >
-      <ul className="listing-card__stars">{stars}</ul>
-      {count != null && (
-        <span className="listing-card__review-count">({count})</span>
-      )}
-    </section>
-  );
-}
-
-export default function ListingCard({ item, onClick, onMessageSeller }) {
+export default function ListingCard({
+  item,
+  onClick,
+  onMessageSeller,
+  onSellerClick,
+  // Wishlist props
+  isWishlisted = false,
+  onToggleWishlist,
+  user,
+}) {
   const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
 
   function handleKeyDown(e) {
@@ -48,6 +18,12 @@ export default function ListingCard({ item, onClick, onMessageSeller }) {
       e.preventDefault();
       onClick?.();
     }
+  }
+
+  function handleWishlistClick(e) {
+    e.stopPropagation();
+    if (!user) return; // silently ignore if not logged in — caller can show auth prompt
+    onToggleWishlist?.(item.id);
   }
 
   return (
@@ -67,12 +43,23 @@ export default function ListingCard({ item, onClick, onMessageSeller }) {
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
-          <figure
-            className="listing-card__image-placeholder"
-            aria-hidden="true"
-          >
+          <figure className="listing-card__image-placeholder" aria-hidden="true">
             <span>{item.emoji}</span>
           </figure>
+        )}
+
+        {/* ── Wishlist heart button ── */}
+        {onToggleWishlist && (
+          <button
+            className={`listing-card__wishlist-btn${isWishlisted ? " listing-card__wishlist-btn--active" : ""}`}
+            onClick={handleWishlistClick}
+            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            aria-pressed={isWishlisted}
+            type="button"
+            title={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
+          >
+            {isWishlisted ? "♥" : "♡"}
+          </button>
         )}
       </figure>
 
@@ -90,34 +77,35 @@ export default function ListingCard({ item, onClick, onMessageSeller }) {
         <section className="listing-card__pricing">
           <span className="listing-card__price">
             {item.pricePrefix && (
-              <span className="listing-card__price--prefix">
-                {item.pricePrefix}{" "}
-              </span>
+              <span className="listing-card__price--prefix">{item.pricePrefix} </span>
             )}
             {item.price}
           </span>
-
           {item.originalPrice && (
-            <span className="listing-card__original-price">
-              {item.originalPrice}
-            </span>
+            <span className="listing-card__original-price">{item.originalPrice}</span>
           )}
         </section>
 
         <section className="listing-card__meta">
-          <p className="listing-card__seller">👤 {item.seller}</p>
-          <p className="listing-card__distance">📍 {item.distance}</p>
+          {onSellerClick && item.user_id ? (
+            <button
+              className="listing-card__seller listing-card__seller--link"
+              onClick={(e) => { e.stopPropagation(); onSellerClick(item.user_id, item.seller); }}
+              type="button"
+              aria-label={`View profile of ${item.seller}`}
+            >
+              👤 {item.seller}
+            </button>
+          ) : (
+            <p className="listing-card__seller">👤 {item.seller}</p>
+          )}
+          <p className="listing-card__institution">🎓 {item.institution || "Institution not provided"}</p>
         </section>
-
-        <StarRating rating={item.rating ?? 0} count={item.reviewCount} />
 
         {onMessageSeller && (
           <button
             className="listing-card__msg-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMessageSeller(item);
-            }}
+            onClick={(e) => { e.stopPropagation(); onMessageSeller(item); }}
             aria-label={`Message ${item.seller}`}
             type="button"
           >

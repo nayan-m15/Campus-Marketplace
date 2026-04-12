@@ -161,7 +161,7 @@ function CompletionBar({ form, avatarPreview }) {
     return !!form[key];
   });
   const pct = Math.round((filled.length / COMPLETION_FIELDS.length) * 100);
-  const color = pct < 40 ? "#ef4444" : pct < 75 ? "#f4a120" : "#16a34a";
+    const color = pct < 40 ? "var(--danger)" : pct < 75 ? "var(--amber)" : "var(--green)";
   const missing = COMPLETION_FIELDS.filter(({ key }) => {
     if (key === "avatar") return !avatarPreview;
     return !form[key];

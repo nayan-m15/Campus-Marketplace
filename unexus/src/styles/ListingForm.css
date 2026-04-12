@@ -6,7 +6,7 @@
 
 /* ── Card Shell ──────────────────────────────────────────────── */
 .lf__card {
-  background: #fff;
+  background: var(--surface-muted);
   border-radius: 20px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07), 0 4px 20px rgba(0, 0, 0, 0.06);
   width: 100%;
@@ -48,7 +48,7 @@
   padding-top: 62%; /* close to the card's 4:3 feel */
   border-radius: 14px;
   border: 2px dashed #e0e0e0;
-  background: #f9f9f9;
+  background: #f7faf7;
   cursor: pointer;
   overflow: hidden;
   transition: border-color 0.2s, background 0.2s;
@@ -56,19 +56,19 @@
 
 .lf__image-zone:hover,
 .lf__image-zone:focus-visible {
-  border-color: #f4a120;
-  background: #fffaf3;
+  border-color: var(--green-dark);
+  background: var(--amber-pale);
   outline: none;
 }
 
 .lf__image-zone--drag {
-  border-color: #f4a120;
-  background: #fffaf3;
+  border-color: var(--green-dark);
+  background: var(--amber-pale);
 }
 
 .lf__image-zone--filled {
   border-style: solid;
-  border-color: #e8e8e8;
+  border-color: var(--gray-200);
 }
 
 /* Upload prompt (empty state) */
@@ -158,12 +158,12 @@
 .lf__input {
   width: 100%;
   height: 44px;
-  border: 1.5px solid #e8e8e8;
+  border: 1.5px solid var(--gray-200);
   border-radius: 10px;
   padding: 0 14px;
   font-size: 14px;
   color: #111;
-  background: #fafafa;
+  background: var(--surface);
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
@@ -181,18 +181,18 @@
 
 .lf__input:hover {
   border-color: #ccc;
-  background: #fff;
+  background: var(--surface-muted);
 }
 
 .lf__input:focus {
-  border-color: #f4a120;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(244, 161, 32, 0.12);
+  border-color: var(--green-dark);
+  background: var(--surface-muted);
+  box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.15);
 }
 
 .lf__input--error {
   border-color: #e44;
-  background: #fff8f8;
+  background: #fdf5f5;
 }
 
 .lf__input--error:focus {
@@ -299,17 +299,17 @@
 
 /* Primary / submit */
 .lf__btn--primary {
-  background: #f4a120;
+  background: var(--green-dark);
   color: #fff;
   flex: 1;
 }
 
 .lf__btn--primary:hover:not(.lf__btn--disabled) {
-  background: #e0921a;
+  background: #4d6150;
 }
 
 .lf__btn--primary:focus-visible {
-  box-shadow: 0 0 0 3px rgba(244, 161, 32, 0.3);
+  box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.30);
 }
 
 /* Disabled state */
@@ -377,6 +377,7 @@
   height: 100vh;
   background: rgba(0, 0, 0, 0.45);
   z-index: 1000;
+  overflow: visible;
 }
 .modal-overlay::backdrop {
   background: rgba(0, 0, 0, 0.45);
@@ -387,65 +388,78 @@
   position: relative;
   background: transparent;
   border: none;
-  padding: 24px 0 0;
+  padding: 0;
   margin: 0;
-  width: auto;
+  width: min(760px, 94vw);
+  max-width: min(760px, 94vw);
+  max-height: calc(100vh - 40px);
+  overflow: visible;
+  display: block;
+  border-radius: 24px;
+}
+
+.modal-content > .modal-close {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 20;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--navy);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
+  transition: background 0.15s, transform 0.12s;
+}
+
+.modal-content > .modal-close:hover {
+  background: var(--surface);
+  transform: scale(1.06);
+}
+.draggable-modal {
+  background: var(--surface-muted);
+  border-radius: 20px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+  width: 720px;
   max-width: 100%;
-  max-height: 90vh;
+  max-height: calc(100vh - 40px);
   overflow-y: auto;
   overflow-x: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  direction: rtl;
+  padding-left: 12px;
+  cursor: default;
 
-  scrollbar-width: thin;              /* Firefox */
+  scrollbar-width: thin;
   scrollbar-color: #cfcfcf transparent;
 }
 
-/* Chrome, Edge, Safari */
-.modal-content::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.draggable-modal > * {
+  direction: ltr;
 }
 
-.modal-content::-webkit-scrollbar-track {
+.draggable-modal::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.draggable-modal::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.modal-content::-webkit-scrollbar-thumb {
+.draggable-modal::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.18);
   border-radius: 999px;
 }
 
-.modal-content::-webkit-scrollbar-thumb:hover {
+.draggable-modal::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.28);
 }
 
-.modal-close {
-  position: absolute;
-  top: 20px;
-  right: -18px;
-  z-index: 20;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 999px;
-  background: white;
-  color: #222;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-}
-
-.modal-close:hover {
-  background: #f5f5f5;
-}
-.draggable-modal {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0);
-  width: 500px;
-  max-width: 90%;
-  cursor: default;
-}

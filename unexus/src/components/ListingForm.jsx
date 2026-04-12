@@ -54,12 +54,12 @@ function ImageScrollStrip({ images, onChange }) {
             style={{
               position: "relative",
               flexShrink: 0,
-              width: 110,
-              height: 110,
-              borderRadius: 12,
+              width: 78,
+              height: 78,
+              borderRadius: 10,
               overflow: "hidden",
-              border: i === 0 ? "2px solid #f4a120" : "1.5px solid #e8e8e8",
-              background: "#f7f7f7",
+              border: i === 0 ? "2px solid var(--amber)" : "1.5px solid var(--gray-200)",
+              background: "var(--surface)",
             }}
           >
             <img
@@ -74,9 +74,9 @@ function ImageScrollStrip({ images, onChange }) {
                 position: "absolute",
                 bottom: 5,
                 left: 5,
-                background: "#f4a120",
+                background: "var(--amber)",
                 color: "#fff",
-                fontSize: 9,
+                fontSize: 8,
                 fontWeight: 700,
                 padding: "2px 6px",
                 borderRadius: 4,
@@ -132,11 +132,11 @@ function ImageScrollStrip({ images, onChange }) {
             }}
             style={{
               flexShrink: 0,
-              width: 110,
-              height: 110,
-              borderRadius: 12,
-              border: `2px dashed ${draggingOver ? "#f4a120" : "#e0e0e0"}`,
-              background: draggingOver ? "#fffaf3" : "#f9f9f9",
+              width: 78,
+              height: 78,
+              borderRadius: 10,
+              border: `2px dashed ${draggingOver ? "var(--amber)" : "var(--gray-200)"}`,
+              background: draggingOver ? "var(--amber-pale)" : "var(--surface-soft)",
               cursor: "pointer",
               display: "flex",
               flexDirection: "column",
@@ -146,21 +146,21 @@ function ImageScrollStrip({ images, onChange }) {
               transition: "border-color 0.2s, background 0.2s",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#f4a120";
-              e.currentTarget.style.background = "#fffaf3";
+              e.currentTarget.style.borderColor = "var(--amber)";
+              e.currentTarget.style.background = "var(--amber-pale)";
             }}
             onMouseLeave={(e) => {
               if (!draggingOver) {
-                e.currentTarget.style.borderColor = "#e0e0e0";
-                e.currentTarget.style.background = "#f9f9f9";
+                e.currentTarget.style.borderColor = "var(--gray-200)";
+                e.currentTarget.style.background = "var(--surface-soft)";
               }
             }}
           >
             <span style={{ fontSize: 24 }}>📷</span>
-            <span style={{ fontSize: 11, color: "#aaa", fontWeight: 600 }}>
+            <span style={{ fontSize: 10, color: "var(--gray-500)", fontWeight: 600 }}>
               {images.length === 0 ? "Add photo" : "Add more"}
             </span>
-            <span style={{ fontSize: 10, color: "#ccc" }}>
+            <span style={{ fontSize: 9, color: "var(--gray-400)" }}>
               {images.length}/{MAX_IMAGES}
             </span>
           </div>
@@ -168,7 +168,7 @@ function ImageScrollStrip({ images, onChange }) {
       </div>
  
       {images.length > 0 && (
-        <p style={{ fontSize: 11, color: "#bbb", marginTop: 6 }}>
+        <p style={{ fontSize: 11, color: "var(--gray-400)", marginTop: 6 }}>
           First photo is the cover · scroll to see all · tap × to remove
         </p>
       )}
@@ -227,6 +227,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [listingType, setListingType] = useState("active");
  
   const validate = () => {
     const next = {};
@@ -282,7 +283,8 @@ export default function ListingForm({ onCancel, onSuccess }) {
           price: Number(price),
           condition,
           image_url: imageUrls[0],   // first image → existing column
-          image_urls: imageUrls,      // all images → new array column
+          image_urls: imageUrls,
+          status: listingType,      // all images → new array column
         });
  
       if (insertError) throw new Error("Failed to save listing: " + insertError.message);
@@ -341,7 +343,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
         <section className="lf__section">
           <label className="lf__label" htmlFor="lf-description">
             Description{" "}
-            <span style={{ fontWeight: 400, color: "#bbb", textTransform: "none", letterSpacing: 0 }}>
+            <span style={{ fontWeight: 400, color: "var(--gray-400)", textTransform: "none", letterSpacing: 0 }}>
               (optional)
             </span>
           </label>
@@ -384,6 +386,38 @@ export default function ListingForm({ onCancel, onSuccess }) {
             />
           </div>
           {errors.price && <p className="lf__error" role="alert">{errors.price}</p>}
+        </section>
+        {/* ── Listing Type ── */}
+        <section className="lf__section">
+          <label className="lf__label">Listing type</label>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setListingType("active")}
+              style={{
+                flex: 1, padding: "10px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+                cursor: "pointer", fontFamily: "var(--font)", transition: "all 0.15s",
+                border: listingType === "active" ? "2px solid var(--green)" : "1.5px solid var(--gray-200)",
+                background: listingType === "active" ? "#f0fdf4" : "#fff",
+                color: listingType === "active" ? "var(--green)" : "var(--gray-600)",
+              }}
+            >
+              For Sale
+            </button>
+            <button
+              type="button"
+              onClick={() => setListingType("for_trade")}
+              style={{
+                flex: 1, padding: "10px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+                cursor: "pointer", fontFamily: "var(--font)", transition: "all 0.15s",
+                border: listingType === "for_trade" ? "2px solid #3b82f6" : "1.5px solid var(--gray-200)",
+                background: listingType === "for_trade" ? "#eff6ff" : "#fff",
+                color: listingType === "for_trade" ? "#3b82f6" : "var(--gray-600)",
+              }}
+            >
+              For Trade
+            </button>
+          </div>
         </section>
  
         {/* ── Condition ── */}

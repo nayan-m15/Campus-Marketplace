@@ -1,7 +1,7 @@
 /* ── Auth Page Layout ───────────────────────────────────── */
 .auth-page {
   min-height: 100vh;
-  background: var(--gray-50);
+  background: linear-gradient(135deg, var(--navy) 0%, var(--gray-900) 60%, var(--navy) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9,18 +9,30 @@
   font-family: var(--font);
 }
 
+/* Subtle background orb */
+.auth-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 700px 500px at 50% 40%, rgba(31, 107, 82, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
 .auth-card {
-  background: #fff;
-  border-radius: 20px;
+  background: var(--surface-muted);
+  border-radius: 24px;
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    0 12px 40px rgba(0, 0, 0, 0.08);
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 20px 60px rgba(0, 0, 0, 0.35);
   padding: 40px 40px 36px;
   width: 100%;
   max-width: 420px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 .auth-card--success {
@@ -53,7 +65,7 @@
 .auth-logo__text {
   font-weight: 800;
   font-size: 18px;
-  color: var(--gray-900);
+  color: var(--navy);
   letter-spacing: -0.3px;
 }
 
@@ -61,7 +73,7 @@
 .auth-title {
   font-size: 22px;
   font-weight: 700;
-  color: var(--gray-900);
+  color: var(--navy);
   letter-spacing: -0.4px;
   margin-bottom: 6px;
   text-align: center;
@@ -69,7 +81,7 @@
 
 .auth-subtitle {
   font-size: 14px;
-  color: var(--gray-600);
+  color: var(--gray-500);
   text-align: center;
   margin-bottom: 24px;
   line-height: 1.5;
@@ -85,8 +97,8 @@
   padding: 11px 20px;
   border-radius: 50px;
   border: 1.5px solid var(--gray-200);
-  background: #fff;
-  color: var(--gray-800);
+  background: var(--surface-muted);
+  color: var(--gray-900);
   font-size: 14px;
   font-weight: 600;
   font-family: var(--font);
@@ -95,8 +107,8 @@
 }
 
 .auth-google-btn:hover:not(:disabled) {
-  border-color: #aaa;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: #bbb;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
 }
 
 .auth-google-btn:disabled {
@@ -111,7 +123,7 @@
   align-items: center;
   gap: 12px;
   margin: 20px 0;
-  color: var(--gray-400);
+  color: var(--green);
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
@@ -129,9 +141,9 @@
 /* ── Error ──────────────────────────────────────────────── */
 .auth-error {
   width: 100%;
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid rgba(199, 91, 74, 0.25);
   border-radius: 10px;
   padding: 10px 14px;
   font-size: 13px;
@@ -157,7 +169,7 @@
 .auth-field label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--gray-800);
+  color: var(--green-dark);
 }
 
 .auth-field input {
@@ -167,19 +179,20 @@
   border-radius: 12px;
   font-size: 14px;
   font-family: var(--font);
-  color: var(--gray-900);
-  background: #f9fafb;
+  color: var(--navy);
+  background: var(--surface);
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .auth-field input:focus {
   border-color: var(--green);
-  background: #fff;
+  background: var(--surface-muted);
+  box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.15);
 }
 
 .auth-field input::placeholder {
-  color: var(--gray-400);
+  color: #b0b9c9;
 }
 
 /* ── Submit Button ──────────────────────────────────────── */
@@ -189,6 +202,20 @@
   padding: 13px;
   font-size: 15px;
   border-radius: 50px;
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+  box-shadow: 0 4px 16px rgba(31, 107, 82, 0.35);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: filter 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.auth-submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 24px rgba(31, 107, 82, 0.45);
+  transform: translateY(-1px);
 }
 
 .auth-submit:disabled {
@@ -201,14 +228,14 @@
 .auth-switch {
   margin-top: 20px;
   font-size: 13px;
-  color: var(--gray-600);
+  color: var(--gray-500);
   text-align: center;
 }
 
 .auth-switch__link {
   background: none;
   border: none;
-  color: var(--green);
+  color: var(--green-dark);
   font-weight: 700;
   font-family: var(--font);
   font-size: 13px;
@@ -219,7 +246,7 @@
 }
 
 .auth-switch__link:hover {
-  color: var(--green-dark);
+  color: var(--green);
 }
 
 /* ── Success Screen ─────────────────────────────────────── */
@@ -227,3 +254,4 @@
   font-size: 48px;
   margin-bottom: 8px;
 }
+

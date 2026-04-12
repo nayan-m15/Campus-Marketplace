@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "../styles/Navbar.css";
 
 export default function Navbar({
@@ -13,19 +14,31 @@ export default function Navbar({
   onProfile,
   onMessages,
   onHome,
+  onYourListings,
+  onWishlist,
+  wishlistCount = 0,
+  unreadCount = 0,
+  onSettings,      // ← NEW: total unread message count
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const displayName =
-  profileName ||
+    profileName ||
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     user?.email?.split("@")[0] ||
     "Profile";
 
   return (
+    <>
+    <div className="navbar-spacer" aria-hidden="true" />
     <header className="navbar">
-      {/* Logo — always navigates home */}
+
+      {/* Logo */}
       <button className="navbar__logo" aria-label="Go to homepage" onClick={onHome}>
-        <strong className="navbar__logo-icon"><img src="/favicon.png" alt="UX Logo" className="navbar__logo-img" /></strong>
+        <strong className="navbar__logo-icon">
+          <img src="/favicon.png" alt="UX Logo" className="navbar__logo-img" />
+        </strong>
         <span className="navbar__logo-text">Unexus</span>
       </button>
 
@@ -45,65 +58,148 @@ export default function Navbar({
         />
       </form>
 
-      {/* Navigation */}
-      <nav aria-label="User navigation">
-        <ul className="navbar__links">
-          {user ? (
-            <>
-              <li>
-                <button className="navbar__link" onClick={onMessages}>
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                  Messages
-                </button>
-              </li>
+      {/* Right side */}
+      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
 
-              <li>
-                <button
-                  className="navbar__link navbar__link--user"
-                  title={user.email}
-                  onClick={onProfile}
-                >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt="Profile"
-                      style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-                    />
-                  ) : (
-                    <span>👤</span>
+        <nav aria-label="User navigation">
+          <ul className="navbar__links">
+            {user ? (
+              <>
+                <li>
+                  {/* ── Messages button with Instagram-style unread bubble ── */}
+                  <button className="navbar__link" onClick={onMessages} style={{ position: "relative" }}>
+                    <span style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      {unreadCount > 0 && (
+                        <span style={{
+                          position: "absolute",
+                          top: -6,
+                          right: -7,
+                          background: "#53d769",
+                          color: "#fff",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          borderRadius: "50%",
+                          minWidth: 16,
+                          height: 16,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "0 3px",
+                          boxShadow: "0 0 0 2px var(--gray-900, #1a1a1a)",
+                          pointerEvents: "none",
+                        }}>
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
+                    </span>
+                    Messages
+                  </button>
+                </li>
+                <li>
+                  <button className="navbar__link navbar__link--user" title={user.email} onClick={onProfile}>
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Profile" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    ) : (
+                      <span>👤</span>
+                    )}
+                    {displayName}
+                  </button>
+                </li>
+                <li><button className="navbar__link" onClick={onSignOut}>Sign Out</button></li>
+                <li>
+                  <button className="btn-primary navbar__list-btn" onClick={onShowListingForm}>
+                    <span>+</span> List Item
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                <li><button className="navbar__link" onClick={onLogin}>Log In</button></li>
+                <li>
+                  <button className="btn-primary navbar__list-btn" onClick={onSignup}>
+                    Sign Up Free
+                  </button>
+                </li>
+              </>
+            )}
+          </ul>
+        </nav>
+
+        {/* Hamburger */}
+        <div className="navbar__hamburger-wrap">
+          <button
+            className="navbar__hamburger"
+            aria-label="Open menu"
+            onClick={() => setMenuOpen((prev) => !prev)}
+          >
+            <span /><span /><span />
+          </button>
+
+          {menuOpen && (
+            <>
+              <div className="navbar__menu-backdrop" onClick={() => setMenuOpen(false)} />
+              <nav className="navbar__menu" aria-label="Side menu">
+                <ul>
+                  <li>
+                    <button onClick={() => { onProfile?.(); setMenuOpen(false); }}>
+                      Profile
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => { onYourListings?.(); setMenuOpen(false); }}>
+                      Your Listings
+                    </button>
+                  </li>
+
+                  {/* ── Wishlist entry with optional count badge ── */}
+                  <li>
+                    <button
+                      onClick={() => { onWishlist?.(); setMenuOpen(false); }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}
+                    >
+                      <span>Wishlist</span>
+                      {wishlistCount > 0 && (
+                        <span style={{
+                          background: "var(--amber)",
+                          color: "#fff",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          borderRadius: 20,
+                          padding: "1px 7px",
+                          minWidth: 20,
+                          textAlign: "center",
+                        }}>
+                          {wishlistCount}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+
+                  <li>
+                    <button onClick={() => { onSettings?.(); setMenuOpen(false); }}>
+                      Settings
+                    </button>
+                  </li>
+                  {user && (
+                    <li>
+                      <button onClick={() => { onSignOut?.(); setMenuOpen(false); }}>
+                        Sign Out
+                      </button>
+                    </li>
                   )}
-                  {displayName}
-                </button>
-              </li>
-
-              <li>
-                <button className="navbar__link" onClick={onSignOut}>
-                  Sign Out
-                </button>
-              </li>
-
-              <li>
-                <button className="btn-primary navbar__list-btn" onClick={onShowListingForm}>
-                  <span>+</span> List Item
-                </button>
-              </li>
-            </>
-          ) : (
-            <>
-              <li>
-                <button className="navbar__link" onClick={onLogin}>Log In</button>
-              </li>
-              <li>
-                <button className="btn-primary navbar__list-btn" onClick={onSignup}>
-                  Sign Up Free
-                </button>
-              </li>
+                </ul>
+              </nav>
             </>
           )}
-        </ul>
-      </nav>
+        </div>
+
+      </div>
+
     </header>
+    </>
   );
 }
