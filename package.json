@@ -8,9 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:watch": "vitest",
-    "test:run": "vitest run"
+    "test": "vitest --config vitest.config.mjs --configLoader native --pool threads",
+    "test:watch": "vitest --config vitest.config.mjs --configLoader native --pool threads",
+    "test:run": "vitest run --config vitest.config.mjs --configLoader native --pool threads"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
