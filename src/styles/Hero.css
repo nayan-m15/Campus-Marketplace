@@ -717,3 +717,118 @@ html.dark .carousel-nav--next {
   backdrop-filter: blur(6px);
 }
 
+/* Overlay */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(10, 10, 10, 0.55);
+  backdrop-filter: blur(10px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 1000;
+
+  animation: overlayFade 0.25s ease;
+}
+
+/* Card */
+.popup-card {
+  width: 90%;
+  max-width: 340px;
+
+  padding: 22px 24px;
+  border-radius: 18px;
+
+  /* Glass + depth */
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.08),
+    rgba(255,255,255,0.03)
+  );
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(14px);
+
+  color: #fff;
+  text-align: center;
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.65),
+    0 0 40px rgba(31, 107, 82, 0.15);
+
+  position: relative;
+
+  animation: popupEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Optional glow accent */
+.popup-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+
+  background: radial-gradient(
+    circle at top,
+    rgba(255,255,255,0.15),
+    transparent 60%
+  );
+
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Title */
+.popup-card h3 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin-bottom: 10px;
+}
+
+/* Text */
+.popup-card p {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 18px;
+}
+
+/* Button refinement */
+.popup-card .btn-outline {
+  width: 100%;
+  padding: 10px;
+
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+
+  transition: all 0.25s ease;
+}
+
+.popup-card .btn-outline:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+
+/* Animations */
+@keyframes popupEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes overlayFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
