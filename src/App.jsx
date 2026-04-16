@@ -21,6 +21,7 @@ import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
 import YourListingsPage from "./components/YourListingsPage";
 import { useWishlist } from "./context/useWishlist";
 import SettingsPage from "./components/SettingsPage";
+import { getAppBaseUrl } from "./utils/appUrl";
 
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
@@ -459,7 +460,7 @@ function AppInner() {
     setMsgListingTitle(null);
     setPublicProfileId(null);
     setPrevPage("home");
-    window.location.assign(new URL(import.meta.env.BASE_URL, window.location.origin).toString());
+    window.location.assign(getAppBaseUrl());
   }
 
   if (!loading && user && (page === "login" || page === "signup")) {
