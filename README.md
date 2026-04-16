@@ -1,5 +1,7 @@
 # Campus Marketplace
 
+[![codecov](https://codecov.io/gh/nayan-m15/Campus-Marketplace/branch/main/graph/badge.svg)](https://codecov.io/gh/nayan-m15/Campus-Marketplace)
+
 Campus Marketplace is a React + Vite web app for buying, selling, and coordinating second-hand items within a campus community. It combines a student-facing marketplace with role-based admin and trade-facility dashboards backed by Supabase.
 
 ## Overview
