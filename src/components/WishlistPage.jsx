@@ -53,6 +53,17 @@ export default function WishlistPage({
   );
 }
 
+function formatZAR(value) {
+  const num = Number(String(value).replace(/[^0-9.]/g, ""));
+  if (isNaN(num)) return "R 0";
+
+  return new Intl.NumberFormat("en-ZA", {
+    style: "currency",
+    currency: "ZAR",
+    minimumFractionDigits: 0,
+  }).format(num);
+}
+
 function WishlistCard({ item, onClick, onRemove }) {
   const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
 
@@ -88,7 +99,7 @@ function WishlistCard({ item, onClick, onRemove }) {
           >
             {item.condition}
           </span>
-          <span className="wl__price">R {item.price}</span>
+          <span className="wl__price">{formatZAR(item.price)}</span>
         </div>
       </section>
     </li>
