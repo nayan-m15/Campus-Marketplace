@@ -68,6 +68,7 @@ npm run preview
 npm run lint
 npm run test
 npm run test:run
+npm run test:coverage
 ```
 
 ## Running the App
@@ -124,6 +125,26 @@ npm run test:run
 ```
 
 The project is configured with Vitest and Testing Library.
+
+Generate a local coverage report with:
+
+```bash
+npm run test:coverage
+```
+
+This writes coverage artifacts to `coverage/`, including `coverage/lcov.info` for Codecov uploads.
+
+## Codecov Integration
+
+This repository is configured to upload coverage from `.github/workflows/test.yml` using `codecov/codecov-action@v5`.
+
+To finish connecting the GitHub repository:
+
+1. Open Codecov and add the GitHub repository `nayan-m15/Campus-Marketplace`.
+2. If the repository is private, add a GitHub Actions secret named `CODECOV_TOKEN` with the token from Codecov.
+3. Push the workflow changes so GitHub Actions can generate `coverage/lcov.info` and upload it.
+
+For public repositories, Codecov can usually upload without a token, but keeping `CODECOV_TOKEN` available is still safe if you want a single setup that works for both visibility modes.
 
 ## Current Implementation Notes
 
