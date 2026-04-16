@@ -129,6 +129,26 @@ const INSTITUTIONS_BY_PROVINCE = {
 };
 
 const PROVINCES = Object.keys(INSTITUTIONS_BY_PROVINCE);
+const MIN_BIRTHDATE = "1900-01-01";
+const PROFILE_NAME_MAX = 80;
+const PROFILE_DISPLAY_NAME_MAX = 40;
+
+function getTodayDate() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function clampLength(value, maxLength) {
+  return String(value ?? "").slice(0, maxLength);
+}
+
+function isValidBirthdate(value) {
+  if (!value) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  if (value < MIN_BIRTHDATE || value > getTodayDate()) return false;
+
+  const date = new Date(`${value}T00:00:00`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+}
 
 // ── Step indicator ───────────────────────────────────────────
 function StepDots({ current, total }) {
@@ -187,6 +207,7 @@ export default function ProfileSetupPage({ onComplete }) {
     if (step === 1) {
       if (!form.sex) return "Please select your sex.";
       if (!form.birthdate) return "Please enter your date of birth.";
+      if (!isValidBirthdate(form.birthdate)) return "Please enter a valid date of birth.";
     }
     if (step === 2) {
       if (!form.province) return "Please select your province.";
@@ -276,8 +297,8 @@ export default function ProfileSetupPage({ onComplete }) {
                   type="text"
                   placeholder="e.g. Thabo Mokoena"
                   value={form.name}
-                  onChange={(e) => set("name", e.target.value)}
-                  maxLength={80}
+                  onChange={(e) => set("name", clampLength(e.target.value, PROFILE_NAME_MAX))}
+                  maxLength={PROFILE_NAME_MAX}
                   autoFocus
                 />
               </div>
@@ -291,8 +312,8 @@ export default function ProfileSetupPage({ onComplete }) {
                   type="text"
                   placeholder={form.name.trim().split(" ")[0] || "e.g. Thabo"}
                   value={form.display_name}
-                  onChange={(e) => set("display_name", e.target.value)}
-                  maxLength={40}
+                  onChange={(e) => set("display_name", clampLength(e.target.value, PROFILE_DISPLAY_NAME_MAX))}
+                  maxLength={PROFILE_DISPLAY_NAME_MAX}
                 />
                 <span className="setup-hint">
                   Leave blank to use your first name
@@ -325,8 +346,14 @@ export default function ProfileSetupPage({ onComplete }) {
                   id="s-birth"
                   type="date"
                   value={form.birthdate}
-                  onChange={(e) => set("birthdate", e.target.value)}
-                  max={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => {
+                    const nextValue = e.target.value;
+                    if (!nextValue || isValidBirthdate(nextValue)) {
+                      set("birthdate", nextValue);
+                    }
+                  }}
+                  min={MIN_BIRTHDATE}
+                  max={getTodayDate()}
                 />
               </div>
             </>

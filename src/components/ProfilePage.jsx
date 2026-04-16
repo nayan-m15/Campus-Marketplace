@@ -140,6 +140,28 @@ const INSTITUTIONS_BY_PROVINCE = {
 };
 
 const PROVINCES = Object.keys(INSTITUTIONS_BY_PROVINCE);
+const PROFILE_NAME_MAX = 80;
+const PROFILE_DISPLAY_NAME_MAX = 40;
+const PROFILE_ABOUT_MAX = 300;
+const PROFILE_PHONE_MAX = 15;
+const MIN_BIRTHDATE = "1900-01-01";
+
+function getTodayDate() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function clampLength(value, maxLength) {
+  return String(value ?? "").slice(0, maxLength);
+}
+
+function isValidBirthdate(value) {
+  if (!value) return true;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  if (value < MIN_BIRTHDATE || value > getTodayDate()) return false;
+
+  const date = new Date(`${value}T00:00:00`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+}
 
 // ── Profile completion config ────────────────────────────────
 const COMPLETION_FIELDS = [
@@ -282,6 +304,10 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     setSaving(true);
 
     try {
+      if (!isValidBirthdate(form.birthdate)) {
+        throw new Error("Please enter a valid date of birth.");
+      }
+
       let avatarUrl = avatarPreview;
 
       if (avatarFile) {
@@ -411,8 +437,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   type="text"
                   placeholder="Your full name"
                   value={form.name}
-                  onChange={(e) => set("name", e.target.value)}
-                  maxLength={80}
+                  onChange={(e) => set("name", clampLength(e.target.value, PROFILE_NAME_MAX))}
+                  maxLength={PROFILE_NAME_MAX}
                 />
               </div>
               <div className="profile-field">
@@ -422,8 +448,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   type="text"
                   placeholder="Shown on listings"
                   value={form.display_name}
-                  onChange={(e) => set("display_name", e.target.value)}
-                  maxLength={40}
+                  onChange={(e) => set("display_name", clampLength(e.target.value, PROFILE_DISPLAY_NAME_MAX))}
+                  maxLength={PROFILE_DISPLAY_NAME_MAX}
                 />
               </div>
             </div>
@@ -444,8 +470,14 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   id="pf-birthdate"
                   type="date"
                   value={form.birthdate}
-                  onChange={(e) => set("birthdate", e.target.value)}
-                  max={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => {
+                    const nextValue = e.target.value;
+                    if (!nextValue || isValidBirthdate(nextValue)) {
+                      set("birthdate", nextValue);
+                    }
+                  }}
+                  min={MIN_BIRTHDATE}
+                  max={getTodayDate()}
                 />
               </div>
             </div>
@@ -456,10 +488,10 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                 id="pf-about"
                 placeholder="A short bio — what you're studying, what you sell, anything buyers should know…"
                 value={form.about}
-                onChange={(e) => set("about", e.target.value)}
-                maxLength={300}
+                onChange={(e) => set("about", clampLength(e.target.value, PROFILE_ABOUT_MAX))}
+                maxLength={PROFILE_ABOUT_MAX}
               />
-              <span className="profile-field__hint">{form.about.length}/300</span>
+              <span className="profile-field__hint">{form.about.length}/{PROFILE_ABOUT_MAX}</span>
             </div>
 
             <p className="profile-section-title">Location & Institution</p>
@@ -519,8 +551,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   type="tel"
                   placeholder="e.g. 071 234 5678"
                   value={form.phone}
-                  onChange={(e) => set("phone", e.target.value.replace(/\D/g, ""))}
-                  maxLength={15}
+                  onChange={(e) => set("phone", clampLength(e.target.value, PROFILE_PHONE_MAX))}
+                  maxLength={PROFILE_PHONE_MAX}
                 />
               </div>
             </div>
