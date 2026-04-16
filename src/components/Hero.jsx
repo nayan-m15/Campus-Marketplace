@@ -137,7 +137,7 @@ export default function Hero({
   const handleMouseLeave = () => setIsPaused(false);
 
   return (
-    <section className="hero">
+    <section className={`hero${!user ? " hero--with-sell-cta" : ""}`}>
       <figure className="hero__bg" aria-hidden="true" />
       <figure className="hero__overlay" aria-hidden="true" />
 

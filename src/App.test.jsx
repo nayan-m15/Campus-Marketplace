@@ -96,6 +96,32 @@ function renderApp() {
   render(<App />);
 }
 
+function mockListingsScrollTargets(listingsHeading, filterBarTop = 120, listingsTop = 420) {
+  const innerListingsSection = listingsHeading.closest("section");
+  const listingsScrollSection = innerListingsSection?.parentElement;
+
+  if (!innerListingsSection || !listingsScrollSection) {
+    throw new Error("Could not find the listings scroll target");
+  }
+
+  const rect = {
+    top: listingsTop,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 0,
+    height: 0,
+    x: 0,
+    y: listingsTop,
+    toJSON: () => ({}),
+  };
+
+  innerListingsSection.getBoundingClientRect = vi.fn(() => rect);
+  listingsScrollSection.getBoundingClientRect = vi.fn(() => rect);
+
+  return { filterBarTop, listingsTop };
+}
+
 test("renders the search bar with correct placeholder", async () => {
   renderApp();
   expect(
@@ -106,7 +132,6 @@ test("renders the search bar with correct placeholder", async () => {
 test("scrolls to the listings filter bar when the navbar search is focused", async () => {
   const scrollToSpy = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   const filterBarTop = 120;
-  const listingsTop = 420;
 
   renderApp();
 
@@ -115,7 +140,7 @@ test("scrolls to the listings filter bar when the navbar search is focused", asy
   );
   const filterBar = await screen.findByRole("navigation", { name: /categories/i });
   const listingsHeading = await screen.findByRole("heading", { name: /all items/i });
-  const listingsSection = listingsHeading.closest("section");
+  mockListingsScrollTargets(listingsHeading);
 
   Object.defineProperty(window, "scrollY", {
     value: 40,
@@ -132,18 +157,6 @@ test("scrolls to the listings filter bar when the navbar search is focused", asy
     height: 68,
     x: 0,
     y: filterBarTop,
-    toJSON: () => ({}),
-  }));
-
-  listingsSection.getBoundingClientRect = vi.fn(() => ({
-    top: listingsTop,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: 0,
-    height: 0,
-    x: 0,
-    y: listingsTop,
     toJSON: () => ({}),
   }));
 
@@ -160,14 +173,13 @@ test("scrolls to the listings filter bar when the navbar search is focused", asy
 test("scrolls to the listings section when Start Browsing is clicked", async () => {
   const scrollToSpy = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   const filterBarTop = 120;
-  const listingsTop = 420;
 
   renderApp();
 
   const browseButton = await screen.findByRole("button", { name: /start browsing/i });
   const filterBar = await screen.findByRole("navigation", { name: /categories/i });
   const listingsHeading = await screen.findByRole("heading", { name: /all items/i });
-  const listingsSection = listingsHeading.closest("section");
+  mockListingsScrollTargets(listingsHeading);
 
   Object.defineProperty(window, "scrollY", {
     value: 40,
@@ -184,18 +196,6 @@ test("scrolls to the listings section when Start Browsing is clicked", async () 
     height: 68,
     x: 0,
     y: filterBarTop,
-    toJSON: () => ({}),
-  }));
-
-  listingsSection.getBoundingClientRect = vi.fn(() => ({
-    top: listingsTop,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: 0,
-    height: 0,
-    x: 0,
-    y: listingsTop,
     toJSON: () => ({}),
   }));
 
