@@ -21,8 +21,9 @@ vi.mock("./supabaseClient", () => ({
 }));
 
 vi.mock("./components/Hero", () => ({
-  default: ({ onSignupClick, onLoginClick }) => (
+  default: ({ onBrowseClick, onSignupClick, onLoginClick }) => (
     <section aria-label="Hero">
+      <button onClick={onBrowseClick}>Start Browsing</button>
       <button onClick={onSignupClick}>Start listing</button>
       <button onClick={onLoginClick}>Already have an account? Sign in</button>
     </section>
@@ -100,6 +101,112 @@ test("renders the search bar with correct placeholder", async () => {
   expect(
     await screen.findByPlaceholderText("Search textbooks, electronics, furniture...")
   ).toBeInTheDocument();
+});
+
+test("scrolls to the listings filter bar when the navbar search is focused", async () => {
+  const scrollToSpy = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  const filterBarTop = 120;
+  const listingsTop = 420;
+
+  renderApp();
+
+  const searchInput = await screen.findByPlaceholderText(
+    "Search textbooks, electronics, furniture..."
+  );
+  const filterBar = await screen.findByRole("navigation", { name: /categories/i });
+  const listingsHeading = await screen.findByRole("heading", { name: /all items/i });
+  const listingsSection = listingsHeading.closest("section");
+
+  Object.defineProperty(window, "scrollY", {
+    value: 40,
+    writable: true,
+    configurable: true,
+  });
+
+  filterBar.getBoundingClientRect = vi.fn(() => ({
+    top: filterBarTop,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 0,
+    height: 68,
+    x: 0,
+    y: filterBarTop,
+    toJSON: () => ({}),
+  }));
+
+  listingsSection.getBoundingClientRect = vi.fn(() => ({
+    top: listingsTop,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 0,
+    height: 0,
+    x: 0,
+    y: listingsTop,
+    toJSON: () => ({}),
+  }));
+
+  fireEvent.focus(searchInput);
+
+  expect(scrollToSpy).toHaveBeenCalledWith({
+    top: 328,
+    behavior: "smooth",
+  });
+
+  scrollToSpy.mockRestore();
+});
+
+test("scrolls to the listings section when Start Browsing is clicked", async () => {
+  const scrollToSpy = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  const filterBarTop = 120;
+  const listingsTop = 420;
+
+  renderApp();
+
+  const browseButton = await screen.findByRole("button", { name: /start browsing/i });
+  const filterBar = await screen.findByRole("navigation", { name: /categories/i });
+  const listingsHeading = await screen.findByRole("heading", { name: /all items/i });
+  const listingsSection = listingsHeading.closest("section");
+
+  Object.defineProperty(window, "scrollY", {
+    value: 40,
+    writable: true,
+    configurable: true,
+  });
+
+  filterBar.getBoundingClientRect = vi.fn(() => ({
+    top: filterBarTop,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 0,
+    height: 68,
+    x: 0,
+    y: filterBarTop,
+    toJSON: () => ({}),
+  }));
+
+  listingsSection.getBoundingClientRect = vi.fn(() => ({
+    top: listingsTop,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 0,
+    height: 0,
+    x: 0,
+    y: listingsTop,
+    toJSON: () => ({}),
+  }));
+
+  fireEvent.click(browseButton);
+
+  expect(scrollToSpy).toHaveBeenCalledWith({
+    top: 328,
+    behavior: "smooth",
+  });
+
+  scrollToSpy.mockRestore();
 });
 
 test("renders Log In and Sign Up Free buttons when logged out", async () => {

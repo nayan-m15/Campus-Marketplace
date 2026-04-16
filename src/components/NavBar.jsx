@@ -4,6 +4,7 @@ import "../styles/Navbar.css";
 export default function Navbar({
   searchQuery,
   onSearchChange,
+  onSearchFocus,
   user,
   avatarUrl,
   profile,
@@ -55,6 +56,8 @@ export default function Navbar({
           placeholder="Search textbooks, electronics, furniture..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
+          onFocus={onSearchFocus}
+          onClick={onSearchFocus}
         />
       </form>
 

@@ -289,18 +289,23 @@ function AppInner() {
   const [unreadCount, setUnreadCount] = useUnreadCount(user);
   const { wishlistItems, isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(user);
 
-  // ── Ref for the filter bar nav so Hero can scroll to it ──
+  // ── Refs for the filter bar and listings section so CTA/search can scroll cleanly ──
   const filterBarRef = useRef(null);
+  const listingsSectionRef = useRef(null);
 
   function handleScrollToListings() {
-    if (!filterBarRef.current) return;
+    if (!filterBarRef.current || !listingsSectionRef.current) return;
 
-    const navbarOffset = 76;
-    const filterBarTop =
-      filterBarRef.current.getBoundingClientRect().top + window.scrollY - navbarOffset;
+    const navbarOffset = 64;
+    const filterBarHeight = filterBarRef.current.getBoundingClientRect().height;
+    const listingsTop =
+      listingsSectionRef.current.getBoundingClientRect().top +
+      window.scrollY -
+      navbarOffset -
+      filterBarHeight;
 
     window.scrollTo({
-      top: Math.max(filterBarTop, 0),
+      top: Math.max(listingsTop, 0),
       behavior: "smooth",
     });
   }
@@ -467,6 +472,7 @@ function AppInner() {
   const navbarProps = {
     searchQuery,
     onSearchChange: setSearchQuery,
+    onSearchFocus: handleScrollToListings,
     user,
     avatarUrl,
     profileName,
@@ -630,7 +636,7 @@ function AppInner() {
           />
         </nav>
 
-        <section>
+        <section ref={listingsSectionRef}>
           {listingsError ? (
             <p style={{ padding: "24px 40px", color: "crimson" }}>{listingsError}</p>
           ) : listingsLoading ? (
