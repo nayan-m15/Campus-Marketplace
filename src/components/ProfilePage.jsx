@@ -519,7 +519,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   type="tel"
                   placeholder="e.g. 071 234 5678"
                   value={form.phone}
-                  onChange={(e) => set("phone", e.target.value)}
+                  onChange={(e) => set("phone", e.target.value.replace(/\D/g, ""))}
                   maxLength={15}
                 />
               </div>
