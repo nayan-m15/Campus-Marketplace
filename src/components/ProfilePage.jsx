@@ -221,6 +221,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [memberSince, setMemberSince] = useState(null);
+  const [phoneError, setPhoneError] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -308,6 +309,12 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
         throw new Error("Please enter a valid date of birth.");
       }
 
+      const digits = form.phone.replace(/\D/g, "");
+
+      if (digits && (!isValidPhone(digits) || !isNotFake(digits))) {
+        throw new Error("Please enter a valid phone number.");
+      }
+      
       let avatarUrl = avatarPreview;
 
       if (avatarFile) {
@@ -340,7 +347,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
           institution: form.institution || null,
           birthdate: form.birthdate || null,
           sex: form.sex || null,
-          phone: form.phone.trim() || null,
+          phone: form.phone ? normalizePhone(form.phone) : null,
           avatar_url: avatarUrl || null,
           updated_at: new Date().toISOString(),
         },
@@ -370,6 +377,30 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
         Loading profile…
       </div>
     );
+  }
+
+  function formatPhone(value) {
+    const digits = value.replace(/\D/g, "").slice(0, 10);
+
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+
+  function isValidPhone(phone) {
+    const digits = phone.replace(/\D/g, "");
+    return /^(0[6-8]\d{8})$/.test(digits);
+  }
+
+  function isNotFake(phone) {
+    const digits = phone.replace(/\D/g, "");
+    return !/^(\d)\1+$/.test(digits);
+  }
+
+  function normalizePhone(phone) {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.startsWith("0")) return "27" + digits.slice(1);
+    return digits;
   }
 
   return (
@@ -540,11 +571,6 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
 
             <div className="profile-field-row">
               <div className="profile-field">
-                <label htmlFor="pf-email">Email</label>
-                <input id="pf-email" type="email" value={user?.email || ""} readOnly />
-                <span className="profile-field__hint">Managed via your login</span>
-              </div>
-              <div className="profile-field">
                 <label htmlFor="pf-phone">Phone number</label>
                 <input
                   id="pf-phone"
@@ -552,14 +578,26 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   placeholder="e.g. 071 234 5678"
                   value={form.phone}
                   onChange={(e) => {
-                    const onlyNums = e.target.value.replace(/\D/g, ""); 
-                  set("phone", clampLength(onlyNums, PROFILE_PHONE_MAX));
-                  }}
-                  maxLength={PROFILE_PHONE_MAX}
-                />
-              </div>
-            </div>
+                    const formatted = formatPhone(e.target.value);
+                    set("phone", formatted);
 
+                    const digits = formatted.replace(/\D/g, "");
+                  if (!digits) {
+                    setPhoneError("");
+                  } else if (!isValidPhone(digits)) {
+                    setPhoneError("Enter a valid SA mobile number");
+                  } else if (!isNotFake(digits)) {
+                    setPhoneError("That number looks fake");
+                  } else {
+                    setPhoneError("");
+                  }
+                  }}
+                />
+                {phoneError && (
+                  <span className="profile-field__error">{phoneError}</span>
+                )}
+            </div>
+            </div>
           </div>
 
           <div className="profile-card__footer">
