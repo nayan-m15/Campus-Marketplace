@@ -5,6 +5,16 @@
   overflow: hidden;
 }
 
+@media (min-width: 901px) {
+  .hero:not(.hero--with-sell-cta) {
+    min-height: calc(100vh - 64px);
+  }
+
+  .hero:not(.hero--with-sell-cta) .hero__main {
+    min-height: calc(100vh - 104px);
+  }
+}
+
 .hero--with-sell-cta {
   min-height: calc(100vh - 64px);
   padding-bottom: 40px;
