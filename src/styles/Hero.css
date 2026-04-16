@@ -5,6 +5,24 @@
   overflow: hidden;
 }
 
+@media (min-width: 901px) {
+  .hero:not(.hero--with-sell-cta) {
+    min-height: calc(100vh - 64px);
+  }
+
+  .hero:not(.hero--with-sell-cta) .hero__main {
+    min-height: calc(100vh - 104px);
+  }
+}
+
+.hero--with-sell-cta {
+  min-height: calc(100vh - 64px);
+  padding-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
 .hero__main {
   position: relative;
   z-index: 2;
@@ -13,6 +31,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 48px;
+}
+
+.hero--with-sell-cta .hero__main {
+  min-height: 460px;
+  gap: 36px;
 }
 
 /* Rich gradient background instead of plain black */
@@ -165,6 +188,10 @@
   border-radius: 16px;
   backdrop-filter: blur(12px);
   width: fit-content;
+}
+
+.hero--with-sell-cta .hero__stats {
+  margin-top: 28px;
 }
 
 .hero__stat-group {
@@ -459,6 +486,12 @@
   border-radius: 28px;
 }
 
+.hero--with-sell-cta .sell-cta {
+  margin-top: 20px;
+  padding: 32px 44px;
+  z-index: 3;
+}
+
 /* Glowing orbs */
 .sell-cta::before {
   content: '';
@@ -616,6 +649,12 @@
     padding: 32px 20px 0;
   }
 
+  .hero--with-sell-cta {
+    min-height: auto;
+    padding-bottom: 0;
+    display: block;
+  }
+
   .hero__main {
     flex-direction: column;
     align-items: stretch;
@@ -646,6 +685,10 @@
     padding: 32px 28px;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .hero--with-sell-cta .sell-cta {
+    margin-top: 20px;
   }
 
   .sell-cta__actions {

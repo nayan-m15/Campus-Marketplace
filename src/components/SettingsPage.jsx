@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 
-export default function SettingsPage({ onBack, onSignOut }) {
+export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
   const { user } = useAuth();
 
   // ── Password ──
@@ -111,6 +111,7 @@ function handleDarkMode(val) {
 
       await supabase.auth.signOut();
       onSignOut?.();
+      onAccountDeleted?.();
     } catch (err) {
       setDeleteError(err.message || "Failed to delete account.");
     } finally {

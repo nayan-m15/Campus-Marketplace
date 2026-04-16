@@ -450,6 +450,18 @@ function AppInner() {
     setSearchQuery("");
   }
 
+  function handleAccountDeleted() {
+    setPage("home");
+    setSearchQuery("");
+    setSelectedListing(null);
+    setShowForm(false);
+    setMsgRecipientId(null);
+    setMsgListingTitle(null);
+    setPublicProfileId(null);
+    setPrevPage("home");
+    window.location.assign(new URL(import.meta.env.BASE_URL, window.location.origin).toString());
+  }
+
   if (!loading && user && (page === "login" || page === "signup")) {
     setPage("home");
   }
@@ -577,7 +589,7 @@ function AppInner() {
   return (
     <>
       <header><Navbar {...navbarProps} /></header>
-      <SettingsPage onBack={goHome} onSignOut={signOut} />
+      <SettingsPage onBack={goHome} onSignOut={signOut} onAccountDeleted={handleAccountDeleted} />
     </>
   );
 }
