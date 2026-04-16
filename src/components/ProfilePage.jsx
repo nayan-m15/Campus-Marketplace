@@ -146,21 +146,42 @@ const PROFILE_ABOUT_MAX = 300;
 const PROFILE_PHONE_MAX = 15;
 const MIN_BIRTHDATE = "1900-01-01";
 
-function getTodayDate() {
-  return new Date().toISOString().split("T")[0];
+function getMaxBirthdate() {
+  const today = new Date();
+  today.setFullYear(today.getFullYear() - 12);
+  return today.toISOString().split("T")[0];
 }
 
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
+function parseBirthdate(value) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function isValidBirthdate(value) {
   if (!value) return true;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  if (value < MIN_BIRTHDATE || value > getTodayDate()) return false;
 
-  const date = new Date(`${value}T00:00:00`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+  const date = parseBirthdate(value);
+  if (!date) return false;
+
+  const minDate = new Date(MIN_BIRTHDATE);
+  if (date < minDate) return false;
+
+  const today = new Date();
+
+  const minAge = new Date(
+    today.getFullYear() - 12,
+    today.getMonth(),
+    today.getDate()
+  );
+
+  if (date > minAge) return false;
+
+  return true;
 }
 
 // ── Profile completion config ────────────────────────────────
@@ -347,7 +368,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
           institution: form.institution || null,
           birthdate: form.birthdate || null,
           sex: form.sex || null,
-          phone: form.phone ? normalizePhone(form.phone) : null,
+          phone: form.phone ? form.phone.replace(/\D/g, "") : null,
           avatar_url: avatarUrl || null,
           updated_at: new Date().toISOString(),
         },
@@ -397,11 +418,6 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     return !/^(\d)\1+$/.test(digits);
   }
 
-  function normalizePhone(phone) {
-    const digits = phone.replace(/\D/g, "");
-    if (digits.startsWith("0")) return "27" + digits.slice(1);
-    return digits;
-  }
 
   return (
     <div className="profile-page">
@@ -501,14 +517,9 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   id="pf-birthdate"
                   type="date"
                   value={form.birthdate}
-                  onChange={(e) => {
-                    const nextValue = e.target.value;
-                    if (!nextValue || isValidBirthdate(nextValue)) {
-                      set("birthdate", nextValue);
-                    }
-                  }}
+                  onChange={(e) => set("birthdate", e.target.value)}
                   min={MIN_BIRTHDATE}
-                  max={getTodayDate()}
+                  max={getMaxBirthdate()}
                 />
               </div>
             </div>
