@@ -563,7 +563,14 @@ function AppInner() {
     return (
       <>
         <header><Navbar {...navbarProps} /></header>
-        <YourListingsPage onBack={goHome} />
+        <YourListingsPage
+          onBack={goHome}
+          onListingChanged={() =>
+            fetchListings(user?.id)
+              .then(setAllListings)
+              .catch((err) => setListingsError(err.message))
+          }
+        />
       </>
     );
   }
