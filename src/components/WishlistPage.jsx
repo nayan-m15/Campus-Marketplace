@@ -80,7 +80,7 @@ function WishlistCard({ item, onClick, onRemove }) {
         )}
         {/* Remove from wishlist button */}
         <button
-          className="wl__remove-btn"
+          className={`wl__remove-btn wl__remove-btn--active`}
           aria-label="Remove from wishlist"
           type="button"
           onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
