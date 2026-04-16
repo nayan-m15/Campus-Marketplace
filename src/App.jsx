@@ -578,10 +578,17 @@ function AppInner() {
           loading={wishlistLoading}
           onListingClick={(item) => {
             setSelectedListing(item);
-            setPage("home");
           }}
           onToggleWishlist={toggleWishlist}
         />
+        <ListingDetailsModal
+          item={selectedListing}
+          onClose={() => setSelectedListing(null)}
+          onMessageSeller={handleMessageSeller}
+          user={user}
+          isWishlisted={isWishlisted}
+          onToggleWishlist={user ? toggleWishlist : null}
+          />
       </>
     );
   }
