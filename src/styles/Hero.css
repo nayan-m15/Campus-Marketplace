@@ -216,11 +216,15 @@
   position: relative;
   overflow: hidden;
   border-radius: 20px;
-  background: var(--surface-muted);
+
+  /* Glass style */
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.08),
-    0 24px 64px rgba(0, 0, 0, 0.5),
-    0 0 40px rgba(31, 107, 82, 0.18);
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 24px 64px rgba(0, 0, 0, 0.6);
 }
 
 .carousel-track {
@@ -234,11 +238,16 @@
 
 /* Card inside carousel */
 .listing-card {
-  background: var(--surface-muted);
-  border-radius: 14px;
+  background: transparent;
+  border-radius: 16px;
   overflow: hidden;
   margin: 0.75rem;
-  border: 1px solid var(--surface-strong);
+
+  /* Glass look */
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
@@ -459,9 +468,10 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image:
+  /*background-image:
     linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);*/
+  background: rgba(255,255,255,0.02);
   background-size: 48px 48px;
   pointer-events: none;
 }
