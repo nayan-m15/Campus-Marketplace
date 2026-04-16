@@ -8,9 +8,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:watch": "vitest",
-    "test:run": "vitest run"
+    "test": "vitest --configLoader native --pool threads",
+    "test:watch": "vitest --configLoader native --pool threads",
+    "test:run": "vitest run --configLoader native --pool threads",
+    "test:coverage": "vitest run --configLoader native --pool threads --coverage"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
@@ -27,6 +28,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.4",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
