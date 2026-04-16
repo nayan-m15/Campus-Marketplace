@@ -551,7 +551,10 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   type="tel"
                   placeholder="e.g. 071 234 5678"
                   value={form.phone}
-                  onChange={(e) => set("phone", clampLength(e.target.value, PROFILE_PHONE_MAX))}
+                  onChange={(e) => {
+                    const onlyNums = e.target.value.replace(/\D/g, ""); 
+                  set("phone", clampLength(onlyNums, PROFILE_PHONE_MAX));
+                  }}
                   maxLength={PROFILE_PHONE_MAX}
                 />
               </div>
