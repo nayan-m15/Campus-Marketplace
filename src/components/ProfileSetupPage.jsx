@@ -346,12 +346,7 @@ export default function ProfileSetupPage({ onComplete }) {
                   id="s-birth"
                   type="date"
                   value={form.birthdate}
-                  onChange={(e) => {
-                    const nextValue = e.target.value;
-                    if (!nextValue || isValidBirthdate(nextValue)) {
-                      set("birthdate", nextValue);
-                    }
-                  }}
+                  onChange={(e) => set("birthdate", e.target.value)}
                   min={MIN_BIRTHDATE}
                   max={getTodayDate()}
                 />
