@@ -83,7 +83,7 @@ function getSellerName(profile, userId) {
   return "Unknown";
 }
 
-function normaliseListing(listing, profile) {
+export function normaliseListing(listing, profile) {
   const category = listing.category ?? "Other";
   const imageUrls = Array.isArray(listing.image_urls)
     ? listing.image_urls.filter(Boolean)
