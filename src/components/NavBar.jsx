@@ -8,6 +8,7 @@ export default function Navbar({
   user,
   avatarUrl,
   profile,
+  profileName,
   onLogin,
   onSignup,
   onSignOut,
@@ -25,6 +26,8 @@ export default function Navbar({
 
   const displayName =
     profile?.display_name ||
+    profile?.name ||
+    profileName ||
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     user?.email?.split("@")[0] ||
