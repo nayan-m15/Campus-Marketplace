@@ -22,6 +22,7 @@ import YourListingsPage from "./components/YourListingsPage";
 import { useWishlist } from "./context/useWishlist";
 import SettingsPage from "./components/SettingsPage";
 import { getAppBaseUrl } from "./utils/appUrl";
+import { insertMessage } from "./utils/messageDelivery";
 
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
@@ -228,7 +229,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
     setSendSuccess("");
 
     try {
-      const { error } = await supabase.from("messages").insert({
+      const { error } = await insertMessage({
         sender_id: user.id,
         receiver_id: item.user_id,
         content: message.trim(),

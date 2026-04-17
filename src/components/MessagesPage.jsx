@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
+import { insertMessage } from "../utils/messageDelivery";
 import "../styles/Messages.css";
 
 // ── Helpers ────────────────────────────────────────────────
@@ -331,7 +332,7 @@ export default function MessagesPage({
     };
     setMessages((prev) => [...prev, optimistic]);
 
-    const { error } = await supabase.from("messages").insert({
+    const { error } = await insertMessage({
       sender_id: user.id,
       receiver_id: activeId,
       content: text,
