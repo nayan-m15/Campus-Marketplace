@@ -138,17 +138,16 @@ This writes coverage artifacts to `coverage/`, including `coverage/lcov.info` fo
 
 ## Codecov Integration
 
-This repository is configured to upload coverage from `.github/workflows/test.yml` using `codecov/codecov-action@v5`.
+This repository is configured to upload coverage from `.github/workflows/test.yml` using `codecov/codecov-action@v5` with GitHub OIDC authentication.
 
 To finish connecting the GitHub repository:
 
 1. Open Codecov and add the GitHub repository `nayan-m15/Campus-Marketplace`.
-2. If the repository is private, add a GitHub Actions secret named `CODECOV_TOKEN` with the token from Codecov.
-3. Push the workflow changes so GitHub Actions can generate `coverage/lcov.info` and upload it.
+2. Push the workflow changes so GitHub Actions can generate `coverage/lcov.info` and upload it.
 
 The README badge uses the repository-level Codecov badge URL, so it does not depend on a hardcoded branch name like `main`.
 
-For public repositories, Codecov can usually upload without a token, but keeping `CODECOV_TOKEN` available is still safe if you want a single setup that works for both visibility modes.
+If your Codecov account or repository settings require a token instead of OIDC, add a GitHub Actions secret named `CODECOV_TOKEN` and switch the workflow back to token-based authentication.
 
 ## Current Implementation Notes
 
