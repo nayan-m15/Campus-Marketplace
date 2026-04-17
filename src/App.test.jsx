@@ -486,3 +486,16 @@ test("navigates to login and signup pages from logged-out actions", async () => 
   fireEvent.click(screen.getByRole("button", { name: /sign up free/i }));
   expect(await screen.findByRole("heading", { name: /create your account/i })).toBeInTheDocument();
 });
+
+test("returns to the home hero when the browser goes back from signup", async () => {
+  renderApp();
+
+  fireEvent.click(await screen.findByRole("button", { name: /start listing/i }));
+  expect(await screen.findByRole("heading", { name: /create your account/i })).toBeInTheDocument();
+
+  window.history.back();
+
+  await waitFor(() => {
+    expect(screen.getByRole("region", { name: /hero/i })).toBeInTheDocument();
+  });
+});

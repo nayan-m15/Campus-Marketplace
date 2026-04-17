@@ -366,6 +366,7 @@ function AppInner() {
   const { user, loading, signOut } = useAuth();
 
   const [page, setPage] = useState("home");
+  const skipHistoryPushRef = useRef(false);
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [activeCondition, setActiveCondition] = useState("All Conditions");
   const [priceSort, setPriceSort] = useState("");
@@ -424,6 +425,33 @@ function AppInner() {
   // ── Public profile state ───────────────────────────────────
   const [publicProfileId, setPublicProfileId] = useState(null);
   const [prevPage, setPrevPage] = useState("home");
+
+  useEffect(() => {
+    const currentState = window.history.state || {};
+    if (currentState.page !== "home") {
+      window.history.replaceState({ ...currentState, page: "home" }, "");
+    }
+
+    function handlePopState(event) {
+      skipHistoryPushRef.current = true;
+      setPage(event.state?.page || "home");
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const currentState = window.history.state || {};
+
+    if (skipHistoryPushRef.current) {
+      skipHistoryPushRef.current = false;
+      return;
+    }
+
+    if (currentState.page === page) return;
+    window.history.pushState({ ...currentState, page }, "");
+  }, [page]);
 
   useEffect(() => {
     if (loading) return;
@@ -575,9 +603,13 @@ function AppInner() {
     window.location.assign(getAppBaseUrl());
   }
 
-  if (!loading && user && (page === "login" || page === "signup")) {
+  useEffect(() => {
+    if (loading || !user || (page !== "login" && page !== "signup")) return;
+
+    skipHistoryPushRef.current = true;
     setPage("home");
-  }
+    window.history.replaceState({ ...(window.history.state || {}), page: "home" }, "");
+  }, [loading, user, page]);
 
   if (loading || (user && !profileChecked)) {
     return (
