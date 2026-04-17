@@ -27,12 +27,15 @@ export default function SignupPage({ onNavigate }) {
     }
 
     setLoading(true);
-    const { data, error } = await signUp(email, password);
+    const redirectTo = `${window.location.origin}${window.location.pathname}`;
+
+    const { data, error } = await signUp(email, password, {
+      emailRedirectTo: redirectTo,
+    });
+
     setLoading(false);
 
     if (error) {
-      // Supabase returns a generic message for existing emails to prevent
-      // enumeration — but we can catch the specific case and show a clear message
       if (
         error.message?.toLowerCase().includes("already registered") ||
         error.message?.toLowerCase().includes("user already exists") ||
@@ -45,18 +48,28 @@ export default function SignupPage({ onNavigate }) {
       return;
     }
 
-    // Supabase returns a user but with no session when email confirmation is on.
-    // If there's a session it means confirmation is off and they're logged in.
-    if (data?.user && !data?.session) {
-      setSuccess(true);
+    if (error) {
+      if (
+        error.message?.toLowerCase().includes("already registered") ||
+        error.message?.toLowerCase().includes("user already exists") ||
+        error.status === 422
+      ){
+        setError("An account with this email already exists. Try signing in instead.");
+      } 
+      else {
+        setError(error.message);
+      }
+    return;
     }
-    // If session exists, AuthContext picks it up and App re-renders automatically
+    setSuccess(true);
   }
 
   async function handleGoogle() {
     setError("");
     setGoogleLoading(true);
-    const { error } = await signInWithGoogle();
+    // Same origin-aware redirect for Google OAuth
+    const redirectTo = `${window.location.origin}${window.location.pathname}`;
+    const { error } = await signInWithGoogle({ redirectTo });
     setGoogleLoading(false);
     if (error) setError(error.message);
   }
@@ -84,7 +97,9 @@ export default function SignupPage({ onNavigate }) {
       <div className="auth-card">
         {/* Logo */}
         <div className="auth-logo">
-          <span className="auth-logo__icon"><img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="navbar__logo-img" /></span>
+          <span className="auth-logo__icon">
+            <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="navbar__logo-img" />
+          </span>
           <span className="auth-logo__text">Unexus</span>
         </div>
 

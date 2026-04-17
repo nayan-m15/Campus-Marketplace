@@ -141,13 +141,28 @@ function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
-function isValidBirthdate(value) {
-  if (!value) return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  if (value < MIN_BIRTHDATE || value > getTodayDate()) return false;
-
+function parseBirthdate(value) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getBirthdateError(value) {
+  if (!value) return "Please enter your date of birth.";
+
+  const date = parseBirthdate(value);
+  if (!date) return "Please enter a valid date of birth.";
+
+  const minDate = new Date(MIN_BIRTHDATE);
+  if (date < minDate) return "Please enter a valid date of birth.";
+
+  if (date > new Date()) return "Please enter a valid date of birth.";
+
+  const today = new Date();
+  const minAge = new Date(today.getFullYear() - 12, today.getMonth(), today.getDate());
+  if (date > minAge) return "You must be at least 12 years old to use Unexus.";
+
+  return null;
 }
 
 // ── Step indicator ───────────────────────────────────────────
@@ -206,10 +221,8 @@ export default function ProfileSetupPage({ onComplete }) {
     }
     if (step === 1) {
       if (!form.sex) return "Please select your sex.";
-      if (!form.birthdate) return "Please enter your date of birth.";
-      if (!isValidBirthdate(form.birthdate)) {
-        return "Please enter a valid date of birth.";
-      }
+      const birthdateErr = getBirthdateError(form.birthdate);
+      if (birthdateErr) return birthdateErr;
     }
     if (step === 2) {
       if (!form.province) return "Please select your province.";
@@ -348,15 +361,13 @@ export default function ProfileSetupPage({ onComplete }) {
                   id="s-birth"
                   type="date"
                   value={form.birthdate}
-                  onChange={(e) => {
-                    const nextValue = e.target.value;
-
-                    if (!nextValue || isValidBirthdate(nextValue)) {
-                      set("birthdate", nextValue);
-                    }
-                  }}
+                  onChange={(e) => set("birthdate", e.target.value)}
                   min={MIN_BIRTHDATE}
-                  max={getTodayDate()}
+                  max={(() => {
+                    const d = new Date();
+                    d.setFullYear(d.getFullYear() - 12);
+                    return d.toISOString().split("T")[0];
+                  })()}
                 />
               </div>
             </>

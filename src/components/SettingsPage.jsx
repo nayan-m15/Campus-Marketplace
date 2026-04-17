@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 
-export default function SettingsPage({ onBack, onSignOut }) {
+export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
   const { user } = useAuth();
 
   // ── Password ──
@@ -91,23 +91,30 @@ function handleDarkMode(val) {
   }
 
   async function handleDeleteAccount() {
+    if (!user) {
+      setDeleteError("You must be logged in to delete your account.");
+      return;
+    }
+
     if (deleteConfirmText !== "DELETE") {
       setDeleteError('Please type "DELETE" to confirm.');
       return;
     }
+
     setDeleteLoading(true);
     setDeleteError(null);
 
     try {
-      // Delete all user listings
-      await supabase.from("listings").delete().eq("user_id", user.id);
-      // Delete profile
-      await supabase.from("profiles").delete().eq("id", user.id);
-      // Sign out
+      const { error } = await supabase.rpc("delete_my_account");
+
+      if (error) throw error;
+
       await supabase.auth.signOut();
       onSignOut?.();
+      onAccountDeleted?.();
     } catch (err) {
       setDeleteError(err.message || "Failed to delete account.");
+    } finally {
       setDeleteLoading(false);
     }
   }

@@ -83,7 +83,7 @@ function getSellerName(profile, userId) {
   return "Unknown";
 }
 
-function normaliseListing(listing, profile) {
+export function normaliseListing(listing, profile) {
   const category = listing.category ?? "Other";
   const imageUrls = Array.isArray(listing.image_urls)
     ? listing.image_urls.filter(Boolean)
@@ -121,7 +121,8 @@ export async function fetchListings(currentUserId = null) {
   try {
     let query = supabase
       .from("listings")
-      .select("id, title, description, price, condition, user_id, image_url, image_urls, category")
+      .select("id, title, description, price, condition, user_id, image_url, image_urls, category, status")
+      .neq("status", "sold")
       .order("created_at", { ascending: false });
 
     if (currentUserId) {

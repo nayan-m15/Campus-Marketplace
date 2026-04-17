@@ -156,6 +156,10 @@
   line-height: 1;
 }
 
+.wl__remove-btn--active {
+  color: #166534;
+}
+
 .wl__remove-btn:hover {
   background: #fff;
   transform: scale(1.12);

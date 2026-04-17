@@ -561,7 +561,7 @@ export default function AdminDashboard({ onSignOut }) {
       {/* Sidebar navigation */}
       <nav className="sidebar" aria-label="Admin navigation">
         <header className="sidebar__brand">
-          <span className="sidebar__logo" aria-hidden="true">⚡</span>
+          <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="sidebar__logo" />
           <hgroup className="sidebar__brand-text">
             <h1 className="sidebar__app-name">Unexus</h1>
             <p className="sidebar__role">Admin Portal</p>

@@ -5,64 +5,103 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    const initAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data?.session?.user ?? null);
       setLoading(false);
-    });
+    };
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
+    initAuth();
 
-        // For Google OAuth sign-ins, ensure a profile row exists.
-        // We only insert the id — ProfileSetupPage will fill the rest.
-        // Using upsert so it's safe to call multiple times.
-        if (event === "SIGNED_IN" && session?.user) {
+    const { data: { subscription } } =
+      supabase.auth.onAuthStateChange((event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        // Ensure profile exists on login
+        if (event === "SIGNED_IN" && currentUser) {
           supabase
             .from("profiles")
-            .upsert({ id: session.user.id }, { onConflict: "id", ignoreDuplicates: true })
+            .upsert(
+              {
+                id: currentUser.id,
+                email: currentUser.email,
+              },
+              { onConflict: "id" }
+            )
             .then(({ error }) => {
-              if (error) console.error("Profile row ensure error:", error.message);
+              if (error) console.error("Profile upsert error:", error.message);
             });
         }
-      }
-    );
+      });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    return { data, error };
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) {
+        setProfile(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Profile fetch error:", error.message);
+        setProfile(null);
+        return;
+      }
+
+      setProfile(data);
+    };
+
+    fetchProfile();
+  }, [user]);
+
+  const signUp = async (email, password, options = {}) => {
+    return supabase.auth.signUp({ email, password, options });
   };
 
   const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    return { data, error };
+    return supabase.auth.signInWithPassword({ email, password });
   };
 
-  const signInWithGoogle = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+  const signInWithGoogle = async ({ redirectTo } = {}) => {
+    const resolvedRedirect =
+      redirectTo ??
+      new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+
+    return supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
-      },
+      options: { redirectTo: resolvedRedirect },
     });
-    return { data, error };
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    return supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signInWithGoogle, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        signUp,
+        signIn,
+        signInWithGoogle,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -70,6 +109,6 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }

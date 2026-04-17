@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabaseClient";
+import { normaliseListing } from "../data/listings";
 
 /**
  * useWishlist — manages wishlist state for the current user.
@@ -35,6 +36,7 @@ export function useWishlist(user) {
             title,
             price,
             condition,
+            category,
             image_url,
             image_urls,
             description,
@@ -47,9 +49,32 @@ export function useWishlist(user) {
       if (error) throw error;
 
       const ids = new Set(data.map((row) => row.listing_id));
-      const items = data
+      const rawListings = data
         .map((row) => row.listings)
         .filter(Boolean); // remove nulls if a listing was deleted
+
+      const userIds = [
+        ...new Set(rawListings.map((listing) => listing.user_id).filter(Boolean)),
+      ];
+
+      let profilesMap = {};
+
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, display_name, name, province, institution, created_at")
+          .in("id", userIds);
+
+        if (profilesError) {
+          console.error("Failed to fetch wishlist seller profiles:", profilesError.message);
+        } else {
+          profilesMap = Object.fromEntries((profiles || []).map((profile) => [profile.id, profile]));
+        }
+      }
+
+      const items = rawListings.map((listing) =>
+        normaliseListing(listing, profilesMap[listing.user_id])
+      );
 
       setWishlistIds(ids);
       setWishlistItems(items);

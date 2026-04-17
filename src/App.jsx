@@ -289,18 +289,23 @@ function AppInner() {
   const [unreadCount, setUnreadCount] = useUnreadCount(user);
   const { wishlistItems, isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(user);
 
-  // ── Ref for the filter bar nav so Hero can scroll to it ──
+  // ── Refs for the filter bar and listings section so CTA/search can scroll cleanly ──
   const filterBarRef = useRef(null);
+  const listingsSectionRef = useRef(null);
 
   function handleScrollToListings() {
-    if (!filterBarRef.current) return;
+    if (!filterBarRef.current || !listingsSectionRef.current) return;
 
-    const navbarOffset = 76;
-    const filterBarTop =
-      filterBarRef.current.getBoundingClientRect().top + window.scrollY - navbarOffset;
+    const navbarOffset = 64;
+    const filterBarHeight = filterBarRef.current.getBoundingClientRect().height;
+    const listingsTop =
+      listingsSectionRef.current.getBoundingClientRect().top +
+      window.scrollY -
+      navbarOffset -
+      filterBarHeight;
 
     window.scrollTo({
-      top: Math.max(filterBarTop, 0),
+      top: Math.max(listingsTop, 0),
       behavior: "smooth",
     });
   }
@@ -445,6 +450,18 @@ function AppInner() {
     setSearchQuery("");
   }
 
+  function handleAccountDeleted() {
+    setPage("home");
+    setSearchQuery("");
+    setSelectedListing(null);
+    setShowForm(false);
+    setMsgRecipientId(null);
+    setMsgListingTitle(null);
+    setPublicProfileId(null);
+    setPrevPage("home");
+    window.location.assign(new URL(import.meta.env.BASE_URL, window.location.origin).toString());
+  }
+
   if (!loading && user && (page === "login" || page === "signup")) {
     setPage("home");
   }
@@ -467,6 +484,7 @@ function AppInner() {
   const navbarProps = {
     searchQuery,
     onSearchChange: setSearchQuery,
+    onSearchFocus: handleScrollToListings,
     user,
     avatarUrl,
     profileName,
@@ -545,7 +563,14 @@ function AppInner() {
     return (
       <>
         <header><Navbar {...navbarProps} /></header>
-        <YourListingsPage onBack={goHome} />
+        <YourListingsPage
+          onBack={goHome}
+          onListingChanged={() =>
+            fetchListings(user?.id)
+              .then(setAllListings)
+              .catch((err) => setListingsError(err.message))
+          }
+        />
       </>
     );
   }
@@ -560,10 +585,17 @@ function AppInner() {
           loading={wishlistLoading}
           onListingClick={(item) => {
             setSelectedListing(item);
-            setPage("home");
           }}
           onToggleWishlist={toggleWishlist}
         />
+        <ListingDetailsModal
+          item={selectedListing}
+          onClose={() => setSelectedListing(null)}
+          onMessageSeller={handleMessageSeller}
+          user={user}
+          isWishlisted={isWishlisted}
+          onToggleWishlist={user ? toggleWishlist : null}
+          />
       </>
     );
   }
@@ -571,7 +603,7 @@ function AppInner() {
   return (
     <>
       <header><Navbar {...navbarProps} /></header>
-      <SettingsPage onBack={goHome} onSignOut={signOut} />
+      <SettingsPage onBack={goHome} onSignOut={signOut} onAccountDeleted={handleAccountDeleted} />
     </>
   );
 }
@@ -630,7 +662,7 @@ function AppInner() {
           />
         </nav>
 
-        <section>
+        <section ref={listingsSectionRef}>
           {listingsError ? (
             <p style={{ padding: "24px 40px", color: "crimson" }}>{listingsError}</p>
           ) : listingsLoading ? (

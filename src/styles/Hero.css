@@ -5,6 +5,24 @@
   overflow: hidden;
 }
 
+@media (min-width: 901px) {
+  .hero:not(.hero--with-sell-cta) {
+    min-height: calc(100vh - 64px);
+  }
+
+  .hero:not(.hero--with-sell-cta) .hero__main {
+    min-height: calc(100vh - 104px);
+  }
+}
+
+.hero--with-sell-cta {
+  min-height: calc(100vh - 64px);
+  padding-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
 .hero__main {
   position: relative;
   z-index: 2;
@@ -15,13 +33,28 @@
   gap: 48px;
 }
 
+.hero--with-sell-cta .hero__main {
+  min-height: 460px;
+  gap: 36px;
+}
+
 /* Rich gradient background instead of plain black */
 .hero__bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--navy) 0%, var(--gray-800) 45%, var(--navy) 100%);
+  background: url('/public/DesktopHeroBackground.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
-
+@media (max-width: 900px) {
+  .hero__bg {
+    background: url('/public/MobileHeroBackground.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+}
 /* Animated gradient orbs for depth */
 .hero__bg::before {
   content: '';
@@ -157,6 +190,10 @@
   width: fit-content;
 }
 
+.hero--with-sell-cta .hero__stats {
+  margin-top: 28px;
+}
+
 .hero__stat-group {
   display: flex;
   align-items: center;
@@ -213,11 +250,15 @@
   position: relative;
   overflow: hidden;
   border-radius: 20px;
-  background: var(--surface-muted);
+
+  /* Glass style */
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.08),
-    0 24px 64px rgba(0, 0, 0, 0.5),
-    0 0 40px rgba(31, 107, 82, 0.18);
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 24px 64px rgba(0, 0, 0, 0.6);
 }
 
 .carousel-track {
@@ -231,11 +272,16 @@
 
 /* Card inside carousel */
 .listing-card {
-  background: var(--surface-muted);
-  border-radius: 14px;
+  background: transparent;
+  border-radius: 16px;
   overflow: hidden;
   margin: 0.75rem;
-  border: 1px solid var(--surface-strong);
+
+  /* Glass look */
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
@@ -440,6 +486,12 @@
   border-radius: 28px;
 }
 
+.hero--with-sell-cta .sell-cta {
+  margin-top: 20px;
+  padding: 32px 44px;
+  z-index: 3;
+}
+
 /* Glowing orbs */
 .sell-cta::before {
   content: '';
@@ -456,9 +508,10 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image:
+  /*background-image:
     linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);*/
+  background: rgba(255,255,255,0.02);
   background-size: 48px 48px;
   pointer-events: none;
 }
@@ -596,6 +649,12 @@
     padding: 32px 20px 0;
   }
 
+  .hero--with-sell-cta {
+    min-height: auto;
+    padding-bottom: 0;
+    display: block;
+  }
+
   .hero__main {
     flex-direction: column;
     align-items: stretch;
@@ -626,6 +685,10 @@
     padding: 32px 28px;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .hero--with-sell-cta .sell-cta {
+    margin-top: 20px;
   }
 
   .sell-cta__actions {
@@ -704,3 +767,118 @@ html.dark .carousel-nav--next {
   backdrop-filter: blur(6px);
 }
 
+/* Overlay */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(10, 10, 10, 0.55);
+  backdrop-filter: blur(10px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 1000;
+
+  animation: overlayFade 0.25s ease;
+}
+
+/* Card */
+.popup-card {
+  width: 90%;
+  max-width: 340px;
+
+  padding: 22px 24px;
+  border-radius: 18px;
+
+  /* Glass + depth */
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.08),
+    rgba(255,255,255,0.03)
+  );
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(14px);
+
+  color: #fff;
+  text-align: center;
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.65),
+    0 0 40px rgba(31, 107, 82, 0.15);
+
+  position: relative;
+
+  animation: popupEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Optional glow accent */
+.popup-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+
+  background: radial-gradient(
+    circle at top,
+    rgba(255,255,255,0.15),
+    transparent 60%
+  );
+
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Title */
+.popup-card h3 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin-bottom: 10px;
+}
+
+/* Text */
+.popup-card p {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 18px;
+}
+
+/* Button refinement */
+.popup-card .btn-outline {
+  width: 100%;
+  padding: 10px;
+
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+
+  transition: all 0.25s ease;
+}
+
+.popup-card .btn-outline:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+
+/* Animations */
+@keyframes popupEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes overlayFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
