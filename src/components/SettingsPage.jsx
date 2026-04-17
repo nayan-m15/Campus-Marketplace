@@ -190,39 +190,45 @@ function handleDarkMode(val) {
       <section style={sectionStyle}>
         <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "var(--gray-900)" }}>Change Password</h2>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <label style={labelStyle}>New password</label>
-            <input
-              type="password"
-              style={inputStyle}
-              placeholder="At least 6 characters"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Confirm new password</label>
-            <input
-              type="password"
-              style={inputStyle}
-              placeholder="Repeat new password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
+        {!user ? (
+          <p style={{ fontSize: 14, color: "var(--gray-600)", margin: 0 }}>
+            You must be logged in to change your password.
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <label style={labelStyle}>New password</label>
+              <input
+                type="password"
+                style={inputStyle}
+                placeholder="At least 6 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Confirm new password</label>
+              <input
+                type="password"
+                style={inputStyle}
+                placeholder="Repeat new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
 
-          {passwordError && <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>{passwordError}</p>}
-          {passwordMsg && <p style={{ color: "var(--green)", fontSize: 13, margin: 0 }}>{passwordMsg}</p>}
+            {passwordError && <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>{passwordError}</p>}
+            {passwordMsg && <p style={{ color: "var(--green)", fontSize: 13, margin: 0 }}>{passwordMsg}</p>}
 
-          <button
-            onClick={handleChangePassword}
-            disabled={passwordLoading}
-            style={{ alignSelf: "flex-start", padding: "10px 24px", borderRadius: 9, border: "none", background: "var(--green)", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "var(--font)", opacity: passwordLoading ? 0.7 : 1 }}
-          >
-            {passwordLoading ? "Updating…" : "Update password"}
-          </button>
-        </div>
+            <button
+              onClick={handleChangePassword}
+              disabled={passwordLoading}
+              style={{ alignSelf: "flex-start", padding: "10px 24px", borderRadius: 9, border: "none", background: "var(--green)", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "var(--font)", opacity: passwordLoading ? 0.7 : 1 }}
+            >
+              {passwordLoading ? "Updating…" : "Update password"}
+            </button>
+          </div>
+        )}
       </section>
 
       {/* ── Notification Preferences ── */}
@@ -296,7 +302,11 @@ function handleDarkMode(val) {
           This permanently deletes your account, all your listings, and all your data. This cannot be undone.
         </p>
 
-        {!showDeleteConfirm ? (
+        {!user ? (
+          <p style={{ fontSize: 14, color: "var(--gray-600)", margin: 0 }}>
+            You must be logged in to delete your account.
+          </p>
+        ) : !showDeleteConfirm ? (
           <button
             onClick={() => setShowDeleteConfirm(true)}
             style={{ padding: "10px 24px", borderRadius: 9, border: "1.5px solid #ef4444", background: "#fff", color: "#ef4444", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "var(--font)" }}
