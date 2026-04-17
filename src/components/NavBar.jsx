@@ -147,46 +147,51 @@ export default function Navbar({
               <div className="navbar__menu-backdrop" onClick={() => setMenuOpen(false)} />
               <nav className="navbar__menu" aria-label="Side menu">
                 <ul>
-                  <li>
-                    <button onClick={() => { onProfile?.(); setMenuOpen(false); }}>
-                      Profile
-                    </button>
-                  </li>
-                  <li>
-                    <button onClick={() => { onYourListings?.(); setMenuOpen(false); }}>
-                      Your Listings
-                    </button>
-                  </li>
+                  {user && (
+                    <>
+                      <li>
+                        <button onClick={() => { onProfile?.(); setMenuOpen(false); }}>
+                          Profile
+                        </button>
+                      </li>
+                      <li>
+                        <button onClick={() => { onYourListings?.(); setMenuOpen(false); }}>
+                          Your Listings
+                        </button>
+                      </li>
 
-                  {/* ── Wishlist entry with optional count badge ── */}
-                  <li>
-                    <button
-                      onClick={() => { onWishlist?.(); setMenuOpen(false); }}
-                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}
-                    >
-                      <span>Wishlist</span>
-                      {wishlistCount > 0 && (
-                        <span style={{
-                          background: "#166534",
-                          color: "#fff",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          borderRadius: 20,
-                          padding: "1px 7px",
-                          minWidth: 20,
-                          textAlign: "center",
-                        }}>
-                          {wishlistCount}
-                        </span>
-                      )}
-                    </button>
-                  </li>
+                      {/* ── Wishlist entry with optional count badge ── */}
+                      <li>
+                        <button
+                          onClick={() => { onWishlist?.(); setMenuOpen(false); }}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}
+                        >
+                          <span>Wishlist</span>
+                          {wishlistCount > 0 && (
+                            <span style={{
+                              background: "#166534",
+                              color: "#fff",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              borderRadius: 20,
+                              padding: "1px 7px",
+                              minWidth: 20,
+                              textAlign: "center",
+                            }}>
+                              {wishlistCount}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    </>
+                  )}
 
                   <li>
                     <button onClick={() => { onSettings?.(); setMenuOpen(false); }}>
                       Settings
                     </button>
                   </li>
+
                   {user && (
                     <li>
                       <button onClick={() => { onSignOut?.(); setMenuOpen(false); }}>
