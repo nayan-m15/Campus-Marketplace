@@ -82,6 +82,7 @@ function ReadTicks({ status }) {
 export default function MessagesPage({
   initialRecipientId = null,
   initialListingTitle = null,
+  initialListingId = null,
   onBack,
   onViewProfile,
   onUnreadChange,   // ← NEW: callback(count) so parent can update navbar badge
@@ -100,6 +101,7 @@ export default function MessagesPage({
   const [msgsLoading, setMsgsLoading] = useState(false);
 
   const [draft, setDraft] = useState("");
+  const [activeListingId, setActiveListingId] = useState(initialListingId);
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -169,12 +171,13 @@ export default function MessagesPage({
   // ── Auto-open chat from listing ───────────────────────────
   useEffect(() => {
     if (!initialRecipientId || !user) return;
+    setActiveListingId(initialListingId || null);
     openChat(initialRecipientId);
     if (initialListingTitle) {
       setDraft(`Hi! I'm interested in your listing: "${initialListingTitle}". Is it still available?`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialRecipientId, user]);
+  }, [initialRecipientId, initialListingId, user]);
 
   // ── Mark messages as read ────────────────────────────────
   const markAsRead = useCallback(async (peerId) => {
@@ -198,6 +201,7 @@ export default function MessagesPage({
   // ── Open a chat ───────────────────────────────────────────
   const openChat = useCallback(async (peerId) => {
     if (!peerId) return;
+    if (peerId !== initialRecipientId) setActiveListingId(null);
     setActiveId(peerId);
     setMessages([]);
     setMsgsLoading(true);
@@ -228,7 +232,7 @@ export default function MessagesPage({
       if (exists) return prev;
       return [{ peerId, profile: profile || { id: peerId }, lastMsg: null }, ...prev];
     });
-  }, [user, markAsRead]);
+  }, [user, markAsRead, initialRecipientId]);
 
   // ── Realtime ──────────────────────────────────────────────
   useEffect(() => {
@@ -323,6 +327,7 @@ export default function MessagesPage({
       content: text,
       created_at: new Date().toISOString(),
       is_read: false,
+      listing_id: activeListingId,
     };
     setMessages((prev) => [...prev, optimistic]);
 
@@ -331,6 +336,7 @@ export default function MessagesPage({
       receiver_id: activeId,
       content: text,
       created_at: optimistic.created_at,
+      listing_id: activeListingId,
     });
 
     if (error) {

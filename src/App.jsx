@@ -31,8 +31,66 @@ function isProfileComplete(profile) {
 }
 
 // ── Unread message count hook ──────────────────────────────
-function useUnreadCount(user) {
+function canUseBrowserNotifications() {
+  return typeof window !== "undefined" && "Notification" in window;
+}
+
+function showBrowserNotification(title, options) {
+  if (!canUseBrowserNotifications() || window.Notification.permission !== "granted") return false;
+  new window.Notification(title, options);
+  return true;
+}
+
+async function buildIncomingMessageNotice(message) {
+  let senderName = "Someone";
+  let listingTitle = null;
+
+  const { data: sender } = await supabase
+    .from("profiles")
+    .select("display_name, name")
+    .eq("id", message.sender_id)
+    .single();
+
+  if (sender?.display_name || sender?.name) {
+    senderName = sender.display_name || sender.name;
+  }
+
+  if (message.listing_id) {
+    const { data: listing } = await supabase
+      .from("listings")
+      .select("title")
+      .eq("id", message.listing_id)
+      .single();
+    listingTitle = listing?.title || null;
+  }
+
+  return {
+    title: listingTitle ? `${senderName} messaged about ${listingTitle}` : `New message from ${senderName}`,
+    body: message.content || "Open Campus Marketplace to reply.",
+  };
+}
+
+async function fetchNotificationPrefs(userId, fallback) {
+  const { data } = await supabase
+    .from("profiles")
+    .select("notif_messages, notif_listing_activity")
+    .eq("id", userId)
+    .single();
+
+  if (!data) return fallback;
+
+  return {
+    notif_messages: data.notif_messages !== false,
+    notif_listing_activity: data.notif_listing_activity !== false,
+  };
+}
+
+function useUnreadCount(user, onIncomingMessage) {
   const [unreadCount, setUnreadCount] = useState(0);
+  const notificationPrefsRef = useRef({
+    notif_messages: true,
+    notif_listing_activity: true,
+  });
 
   useEffect(() => {
     if (!user) { setUnreadCount(0); return; }
@@ -47,16 +105,59 @@ function useUnreadCount(user) {
 
   useEffect(() => {
     if (!user) return;
+    supabase
+      .from("profiles")
+      .select("notif_messages, notif_listing_activity")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+        notificationPrefsRef.current = {
+          notif_messages: data.notif_messages !== false,
+          notif_listing_activity: data.notif_listing_activity !== false,
+        };
+      });
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
     const channel = supabase
       .channel("navbar-unread")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
         if (payload.new.receiver_id === user.id) {
           setUnreadCount((prev) => prev + 1);
+
+          fetchNotificationPrefs(user.id, notificationPrefsRef.current)
+            .then((prefs) => {
+              notificationPrefsRef.current = prefs;
+              const isListingMessage = Boolean(payload.new.listing_id);
+              const shouldNotify = isListingMessage
+                ? prefs.notif_listing_activity || prefs.notif_messages
+                : prefs.notif_messages;
+
+              if (!shouldNotify) return null;
+              return buildIncomingMessageNotice(payload.new);
+            })
+            .then((notice) => {
+              if (!notice) return;
+              const shownInBrowser = showBrowserNotification(notice.title, {
+                body: notice.body,
+                tag: `message-${payload.new.id}`,
+              });
+              onIncomingMessage?.({ ...notice, browser: shownInBrowser });
+            })
+            .catch(() => {
+              onIncomingMessage?.({
+                title: "New message",
+                body: payload.new.content || "Open Campus Marketplace to reply.",
+                browser: false,
+              });
+            });
         }
       })
       .subscribe();
     return () => supabase.removeChannel(channel);
-  }, [user]);
+  }, [user, onIncomingMessage]);
 
   return [unreadCount, setUnreadCount];
 }
@@ -131,6 +232,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
         sender_id: user.id,
         receiver_id: item.user_id,
         content: message.trim(),
+        listing_id: item.id,
       });
       if (error) throw new Error(error.message);
       setMessage("");
@@ -280,6 +382,8 @@ function AppInner() {
   const [profileName, setProfileName] = useState(null);
   const [msgRecipientId, setMsgRecipientId] = useState(null);
   const [msgListingTitle, setMsgListingTitle] = useState(null);
+  const [msgListingId, setMsgListingId] = useState(null);
+  const [messageNotice, setMessageNotice] = useState(null);
 
   const [profileChecked, setProfileChecked] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
@@ -287,7 +391,12 @@ function AppInner() {
   const [isStaff, setIsStaff] = useState(false);
 
   // ── Unread message count for navbar badge ─────────────────
-  const [unreadCount, setUnreadCount] = useUnreadCount(user);
+  const handleIncomingMessage = useCallback((notice) => {
+    setMessageNotice(notice);
+    setTimeout(() => setMessageNotice(null), 5000);
+  }, []);
+
+  const [unreadCount, setUnreadCount] = useUnreadCount(user, handleIncomingMessage);
   const { wishlistItems, isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(user);
 
   // ── Refs for the filter bar and listings section so CTA/search can scroll cleanly ──
@@ -428,6 +537,7 @@ function AppInner() {
     }
     setMsgRecipientId(item.user_id || null);
     setMsgListingTitle(item.title);
+    setMsgListingId(item.id || null);
     setPage("messages");
   }
 
@@ -458,6 +568,7 @@ function AppInner() {
     setShowForm(false);
     setMsgRecipientId(null);
     setMsgListingTitle(null);
+    setMsgListingId(null);
     setPublicProfileId(null);
     setPrevPage("home");
     window.location.assign(getAppBaseUrl());
@@ -498,6 +609,7 @@ function AppInner() {
     onMessages: () => {
       setMsgRecipientId(null);
       setMsgListingTitle(null);
+      setMsgListingId(null);
       setPage("messages");
     },
     onSignOut: signOut,
@@ -509,10 +621,29 @@ function AppInner() {
     unreadCount,
   };
 
+  const messageNoticeToast = messageNotice && (
+    <button
+      type="button"
+      onClick={() => {
+        setMessageNotice(null);
+        setMsgRecipientId(null);
+        setMsgListingTitle(null);
+        setMsgListingId(null);
+        setPage("messages");
+      }}
+      style={{ position: "fixed", top: 20, right: 20, maxWidth: 320, textAlign: "left", background: "var(--gray-900)", color: "#fff", padding: "12px 16px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", cursor: "pointer", fontFamily: "var(--font)" }}
+      aria-label="Open new message notification"
+    >
+      <span style={{ display: "block", marginBottom: 4 }}>{messageNotice.title}</span>
+      <span style={{ display: "block", fontWeight: 400, opacity: 0.88 }}>{messageNotice.body}</span>
+    </button>
+  );
+
   if (page === "profile") {
     return (
       <>
         <header><Navbar {...navbarProps} /></header>
+        {messageNoticeToast}
         <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} onNameChange={setProfileName} />
       </>
     );
@@ -522,6 +653,7 @@ function AppInner() {
     return (
       <>
         <header><Navbar {...navbarProps} /></header>
+        {messageNoticeToast}
         <PublicProfilePage
           userId={publicProfileId}
           onBack={() => setPage(prevPage)}
@@ -530,6 +662,7 @@ function AppInner() {
               ? () => {
                   setMsgRecipientId(publicProfileId);
                   setMsgListingTitle(null);
+                  setMsgListingId(null);
                   setPage("messages");
                 }
               : null
@@ -543,12 +676,15 @@ function AppInner() {
     return (
       <>
         <header><Navbar {...navbarProps} /></header>
+        {messageNoticeToast}
         <MessagesPage
           initialRecipientId={msgRecipientId}
           initialListingTitle={msgListingTitle}
+          initialListingId={msgListingId}
           onBack={() => {
             setMsgRecipientId(null);
             setMsgListingTitle(null);
+            setMsgListingId(null);
             goHome();
           }}
           onViewProfile={(sellerId) => {
@@ -566,6 +702,7 @@ function AppInner() {
     return (
       <>
         <header><Navbar {...navbarProps} /></header>
+        {messageNoticeToast}
         <YourListingsPage
           onBack={goHome}
           onListingChanged={() =>
@@ -583,6 +720,7 @@ function AppInner() {
     return (
       <>
         <header><Navbar {...navbarProps} /></header>
+        {messageNoticeToast}
         <WishlistPage
           wishlistItems={wishlistItems}
           loading={wishlistLoading}
@@ -606,6 +744,7 @@ function AppInner() {
   return (
     <>
       <header><Navbar {...navbarProps} /></header>
+      {messageNoticeToast}
       <SettingsPage onBack={goHome} onSignOut={signOut} onAccountDeleted={handleAccountDeleted} />
     </>
   );
@@ -621,6 +760,8 @@ function AppInner() {
             {successMessage}
           </div>
         )}
+
+        {messageNoticeToast}
 
         {showForm && (
           <dialog className="modal-overlay" open onClick={() => setShowForm(false)}>

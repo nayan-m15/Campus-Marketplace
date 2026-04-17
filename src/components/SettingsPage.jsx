@@ -17,6 +17,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
   const [notifMessages, setNotifMessages] = useState(true);
   const [notifListingActivity, setNotifListingActivity] = useState(true);
   const [notifSaved, setNotifSaved] = useState(false);
+  const [notifPermissionMsg, setNotifPermissionMsg] = useState("");
   // ── Appearance ──
   const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
   // ── Delete account ──
@@ -79,6 +80,23 @@ function handleDarkMode(val) {
 
   async function handleSaveNotifications() {
     if (!user) return;
+    setNotifPermissionMsg("");
+
+    if ((notifMessages || notifListingActivity) && "Notification" in window) {
+      if (window.Notification.permission === "default") {
+        const permission = await window.Notification.requestPermission();
+        if (permission === "granted") {
+          setNotifPermissionMsg("Browser notifications enabled.");
+        } else {
+          setNotifPermissionMsg("Browser notifications are blocked, so alerts will only show while the app is open.");
+        }
+      } else if (window.Notification.permission === "denied") {
+        setNotifPermissionMsg("Browser notifications are blocked in this browser.");
+      }
+    } else if (notifMessages || notifListingActivity) {
+      setNotifPermissionMsg("This browser does not support desktop notifications.");
+    }
+
     await supabase
       .from("profiles")
       .update({
@@ -266,6 +284,7 @@ function handleDarkMode(val) {
           </div>
 
           {notifSaved && <p style={{ color: "var(--green)", fontSize: 13, margin: 0 }}>Preferences saved!</p>}
+          {notifPermissionMsg && <p style={{ color: "var(--gray-600)", fontSize: 13, margin: 0 }}>{notifPermissionMsg}</p>}
 
           <button
             onClick={handleSaveNotifications}
