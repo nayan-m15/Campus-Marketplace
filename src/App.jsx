@@ -493,7 +493,7 @@ function AppInner() {
     },
     onLogin: () => setPage("login"),
     onSignup: () => setPage("signup"),
-    onShowListingForm: () => setShowForm(true),
+    onShowListingForm: () => { goHome(); setShowForm(true); },
     onProfile: () => setPage("profile"),
     onMessages: () => {
       setMsgRecipientId(null);
