@@ -10,6 +10,16 @@ function getDigitsOnly(value) {
   return String(value ?? "").replace(/\D/g, "");
 }
 
+function formatZAR(value) {
+  const num = Number(String(value).replace(/[^0-9.]/g, ""));
+  if (isNaN(num)) return "R 0";
+  return new Intl.NumberFormat("en-ZA", {
+    style: "currency",
+    currency: "ZAR",
+    minimumFractionDigits: 0,
+  }).format(num);
+}
+
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
@@ -187,7 +197,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   </span>
                 </div>
 
-                <p style={{ fontSize: 18, fontWeight: 800, color: "var(--gray-900)", margin: "0 0 4px" }}>{item.price}</p>
+                <p style={{ fontSize: 18, fontWeight: 800, color: "var(--gray-900)", margin: "0 0 4px" }}>{formatZAR(item.price)}</p>
                 <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "0 0 16px" }}>{item.category}</p>
 
                 {/* Actions */}
