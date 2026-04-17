@@ -33,3 +33,6 @@ jobs:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run Vitest with coverage
+        run: npx vitest run --coverage
