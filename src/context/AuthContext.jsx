@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { getAppBaseUrl } from "../utils/appUrl";
 
 const AuthContext = createContext(null);
 
@@ -76,9 +77,7 @@ export function AuthProvider({ children }) {
   };
 
   const signInWithGoogle = async ({ redirectTo } = {}) => {
-    const resolvedRedirect =
-      redirectTo ??
-      new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+    const resolvedRedirect = redirectTo ?? getAppBaseUrl();
 
     return supabase.auth.signInWithOAuth({
       provider: "google",

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { getAppBaseUrl } from "../utils/appUrl";
 import "../styles/Auth.css";
 
 export default function SignupPage({ onNavigate }) {
@@ -27,7 +28,7 @@ export default function SignupPage({ onNavigate }) {
     }
 
     setLoading(true);
-    const redirectTo = `${window.location.origin}${window.location.pathname}`;
+    const redirectTo = getAppBaseUrl();
 
     const { data, error } = await signUp(email, password, {
       emailRedirectTo: redirectTo,
@@ -68,7 +69,7 @@ export default function SignupPage({ onNavigate }) {
     setError("");
     setGoogleLoading(true);
     // Same origin-aware redirect for Google OAuth
-    const redirectTo = `${window.location.origin}${window.location.pathname}`;
+    const redirectTo = getAppBaseUrl();
     const { error } = await signInWithGoogle({ redirectTo });
     setGoogleLoading(false);
     if (error) setError(error.message);

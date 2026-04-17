@@ -56,10 +56,12 @@ Create a local env file such as `.env.local` and add:
 
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_KEY=your_supabase_anon_key
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_APP_URL=https://your-deployed-app.example.com
+VITE_BASE_PATH=/
 ```
 
-The app currently reads `VITE_SUPABASE_KEY` in [`src/supabaseClient.js`](/C:/Users/hpars/OneDrive/Documents/GitHub/Campus-Marketplace/src/supabaseClient.js) and `VITE_SUPABASE_URL` in both [`src/supabaseClient.js`](/C:/Users/hpars/OneDrive/Documents/GitHub/Campus-Marketplace/src/supabaseClient.js) and [`src/config.js`](/C:/Users/hpars/OneDrive/Documents/GitHub/Campus-Marketplace/src/config.js).
+The app reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in [`src/supabaseClient.js`](/C:/Users/hpars/OneDrive/Documents/GitHub/Campus-Marketplace/src/supabaseClient.js). `VITE_APP_URL` is used for auth redirects, and `VITE_BASE_PATH` lets you override the GitHub Pages base path when deploying elsewhere.
 
 ## Available Scripts
 

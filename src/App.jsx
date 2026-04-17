@@ -21,6 +21,7 @@ import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
 import YourListingsPage from "./components/YourListingsPage";
 import { useWishlist } from "./context/useWishlist";
 import SettingsPage from "./components/SettingsPage";
+import { getAppBaseUrl } from "./utils/appUrl";
 
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
@@ -334,13 +335,13 @@ function AppInner() {
 
     supabase
       .from("profiles")
-      .select("name, avatar_url, role, sex, birthdate, province, institution")
+      .select("name, display_name, avatar_url, role, sex, birthdate, province, institution")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (data) {
           setAvatarUrl(data.avatar_url || null);
-          setProfileName(data.name || null);
+          setProfileName(data.display_name || data.name || null);
           setIsAdmin(data.role === "admin");
           setIsStaff(data.role === "staff");
           setNeedsSetup(!isProfileComplete(data));
@@ -459,7 +460,7 @@ function AppInner() {
     setMsgListingTitle(null);
     setPublicProfileId(null);
     setPrevPage("home");
-    window.location.assign(new URL(import.meta.env.BASE_URL, window.location.origin).toString());
+    window.location.assign(getAppBaseUrl());
   }
 
   if (!loading && user && (page === "login" || page === "signup")) {
@@ -487,7 +488,9 @@ function AppInner() {
     onSearchFocus: handleScrollToListings,
     user,
     avatarUrl,
-    profileName,
+    profile: {
+      display_name: profileName,
+    },
     onLogin: () => setPage("login"),
     onSignup: () => setPage("signup"),
     onShowListingForm: () => setShowForm(true),

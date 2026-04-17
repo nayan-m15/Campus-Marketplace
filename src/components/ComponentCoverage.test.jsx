@@ -281,6 +281,37 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
   expect(onSignOut).toHaveBeenCalled();
 });
 
+test("Navbar prefers the profile display name over auth metadata and email prefix", () => {
+  render(
+    <Navbar
+      searchQuery=""
+      onSearchChange={vi.fn()}
+      user={{
+        email: "asdf@gmail.com",
+        user_metadata: { full_name: "Google Name" },
+      }}
+      profile={{ display_name: "CampusAlias", name: "Full Student Name" }}
+    />
+  );
+
+  expect(screen.getByRole("button", { name: /campusalias/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^asdf$/i })).not.toBeInTheDocument();
+});
+
+test("Navbar falls back to the full profile name when no display name exists", () => {
+  render(
+    <Navbar
+      searchQuery=""
+      onSearchChange={vi.fn()}
+      user={{ email: "asdf@gmail.com" }}
+      profile={{ name: "Full Student Name" }}
+    />
+  );
+
+  expect(screen.getByRole("button", { name: /full student name/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^asdf$/i })).not.toBeInTheDocument();
+});
+
 test("LoginPage submits credentials and shows provider errors", async () => {
   authFns.signIn.mockResolvedValueOnce({ error: { message: "Bad credentials" } });
   authFns.signInWithGoogle.mockResolvedValueOnce({ error: { message: "OAuth failed" } });
