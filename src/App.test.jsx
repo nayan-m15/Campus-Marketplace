@@ -42,7 +42,8 @@ vi.mock("./data/listings", () => ({
         category: "Electronics",
         seller: "Saurav",
         distance: "0 km",
-        image_url: "",
+        image_url: "/ps5-1.jpg",
+        image_urls: ["/ps5-1.jpg", "/ps5-2.jpg"],
         emoji: "Gamepad",
         rating: 4,
         reviewCount: 2,
@@ -51,6 +52,7 @@ vi.mock("./data/listings", () => ({
         approximate_location: "Johannesburg",
         institution: "Wits",
         joined_year: 2024,
+        created_at: "2026-02-01T08:00:00.000Z",
       },
       {
         id: "2",
@@ -70,6 +72,7 @@ vi.mock("./data/listings", () => ({
         approximate_location: "Pretoria",
         institution: "UP",
         joined_year: 2023,
+        created_at: "2026-03-01T08:00:00.000Z",
       },
     ]),
   CATEGORIES: [
@@ -348,4 +351,138 @@ test("filters listings by category select", async () => {
       screen.queryByRole("button", { name: /open details for master shifu children toy/i })
     ).not.toBeInTheDocument();
   });
+});
+
+test("filters listings by condition select", async () => {
+  renderApp();
+  const conditionSelect = await screen.findByLabelText(/condition/i);
+
+  fireEvent.change(conditionSelect, { target: { value: "Like New" } });
+
+  expect(
+    await screen.findByRole("button", { name: /open details for master shifu children toy/i })
+  ).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(screen.queryByRole("button", { name: /open details for sony ps5/i })).not.toBeInTheDocument();
+  });
+});
+
+test("clears active filters and restores all listings", async () => {
+  renderApp();
+  const categorySelect = await screen.findByLabelText(/category/i);
+
+  fireEvent.change(categorySelect, { target: { value: "Electronics" } });
+  fireEvent.click(await screen.findByRole("button", { name: /clear filters/i }));
+
+  expect(categorySelect.value).toBe("All Items");
+  expect(await screen.findByRole("button", { name: /open details for sony ps5/i })).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: /open details for master shifu children toy/i })
+  ).toBeInTheDocument();
+});
+
+test("sorts listings by price from high to low", async () => {
+  renderApp();
+  const sortSelect = await screen.findByLabelText(/sort by/i);
+
+  fireEvent.change(sortSelect, { target: { value: "price_desc" } });
+
+  const listingButtons = await screen.findAllByRole("button", { name: /open details for/i });
+  expect(listingButtons[0]).toHaveAccessibleName(/open details for sony ps5/i);
+  expect(listingButtons[1]).toHaveAccessibleName(/open details for master shifu children toy/i);
+});
+
+test("sorts listings by newest arrival", async () => {
+  renderApp();
+  const sortSelect = await screen.findByLabelText(/sort by/i);
+
+  fireEvent.change(sortSelect, { target: { value: "newest" } });
+
+  const listingButtons = await screen.findAllByRole("button", { name: /open details for/i });
+  expect(listingButtons[0]).toHaveAccessibleName(/open details for master shifu children toy/i);
+  expect(listingButtons[1]).toHaveAccessibleName(/open details for sony ps5/i);
+});
+
+test("filters listings by custom minimum price", async () => {
+  renderApp();
+  const sortSelect = await screen.findByLabelText(/sort by/i);
+
+  fireEvent.change(sortSelect, { target: { value: "custom" } });
+  fireEvent.change(await screen.findByLabelText(/minimum price/i), {
+    target: { value: "1000" },
+  });
+
+  expect(await screen.findByRole("button", { name: /open details for sony ps5/i })).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(
+      screen.queryByRole("button", { name: /open details for master shifu children toy/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
+test("hides custom price inputs when switching back to any price", async () => {
+  renderApp();
+  const sortSelect = await screen.findByLabelText(/sort by/i);
+
+  fireEvent.change(sortSelect, { target: { value: "custom" } });
+  expect(await screen.findByLabelText(/minimum price/i)).toBeInTheDocument();
+
+  fireEvent.change(sortSelect, { target: { value: "" } });
+
+  await waitFor(() => {
+    expect(screen.queryByLabelText(/minimum price/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/maximum price/i)).not.toBeInTheDocument();
+  });
+});
+
+test("shows empty listings state when no results match the search", async () => {
+  renderApp();
+  const input = await screen.findByPlaceholderText(
+    "Search textbooks, electronics, furniture..."
+  );
+
+  fireEvent.change(input, { target: { value: "not-a-real-item" } });
+
+  expect(await screen.findByRole("heading", { name: /results for "not-a-real-item"/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /no listings yet/i })).toBeInTheDocument();
+});
+
+test("cycles listing modal images with carousel controls", async () => {
+  renderApp();
+  fireEvent.click(await screen.findByRole("button", { name: /open details for sony ps5/i }));
+
+  const closeButton = await screen.findByRole("button", { name: /close item details/i });
+  const modalContent = closeButton.closest(".item-modal-content");
+  const image = within(modalContent).getByAltText(/sony ps5/i);
+  expect(image).toHaveAttribute("src", "/ps5-1.jpg");
+
+  fireEvent.click(await screen.findByRole("button", { name: /show next image/i }));
+  expect(image).toHaveAttribute("src", "/ps5-2.jpg");
+
+  fireEvent.click(await screen.findByRole("button", { name: /show previous image/i }));
+  expect(image).toHaveAttribute("src", "/ps5-1.jpg");
+});
+
+test("closes modal when Escape is pressed", async () => {
+  renderApp();
+  fireEvent.click(await screen.findByRole("button", { name: /open details for sony ps5/i }));
+  expect(await screen.findByRole("heading", { name: /description/i })).toBeInTheDocument();
+
+  fireEvent.keyDown(window, { key: "Escape" });
+
+  await waitFor(() => {
+    expect(screen.queryByRole("heading", { name: /description/i })).not.toBeInTheDocument();
+  });
+});
+
+test("navigates to login and signup pages from logged-out actions", async () => {
+  renderApp();
+
+  fireEvent.click(await screen.findByRole("button", { name: /log in/i }));
+  expect(await screen.findByRole("heading", { name: /welcome back/i })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: /sign up free/i }));
+  expect(await screen.findByRole("heading", { name: /create your account/i })).toBeInTheDocument();
 });
