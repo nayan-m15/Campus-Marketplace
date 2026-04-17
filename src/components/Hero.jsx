@@ -32,6 +32,7 @@ export default function Hero({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef(null);
+  const [showPopup, setShowPopup] = useState(false);
 
   const [topListings, setTopListings] = useState([]);
   const [heroStats, setHeroStats] = useState([
@@ -136,7 +137,7 @@ export default function Hero({
   const handleMouseLeave = () => setIsPaused(false);
 
   return (
-    <section className="hero">
+    <section className={`hero${!user ? " hero--with-sell-cta" : ""}`}>
       <figure className="hero__bg" aria-hidden="true" />
       <figure className="hero__overlay" aria-hidden="true" />
 
@@ -160,9 +161,31 @@ export default function Hero({
             <button
               className="btn-outline"
               style={{ fontSize: 15, padding: "13px 28px" }}
+              onClick={() => setShowPopup(true)}
             >
               How It Works
             </button>
+             {showPopup && (
+                <div className="popup-overlay" onClick={() => setShowPopup(false)}>
+                  <div
+                    className="popup-card"
+                    onClick={(e) => e.stopPropagation()} // prevents closing when clicking inside
+                  >
+                    <h3>How It Works</h3>
+                    <p>
+                      Browse listings, connect with sellers, and securely complete your
+                      transaction — all in one place.
+                    </p>
+
+                    <button
+                      className="btn-outline"
+                      onClick={() => setShowPopup(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
           </nav>
 
           <ul className="hero__badges">

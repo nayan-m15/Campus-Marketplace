@@ -5,6 +5,12 @@ import "../styles/ListingForm.css";
  
 const CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"];
 const MAX_IMAGES = 5;
+const LISTING_TITLE_MAX = 90;
+const LISTING_DESCRIPTION_MAX = 350;
+
+function clampLength(value, maxLength) {
+  return String(value ?? "").slice(0, maxLength);
+}
  
 // ── Horizontal Scroll Image Strip ───────────────────────────
 function ImageScrollStrip({ images, onChange }) {
@@ -329,10 +335,10 @@ export default function ListingForm({ onCancel, onSuccess }) {
             placeholder="e.g. Sony WH-1000XM5 Headphones"
             value={name}
             onChange={(e) => {
-              setName(e.target.value);
+              setName(clampLength(e.target.value, LISTING_TITLE_MAX));
               setErrors((er) => ({ ...er, name: undefined }));
             }}
-            maxLength={120}
+            maxLength={LISTING_TITLE_MAX}
             autoComplete="off"
             aria-invalid={!!errors.name}
           />
@@ -352,8 +358,8 @@ export default function ListingForm({ onCancel, onSuccess }) {
             className="lf__input"
             placeholder="Describe the item — age, any wear, what's included, reason for selling…"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            maxLength={600}
+            onChange={(e) => setDescription(clampLength(e.target.value, LISTING_DESCRIPTION_MAX))}
+            maxLength={LISTING_DESCRIPTION_MAX}
             rows={3}
             style={{
               height: "auto",

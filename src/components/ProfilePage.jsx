@@ -140,6 +140,49 @@ const INSTITUTIONS_BY_PROVINCE = {
 };
 
 const PROVINCES = Object.keys(INSTITUTIONS_BY_PROVINCE);
+const PROFILE_NAME_MAX = 80;
+const PROFILE_DISPLAY_NAME_MAX = 40;
+const PROFILE_ABOUT_MAX = 300;
+const PROFILE_PHONE_MAX = 15;
+const MIN_BIRTHDATE = "1900-01-01";
+
+function getMaxBirthdate() {
+  const today = new Date();
+  today.setFullYear(today.getFullYear() - 12);
+  return today.toISOString().split("T")[0];
+}
+
+function clampLength(value, maxLength) {
+  return String(value ?? "").slice(0, maxLength);
+}
+
+function parseBirthdate(value) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isValidBirthdate(value) {
+  if (!value) return true;
+
+  const date = parseBirthdate(value);
+  if (!date) return false;
+
+  const minDate = new Date(MIN_BIRTHDATE);
+  if (date < minDate) return false;
+
+  const today = new Date();
+
+  const minAge = new Date(
+    today.getFullYear() - 12,
+    today.getMonth(),
+    today.getDate()
+  );
+
+  if (date > minAge) return false;
+
+  return true;
+}
 
 // ── Profile completion config ────────────────────────────────
 const COMPLETION_FIELDS = [
@@ -199,6 +242,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [memberSince, setMemberSince] = useState(null);
+  const [phoneError, setPhoneError] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -282,6 +326,16 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     setSaving(true);
 
     try {
+      if (!isValidBirthdate(form.birthdate)) {
+        throw new Error("Please enter a valid date of birth.");
+      }
+
+      const digits = form.phone.replace(/\D/g, "");
+
+      if (digits && (!isValidPhone(digits) || !isNotFake(digits))) {
+        throw new Error("Please enter a valid phone number.");
+      }
+      
       let avatarUrl = avatarPreview;
 
       if (avatarFile) {
@@ -314,7 +368,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
           institution: form.institution || null,
           birthdate: form.birthdate || null,
           sex: form.sex || null,
-          phone: form.phone.trim() || null,
+          phone: form.phone ? form.phone.replace(/\D/g, "") : null,
           avatar_url: avatarUrl || null,
           updated_at: new Date().toISOString(),
         },
@@ -345,6 +399,25 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
       </div>
     );
   }
+
+  function formatPhone(value) {
+    const digits = value.replace(/\D/g, "").slice(0, 10);
+
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+
+  function isValidPhone(phone) {
+    const digits = phone.replace(/\D/g, "");
+    return /^(0[6-8]\d{8})$/.test(digits);
+  }
+
+  function isNotFake(phone) {
+    const digits = phone.replace(/\D/g, "");
+    return !/^(\d)\1+$/.test(digits);
+  }
+
 
   return (
     <div className="profile-page">
@@ -411,8 +484,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   type="text"
                   placeholder="Your full name"
                   value={form.name}
-                  onChange={(e) => set("name", e.target.value)}
-                  maxLength={80}
+                  onChange={(e) => set("name", clampLength(e.target.value, PROFILE_NAME_MAX))}
+                  maxLength={PROFILE_NAME_MAX}
                 />
               </div>
               <div className="profile-field">
@@ -422,8 +495,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   type="text"
                   placeholder="Shown on listings"
                   value={form.display_name}
-                  onChange={(e) => set("display_name", e.target.value)}
-                  maxLength={40}
+                  onChange={(e) => set("display_name", clampLength(e.target.value, PROFILE_DISPLAY_NAME_MAX))}
+                  maxLength={PROFILE_DISPLAY_NAME_MAX}
                 />
               </div>
             </div>
@@ -445,7 +518,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   type="date"
                   value={form.birthdate}
                   onChange={(e) => set("birthdate", e.target.value)}
-                  max={new Date().toISOString().split("T")[0]}
+                  min={MIN_BIRTHDATE}
+                  max={getMaxBirthdate()}
                 />
               </div>
             </div>
@@ -456,10 +530,10 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                 id="pf-about"
                 placeholder="A short bio — what you're studying, what you sell, anything buyers should know…"
                 value={form.about}
-                onChange={(e) => set("about", e.target.value)}
-                maxLength={300}
+                onChange={(e) => set("about", clampLength(e.target.value, PROFILE_ABOUT_MAX))}
+                maxLength={PROFILE_ABOUT_MAX}
               />
-              <span className="profile-field__hint">{form.about.length}/300</span>
+              <span className="profile-field__hint">{form.about.length}/{PROFILE_ABOUT_MAX}</span>
             </div>
 
             <p className="profile-section-title">Location & Institution</p>
@@ -508,23 +582,33 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
 
             <div className="profile-field-row">
               <div className="profile-field">
-                <label htmlFor="pf-email">Email</label>
-                <input id="pf-email" type="email" value={user?.email || ""} readOnly />
-                <span className="profile-field__hint">Managed via your login</span>
-              </div>
-              <div className="profile-field">
                 <label htmlFor="pf-phone">Phone number</label>
                 <input
                   id="pf-phone"
                   type="tel"
                   placeholder="e.g. 071 234 5678"
                   value={form.phone}
-                  onChange={(e) => set("phone", e.target.value)}
-                  maxLength={15}
-                />
-              </div>
-            </div>
+                  onChange={(e) => {
+                    const formatted = formatPhone(e.target.value);
+                    set("phone", formatted);
 
+                    const digits = formatted.replace(/\D/g, "");
+                  if (!digits) {
+                    setPhoneError("");
+                  } else if (!isValidPhone(digits)) {
+                    setPhoneError("Enter a valid SA mobile number");
+                  } else if (!isNotFake(digits)) {
+                    setPhoneError("That number looks fake");
+                  } else {
+                    setPhoneError("");
+                  }
+                  }}
+                />
+                {phoneError && (
+                  <span className="profile-field__error">{phoneError}</span>
+                )}
+            </div>
+            </div>
           </div>
 
           <div className="profile-card__footer">

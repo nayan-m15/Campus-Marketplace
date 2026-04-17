@@ -4,9 +4,10 @@ import "../styles/Navbar.css";
 export default function Navbar({
   searchQuery,
   onSearchChange,
+  onSearchFocus,
   user,
   avatarUrl,
-  profileName,
+  profile,
   onLogin,
   onSignup,
   onSignOut,
@@ -23,7 +24,7 @@ export default function Navbar({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const displayName =
-    profileName ||
+    profile?.display_name ||
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     user?.email?.split("@")[0] ||
@@ -55,6 +56,8 @@ export default function Navbar({
           placeholder="Search textbooks, electronics, furniture..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
+          onFocus={onSearchFocus}
+          onClick={onSearchFocus}
         />
       </form>
 
@@ -164,7 +167,7 @@ export default function Navbar({
                       <span>Wishlist</span>
                       {wishlistCount > 0 && (
                         <span style={{
-                          background: "var(--amber)",
+                          background: "#166534",
                           color: "#fff",
                           fontSize: 11,
                           fontWeight: 700,

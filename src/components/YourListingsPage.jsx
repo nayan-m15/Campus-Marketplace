@@ -3,6 +3,26 @@ import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { CONDITION_COLORS } from "../data/listings";
 
+const LISTING_TITLE_MAX = 90;
+const LISTING_DESCRIPTION_MAX = 350;
+
+function getDigitsOnly(value) {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
+function formatZAR(value) {
+  const num = Number(String(value).replace(/[^0-9.]/g, ""));
+  if (isNaN(num)) return "R 0";
+  return new Intl.NumberFormat("en-ZA", {
+    style: "currency",
+    currency: "ZAR",
+    minimumFractionDigits: 0,
+  }).format(num);
+}
+
+function clampLength(value, maxLength) {
+  return String(value ?? "").slice(0, maxLength);
+}
 export default function YourListingsPage({ onBack, onListingChanged }) {
   const { user } = useAuth();
   const [listings, setListings] = useState([]);
@@ -69,13 +89,20 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   async function handleEditSave(e) {
     e.preventDefault();
     const { id, title, price, condition, description, category } = editingItem;
+    const numericPrice = Number(price);
+
+    if (!price || Number.isNaN(numericPrice) || numericPrice <= 0) {
+      setError("Please enter a valid numeric price greater than zero.");
+      return;
+    }
+
     const { error } = await supabase
       .from("listings")
-      .update({ title, price, condition, description, category })
+      .update({ title, price: numericPrice, condition, description, category })
       .eq("id", id);
     if (error) { setError(error.message); return; }
     setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, ...editingItem } : l))
+      prev.map((l) => (l.id === id ? { ...l, ...editingItem, price: numericPrice } : l))
     );
     setEditingItem(null);
     showSuccess("Listing updated!");
@@ -170,14 +197,22 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   </span>
                 </div>
 
-                <p style={{ fontSize: 18, fontWeight: 800, color: "var(--gray-900)", margin: "0 0 4px" }}>{item.price}</p>
+                <p style={{ fontSize: 18, fontWeight: 800, color: "var(--gray-900)", margin: "0 0 4px" }}>{formatZAR(item.price)}</p>
                 <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "0 0 16px" }}>{item.category}</p>
 
                 {/* Actions */}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
                     className="your-listings-btn"
-                    onClick={() => setEditingItem({ ...item })}
+                    onClick={() => {
+                      setError(null);
+                      setEditingItem({
+                        ...item,
+                        title: clampLength(item.title, LISTING_TITLE_MAX),
+                        description: clampLength(item.description, LISTING_DESCRIPTION_MAX),
+                        price: getDigitsOnly(item.price),
+                      });
+                    }}
                     style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "var(--gray-800)" }}
                   >
                     Edit
@@ -246,8 +281,9 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 Title
                 <input
                   value={editingItem.title}
-                  onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
+                  onChange={(e) => setEditingItem({ ...editingItem, title: clampLength(e.target.value, LISTING_TITLE_MAX) })}
                   style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--gray-200)", fontSize: 14, fontFamily: "var(--font)", outline: "none" }}
+                  maxLength={LISTING_TITLE_MAX}
                   required
                 />
               </label>
@@ -255,8 +291,14 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
               <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
                 Price
                 <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={editingItem.price}
-                  onChange={(e) => setEditingItem({ ...editingItem, price: e.target.value })}
+                  onChange={(e) => {
+                    setError(null);
+                    setEditingItem({ ...editingItem, price: getDigitsOnly(e.target.value) });
+                  }}
                   style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--gray-200)", fontSize: 14, fontFamily: "var(--font)", outline: "none" }}
                   required
                 />
@@ -279,9 +321,10 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 Description
                 <textarea
                   value={editingItem.description || ""}
-                  onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                  onChange={(e) => setEditingItem({ ...editingItem, description: clampLength(e.target.value, LISTING_DESCRIPTION_MAX) })}
                   rows={3}
                   style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--gray-200)", fontSize: 14, fontFamily: "var(--font)", outline: "none", resize: "vertical" }}
+                  maxLength={LISTING_DESCRIPTION_MAX}
                 />
               </label>
 
