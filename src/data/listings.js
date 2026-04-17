@@ -121,7 +121,8 @@ export async function fetchListings(currentUserId = null) {
   try {
     let query = supabase
       .from("listings")
-      .select("id, title, description, price, condition, user_id, image_url, image_urls, category")
+      .select("id, title, description, price, condition, user_id, image_url, image_urls, category, status")
+      .neq("status", "sold")
       .order("created_at", { ascending: false });
 
     if (currentUserId) {

@@ -564,7 +564,14 @@ function AppInner() {
     return (
       <>
         <header><Navbar {...navbarProps} /></header>
-        <YourListingsPage onBack={goHome} />
+        <YourListingsPage
+          onBack={goHome}
+          onListingChanged={() =>
+            fetchListings(user?.id)
+              .then(setAllListings)
+              .catch((err) => setListingsError(err.message))
+          }
+        />
       </>
     );
   }
@@ -579,10 +586,17 @@ function AppInner() {
           loading={wishlistLoading}
           onListingClick={(item) => {
             setSelectedListing(item);
-            setPage("home");
           }}
           onToggleWishlist={toggleWishlist}
         />
+        <ListingDetailsModal
+          item={selectedListing}
+          onClose={() => setSelectedListing(null)}
+          onMessageSeller={handleMessageSeller}
+          user={user}
+          isWishlisted={isWishlisted}
+          onToggleWishlist={user ? toggleWishlist : null}
+          />
       </>
     );
   }
