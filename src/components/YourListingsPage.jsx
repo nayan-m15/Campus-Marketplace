@@ -5,9 +5,15 @@ import { CONDITION_COLORS } from "../data/listings";
 
 const LISTING_TITLE_MAX = 90;
 const LISTING_DESCRIPTION_MAX = 350;
+const LISTING_PRICE_MAX_DIGITS = 8;
+const LISTING_PRICE_MAX_VALUE = 99999999;
 
 function getDigitsOnly(value) {
   return String(value ?? "").replace(/\D/g, "");
+}
+
+function clampPriceDigits(value) {
+  return getDigitsOnly(value).slice(0, LISTING_PRICE_MAX_DIGITS);
 }
 
 function formatZAR(value) {
@@ -23,12 +29,26 @@ function formatZAR(value) {
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
+
+function formatEditPrice(value) {
+  const digits = clampPriceDigits(value);
+
+  if (!digits) {
+    return "";
+  }
+
+  return `R${Number(digits).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).replace(/,/g, ", ")}`;
+}
 export default function YourListingsPage({ onBack, onListingChanged }) {
   const { user } = useAuth();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
+  const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -87,12 +107,18 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
 }
 
   async function handleEditSave(e) {
-    e.preventDefault();
+    e?.preventDefault?.();
     const { id, title, price, condition, description, category } = editingItem;
-    const numericPrice = Number(price);
+    const normalizedPrice = clampPriceDigits(price);
+    const numericPrice = Number(normalizedPrice);
 
-    if (!price || Number.isNaN(numericPrice) || numericPrice <= 0) {
-      setError("Please enter a valid numeric price greater than zero.");
+    if (!normalizedPrice || Number.isNaN(numericPrice) || numericPrice <= 0) {
+      setError("Please enter a valid price greater than zero.");
+      return;
+    }
+
+    if (normalizedPrice.length > LISTING_PRICE_MAX_DIGITS || numericPrice > LISTING_PRICE_MAX_VALUE) {
+      setError("Price must be 8 digits or less. The maximum allowed is R 99 999 999.");
       return;
     }
 
@@ -102,9 +128,19 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
       .eq("id", id);
     if (error) { setError(error.message); return; }
     setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, ...editingItem, price: numericPrice } : l))
+      prev.map((l) => (
+        l.id === id
+          ? {
+              ...l,
+              ...editingItem,
+              price: numericPrice,
+              description: clampLength(description, LISTING_DESCRIPTION_MAX),
+            }
+          : l
+      ))
     );
     setEditingItem(null);
+    setIsEditingPrice(false);
     showSuccess("Listing updated!");
   }
 
@@ -210,8 +246,9 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                         ...item,
                         title: clampLength(item.title, LISTING_TITLE_MAX),
                         description: clampLength(item.description, LISTING_DESCRIPTION_MAX),
-                        price: getDigitsOnly(item.price),
+                        price: clampPriceDigits(item.price),
                       });
+                      setIsEditingPrice(false);
                     }}
                     style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "var(--gray-800)" }}
                   >
@@ -293,15 +330,29 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 <input
                   type="text"
                   inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={editingItem.price}
+                  pattern="[0-9\\s,\\.R]*"
+                  placeholder="R0.00"
+                  value={isEditingPrice ? editingItem.price : formatEditPrice(editingItem.price)}
                   onChange={(e) => {
                     setError(null);
-                    setEditingItem({ ...editingItem, price: getDigitsOnly(e.target.value) });
+                    setEditingItem({ ...editingItem, price: clampPriceDigits(e.target.value) });
                   }}
-                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--gray-200)", fontSize: 14, fontFamily: "var(--font)", outline: "none" }}
+                  onFocus={() => setIsEditingPrice(true)}
+                  onBlur={() => setIsEditingPrice(false)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: 9,
+                    border: "1.5px solid var(--gray-200)",
+                    fontSize: 14,
+                    fontFamily: "var(--font)",
+                    outline: "none",
+                  }}
                   required
                 />
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--gray-500)" }}>
+                  Currency format. Maximum 8 digits, up to R 99 999 999.
+                </span>
               </label>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
@@ -321,23 +372,46 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 Description
                 <textarea
                   value={editingItem.description || ""}
-                  onChange={(e) => setEditingItem({ ...editingItem, description: clampLength(e.target.value, LISTING_DESCRIPTION_MAX) })}
-                  rows={3}
-                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--gray-200)", fontSize: 14, fontFamily: "var(--font)", outline: "none", resize: "vertical" }}
+                  onChange={(e) => {
+                    setError(null);
+                    setEditingItem({
+                      ...editingItem,
+                      description: clampLength(e.target.value, LISTING_DESCRIPTION_MAX),
+                    });
+                  }}
+                  rows={6}
+                  style={{
+                    minHeight: 160,
+                    padding: "12px 14px",
+                    borderRadius: 9,
+                    border: "1.5px solid var(--gray-200)",
+                    fontSize: 14,
+                    fontFamily: "var(--font)",
+                    outline: "none",
+                    resize: "vertical",
+                    lineHeight: 1.5,
+                  }}
                   maxLength={LISTING_DESCRIPTION_MAX}
                 />
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--gray-500)" }}>
+                  {(editingItem.description || "").length}/{LISTING_DESCRIPTION_MAX} characters
+                </span>
               </label>
 
               <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                 <button
                   type="button"
-                  onClick={() => setEditingItem(null)}
+                  onClick={() => {
+                    setEditingItem(null);
+                    setIsEditingPrice(false);
+                  }}
                   style={{ flex: 1, padding: "10px", borderRadius: 9, border: "1px solid var(--gray-200)", background: "var(--surface)", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleEditSave}
                   style={{ flex: 1, padding: "10px", borderRadius: 9, border: "none", background: "var(--green)", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
                 >
                   Save Changes

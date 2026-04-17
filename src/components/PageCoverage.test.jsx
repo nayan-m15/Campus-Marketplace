@@ -360,12 +360,18 @@ test("YourListingsPage edits status and deletes a listing", async () => {
   fireEvent.click(screen.getByRole("button", { name: /edit/i }));
   fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Desk Lamp Pro" } });
   fireEvent.change(screen.getByLabelText(/price/i), { target: { value: "300" } });
-  fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
+  fireEvent.submit(screen.getByRole("button", { name: /save changes/i }).closest("form"));
 
-  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
-    "listings",
-    expect.objectContaining({ title: "Desk Lamp Pro", price: 300 })
-  ));
+  await waitFor(() =>
+    expect(
+      mocks.update.mock.calls.some(
+        ([table, payload]) =>
+          table === "listings" &&
+          payload?.title === "Desk Lamp Pro" &&
+          payload?.price === 300
+      )
+    ).toBe(true)
+  );
 
   fireEvent.click(screen.getByRole("button", { name: /🗑|delete/i }));
   fireEvent.click(await screen.findByRole("button", { name: /^delete$/i }));
