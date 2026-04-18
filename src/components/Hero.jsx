@@ -53,12 +53,21 @@ export default function Hero({
     async function loadHeroStats() {
       try {
         const semesterStart = getSemesterStart();
+        let activeListingsQuery = supabase
+          .from("listings")
+          .select("*", { count: "exact", head: true })
+          .neq("status", "sold");
+
+        if (user?.id) {
+          activeListingsQuery = activeListingsQuery.neq("user_id", user.id);
+        }
+
         const [
           { count: activeListingsCount, error: listingsCountError },
           { count: totalUsersCount, error: usersCountError },
           { data: soldListings, error: soldListingsError },
         ] = await Promise.all([
-          supabase.from("listings").select("*", { count: "exact", head: true }),
+          activeListingsQuery,
           supabase.from("profiles").select("*", { count: "exact", head: true }),
           supabase
             .from("listings")
@@ -105,7 +114,7 @@ export default function Hero({
     return () => {
       isMounted = false;
     };
-  }, [topListings.length]);
+  }, [topListings.length, user?.id]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % topListings.length);
