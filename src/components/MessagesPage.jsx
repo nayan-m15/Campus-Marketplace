@@ -110,6 +110,13 @@ export default function MessagesPage({
   const [iAmTheLister, setIAmTheLister] = useState(false);
   const [conversationListing, setConversationListing] = useState(null);
 
+  // Offer state
+  const [offers, setOffers] = useState([]); // offers for this conversation
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [offerAmount, setOfferAmount] = useState("");
+  const [offerSending, setOfferSending] = useState(false);
+  const [offerError, setOfferError] = useState("");
+
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
   const realtimeRef = useRef(null);
@@ -212,6 +219,10 @@ export default function MessagesPage({
     setMsgsLoading(true);
     setIAmTheLister(false);
     setConversationListing(null);
+    setOffers([]);
+    setShowOfferModal(false);
+    setOfferAmount("");
+    setOfferError("");
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -236,17 +247,40 @@ export default function MessagesPage({
     const msgWithListing = [...(msgs || [])].reverse().find((m) => m.listing_id);
 
     if (msgWithListing) {
+      // The lister is whoever OWNS the listing (not the one who sent the first message).
+      // The buyer sends the first message about a listing, so:
+      //   - if the peer sent the message → peer is the buyer → I am the lister
+      //   - if I sent the message → I am the buyer → peer is the lister
       const buyerIsThePeer = msgWithListing.sender_id === peerId;
       setIAmTheLister(buyerIsThePeer);
 
+      const { data: listing } = await supabase
+        .from("listings")
+        .select("id, title, price")
+        .eq("id", String(msgWithListing.listing_id))
+        .maybeSingle();
+
       if (buyerIsThePeer) {
-        const { data: listing } = await supabase
-          .from("listings")
-          .select("id, title, price")
-          .eq("id", String(msgWithListing.listing_id))
-          .maybeSingle();
+        // I am the lister — store listing so I can send offers
         setConversationListing(listing || { id: msgWithListing.listing_id, title: null, price: null });
       }
+
+      // Both sides fetch offers for this listing + conversation
+      const { data: existingOffers } = await supabase
+        .from("offers")
+        .select("*")
+        .eq("listing_id", String(msgWithListing.listing_id))
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${user.id})`)
+        .order("created_at", { ascending: true });
+      setOffers(existingOffers || []);
+    } else {
+      // Fallback: fetch offers by participants (no listing_id in any message)
+      const { data: fallbackOffers } = await supabase
+        .from("offers")
+        .select("*")
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${user.id})`)
+        .order("created_at", { ascending: true });
+      setOffers(fallbackOffers || []);
     }
 
     // Mark as read now that we've opened the chat
@@ -324,6 +358,42 @@ export default function MessagesPage({
     return () => supabase.removeChannel(channel);
   }, [user, markAsRead]);
 
+  // ── Realtime: offers ──────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("offers-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "offers" }, (payload) => {
+        const offer = payload.new;
+        if (offer.sender_id !== user.id && offer.receiver_id !== user.id) return;
+        setActiveId((curActive) => {
+          const peerId = offer.sender_id === user.id ? offer.receiver_id : offer.sender_id;
+          if (curActive === peerId) {
+            setOffers((prev) => {
+              if (prev.find((o) => o.id === offer.id)) return prev;
+              // If this new offer replaces a pending one from the same sender, mark old ones declined
+              return [
+                ...prev.map((o) =>
+                  o.sender_id === offer.sender_id && o.receiver_id === offer.receiver_id && o.status === "pending" && o.id !== offer.id
+                    ? { ...o, status: "declined" }
+                    : o
+                ),
+                offer,
+              ];
+            });
+          }
+          return curActive;
+        });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "offers" }, (payload) => {
+        const offer = payload.new;
+        if (offer.sender_id !== user.id && offer.receiver_id !== user.id) return;
+        setOffers((prev) => prev.map((o) => o.id === offer.id ? offer : o));
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [user]);
+
   // ── Scroll to bottom ──────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -377,6 +447,86 @@ export default function MessagesPage({
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  };
+
+  // ── Send Offer (lister → buyer) ───────────────────────────
+  const sendOffer = async () => {
+    const amount = parseFloat(offerAmount.replace(/[^0-9.]/g, ""));
+    if (!amount || amount <= 0) { setOfferError("Please enter a valid amount."); return; }
+    if (!conversationListing?.id || !activeId) return;
+    setOfferSending(true);
+    setOfferError("");
+
+    // Cancel any existing pending offer for this listing+conversation (replace it)
+    await supabase
+      .from("offers")
+      .update({ status: "declined", responded_at: new Date().toISOString() })
+      .eq("listing_id", conversationListing.id)
+      .eq("sender_id", user.id)
+      .eq("receiver_id", activeId)
+      .eq("status", "pending");
+
+    const { data: newOffer, error } = await supabase
+      .from("offers")
+      .insert({
+        listing_id: conversationListing.id,
+        sender_id: user.id,
+        receiver_id: activeId,
+        amount,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (error) { setOfferError("Failed to send offer."); setOfferSending(false); return; }
+
+    setOffers((prev) => [
+      ...prev.map((o) =>
+        o.sender_id === user.id && o.receiver_id === activeId && o.status === "pending"
+          ? { ...o, status: "declined" }
+          : o
+      ),
+      newOffer,
+    ]);
+    setShowOfferModal(false);
+    setOfferAmount("");
+    setOfferSending(false);
+  };
+
+  // ── Cancel Offer (lister) ────────────────────────────────
+  const cancelOffer = async (offerId) => {
+    const { data: updatedOffer, error } = await supabase
+      .from("offers")
+      .update({ status: "cancelled", responded_at: new Date().toISOString() })
+      .eq("id", offerId)
+      .select()
+      .single();
+
+    if (error) { console.error(error.message); return; }
+    setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
+  };
+
+  // ── Respond to Offer (buyer) ──────────────────────────────
+  const respondToOffer = async (offerId, accept) => {
+    const newStatus = accept ? "accepted" : "declined";
+    const { data: updatedOffer, error } = await supabase
+      .from("offers")
+      .update({ status: newStatus, responded_at: new Date().toISOString() })
+      .eq("id", offerId)
+      .select()
+      .single();
+
+    if (error) { console.error(error.message); return; }
+
+    setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
+
+    if (accept && updatedOffer) {
+      // Update listing: set sold_price to accepted amount
+      await supabase
+        .from("listings")
+        .update({ sold_price: updatedOffer.amount })
+        .eq("id", updatedOffer.listing_id);
+    }
   };
 
   const peerName = (profile) => profile?.display_name || profile?.name || "Unknown User";
@@ -542,13 +692,53 @@ export default function MessagesPage({
                       <span className="msg-buyer-banner__card-sub">{activePeer.institution}</span>
                     )}
                   </div>
-                  <button
-                    className="msg-buyer-banner__btn"
-                    onClick={() => onViewProfile?.(activePeer.id)}
-                    type="button"
-                  >
-                    View buyer
-                  </button>
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    <button
+                      className="msg-buyer-banner__btn msg-buyer-banner__btn--offer"
+                      onClick={() => { setShowOfferModal(true); setOfferError(""); setOfferAmount(""); }}
+                      type="button"
+                    >
+                      Send Offer
+                    </button>
+                    <button
+                      className="msg-buyer-banner__btn"
+                      onClick={() => onViewProfile?.(activePeer.id)}
+                      type="button"
+                    >
+                      View buyer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Send Offer Modal ── */}
+            {showOfferModal && conversationListing && (
+              <div className="msg-offer-modal-overlay" onClick={() => setShowOfferModal(false)}>
+                <div className="msg-offer-modal" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="msg-offer-modal__title">Send an Offer</h3>
+                  <p className="msg-offer-modal__sub">
+                    Listing price: <strong>R{Number(conversationListing.price).toLocaleString("en-ZA")}</strong>
+                  </p>
+                  <div className="msg-offer-modal__input-wrap">
+                    <span className="msg-offer-modal__currency">R</span>
+                    <input
+                      className="msg-offer-modal__input"
+                      type="number"
+                      min="1"
+                      placeholder="0"
+                      value={offerAmount}
+                      onChange={(e) => { setOfferAmount(e.target.value); setOfferError(""); }}
+                      autoFocus
+                    />
+                  </div>
+                  {offerError && <p className="msg-offer-modal__error">{offerError}</p>}
+                  <div className="msg-offer-modal__actions">
+                    <button className="msg-offer-modal__cancel" onClick={() => setShowOfferModal(false)} type="button">Cancel</button>
+                    <button className="msg-offer-modal__send" onClick={sendOffer} disabled={offerSending} type="button">
+                      {offerSending ? "Sending…" : "Send Offer"}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -565,31 +755,89 @@ export default function MessagesPage({
                 </div>
               )}
 
-              {Object.entries(groupedMessages).map(([date, msgs]) => (
-                <div key={date}>
-                  <div className="msg-date-divider"><span>{dateLabel(date)}</span></div>
-                  {msgs.map((msg) => {
-                    const mine = msg.sender_id === user.id;
-                    const tickStatus = !msg.id
-                      ? "sending"
-                      : msg.is_read
-                      ? "read"
-                      : "sent";
-                    return (
-                      <div key={msg.id} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
-                        {!mine && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
-                        <div className={`msg-bubble ${mine ? "msg-bubble--mine" : "msg-bubble--theirs"}`}>
-                          <p>{msg.content}</p>
-                          <span className="msg-bubble__time" style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
-                            {new Date(msg.created_at).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
-                            {mine && <ReadTicks status={tickStatus} />}
-                          </span>
+              {(() => {
+                // Merge messages and offers into one sorted timeline
+                const timeline = [
+                  ...messages.map((m) => ({ ...m, _type: "message" })),
+                  ...offers.map((o) => ({ ...o, _type: "offer" })),
+                ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+                // Group by date
+                const groups = {};
+                for (const item of timeline) {
+                  const date = new Date(item.created_at).toDateString();
+                  if (!groups[date]) groups[date] = [];
+                  groups[date].push(item);
+                }
+
+                return Object.entries(groups).map(([date, items]) => (
+                  <div key={date}>
+                    <div className="msg-date-divider"><span>{dateLabel(date)}</span></div>
+                    {items.map((item) => {
+                      if (item._type === "offer") {
+                        const iMadeoffer = item.sender_id === user.id;
+                        const isPending = item.status === "pending";
+                        const isAccepted = item.status === "accepted";
+                        const isDeclined = item.status === "declined";
+                        return (
+                          <div key={`offer-${item.id}`} className="msg-offer-card-wrap">
+                            <div className={`msg-offer-card ${isAccepted ? "msg-offer-card--accepted" : isDeclined ? "msg-offer-card--declined" : item.status === "cancelled" ? "msg-offer-card--declined" : ""}`}>
+                              <div className="msg-offer-card__header">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                                <span className="msg-offer-card__label">
+                                  {iMadeoffer ? `You offered ${peerName(activePeer)}` : `${peerName(activePeer)} offered you`}
+                                </span>
+                              </div>
+                              <div className="msg-offer-card__amount">
+                                R{Number(item.amount).toLocaleString("en-ZA")}
+                              </div>
+                              {isPending && !iMadeoffer && (
+                                <div className="msg-offer-card__actions">
+                                  <button className="msg-offer-card__decline" onClick={() => respondToOffer(item.id, false)} type="button">Decline</button>
+                                  <button className="msg-offer-card__accept" onClick={() => respondToOffer(item.id, true)} type="button">Accept</button>
+                                </div>
+                              )}
+                              {isPending && iMadeoffer && (
+                                <div className="msg-offer-card__actions">
+                                  <p className="msg-offer-card__status msg-offer-card__status--pending" style={{ margin: 0 }}>Waiting for response…</p>
+                                  <button className="msg-offer-card__cancel-offer" onClick={() => cancelOffer(item.id)} type="button">Cancel Offer</button>
+                                </div>
+                              )}
+                              {isAccepted && (
+                                <p className="msg-offer-card__status msg-offer-card__status--accepted">✓ Offer accepted</p>
+                              )}
+                              {isDeclined && (
+                                <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer declined</p>
+                              )}
+                              {item.status === "cancelled" && (
+                                <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer cancelled</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Regular message bubble
+                      const mine = item.sender_id === user.id;
+                      const tickStatus = !item.id ? "sending" : item.is_read ? "read" : "sent";
+                      return (
+                        <div key={item.id} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
+                          {!mine && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
+                          <div className={`msg-bubble ${mine ? "msg-bubble--mine" : "msg-bubble--theirs"}`}>
+                            <p>{item.content}</p>
+                            <span className="msg-bubble__time" style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
+                              {new Date(item.created_at).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
+                              {mine && <ReadTicks status={tickStatus} />}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
               <div ref={bottomRef} />
             </div>
 
