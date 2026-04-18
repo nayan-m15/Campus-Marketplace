@@ -106,6 +106,10 @@ export default function MessagesPage({
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Buyer info banner: shown to the lister when a buyer messages about a listing
+  const [iAmTheLister, setIAmTheLister] = useState(false);
+  const [conversationListing, setConversationListing] = useState(null);
+
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
   const realtimeRef = useRef(null);
@@ -206,6 +210,8 @@ export default function MessagesPage({
     setActiveId(peerId);
     setMessages([]);
     setMsgsLoading(true);
+    setIAmTheLister(false);
+    setConversationListing(null);
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -224,6 +230,24 @@ export default function MessagesPage({
 
     setMessages(msgs || []);
     setMsgsLoading(false);
+
+    // ── Buyer info banner ────────────────────────────────────
+    // Use the most recent message that has a listing_id (latest inquired listing)
+    const msgWithListing = [...(msgs || [])].reverse().find((m) => m.listing_id);
+
+    if (msgWithListing) {
+      const buyerIsThePeer = msgWithListing.sender_id === peerId;
+      setIAmTheLister(buyerIsThePeer);
+
+      if (buyerIsThePeer) {
+        const { data: listing } = await supabase
+          .from("listings")
+          .select("id, title, price")
+          .eq("id", String(msgWithListing.listing_id))
+          .maybeSingle();
+        setConversationListing(listing || { id: msgWithListing.listing_id, title: null, price: null });
+      }
+    }
 
     // Mark as read now that we've opened the chat
     await markAsRead(peerId);
@@ -494,6 +518,40 @@ export default function MessagesPage({
                 </>
               )}
             </header>
+
+            {/* ── Buyer Info Banner (shown to lister only) ── */}
+            {iAmTheLister && activePeer && (
+              <div className="msg-buyer-banner">
+                <div className="msg-buyer-banner__listing-row">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 0 1-8 0"/>
+                  </svg>
+                  <span>
+                    {conversationListing?.title
+                      ? <>Your listing · <strong>{conversationListing.title}</strong>{conversationListing.price != null ? <> · <em>R{Number(conversationListing.price).toLocaleString("en-ZA")}</em></> : null}</>
+                      : "Marketplace listing"}
+                  </span>
+                </div>
+                <div className="msg-buyer-banner__card">
+                  <Avatar url={activePeer.avatar_url} name={peerName(activePeer)} size={38} />
+                  <div className="msg-buyer-banner__card-info">
+                    <span className="msg-buyer-banner__card-name">{peerName(activePeer)}</span>
+                    {activePeer.institution && (
+                      <span className="msg-buyer-banner__card-sub">{activePeer.institution}</span>
+                    )}
+                  </div>
+                  <button
+                    className="msg-buyer-banner__btn"
+                    onClick={() => onViewProfile?.(activePeer.id)}
+                    type="button"
+                  >
+                    View buyer
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="msg-chat__body">
               {msgsLoading && (
