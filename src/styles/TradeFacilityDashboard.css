@@ -41,7 +41,9 @@ body {
 
 .dashboard-main {
   flex: 1;
-  background: var(--surface-muted);
+  /*background: var(--surface-muted);*/
+  background-color: var(--mint);
+  /*background: url(/public/DesktopStaffBackground.jpg);*/
   overflow-x: auto;
   padding: 0 32px 32px 32px;
   min-width: 0;
@@ -840,52 +842,86 @@ body {
 .overview-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 24px;
   margin-bottom: 24px;
 }
 
+/* Glass card container (apply this to parent cards if possible) */
+.glass-card {
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Badge */
 .schedule-count {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--green);
-  background: var(--mint);
-  padding: 4px 10px;
-  border-radius: 40px;
+  color: var(--navy);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(6px);
+  padding: 6px 12px;
+  border-radius: 999px;
   white-space: nowrap;
   align-self: flex-start;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* Schedule list (in overview cards) */
+/* List */
 .schedule-list {
   list-style: none;
   padding: 8px 0;
 }
 
+/* Item */
 .schedule-item {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 24px;
-  border-bottom: 1px solid #f9f9f9;
-  transition: background 0.15s;
+  padding: 14px 20px;
+  margin: 6px 8px;
+  border-radius: 12px;
+
+  
+  background: rgba(255, 255, 255, 0.075);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  transition: all 0.2s ease;
 }
 
-.schedule-item:last-child { border-bottom: none; }
-.schedule-item:hover { background: var(--surface-muted); }
+/* Hover interaction */
+.schedule-item:hover {
+  background: rgba(255, 255, 255, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
 
+/* Time */
 .schedule-item__time {
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--green);
+  color: var(--navy);
   font-variant-numeric: tabular-nums;
-  min-width: 44px;
+  min-width: 48px;
   flex-shrink: 0;
+  opacity: 0.85;
 }
 
-.schedule-item__info { flex: 1; min-width: 0; }
+/* Info container */
+.schedule-item__info {
+  flex: 1;
+  min-width: 0;
+}
 
+/* Name */
 .schedule-item__name {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--navy);
   white-space: nowrap;
@@ -893,9 +929,10 @@ body {
   text-overflow: ellipsis;
 }
 
+/* Sub text */
 .schedule-item__item {
-  font-size: 0.72rem;
-  color: var(--green);
+  font-size: 0.75rem;
+  color: rgba(20, 40, 60, 0.75); /* softer navy for hierarchy */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
