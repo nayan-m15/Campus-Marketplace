@@ -39,7 +39,7 @@ export default function Navbar({
     <header className="navbar">
 
       {/* Logo */}
-      <button className="navbar__logo" aria-label="Go to homepage" onClick={onHome}>
+      <button className="navbar__logo" aria-label="Go to homepage" onClick={() => { onHome?.(); setMenuOpen(false); }}>
         <strong className="navbar__logo-icon">
             <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="navbar__logo-img" />
         </strong>
@@ -65,7 +65,7 @@ export default function Navbar({
       </form>
 
       {/* Right side */}
-      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <div className="navbar__actions">
 
         <nav aria-label="User navigation">
           <ul className="navbar__links">
@@ -153,6 +153,11 @@ export default function Navbar({
                   {user && (
                     <>
                       <li>
+                        <button onClick={() => { onMessages?.(); setMenuOpen(false); }}>
+                          Messages
+                        </button>
+                      </li>
+                      <li>
                         <button onClick={() => { onProfile?.(); setMenuOpen(false); }}>
                           Profile
                         </button>
@@ -184,6 +189,26 @@ export default function Navbar({
                               {wishlistCount}
                             </span>
                           )}
+                        </button>
+                      </li>
+                      <li>
+                        <button onClick={() => { onShowListingForm?.(); setMenuOpen(false); }}>
+                          List Item
+                        </button>
+                      </li>
+                    </>
+                  )}
+
+                  {!user && (
+                    <>
+                      <li>
+                        <button onClick={() => { onLogin?.(); setMenuOpen(false); }}>
+                          Log In
+                        </button>
+                      </li>
+                      <li>
+                        <button onClick={() => { onSignup?.(); setMenuOpen(false); }}>
+                          Sign Up
                         </button>
                       </li>
                     </>

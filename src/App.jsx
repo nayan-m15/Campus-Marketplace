@@ -408,7 +408,9 @@ function AppInner() {
   function handleScrollToListings() {
     if (!filterBarRef.current || !listingsSectionRef.current) return;
 
-    const navbarOffset = 64;
+    const navbarOffset = Number.parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue("--navbar-height"),
+    ) || 64;
     const filterBarHeight = filterBarRef.current.getBoundingClientRect().height;
     const listingsTop =
       listingsSectionRef.current.getBoundingClientRect().top +

@@ -4,7 +4,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   padding: 0 32px;
   position: sticky;
-  top: 64px;
+  top: var(--navbar-height);
   z-index: 90;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
@@ -174,8 +174,31 @@
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 640px) {
   .filter-bar { padding: 0 16px; }
-  .filter-bar__fieldset { gap: 10px; }
-  .filter-bar__select { min-width: 120px; }
+  .filter-bar__fieldset {
+    gap: 12px;
+    align-items: stretch;
+  }
+  .filter-bar__label {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-bar__select { min-width: 0; width: 100%; }
+  .filter-bar__range-fieldset {
+    width: 100%;
+    padding: 10px 12px 12px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .filter-bar__range-label {
+    flex: 1 1 110px;
+  }
+  .filter-bar__range-input {
+    width: 100%;
+  }
+  .filter-bar__range-sep {
+    display: none;
+  }
   .filter-bar__clear { margin-left: 0; width: 100%; }
 }
 

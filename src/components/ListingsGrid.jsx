@@ -18,19 +18,10 @@ export default function ListingsGrid({
     : activeCategory;
 
   return (
-    <section style={{ padding: "36px 40px", maxWidth: 1280, margin: "0 auto" }}>
-      <header style={{ marginBottom: 24 }}>
-        <h2
-          style={{
-            fontSize: 24,
-            fontWeight: 700,
-            color: "var(--gray-900)",
-            letterSpacing: "-0.5px",
-          }}
-        >
-          {heading}
-        </h2>
-        <p style={{ color: "var(--gray-600)", fontSize: 14, marginTop: 4 }}>
+    <section className="listings-section">
+      <header className="listings-section__header">
+        <h2 className="listings-section__title">{heading}</h2>
+        <p className="listings-section__count">
           ↗ {listings.length} item{listings.length !== 1 ? "s" : ""} available near you
         </p>
       </header>
