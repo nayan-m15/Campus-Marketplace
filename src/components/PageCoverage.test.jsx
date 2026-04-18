@@ -298,6 +298,7 @@ test("ProfileSetupPage validates steps and saves completed profile", async () =>
     "profiles",
     expect.objectContaining({
       id: "user-1",
+      email: "student@example.com",
       name: "Test Student",
       display_name: "Test",
       institution: "University of Johannesburg (UJ)",
@@ -326,7 +327,11 @@ test("ProfilePage loads profile, validates phone, and saves updates", async () =
 
   await waitFor(() => expect(mocks.upsert).toHaveBeenCalledWith(
     "profiles",
-    expect.objectContaining({ display_name: "Campus Seller", phone: "0712345678" }),
+    expect.objectContaining({
+      email: "student@example.com",
+      display_name: "Campus Seller",
+      phone: "0712345678",
+    }),
     { onConflict: "id" }
   ));
   expect(onNameChange).toHaveBeenCalledWith("Campus Seller");

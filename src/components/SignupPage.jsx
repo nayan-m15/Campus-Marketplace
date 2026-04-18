@@ -3,6 +3,20 @@ import { useAuth } from "../context/AuthContext";
 import { getAppBaseUrl } from "../utils/appUrl";
 import "../styles/Auth.css";
 
+const EMAIL_REGISTERED_MESSAGE = "Email is already registered. Try signing in instead.";
+
+function isEmailAlreadyRegistered({ data, error }) {
+  const message = error?.message?.toLowerCase() || "";
+
+  return (
+    message.includes("already registered") ||
+    message.includes("user already exists") ||
+    message.includes("already been registered") ||
+    error?.status === 422 ||
+    (Array.isArray(data?.user?.identities) && data.user.identities.length === 0)
+  );
+}
+
 export default function SignupPage({ onNavigate }) {
   const { signUp, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
@@ -36,32 +50,16 @@ export default function SignupPage({ onNavigate }) {
 
     setLoading(false);
 
-    if (error) {
-      if (
-        error.message?.toLowerCase().includes("already registered") ||
-        error.message?.toLowerCase().includes("user already exists") ||
-        error.status === 422
-      ) {
-        setError("An account with this email already exists. Try signing in instead.");
-      } else {
-        setError(error.message);
-      }
+    if (isEmailAlreadyRegistered({ data, error })) {
+      setError(EMAIL_REGISTERED_MESSAGE);
       return;
     }
 
     if (error) {
-      if (
-        error.message?.toLowerCase().includes("already registered") ||
-        error.message?.toLowerCase().includes("user already exists") ||
-        error.status === 422
-      ){
-        setError("An account with this email already exists. Try signing in instead.");
-      } 
-      else {
-        setError(error.message);
-      }
-    return;
+      setError(error.message);
+      return;
     }
+
     setSuccess(true);
   }
 

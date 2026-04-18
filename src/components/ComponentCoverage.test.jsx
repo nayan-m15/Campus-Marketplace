@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { vi, beforeEach, afterEach, expect, test } from "vitest";
 import Footer from "./Footer";
 import FilterBar from "./FilterBar";
@@ -277,7 +277,8 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
   fireEvent.click(screen.getByRole("button", { name: /settings/i }));
   expect(onSettings).toHaveBeenCalled();
 
-  fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
+  fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+  fireEvent.click(within(screen.getByRole("navigation", { name: /side menu/i })).getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
 });
 
@@ -354,6 +355,26 @@ test("SignupPage validates passwords and shows success after signup", async () =
   expect(await screen.findByRole("heading", { name: /check your email/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /back to sign in/i }));
   expect(onNavigate).toHaveBeenCalledWith("login");
+});
+
+test("SignupPage reports when an email is already registered", async () => {
+  authFns.signUp.mockResolvedValueOnce({
+    data: { user: { identities: [] } },
+    error: null,
+  });
+
+  render(<SignupPage onNavigate={vi.fn()} />);
+
+  fireEvent.change(screen.getByLabelText(/email address/i), {
+    target: { value: "student@example.com" },
+  });
+  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "secret123" } });
+  fireEvent.change(screen.getByLabelText(/confirm password/i), {
+    target: { value: "secret123" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(/email is already registered/i);
 });
 
 test("SettingsPage updates password, preferences, theme, and delete confirmation", async () => {

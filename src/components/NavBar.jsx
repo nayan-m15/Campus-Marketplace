@@ -259,7 +259,7 @@ export default function Navbar({
                   )}
 
                   <li>
-                    <button onClick={() => { setMenuOpen(false); }}>
+                    <button onClick={() => { onSettings?.(); setMenuOpen(false); }}>
                       Settings
                     </button>
                   </li>
