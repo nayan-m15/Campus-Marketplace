@@ -172,8 +172,8 @@ function FacilityPanel({ facilities, onToggleDay, onTimeChange, onCapacityChange
 // ── Reports Panel Component ─────────────────────────────────────
 function ReportsPanel() {
   const [reportType, setReportType] = useState("overview");
-  const [dateFrom, setDateFrom] = useState("2025-03-01");
-  const [dateTo, setDateTo] = useState("2025-03-31");
+  const [dateFrom, setDateFrom] = useState("2026-01-01");
+  const [dateTo, setDateTo] = useState("2026-07-31");
   const [format, setFormat] = useState("table");
   const [reportData, setReportData] = useState([]);
   const [generated, setGenerated] = useState(false);
