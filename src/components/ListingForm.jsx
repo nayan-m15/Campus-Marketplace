@@ -8,14 +8,31 @@ const MAX_IMAGES = 5;
 const LISTING_TITLE_MAX = 90;
 const LISTING_DESCRIPTION_MAX = 350;
 const LISTING_PRICE_MAX_DIGITS = 8;
-const LISTING_PRICE_MAX_VALUE = 99999999;
+const LISTING_PRICE_MAX_VALUE = 99999999.99;
+const LISTING_PRICE_MAX_CHARS = LISTING_PRICE_MAX_DIGITS + 3;
 
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
-function clampPriceDigits(value) {
-  return String(value ?? "").replace(/\D/g, "").slice(0, LISTING_PRICE_MAX_DIGITS);
+function clampPriceInput(value) {
+  const cleaned = String(value ?? "")
+    .replace(",", ".")
+    .replace(/[^0-9.]/g, "");
+  const dotIndex = cleaned.indexOf(".");
+  const whole = (dotIndex === -1 ? cleaned : cleaned.slice(0, dotIndex))
+    .replace(/\./g, "")
+    .slice(0, LISTING_PRICE_MAX_DIGITS);
+
+  if (dotIndex === -1) {
+    return whole;
+  }
+
+  const cents = cleaned
+    .slice(dotIndex + 1)
+    .replace(/\./g, "")
+    .slice(0, 2);
+  return `${whole}.${cents}`;
 }
  
 // ── Horizontal Scroll Image Strip ───────────────────────────
@@ -247,8 +264,8 @@ export default function ListingForm({ onCancel, onSuccess }) {
     if (!name.trim()) next.name = "Item name is required.";
     if (!price || isNaN(Number(price)) || Number(price) <= 0) {
       next.price = "Enter a valid price greater than zero.";
-    } else if (price.length > LISTING_PRICE_MAX_DIGITS || Number(price) > LISTING_PRICE_MAX_VALUE) {
-      next.price = "Price must be 8 digits or less. The maximum allowed is R 99 999 999.";
+    } else if (Number(price) > LISTING_PRICE_MAX_VALUE) {
+      next.price = "Price must be R 99 999 999.99 or less.";
     }
     if (!condition) next.condition = "Please select a condition.";
     return next;
@@ -318,7 +335,6 @@ export default function ListingForm({ onCancel, onSuccess }) {
     name.trim() &&
     price &&
     Number(price) > 0 &&
-    price.length <= LISTING_PRICE_MAX_DIGITS &&
     Number(price) <= LISTING_PRICE_MAX_VALUE &&
     condition;
  
@@ -399,20 +415,20 @@ export default function ListingForm({ onCancel, onSuccess }) {
             <input
               id="lf-price"
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               className={`lf__input lf__input--price ${errors.price ? "lf__input--error" : ""}`}
               placeholder="0.00"
               value={price}
               onChange={(e) => {
-                setPrice(clampPriceDigits(e.target.value));
+                setPrice(clampPriceInput(e.target.value));
                 setErrors((er) => ({ ...er, price: undefined }));
               }}
-              maxLength={LISTING_PRICE_MAX_DIGITS}
+              maxLength={LISTING_PRICE_MAX_CHARS}
               aria-invalid={!!errors.price}
             />
           </div>
           <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
-            Maximum 8 digits.
+            Maximum 8 digits before the decimal and 2 cents digits.
           </p>
           {errors.price && <p className="lf__error" role="alert">{errors.price}</p>}
         </section>

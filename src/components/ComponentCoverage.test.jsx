@@ -432,14 +432,15 @@ test("ListingForm validates required fields and publishes a completed listing", 
   expect(await screen.findByAltText(/upload 1/i)).toHaveAttribute("src", readerResult);
 
   fireEvent.change(screen.getByLabelText(/item name/i), { target: { value: "Lamp" } });
-  fireEvent.change(screen.getByLabelText(/asking price/i), { target: { value: "250" } });
+  fireEvent.change(screen.getByLabelText(/asking price/i), { target: { value: "250.75" } });
+  expect(screen.getByLabelText(/asking price/i)).toHaveValue("250.75");
   fireEvent.click(screen.getByRole("radio", { name: /good/i }));
   fireEvent.click(screen.getByRole("button", { name: /for trade/i }));
   fireEvent.click(screen.getByRole("button", { name: /publish listing/i }));
 
   await waitFor(() => expect(insert).toHaveBeenCalledWith(expect.objectContaining({
     title: "Lamp",
-    price: 250,
+    price: 250.75,
     condition: "Good",
     status: "for_trade",
   })));

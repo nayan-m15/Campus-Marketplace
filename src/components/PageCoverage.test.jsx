@@ -381,7 +381,10 @@ test("YourListingsPage edits status and deletes a listing", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: /edit/i }));
   fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Desk Lamp Pro" } });
-  fireEvent.change(screen.getByLabelText(/price/i), { target: { value: "300" } });
+  const priceInput = screen.getByLabelText(/price/i);
+  fireEvent.focus(priceInput);
+  fireEvent.change(priceInput, { target: { value: "300.75" } });
+  expect(priceInput).toHaveValue("300.75");
   fireEvent.submit(screen.getByRole("button", { name: /save changes/i }).closest("form"));
 
   await waitFor(() =>
@@ -390,7 +393,7 @@ test("YourListingsPage edits status and deletes a listing", async () => {
         ([table, payload]) =>
           table === "listings" &&
           payload?.title === "Desk Lamp Pro" &&
-          payload?.price === 300
+          payload?.price === 300.75
       )
     ).toBe(true)
   );
