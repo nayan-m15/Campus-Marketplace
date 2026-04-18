@@ -6,12 +6,11 @@ import autoTable from "jspdf-autotable";
 
 // ── Constants ───────────────────────────────────────────────────
 const MARKETPLACE_REPORT_TYPES = [
-  { value: "overview", label: "Listings Overview" },
-  { value: "category", label: "Category Breakdown" },
+  { value: "executive", label: "Executive Overview" },
+  { value: "seller_performance", label: "Seller Performance" },
+  { value: "pricing", label: "Pricing Intelligence" },
+  { value: "listing_health", label: "Listing Health" },
   { value: "trend", label: "Listings Trend" },
-  { value: "condition", label: "Condition Distribution" },
-  { value: "top_sellers", label: "Top Sellers" },
-  { value: "price_distribution", label: "Price Distribution" },
 ];
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -171,7 +170,7 @@ function FacilityPanel({ facilities, onToggleDay, onTimeChange, onCapacityChange
 
 // ── Reports Panel Component ─────────────────────────────────────
 function ReportsPanel() {
-  const [reportType, setReportType] = useState("overview");
+  const [reportType, setReportType] = useState("executive");
   const [dateFrom, setDateFrom] = useState("2026-01-01");
   const [dateTo, setDateTo] = useState("2026-07-31");
   const [format, setFormat] = useState("table");
@@ -179,26 +178,222 @@ function ReportsPanel() {
   const [generated, setGenerated] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const normalizeKey = (value) =>
+    String(value ?? "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+
+  const findValue = (row, candidates = []) => {
+    if (!row) return null;
+
+    const entryMap = Object.entries(row).reduce((acc, [key, value]) => {
+      acc[normalizeKey(key)] = value;
+      return acc;
+    }, {});
+
+    for (const candidate of candidates) {
+      const directMatch = entryMap[normalizeKey(candidate)];
+      if (directMatch !== undefined && directMatch !== null && directMatch !== "") {
+        return directMatch;
+      }
+    }
+
+    return null;
+  };
+
+  const formatValue = (value, options = {}) => {
+    if (value === null || value === undefined || value === "") return "N/A";
+    if (typeof value === "number") {
+      if (options.currency) {
+        return new Intl.NumberFormat("en-ZA", {
+          style: "currency",
+          currency: "ZAR",
+          maximumFractionDigits: 2,
+        }).format(value);
+      }
+      return new Intl.NumberFormat("en-ZA").format(value);
+    }
+    return String(value);
+  };
+
+  const getReportSummary = (type, data) => {
+    if (!data.length) return [];
+
+    const firstRow = data[0];
+
+    switch (type) {
+      case "executive":
+        return [
+          {
+            label: "Total Listings",
+            value:
+              findValue(firstRow, ["total_listings", "marketplace_listings", "listings_count", "total"]) ??
+              data.length,
+          },
+          {
+            label: "Active Listings",
+            value: findValue(firstRow, ["active_listings", "active", "active_count"]),
+          },
+          {
+            label: "Sold Listings",
+            value: findValue(firstRow, ["sold_listings", "sold", "sold_count"]),
+          },
+          {
+            label: "Avg Price",
+            value: findValue(firstRow, ["avg_price", "average_price", "mean_price"]),
+            currency: true,
+          },
+          {
+            label: "Top Category",
+            value: findValue(firstRow, ["top_category", "leading_category", "category_name", "category"]),
+          },
+        ];
+      case "seller_performance":
+        return [
+          {
+            label: "Top Seller",
+            value: findValue(firstRow, ["top_seller", "seller_name", "seller", "username"]),
+          },
+          {
+            label: "Listings",
+            value: findValue(firstRow, ["listing_count", "total_listings", "listings"]),
+          },
+          {
+            label: "Items Sold",
+            value: findValue(firstRow, ["items_sold", "sold_count", "sales_count"]),
+          },
+          {
+            label: "Revenue",
+            value: findValue(firstRow, ["revenue", "total_revenue", "sales_value"]),
+            currency: true,
+          },
+        ];
+      case "pricing":
+        return [
+          {
+            label: "Dominant Price Range",
+            value: findValue(firstRow, ["price_range", "range_label", "band"]),
+          },
+          {
+            label: "Listings In Range",
+            value: findValue(firstRow, ["listing_count", "count", "total_listings"]),
+          },
+          {
+            label: "Avg Price",
+            value: findValue(firstRow, ["avg_price", "average_price"]),
+            currency: true,
+          },
+          {
+            label: "Median Price",
+            value: findValue(firstRow, ["median_price", "mid_price"]),
+            currency: true,
+          },
+        ];
+      case "listing_health":
+        return [
+          {
+            label: "Healthy Listings",
+            value: findValue(firstRow, ["healthy_listings", "healthy_count", "healthy"]),
+          },
+          {
+            label: "Flagged Listings",
+            value: findValue(firstRow, ["flagged_listings", "flagged_count", "flagged"]),
+          },
+          {
+            label: "Inactive Listings",
+            value: findValue(firstRow, ["inactive_listings", "inactive_count", "inactive"]),
+          },
+          {
+            label: "Expired Listings",
+            value: findValue(firstRow, ["expired_listings", "expired_count", "expired"]),
+          },
+        ];
+      case "trend": {
+        const latestRow = data[data.length - 1];
+        return [
+          {
+            label: "Latest Period",
+            value: findValue(latestRow, ["period", "date", "day", "month", "week"]),
+          },
+          {
+            label: "Listings",
+            value: findValue(latestRow, ["listing_count", "total_listings", "count"]),
+          },
+          {
+            label: "New Listings",
+            value: findValue(latestRow, ["new_listings", "created_count", "created"]),
+          },
+          {
+            label: "Sold Listings",
+            value: findValue(latestRow, ["sold_listings", "sold_count", "sold"]),
+          },
+        ];
+      }
+      default:
+        return [];
+    }
+  };
+
+  const generateInsights = (type, data) => {
+    if (!data.length) return [];
+
+    const firstRow = data[0];
+
+    switch (type) {
+      case "executive": {
+        const totalListings =
+          findValue(firstRow, ["total_listings", "marketplace_listings", "listings_count", "total"]) ??
+          data.length;
+        const topCategory =
+          findValue(firstRow, ["top_category", "leading_category", "category_name", "category"]) ?? "N/A";
+        return [
+          `Marketplace has ${formatValue(totalListings)} listings`,
+          `Top category is ${formatValue(topCategory)}`,
+        ];
+      }
+      case "seller_performance": {
+        const topSellerListings = findValue(firstRow, ["listing_count", "total_listings", "listings"]) ?? "N/A";
+        return [`Top seller has ${formatValue(topSellerListings)} listings`];
+      }
+      case "pricing": {
+        const priceRange = findValue(firstRow, ["price_range", "range_label", "band"]) ?? "N/A";
+        return [`Most listings fall in ${formatValue(priceRange)} price range`];
+      }
+      default:
+        return [];
+    }
+  };
+
+  const getSummaryLines = (type, data) =>
+    getReportSummary(type, data)
+      .filter((item) => item.value !== null && item.value !== undefined && item.value !== "")
+      .map((item) => `${item.label}: ${formatValue(item.value, { currency: item.currency })}`);
+
+  const csvEscape = (value) => {
+    const stringValue = String(value ?? "");
+    if (/[",\n]/.test(stringValue)) {
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+    return stringValue;
+  };
+
   const fetchReport = async () => {
     let query;
     switch (reportType) {
-      case "overview":
-        query = supabase.rpc("get_listings_overview", { start_date: dateFrom, end_date: dateTo });
+      case "executive":
+        query = supabase.rpc("get_executive_overview", { start_date: dateFrom, end_date: dateTo });
         break;
-      case "category":
-        query = supabase.rpc("get_category_report", { start_date: dateFrom, end_date: dateTo });
+      case "seller_performance":
+        query = supabase.rpc("get_seller_performance", { start_date: dateFrom, end_date: dateTo });
+        break;
+      case "pricing":
+        query = supabase.rpc("get_pricing_intelligence", { start_date: dateFrom, end_date: dateTo });
+        break;
+      case "listing_health":
+        query = supabase.rpc("get_listing_health", { start_date: dateFrom, end_date: dateTo });
         break;
       case "trend":
         query = supabase.rpc("get_trend_report", { start_date: dateFrom, end_date: dateTo });
-        break;
-      case "condition":
-        query = supabase.rpc("get_condition_report", { start_date: dateFrom, end_date: dateTo });
-        break;
-      case "top_sellers":
-        query = supabase.rpc("get_top_sellers", { start_date: dateFrom, end_date: dateTo });
-        break;
-      case "price_distribution":
-        query = supabase.rpc("get_price_distribution", { start_date: dateFrom, end_date: dateTo });
         break;
       default:
         return;
@@ -222,9 +417,21 @@ function ReportsPanel() {
 
   const downloadCSV = () => {
     if (!reportData.length) return;
-    const headers = Object.keys(reportData[0]).join(",");
-    const rows = reportData.map(r => Object.values(r).join(",")).join("\n");
-    const blob = new Blob([headers + "\n" + rows], { type: "text/csv" });
+    const columns = Object.keys(reportData[0]);
+    const summaryLines = getSummaryLines(reportType, reportData);
+    const headers = columns.map(csvEscape).join(",");
+    const rows = reportData
+      .map((row) => columns.map((column) => csvEscape(row[column])).join(","))
+      .join("\n");
+    const csvContent = [
+      "=== SUMMARY ===",
+      ...summaryLines,
+      "",
+      "=== DATA ===",
+      headers,
+      rows,
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -236,6 +443,9 @@ function ReportsPanel() {
   const downloadPDF = () => {
     if (!reportData.length) return;
     const doc = new jsPDF();
+    const summaryLines = getSummaryLines(reportType, reportData);
+    const insightLines = generateInsights(reportType, reportData);
+
     doc.setFontSize(18);
     doc.text("Unexus Marketplace Report", 14, 20);
     doc.setFontSize(12);
@@ -243,20 +453,45 @@ function ReportsPanel() {
     doc.setFontSize(10);
     doc.text(`Date Range: ${dateFrom} to ${dateTo}`, 14, 34);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 40);
+    doc.setFontSize(11);
+    doc.text("Summary", 14, 50);
+
+    doc.setFontSize(10);
+    summaryLines.forEach((line, index) => {
+      doc.text(line, 14, 56 + index * 6);
+    });
 
     const columns = Object.keys(reportData[0]);
-    const rows = reportData.map(row => columns.map(col => row[col]));
+    const rows = reportData.map((row) => columns.map((col) => row[col]));
+    const tableStartY = Math.max(75, 62 + summaryLines.length * 6);
 
     autoTable(doc, {
-      startY: 45,
+      startY: tableStartY,
       head: [columns],
       body: rows,
       styles: { fontSize: 9, cellPadding: 3 },
       headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: "center" },
       bodyStyles: { halign: "center" },
       alternateRowStyles: { fillColor: [245, 245, 245] },
-      margin: { top: 45 },
+      margin: { top: tableStartY },
     });
+
+    if (insightLines.length) {
+      let insightsY = (doc.lastAutoTable?.finalY || tableStartY) + 12;
+      const pageHeight = doc.internal.pageSize.height;
+
+      if (insightsY > pageHeight - 30) {
+        doc.addPage();
+        insightsY = 20;
+      }
+
+      doc.setFontSize(11);
+      doc.text("Insights", 14, insightsY);
+      doc.setFontSize(10);
+      insightLines.forEach((line, index) => {
+        doc.text(`- ${line}`, 14, insightsY + 8 + index * 6);
+      });
+    }
 
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
@@ -271,6 +506,9 @@ function ReportsPanel() {
     if (format === "csv") downloadCSV();
     if (format === "pdf") downloadPDF();
   };
+
+  const reportSummary = getReportSummary(reportType, reportData);
+  const reportInsights = generateInsights(reportType, reportData);
 
   return (
     <section className="panel" aria-labelledby="reports-heading">
@@ -381,6 +619,22 @@ function ReportsPanel() {
             </p>
           </header>
 
+          {reportSummary.length > 0 && (
+            <fieldset className="report-fieldset">
+              <legend className="fieldset-legend">Summary</legend>
+              <ul className="report-fields" role="list">
+                {reportSummary
+                  .filter((item) => item.value !== null && item.value !== undefined && item.value !== "")
+                  .map((item) => (
+                    <li key={item.label} className="report-field">
+                      <span className="field-label">{item.label}</span>
+                      <strong>{formatValue(item.value, { currency: item.currency })}</strong>
+                    </li>
+                  ))}
+              </ul>
+            </fieldset>
+          )}
+
           <figure className="table-figure">
             <table className="report-table">
               <thead>
@@ -401,6 +655,19 @@ function ReportsPanel() {
               </tbody>
             </table>
           </figure>
+
+          {reportInsights.length > 0 && (
+            <fieldset className="report-fieldset">
+              <legend className="fieldset-legend">Insights</legend>
+              <ul className="report-fields" role="list">
+                {reportInsights.map((insight) => (
+                  <li key={insight} className="report-field">
+                    {insight}
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+          )}
         </section>
       )}
     </section>
