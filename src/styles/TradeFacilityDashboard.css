@@ -593,6 +593,8 @@ body {
 .bstatus--completed  { background: var(--mint); color: var(--green-dark); }
 .bstatus--no-show    { background: var(--danger-soft); color: #8E3F33; }
 .bstatus--rescheduled{ background: var(--amber-pale); color: #8E5A21; }
+.bstatus--pending{background: var(--green-soft); color: var(--gray-400);}
+.bstatus--cancelled {background: var(--glass-bg); color: var(--gray-200);}
 
 /* ═══════════════════════════════════════════════════════════════════
    BOOKING TYPE TAG
