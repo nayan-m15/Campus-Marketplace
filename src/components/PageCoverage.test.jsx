@@ -463,8 +463,8 @@ test("AdminDashboard loads facilities, saves changes, and generates a report", a
   fireEvent.click(screen.getByRole("button", { name: /reports/i }));
   fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
 
-  expect(await screen.findByText(/listings overview/i)).toBeInTheDocument();
-  expect(mocks.rpc).toHaveBeenCalledWith("get_listings_overview", expect.any(Object));
+  expect(await screen.findByText(/executive overview/i)).toBeInTheDocument();
+  expect(mocks.rpc).toHaveBeenCalledWith("get_executive_overview", expect.any(Object));
 
   fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
