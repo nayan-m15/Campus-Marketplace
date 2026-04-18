@@ -89,9 +89,11 @@ export default function Navbar({
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
                   {unreadCount > 0 && (
-                    <span className="navbar__mobile-badge">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
+                    <span
+                      className="navbar__mobile-badge"
+                      data-count={unreadCount > 99 ? "99+" : unreadCount}
+                      aria-hidden="true"
+                    />
                   )}
                 </span>
               </button>
