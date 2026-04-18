@@ -1,5 +1,5 @@
 .navbar-spacer {
-  height: 64px;
+  height: var(--navbar-height);
 }
 
 .navbar {
@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
-  height: 64px;
+  height: var(--navbar-height);
   box-shadow: 0 1px 20px rgba(0, 0, 0, 0.3);
   gap: 4px;
 }
@@ -63,6 +63,12 @@
   flex: 1;
   max-width: 520px;
   position: relative;
+}
+
+.navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .navbar__search-icon {
@@ -142,6 +148,7 @@
   position: relative;
   flex-shrink: 0;
   margin-left: 0px;
+  display: none;
 }
 
 .navbar__hamburger {
@@ -229,4 +236,61 @@ html.dark .navbar__menu li button:hover {
 
 html.dark .navbar__hamburger span {
   background: #f9fafb;
+}
+
+@media (max-width: 900px) {
+  .navbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px 16px;
+    height: auto;
+    padding: 12px 16px 14px;
+  }
+
+  .navbar__logo {
+    min-width: 0;
+  }
+
+  .navbar__logo-text {
+    font-size: 17px;
+  }
+
+  .navbar__search {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .navbar__search input {
+    padding-block: 12px;
+    font-size: 15px;
+  }
+
+  .navbar__actions {
+    justify-content: flex-end;
+  }
+
+  .navbar__links {
+    display: none;
+  }
+
+  .navbar__hamburger-wrap {
+    display: block;
+  }
+
+  .navbar__hamburger {
+    padding: 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .navbar__hamburger span {
+    background: #f9fafb;
+  }
+
+  .navbar__menu {
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: min(240px, calc(100vw - 32px));
+  }
 }
