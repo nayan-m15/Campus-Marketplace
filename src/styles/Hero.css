@@ -233,10 +233,7 @@
 }
 
 .hero__stat-divider {
-  width: 1px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
+  display: none;
 }
 
 /* ── Carousel Styles ─────────────────────────────────────── */
