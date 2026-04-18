@@ -96,6 +96,14 @@ export default function SignupPage({ onNavigate }) {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <button
+          className="auth-back-btn"
+          type="button"
+          onClick={() => onNavigate("home")}
+        >
+          ←
+        </button>
+
         {/* Logo */}
         <div className="auth-logo">
           <span className="auth-logo__icon">
