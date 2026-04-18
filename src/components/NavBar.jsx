@@ -23,6 +23,7 @@ export default function Navbar({
   onSettings,      // ← NEW: total unread message count
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const displayName =
     profile?.display_name ||
@@ -36,10 +37,10 @@ export default function Navbar({
   return (
     <>
     <div className="navbar-spacer" aria-hidden="true" />
-    <header className="navbar">
+    <header className={`navbar${searchOpen ? " navbar--mobile-search-open" : ""}`}>
 
       {/* Logo */}
-      <button className="navbar__logo" aria-label="Go to homepage" onClick={() => { onHome?.(); setMenuOpen(false); }}>
+      <button className="navbar__logo" aria-label="Go to homepage" onClick={() => { onHome?.(); setMenuOpen(false); setSearchOpen(false); }}>
         <strong className="navbar__logo-icon">
             <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="navbar__logo-img" />
         </strong>
@@ -66,6 +67,49 @@ export default function Navbar({
 
       {/* Right side */}
       <div className="navbar__actions">
+        <div className="navbar__mobile-actions" aria-label="Quick actions">
+          <button
+            className="navbar__icon-btn"
+            type="button"
+            aria-label={searchOpen ? "Close search" : "Open search"}
+            aria-expanded={searchOpen}
+            onClick={() => setSearchOpen((prev) => !prev)}
+          >
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </button>
+
+          {user && (
+            <>
+              <button className="navbar__icon-btn" onClick={() => { onMessages?.(); setSearchOpen(false); }} type="button" aria-label="Open messages">
+                <span className="navbar__icon-btn-wrap">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  {unreadCount > 0 && (
+                    <span className="navbar__mobile-badge">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </span>
+              </button>
+
+              <button className="navbar__icon-btn navbar__icon-btn--profile" title={user.email} onClick={() => { onProfile?.(); setSearchOpen(false); }} type="button" aria-label="Open profile">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="navbar__mobile-avatar" />
+                ) : (
+                  <span className="navbar__mobile-avatar navbar__mobile-avatar--placeholder">P</span>
+                )}
+              </button>
+
+              <button className="navbar__icon-btn navbar__icon-btn--plus" onClick={() => { onShowListingForm?.(); setSearchOpen(false); }} type="button" aria-label="List item">
+                <span aria-hidden="true">+</span>
+              </button>
+            </>
+          )}
+        </div>
 
         <nav aria-label="User navigation">
           <ul className="navbar__links">
@@ -140,7 +184,10 @@ export default function Navbar({
           <button
             className="navbar__hamburger"
             aria-label="Open menu"
-            onClick={() => setMenuOpen((prev) => !prev)}
+            onClick={() => {
+              setSearchOpen(false);
+              setMenuOpen((prev) => !prev);
+            }}
           >
             <span /><span /><span />
           </button>
@@ -189,11 +236,6 @@ export default function Navbar({
                               {wishlistCount}
                             </span>
                           )}
-                        </button>
-                      </li>
-                      <li>
-                        <button onClick={() => { onShowListingForm?.(); setMenuOpen(false); }}>
-                          List Item
                         </button>
                       </li>
                     </>

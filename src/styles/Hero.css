@@ -710,7 +710,7 @@
   }
 
   .hero__carousel {
-    max-width: none;
+    display: none;
   }
 
   .hero__stat-value {
