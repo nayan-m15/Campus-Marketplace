@@ -148,7 +148,7 @@
   position: relative;
   flex-shrink: 0;
   margin-left: 0px;
-  display: none;
+  display: block;
 }
 
 .navbar__hamburger {
