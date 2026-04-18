@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getAppBaseUrl } from "../utils/appUrl";
+import { validatePassword } from "../utils/passwordValidation";
 import "../styles/Auth.css";
 
 const EMAIL_REGISTERED_MESSAGE = "Email is already registered. Try signing in instead.";
@@ -22,22 +23,24 @@ export default function SignupPage({ onNavigate }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState([]);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
+    setErrors([]);
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    // Validate password rules
+    const { valid, errors: pwErrors } = validatePassword(password);
+    if (!valid) {
+      setErrors(pwErrors);
       return;
     }
 
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setErrors(["Passwords do not match."]);
       return;
     }
 
@@ -51,12 +54,12 @@ export default function SignupPage({ onNavigate }) {
     setLoading(false);
 
     if (isEmailAlreadyRegistered({ data, error })) {
-      setError(EMAIL_REGISTERED_MESSAGE);
+      setErrors([EMAIL_REGISTERED_MESSAGE]);
       return;
     }
 
     if (error) {
-      setError(error.message);
+      setErrors([error.message]);
       return;
     }
 
@@ -64,13 +67,12 @@ export default function SignupPage({ onNavigate }) {
   }
 
   async function handleGoogle() {
-    setError("");
+    setErrors([]);
     setGoogleLoading(true);
-    // Same origin-aware redirect for Google OAuth
     const redirectTo = getAppBaseUrl();
     const { error } = await signInWithGoogle({ redirectTo });
     setGoogleLoading(false);
-    if (error) setError(error.message);
+    if (error) setErrors([error.message]);
   }
 
   if (success) {
@@ -133,7 +135,14 @@ export default function SignupPage({ onNavigate }) {
           <span>or sign up with email</span>
         </div>
 
-        {error && <p className="auth-error" role="alert">{error}</p>}
+        {/* Validation errors — each rule shown separately */}
+        {errors.length > 0 && (
+          <ul className="auth-error auth-error--list" role="alert">
+            {errors.map((msg) => (
+              <li key={msg}>{msg}</li>
+            ))}
+          </ul>
+        )}
 
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           <div className="auth-field">
@@ -154,7 +163,7 @@ export default function SignupPage({ onNavigate }) {
             <input
               id="signup-password"
               type="password"
-              placeholder="Min. 6 characters"
+              placeholder="Min. 6 chars, upper & lowercase, 1 number"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
