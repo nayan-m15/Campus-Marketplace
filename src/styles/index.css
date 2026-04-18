@@ -10,6 +10,7 @@
 }
 
 :root {
+  --navbar-height: 64px;
   --green: #1F6B52;
   --green-dark: #174E3D;
   --green-light: #A9B99F;
@@ -54,6 +55,12 @@
   --grad-card-hover: linear-gradient(135deg, rgba(31, 107, 82, 0.08) 0%, rgba(169, 185, 159, 0.08) 100%);
   --grad-green: linear-gradient(135deg, #1F6B52 0%, #174E3D 100%);
   --grad-cta: linear-gradient(135deg, var(--gray-900) 0%, #2C332D 55%, #174E3D 100%);
+}
+
+@media (max-width: 900px) {
+  :root {
+    --navbar-height: 58px;
+  }
 }
 
 body {

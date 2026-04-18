@@ -40,6 +40,30 @@
   gap: 12px;
 }
 
+.auth-back-btn {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--gray-800);
+  font-family: var(--font);
+  margin-bottom: 24px;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.auth-back-btn:hover {
+  border-color: var(--gray-300);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.auth-back-btn:focus-visible {
+  outline: 2px solid rgba(31, 107, 82, 0.25);
+  outline-offset: 2px;
+}
+
 /* ── Logo ───────────────────────────────────────────────── */
 .auth-logo {
   display: flex;

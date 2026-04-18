@@ -31,6 +31,14 @@ export default function LoginPage({ onNavigate }) {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <button
+          className="auth-back-btn"
+          type="button"
+          onClick={() => onNavigate("home")}
+        >
+          ← 
+        </button>
+
         {/* Logo */}
         <div className="auth-logo">
           <span className="auth-logo__icon"><img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="navbar__logo-img" /></span>

@@ -3,7 +3,7 @@ import "../styles/TradeFacilityDashboard.css";
 
 // ── MOCK DATA
 
-const INITIAL_TRANSACTIONS = [/*
+const INITIAL_TRANSACTIONS = [
   {
     id: "TXN-001",
     item: "MacBook Pro M1 (2021)",
@@ -14,7 +14,7 @@ const INITIAL_TRANSACTIONS = [/*
     dropoffId: "BK-001",
     collectionId: "BK-007",
     createdAt: "2026-04-05",
-  },
+  }/*,
   {
     id: "TXN-002",
     item: "Calculus Textbook (Stewart, 9th Ed)",
@@ -74,7 +74,7 @@ const INITIAL_TRANSACTIONS = [/*
 
 const TODAY = "2026-04-09";
 
-const INITIAL_BOOKINGS = [/*
+const INITIAL_BOOKINGS = [
   // Drop-offs
   {
     id: "BK-001", type: "dropoff", transactionId: "TXN-001",
@@ -82,7 +82,7 @@ const INITIAL_BOOKINGS = [/*
     scheduledDate: TODAY, scheduledTime: "10:00",
     status: "scheduled", itemName: "MacBook Pro M1 (2021)",
     notes: "Original box and charger included.",
-  },
+  }/*,
   {
     id: "BK-002", type: "dropoff", transactionId: "TXN-002",
     personName: "Priya Nair", studentId: "STU-1182", role: "seller",

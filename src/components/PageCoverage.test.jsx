@@ -91,6 +91,17 @@ const messages = [
 ];
 
 function resultFor(table, mode, filters = {}) {
+  if (table === "listings" && mode === "count") {
+    const excludedUserId = filters.__neq?.user_id;
+    return {
+      data: null,
+      count: excludedUserId === "user-1" ? 8 : 11,
+      error: null,
+    };
+  }
+  if (table === "profiles" && mode === "count") {
+    return { data: null, count: 24, error: null };
+  }
   if (table === "profiles" && mode === "single") {
     return { data: filters.id === "seller-1" ? sellerProfile : profile, error: null };
   }
@@ -119,12 +130,23 @@ function resultFor(table, mode, filters = {}) {
 
 function makeQuery(table, mode = "list", filters = {}) {
   const query = {
-    select: () => query,
+    select: (_columns, options = {}) => {
+      if (options.head && options.count === "exact") {
+        return makeQuery(table, "count", filters);
+      }
+      return query;
+    },
     eq: (column, value) => {
       filters[column] = value;
       return query;
     },
-    neq: () => query,
+    neq: (column, value) => {
+      filters.__neq = {
+        ...(filters.__neq || {}),
+        [column]: value,
+      };
+      return query;
+    },
     gte: () => query,
     not: () => query,
     or: () => query,
@@ -396,6 +418,8 @@ test("Hero loads listings, opens help popup, and routes CTA clicks", async () =>
     />
   );
 
+  expect(await screen.findByText("11")).toBeInTheDocument();
+
   fireEvent.click(screen.getByRole("button", { name: /start browsing/i }));
   expect(onBrowseClick).toHaveBeenCalled();
 
@@ -410,6 +434,20 @@ test("Hero loads listings, opens help popup, and routes CTA clicks", async () =>
   expect(onSignupClick).toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: /already have an account/i }));
   expect(onLoginClick).toHaveBeenCalled();
+});
+
+test("Hero active listings stat excludes the signed-in user's listings", async () => {
+  render(
+    <Hero
+      onListingClick={vi.fn()}
+      onBrowseClick={vi.fn()}
+      onSignupClick={vi.fn()}
+      onLoginClick={vi.fn()}
+      user={currentUser}
+    />
+  );
+
+  expect(await screen.findByText("8")).toBeInTheDocument();
 });
 
 test("MessagesPage opens a conversation and sends a message", async () => {
@@ -463,8 +501,8 @@ test("AdminDashboard loads facilities, saves changes, and generates a report", a
   fireEvent.click(screen.getByRole("button", { name: /reports/i }));
   fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
 
-  expect(await screen.findByText(/listings overview/i)).toBeInTheDocument();
-  expect(mocks.rpc).toHaveBeenCalledWith("get_listings_overview", expect.any(Object));
+  expect(await screen.findByText(/executive overview/i)).toBeInTheDocument();
+  expect(mocks.rpc).toHaveBeenCalledWith("get_executive_overview", expect.any(Object));
 
   fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
