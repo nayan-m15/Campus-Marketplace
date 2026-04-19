@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, beforeEach, expect, test } from "vitest";
 import AdminDashboard from "./AdminDashboard";
 import Hero from "./Hero";
@@ -55,6 +55,19 @@ const sellerProfile = {
   created_at: "2024-01-01T00:00:00.000Z",
 };
 
+const buyerProfile = {
+  id: "buyer-1",
+  name: "Buyer Person",
+  display_name: "Buyer",
+  about: "Interested buyer.",
+  province: "KwaZulu-Natal",
+  institution: "University of KwaZulu-Natal (UKZN)",
+  birthdate: "2002-02-02",
+  sex: "Male",
+  avatar_url: "",
+  created_at: "2024-06-01T00:00:00.000Z",
+};
+
 const userListing = {
   id: "listing-1",
   title: "Desk Lamp",
@@ -69,7 +82,7 @@ const userListing = {
   created_at: "2026-01-01T00:00:00.000Z",
 };
 
-const messages = [
+const defaultMessages = [
   {
     id: "m1",
     created_at: new Date().toISOString(),
@@ -89,6 +102,7 @@ const messages = [
     listing_id: "listing-2",
   },
 ];
+const messages = [...defaultMessages];
 
 function resultFor(table, mode, filters = {}) {
   if (table === "listings" && mode === "count") {
@@ -103,12 +117,20 @@ function resultFor(table, mode, filters = {}) {
     return { data: null, count: 24, error: null };
   }
   if (table === "profiles" && mode === "single") {
-    return { data: filters.id === "seller-1" ? sellerProfile : profile, error: null };
+    if (filters.id === "seller-1") return { data: sellerProfile, error: null };
+    if (filters.id === "buyer-1") return { data: buyerProfile, error: null };
+    return { data: profile, error: null };
   }
-  if (table === "profiles") return { data: [sellerProfile], error: null };
+  if (table === "profiles") {
+    const ids = Array.isArray(filters.id) ? filters.id : filters.id ? [filters.id] : null;
+    return { data: [sellerProfile, buyerProfile].filter((entry) => !ids || ids.includes(entry.id)), error: null };
+  }
   if (table === "messages") return { data: messages, error: null };
   if (table === "ratings") return { data: [{ listing_id: "listing-2", rating: 4 }], error: null };
   if (table === "listings" && mode === "rateable") return { data: [{ id: "listing-2", title: "Textbook" }], error: null };
+  if (table === "listings" && mode === "single") {
+    return { data: filters.id === "listing-2" ? { id: "listing-2", title: "Textbook", price: 500 } : userListing, error: null };
+  }
   if (table === "listings") return { data: [userListing], error: null };
   if (table === "facilities") {
     return {
@@ -151,7 +173,11 @@ function makeQuery(table, mode = "list", filters = {}) {
     not: () => query,
     or: () => query,
     order: () => query,
-    in: () => makeQuery(table, "rateable", filters),
+    in: (column, values) => {
+      filters[column] = values;
+      return table === "listings" ? makeQuery(table, "rateable", filters) : query;
+    },
+    maybeSingle: () => Promise.resolve(resultFor(table, "single", filters)),
     single: () => Promise.resolve(resultFor(table, "single", filters)),
     update: (payload) => {
       mocks.update(table, payload);
@@ -264,6 +290,7 @@ vi.mock("jspdf-autotable", () => ({ default: vi.fn() }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  messages.splice(0, messages.length, ...defaultMessages);
   HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
     this.open = true;
   });
@@ -494,6 +521,48 @@ test("MessagesPage opens a conversation and sends a message", async () => {
   fireEvent.click(screen.getByRole("button", { name: /back/i }));
   expect(onBack).toHaveBeenCalled();
   expect(onUnreadChange).toHaveBeenCalled();
+});
+
+test("MessagesPage shows seller quick replies and sends the selected response", async () => {
+  messages.splice(
+    0,
+    messages.length,
+    {
+      id: "m-buyer-1",
+      created_at: new Date().toISOString(),
+      sender_id: "buyer-1",
+      receiver_id: "user-1",
+      content: "Is this still available?",
+      is_read: false,
+      listing_id: "listing-2",
+    }
+  );
+
+  render(
+    <MessagesPage
+      initialRecipientId="buyer-1"
+      initialListingId="listing-2"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect(await screen.findByRole("button", { name: "Yes. Are you interested?" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "In talks. I'll let you know." })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Sorry, it's not available." })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Yes. Are you interested?" }));
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "messages",
+    expect.objectContaining({
+      sender_id: "user-1",
+      receiver_id: "buyer-1",
+      content: "Yes. Are you interested?",
+      listing_id: "listing-2",
+    })
+  ));
 });
 
 test("AdminDashboard loads facilities, saves changes, and generates a report", async () => {

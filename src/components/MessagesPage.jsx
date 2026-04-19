@@ -4,6 +4,12 @@ import { useAuth } from "../context/AuthContext";
 import { insertMessage } from "../utils/messageDelivery";
 import "../styles/Messages.css";
 
+const SELLER_QUICK_REPLIES = [
+  "Yes. Are you interested?",
+  "In talks. I'll let you know.",
+  "Sorry, it's not available.",
+];
+
 // ── Helpers ────────────────────────────────────────────────
 function timeLabel(iso) {
   const d = new Date(iso);
@@ -49,7 +55,6 @@ function ReadTicks({ status }) {
 
   const isRead = status === "read";
   const color = isRead ? "#53d769" : "currentColor";
-  const opacity = isRead ? 1 : 0.5;
 
   return (
     <svg
@@ -253,6 +258,7 @@ export default function MessagesPage({
       //   - if I sent the message → I am the buyer → peer is the lister
       const buyerIsThePeer = msgWithListing.sender_id === peerId;
       setIAmTheLister(buyerIsThePeer);
+      setActiveListingId(msgWithListing.listing_id || null);
 
       const { data: listing } = await supabase
         .from("listings")
@@ -408,11 +414,11 @@ export default function MessagesPage({
   }, [draft]);
 
   // ── Send ──────────────────────────────────────────────────
-  const sendMessage = async () => {
-    const text = draft.trim();
+  const sendMessage = async (messageText = draft) => {
+    const text = messageText.trim();
     if (!text || !activeId || sending) return;
     setSending(true);
-    setDraft("");
+    if (messageText === draft) setDraft("");
 
     // Optimistically add message (no id yet → shows clock tick)
     const optimistic = {
@@ -436,7 +442,7 @@ export default function MessagesPage({
 
     if (error) {
       console.error(error.message);
-      setDraft(text);
+      if (messageText === draft) setDraft(text);
       // Remove the optimistic message on failure
       setMessages((prev) => prev.filter((m) => m !== optimistic));
     }
@@ -536,12 +542,13 @@ export default function MessagesPage({
     return peerName(c.profile).toLowerCase().includes(search.toLowerCase());
   });
 
-  const groupedMessages = messages.reduce((groups, msg) => {
-    const date = new Date(msg.created_at).toDateString();
-    if (!groups[date]) groups[date] = [];
-    groups[date].push(msg);
-    return groups;
-  }, {});
+  const latestTextMessage = [...messages].reverse().find((message) => message.content?.trim());
+  const showSellerQuickReplies = Boolean(
+    iAmTheLister &&
+    activeId &&
+    latestTextMessage &&
+    latestTextMessage.sender_id === activeId
+  );
 
   const dateLabel = (dateStr) => {
     const today = new Date().toDateString();
@@ -842,27 +849,44 @@ export default function MessagesPage({
             </div>
 
             <footer className="msg-composer">
-              <textarea
-                ref={textareaRef}
-                className="msg-composer__input"
-                placeholder="Type a message… (Enter to send)"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={1}
-                disabled={sending}
-              />
-              <button
-                className={`msg-composer__send ${draft.trim() ? "msg-composer__send--active" : ""}`}
-                onClick={sendMessage}
-                disabled={!draft.trim() || sending}
-                aria-label="Send message"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              </button>
+              {showSellerQuickReplies && (
+                <div className="msg-composer__quick-replies" aria-label="Seller quick replies">
+                  {SELLER_QUICK_REPLIES.map((reply) => (
+                    <button
+                      key={reply}
+                      className="msg-composer__quick-reply"
+                      onClick={() => sendMessage(reply)}
+                      disabled={sending}
+                      type="button"
+                    >
+                      {reply}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="msg-composer__row">
+                <textarea
+                  ref={textareaRef}
+                  className="msg-composer__input"
+                  placeholder="Type a message… (Enter to send)"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                  disabled={sending}
+                />
+                <button
+                  className={`msg-composer__send ${draft.trim() ? "msg-composer__send--active" : ""}`}
+                  onClick={() => sendMessage()}
+                  disabled={!draft.trim() || sending}
+                  aria-label="Send message"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              </div>
             </footer>
           </>
         )}
