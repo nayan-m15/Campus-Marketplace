@@ -344,12 +344,12 @@ test("SignupPage validates passwords and shows success after signup", async () =
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/at least 6/i);
 
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "secret123" } });
+  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "Secret123" } });
   fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "different" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/do not match/i);
 
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "secret123" } });
+  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "Secret123" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
   expect(await screen.findByRole("heading", { name: /check your email/i })).toBeInTheDocument();
@@ -368,9 +368,9 @@ test("SignupPage reports when an email is already registered", async () => {
   fireEvent.change(screen.getByLabelText(/email address/i), {
     target: { value: "student@example.com" },
   });
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "secret123" } });
+  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "Secret123" } });
   fireEvent.change(screen.getByLabelText(/confirm password/i), {
-    target: { value: "secret123" },
+    target: { value: "Secret123" },
   });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
@@ -390,21 +390,23 @@ test("SettingsPage updates password, preferences, theme, and delete confirmation
     />
   );
 
+  await waitFor(() => expect(profileEq).toHaveBeenCalledWith("id", "user-1"));
+
   fireEvent.click(screen.getByText(/back/i));
   expect(onBack).toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /update password/i }));
-  expect(screen.getByText(/at least 6 characters/i)).toBeInTheDocument();
+  expect(screen.getByText(/password must be at least 6 characters/i)).toBeInTheDocument();
 
-  fireEvent.change(screen.getByPlaceholderText(/at least 6 characters/i), {
-    target: { value: "secret123" },
+  fireEvent.change(screen.getByPlaceholderText(/min\. 6 chars, upper & lowercase, 1 number/i), {
+    target: { value: "Secret123" },
   });
   fireEvent.change(screen.getByPlaceholderText(/repeat new password/i), {
-    target: { value: "secret123" },
+    target: { value: "Secret123" },
   });
   fireEvent.click(screen.getByRole("button", { name: /update password/i }));
   expect(await screen.findByText(/password updated successfully/i)).toBeInTheDocument();
-  expect(updateUser).toHaveBeenCalledWith({ password: "secret123" });
+  expect(updateUser).toHaveBeenCalledWith({ password: "Secret123" });
 
   fireEvent.click(screen.getByRole("button", { name: /toggle message notifications/i }));
   fireEvent.click(screen.getByRole("button", { name: /save preferences/i }));

@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { validatePassword } from "../utils/passwordValidation";
 
 export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
   const { user } = useAuth();
+  const notifSavedTimeoutRef = useRef(null);
 
   // ── Password ──
   const [newPassword, setNewPassword] = useState("");
@@ -50,6 +51,12 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
         if (data?.notif_listing_activity != null) setNotifListingActivity(data.notif_listing_activity);
       });
   }, [user]);
+
+  useEffect(() => () => {
+    if (notifSavedTimeoutRef.current) {
+      clearTimeout(notifSavedTimeoutRef.current);
+    }
+  }, []);
 
   async function handleChangePassword() {
     setPasswordMsg(null);
@@ -107,7 +114,13 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
       })
       .eq("id", user.id);
     setNotifSaved(true);
-    setTimeout(() => setNotifSaved(false), 3000);
+    if (notifSavedTimeoutRef.current) {
+      clearTimeout(notifSavedTimeoutRef.current);
+    }
+    notifSavedTimeoutRef.current = setTimeout(() => {
+      setNotifSaved(false);
+      notifSavedTimeoutRef.current = null;
+    }, 3000);
   }
 
   async function handleDeleteAccount() {
