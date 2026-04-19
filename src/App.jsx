@@ -402,21 +402,19 @@ function AppInner() {
   const { wishlistItems, isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(user);
 
   // ── Refs for the filter bar and listings section so CTA/search can scroll cleanly ──
-  const filterBarRef = useRef(null);
   const listingsSectionRef = useRef(null);
 
   function handleScrollToListings() {
-    if (!filterBarRef.current || !listingsSectionRef.current) return;
+    if (!listingsSectionRef.current) return;
 
     const navbarOffset = Number.parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue("--navbar-height"),
     ) || 64;
-    const filterBarHeight = filterBarRef.current.getBoundingClientRect().height;
     const listingsTop =
       listingsSectionRef.current.getBoundingClientRect().top +
       window.scrollY -
       navbarOffset -
-      filterBarHeight;
+      16;
 
     window.scrollTo({
       top: Math.max(listingsTop, 0),
@@ -828,7 +826,11 @@ function AppInner() {
           />
         </section>
 
-        <nav aria-label="Categories" ref={filterBarRef}>
+        <section className="listings-layout" ref={listingsSectionRef}>
+          <nav
+            aria-label="Categories"
+            className="listings-layout__filters"
+          >
           <CategoryBar
             activeCategory={activeCategory}
             onCategoryChange={handleCategoryChange}
@@ -839,9 +841,9 @@ function AppInner() {
             priceRange={priceRange}
             onPriceRangeChange={setPriceRange}
           />
-        </nav>
+          </nav>
 
-        <section ref={listingsSectionRef}>
+          <section className="listings-layout__content">
           {listingsError ? (
             <p style={{ padding: "24px 40px", color: "crimson" }}>{listingsError}</p>
           ) : listingsLoading ? (
@@ -859,6 +861,7 @@ function AppInner() {
               user={user}
             />
           )}
+          </section>
         </section>
       </main>
 
