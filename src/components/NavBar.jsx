@@ -17,6 +17,7 @@ export default function Navbar({
   onMessages,
   onHome,
   onYourListings,
+  onBookings,
   onWishlist,
   wishlistCount = 0,
   unreadCount = 0,
@@ -151,6 +152,7 @@ export default function Navbar({
                     Messages
                   </button>
                 </li>
+                <li><button className="navbar__link" onClick={onBookings}>Bookings</button></li>
                 <li>
                   <button className="navbar__link navbar__link--user" title={user.email} onClick={onProfile}>
                     {avatarUrl ? (
@@ -214,6 +216,11 @@ export default function Navbar({
                       <li>
                         <button onClick={() => { onYourListings?.(); setMenuOpen(false); }}>
                           Your Listings
+                        </button>
+                      </li>
+                      <li>
+                        <button onClick={() => { onBookings?.(); setMenuOpen(false); }}>
+                          My Bookings
                         </button>
                       </li>
 
