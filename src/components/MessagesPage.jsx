@@ -4,6 +4,26 @@ import { useAuth } from "../context/AuthContext";
 import { insertMessage } from "../utils/messageDelivery";
 import "../styles/Messages.css";
 
+const SELLER_QUICK_REPLIES = [
+  "Yes. Are you interested?",
+  "In talks. I'll let you know.",
+  "Sorry, it's not available.",
+];
+
+function buildConversationKey(peerId, listingId = null) {
+  return `${peerId}::${listingId || "general"}`;
+}
+
+function buildOfferPreview(offer, currentUserId) {
+  if (!offer) return "";
+  const amount = `R${Number(offer.amount).toLocaleString("en-ZA")}`;
+  if (offer.status === "accepted") return `Offer accepted: ${amount}`;
+  if (offer.status === "declined") return `Offer declined: ${amount}`;
+  if (offer.status === "cancelled") return `Offer cancelled: ${amount}`;
+  const sentByMe = offer.sender_id === currentUserId;
+  return sentByMe ? `You offered ${amount}` : `Offer received: ${amount}`;
+}
+
 // ── Helpers ────────────────────────────────────────────────
 function timeLabel(iso) {
   const d = new Date(iso);
@@ -49,7 +69,6 @@ function ReadTicks({ status }) {
 
   const isRead = status === "read";
   const color = isRead ? "#53d769" : "currentColor";
-  const opacity = isRead ? 1 : 0.5;
 
   return (
     <svg
@@ -93,10 +112,11 @@ export default function MessagesPage({
   const [conversations, setConversations] = useState([]);
   const [convsLoading, setConvsLoading] = useState(true);
 
-  // unreadByPeer: { [peerId]: number }
+  // unreadByConversation: { [conversationKey]: number }
   const [unreadByPeer, setUnreadByPeer] = useState({});
 
   const [activeId, setActiveId] = useState(null);
+  const [activeConversationKey, setActiveConversationKey] = useState(null);
   const [activePeer, setActivePeer] = useState(null);
   const [messages, setMessages] = useState([]);
   const [msgsLoading, setMsgsLoading] = useState(false);
@@ -105,6 +125,17 @@ export default function MessagesPage({
   const [activeListingId, setActiveListingId] = useState(initialListingId);
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
+
+  // Buyer info banner: shown to the lister when a buyer messages about a listing
+  const [iAmTheLister, setIAmTheLister] = useState(false);
+  const [conversationListing, setConversationListing] = useState(null);
+
+  // Offer state
+  const [offers, setOffers] = useState([]); // offers for this conversation
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [offerAmount, setOfferAmount] = useState("");
+  const [offerSending, setOfferSending] = useState(false);
+  const [offerError, setOfferError] = useState("");
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
@@ -123,29 +154,58 @@ export default function MessagesPage({
 
     const { data: msgs } = await supabase
       .from("messages")
-      .select("id, created_at, sender_id, receiver_id, content, is_read")
+      .select("id, created_at, sender_id, receiver_id, content, is_read, listing_id")
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .order("created_at", { ascending: false });
+    const { data: offerRows } = await supabase
+      .from("offers")
+      .select("id, created_at, sender_id, receiver_id, amount, status, listing_id")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
-    if (!msgs) { setConvsLoading(false); return; }
+    if (!msgs && !offerRows) { setConvsLoading(false); return; }
 
-    // Build per-peer last message map
-    const peerMap = new Map();
+    // Build per-thread last message map
+    const threadMap = new Map();
     const unreadMap = {};
 
-    for (const m of msgs) {
+    for (const m of msgs || []) {
       const peerId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
-      if (!peerMap.has(peerId)) peerMap.set(peerId, m);
+      const conversationKey = buildConversationKey(peerId, m.listing_id);
+      if (!threadMap.has(conversationKey)) {
+        threadMap.set(conversationKey, { peerId, listingId: m.listing_id || null, lastMsg: m });
+      }
 
       // Count unread messages sent TO me (not from me) that aren't read
       if (m.receiver_id === user.id && !m.is_read) {
-        unreadMap[peerId] = (unreadMap[peerId] || 0) + 1;
+        unreadMap[conversationKey] = (unreadMap[conversationKey] || 0) + 1;
+      }
+    }
+
+    for (const offer of offerRows || []) {
+      const peerId = offer.sender_id === user.id ? offer.receiver_id : offer.sender_id;
+      const conversationKey = buildConversationKey(peerId, offer.listing_id);
+      if (!threadMap.has(conversationKey)) {
+        threadMap.set(conversationKey, {
+          peerId,
+          listingId: offer.listing_id || null,
+          lastMsg: {
+            id: `offer-preview-${offer.id}`,
+            created_at: offer.created_at,
+            sender_id: null,
+            receiver_id: offer.receiver_id,
+            content: buildOfferPreview(offer, user.id),
+            is_read: true,
+            listing_id: offer.listing_id || null,
+          },
+        });
       }
     }
 
     setUnreadByPeer(unreadMap);
 
-    const peerIds = [...peerMap.keys()].filter(Boolean);
+    const peerIds = [...new Set([...threadMap.values()].map((thread) => thread.peerId).filter(Boolean))];
+    const listingIds = [...new Set([...threadMap.values()].map((thread) => thread.listingId).filter(Boolean))];
     let profiles = [];
     if (peerIds.length > 0) {
       const { data } = await supabase
@@ -154,13 +214,25 @@ export default function MessagesPage({
         .in("id", peerIds);
       profiles = data || [];
     }
+    let listings = [];
+    if (listingIds.length > 0) {
+      const { data } = await supabase
+        .from("listings")
+        .select("id, title, price, user_id")
+        .in("id", listingIds);
+      listings = data || [];
+    }
 
     const profileById = Object.fromEntries(profiles.map((p) => [p.id, p]));
+    const listingById = Object.fromEntries(listings.map((listing) => [listing.id, listing]));
 
-    const convList = [...peerMap.entries()].map(([peerId, lastMsg]) => ({
-      peerId,
-      profile: profileById[peerId] || null,
-      lastMsg,
+    const convList = [...threadMap.entries()].map(([conversationKey, thread]) => ({
+      key: conversationKey,
+      peerId: thread.peerId,
+      listingId: thread.listingId,
+      profile: profileById[thread.peerId] || null,
+      listing: thread.listingId ? listingById[thread.listingId] || null : null,
+      lastMsg: thread.lastMsg,
     }));
 
     setConversations(convList);
@@ -173,7 +245,7 @@ export default function MessagesPage({
   useEffect(() => {
     if (!initialRecipientId || !user) return;
     setActiveListingId(initialListingId || null);
-    openChat(initialRecipientId);
+    openChat(initialRecipientId, initialListingId || null);
     if (initialListingTitle) {
       setDraft(`Hi! I'm interested in your listing: "${initialListingTitle}". Is it still available?`);
     }
@@ -181,31 +253,41 @@ export default function MessagesPage({
   }, [initialRecipientId, initialListingId, user]);
 
   // ── Mark messages as read ────────────────────────────────
-  const markAsRead = useCallback(async (peerId) => {
+  const markAsRead = useCallback(async (peerId, listingId = null) => {
     if (!peerId || !user) return;
     // Update DB: mark all messages from this peer to me as read
-    await supabase
+    let query = supabase
       .from("messages")
       .update({ is_read: true })
       .eq("receiver_id", user.id)
       .eq("sender_id", peerId)
       .eq("is_read", false);
+    query = listingId ? query.eq("listing_id", listingId) : query.is("listing_id", null);
+    await query;
 
-    // Clear local unread count for this peer
+    // Clear local unread count for this thread
     setUnreadByPeer((prev) => {
       const next = { ...prev };
-      delete next[peerId];
+      delete next[buildConversationKey(peerId, listingId)];
       return next;
     });
   }, [user]);
 
   // ── Open a chat ───────────────────────────────────────────
-  const openChat = useCallback(async (peerId) => {
+  const openChat = useCallback(async (peerId, listingId = null) => {
     if (!peerId) return;
-    if (peerId !== initialRecipientId) setActiveListingId(null);
+    const conversationKey = buildConversationKey(peerId, listingId);
     setActiveId(peerId);
+    setActiveConversationKey(conversationKey);
+    setActiveListingId(listingId);
     setMessages([]);
     setMsgsLoading(true);
+    setIAmTheLister(false);
+    setConversationListing(null);
+    setOffers([]);
+    setShowOfferModal(false);
+    setOfferAmount("");
+    setOfferError("");
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -222,18 +304,65 @@ export default function MessagesPage({
       )
       .order("created_at", { ascending: true });
 
-    setMessages(msgs || []);
+    const threadMessages = (msgs || []).filter((message) =>
+      listingId ? String(message.listing_id) === String(listingId) : !message.listing_id
+    );
+
+    setMessages(threadMessages);
+    let threadOffers = [];
+    if (listingId) {
+      const { data: existingOffers } = await supabase
+        .from("offers")
+        .select("*")
+        .eq("listing_id", String(listingId))
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${user.id})`)
+        .order("created_at", { ascending: true });
+      threadOffers = existingOffers || [];
+    }
+
+    // ── Buyer info banner ────────────────────────────────────
+    // Use the most recent message that has a listing_id (latest inquired listing)
+    const msgWithListing = [...threadMessages].reverse().find((m) => m.listing_id) ||
+      (listingId ? { listing_id: listingId, sender_id: peerId } : null);
+
+    if (msgWithListing) {
+      setActiveListingId(msgWithListing.listing_id || null);
+
+      const { data: listing } = await supabase
+        .from("listings")
+        .select("id, title, price, user_id")
+        .eq("id", String(msgWithListing.listing_id))
+        .maybeSingle();
+
+      const iOwnThisListing = listing ? listing.user_id === user.id : msgWithListing.sender_id === peerId;
+      setIAmTheLister(iOwnThisListing);
+      setConversationListing(listing || {
+        id: msgWithListing.listing_id,
+        title: null,
+        price: null,
+        user_id: iOwnThisListing ? user.id : peerId,
+      });
+
+    }
+    setOffers(threadOffers);
     setMsgsLoading(false);
 
     // Mark as read now that we've opened the chat
-    await markAsRead(peerId);
+    await markAsRead(peerId, listingId);
 
     setConversations((prev) => {
-      const exists = prev.find((c) => c.peerId === peerId);
+      const exists = prev.find((c) => c.key === conversationKey);
       if (exists) return prev;
-      return [{ peerId, profile: profile || { id: peerId }, lastMsg: null }, ...prev];
+      return [{
+        key: conversationKey,
+        peerId,
+        listingId,
+        profile: profile || { id: peerId },
+        listing: listingId ? { id: listingId, title: initialListingTitle || null } : null,
+        lastMsg: null,
+      }, ...prev];
     });
-  }, [user, markAsRead, initialRecipientId]);
+  }, [user, markAsRead, initialListingTitle]);
 
   // ── Realtime ──────────────────────────────────────────────
   useEffect(() => {
@@ -248,9 +377,10 @@ export default function MessagesPage({
         if (!isForMe) return;
 
         const peerId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+        const conversationKey = buildConversationKey(peerId, msg.listing_id);
 
-        setActiveId((curActive) => {
-          if (curActive === peerId) {
+        setActiveConversationKey((curActiveConversationKey) => {
+          if (curActiveConversationKey === conversationKey) {
             setMessages((prev) => {
               if (msg.sender_id === user.id) {
                 const hasOptimistic = prev.find((m) => m.id === null && m.content === msg.content && m.sender_id === msg.sender_id);
@@ -265,25 +395,33 @@ export default function MessagesPage({
             });
             // Auto-mark as read if conversation is open
             if (msg.receiver_id === user.id) {
-              markAsRead(peerId);
+              markAsRead(peerId, msg.listing_id || null);
             }
           } else {
             // Increment unread count if this peer's chat isn't open
             if (msg.receiver_id === user.id) {
               setUnreadByPeer((prev) => ({
                 ...prev,
-                [peerId]: (prev[peerId] || 0) + 1,
+                [conversationKey]: (prev[conversationKey] || 0) + 1,
               }));
             }
           }
-          return curActive;
+          return curActiveConversationKey;
         });
 
         setConversations((prev) => {
-          const existing = prev.find((c) => c.peerId === peerId);
-          if (existing) return prev.map((c) => c.peerId === peerId ? { ...c, lastMsg: msg } : c);
-          return [{ peerId, profile: null, lastMsg: msg }, ...prev];
+          const existing = prev.find((c) => c.key === conversationKey);
+          if (existing) return prev.map((c) => c.key === conversationKey ? { ...c, lastMsg: msg } : c);
+          return [{
+            key: conversationKey,
+            peerId,
+            listingId: msg.listing_id || null,
+            profile: null,
+            listing: null,
+            lastMsg: msg,
+          }, ...prev];
         });
+        loadConversations();
       })
       // ── Listen for is_read updates so sender's ticks turn green in real-time ──
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
@@ -293,12 +431,51 @@ export default function MessagesPage({
         setMessages((prev) =>
           prev.map((m) => m.id === updated.id ? { ...m, is_read: updated.is_read } : m)
         );
+        loadConversations();
       })
       .subscribe();
 
     realtimeRef.current = channel;
     return () => supabase.removeChannel(channel);
-  }, [user, markAsRead]);
+  }, [user, markAsRead, loadConversations]);
+
+  // ── Realtime: offers ──────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("offers-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "offers" }, (payload) => {
+        const offer = payload.new;
+        if (offer.sender_id !== user.id && offer.receiver_id !== user.id) return;
+        setActiveConversationKey((curActiveConversationKey) => {
+          const peerId = offer.sender_id === user.id ? offer.receiver_id : offer.sender_id;
+          if (curActiveConversationKey === buildConversationKey(peerId, offer.listing_id || null)) {
+            setOffers((prev) => {
+              if (prev.find((o) => o.id === offer.id)) return prev;
+              // If this new offer replaces a pending one from the same sender, mark old ones declined
+              return [
+                ...prev.map((o) =>
+                  o.sender_id === offer.sender_id && o.receiver_id === offer.receiver_id && o.status === "pending" && o.id !== offer.id
+                    ? { ...o, status: "declined" }
+                    : o
+                ),
+                offer,
+              ];
+            });
+          }
+          return curActiveConversationKey;
+        });
+        loadConversations();
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "offers" }, (payload) => {
+        const offer = payload.new;
+        if (offer.sender_id !== user.id && offer.receiver_id !== user.id) return;
+        setOffers((prev) => prev.map((o) => o.id === offer.id ? offer : o));
+        loadConversations();
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [user, loadConversations]);
 
   // ── Scroll to bottom ──────────────────────────────────────
   useEffect(() => {
@@ -314,11 +491,11 @@ export default function MessagesPage({
   }, [draft]);
 
   // ── Send ──────────────────────────────────────────────────
-  const sendMessage = async () => {
-    const text = draft.trim();
+  const sendMessage = async (messageText = draft) => {
+    const text = messageText.trim();
     if (!text || !activeId || sending) return;
     setSending(true);
-    setDraft("");
+    if (messageText === draft) setDraft("");
 
     // Optimistically add message (no id yet → shows clock tick)
     const optimistic = {
@@ -342,7 +519,7 @@ export default function MessagesPage({
 
     if (error) {
       console.error(error.message);
-      setDraft(text);
+      if (messageText === draft) setDraft(text);
       // Remove the optimistic message on failure
       setMessages((prev) => prev.filter((m) => m !== optimistic));
     }
@@ -355,19 +532,103 @@ export default function MessagesPage({
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
+  // ── Send Offer (lister → buyer) ───────────────────────────
+  const sendOffer = async () => {
+    const amount = parseFloat(offerAmount.replace(/[^0-9.]/g, ""));
+    if (!amount || amount <= 0) { setOfferError("Please enter a valid amount."); return; }
+    if (!conversationListing?.id || !activeId) return;
+    setOfferSending(true);
+    setOfferError("");
+
+    // Cancel any existing pending offer for this listing+conversation (replace it)
+    await supabase
+      .from("offers")
+      .update({ status: "declined", responded_at: new Date().toISOString() })
+      .eq("listing_id", conversationListing.id)
+      .eq("sender_id", user.id)
+      .eq("receiver_id", activeId)
+      .eq("status", "pending");
+
+    const { data: newOffer, error } = await supabase
+      .from("offers")
+      .insert({
+        listing_id: conversationListing.id,
+        sender_id: user.id,
+        receiver_id: activeId,
+        amount,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (error) { setOfferError("Failed to send offer."); setOfferSending(false); return; }
+
+    setOffers((prev) => [
+      ...prev.map((o) =>
+        o.sender_id === user.id && o.receiver_id === activeId && o.status === "pending"
+          ? { ...o, status: "declined" }
+          : o
+      ),
+      newOffer,
+    ]);
+    setShowOfferModal(false);
+    setOfferAmount("");
+    setOfferSending(false);
+  };
+
+  // ── Cancel Offer (lister) ────────────────────────────────
+  const cancelOffer = async (offerId) => {
+    const { data: updatedOffer, error } = await supabase
+      .from("offers")
+      .update({ status: "cancelled", responded_at: new Date().toISOString() })
+      .eq("id", offerId)
+      .select()
+      .single();
+
+    if (error) { console.error(error.message); return; }
+    setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
+  };
+
+  // ── Respond to Offer (buyer) ──────────────────────────────
+  const respondToOffer = async (offerId, accept) => {
+    const newStatus = accept ? "accepted" : "declined";
+    const { data: updatedOffer, error } = await supabase
+      .from("offers")
+      .update({ status: newStatus, responded_at: new Date().toISOString() })
+      .eq("id", offerId)
+      .select()
+      .single();
+
+    if (error) { console.error(error.message); return; }
+
+    setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
+
+    if (accept && updatedOffer) {
+      // Update listing: set sold_price to accepted amount
+      await supabase
+        .from("listings")
+        .update({ sold_price: updatedOffer.amount })
+        .eq("id", updatedOffer.listing_id);
+    }
+  };
+
   const peerName = (profile) => profile?.display_name || profile?.name || "Unknown User";
 
   const filteredConvs = conversations.filter((c) => {
     if (!search.trim()) return true;
-    return peerName(c.profile).toLowerCase().includes(search.toLowerCase());
+    const label = `${peerName(c.profile)} ${c.listing?.title || ""}`.toLowerCase();
+    return label.includes(search.toLowerCase());
   });
 
-  const groupedMessages = messages.reduce((groups, msg) => {
-    const date = new Date(msg.created_at).toDateString();
-    if (!groups[date]) groups[date] = [];
-    groups[date].push(msg);
-    return groups;
-  }, {});
+  const latestTextMessage = [...messages].reverse().find((message) => message.content?.trim());
+  const showSellerQuickReplies = Boolean(
+    iAmTheLister &&
+    activeId &&
+    latestTextMessage &&
+    latestTextMessage.sender_id === activeId
+  );
+  const listingOwnerLabel = iAmTheLister ? "Your listing" : `${peerName(activePeer)}'s listing`;
+  const profileActionLabel = iAmTheLister ? "View buyer" : "View seller";
 
   const dateLabel = (dateStr) => {
     const today = new Date().toDateString();
@@ -415,19 +676,20 @@ export default function MessagesPage({
           )}
 
           {filteredConvs.map((conv) => {
-            const unread = unreadByPeer[conv.peerId] || 0;
-            const isActive = activeId === conv.peerId;
+            const unread = unreadByPeer[conv.key] || 0;
+            const isActive = activeConversationKey === conv.key;
+            const threadTitle = conv.listing?.title ? `${peerName(conv.profile)} - ${conv.listing.title}` : peerName(conv.profile);
             return (
-              <li key={conv.peerId}>
+              <li key={conv.key}>
                 <button
                   className={`msg-conv-item ${isActive ? "msg-conv-item--active" : ""} ${unread > 0 && !isActive ? "msg-conv-item--unread" : ""}`}
-                  onClick={() => openChat(conv.peerId)}
+                  onClick={() => openChat(conv.peerId, conv.listingId)}
                 >
                   <Avatar url={conv.profile?.avatar_url} name={peerName(conv.profile)} size={46} />
                   <div className="msg-conv-item__body">
                     <div className="msg-conv-item__top">
                       <span className={`msg-conv-item__name ${unread > 0 && !isActive ? "msg-conv-item__name--unread" : ""}`}>
-                        {peerName(conv.profile)}
+                        {threadTitle}
                       </span>
                       {conv.lastMsg && (
                         <span className="msg-conv-item__time">{timeLabel(conv.lastMsg.created_at)}</span>
@@ -481,12 +743,14 @@ export default function MessagesPage({
         ) : (
           <>
             <header className="msg-chat__header">
-              <button className="msg-chat__back-mobile" onClick={() => setActiveId(null)}>←</button>
+              <button className="msg-chat__back-mobile" onClick={() => { setActiveId(null); setActiveConversationKey(null); setActiveListingId(null); }}>←</button>
               {activePeer && (
                 <>
                   <Avatar url={activePeer.avatar_url} name={peerName(activePeer)} size={38} />
                   <div className="msg-chat__header-info">
-                    <button className="msg-chat__header-name msg-chat__header-name--link" onClick={() => onViewProfile?.(activePeer.id)} type="button">{peerName(activePeer)}</button>
+                    <button className="msg-chat__header-name msg-chat__header-name--link" onClick={() => onViewProfile?.(activePeer.id)} type="button">
+                      {conversationListing?.title ? `${peerName(activePeer)} - ${conversationListing.title}` : peerName(activePeer)}
+                    </button>
                     {activePeer.institution && (
                       <span className="msg-chat__header-sub">{activePeer.institution}</span>
                     )}
@@ -494,6 +758,80 @@ export default function MessagesPage({
                 </>
               )}
             </header>
+
+            {/* ── Buyer Info Banner (shown to lister only) ── */}
+            {conversationListing && activePeer && (
+              <div className="msg-buyer-banner">
+                <div className="msg-buyer-banner__listing-row">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 0 1-8 0"/>
+                  </svg>
+                  <span>
+                    {conversationListing?.title
+                      ? <>{listingOwnerLabel} · <strong>{conversationListing.title}</strong>{conversationListing.price != null ? <> · <em>R{Number(conversationListing.price).toLocaleString("en-ZA")}</em></> : null}</>
+                      : "Marketplace listing"}
+                  </span>
+                </div>
+                <div className="msg-buyer-banner__card">
+                  <Avatar url={activePeer.avatar_url} name={peerName(activePeer)} size={38} />
+                  <div className="msg-buyer-banner__card-info">
+                    <span className="msg-buyer-banner__card-name">{peerName(activePeer)}</span>
+                    {activePeer.institution && (
+                      <span className="msg-buyer-banner__card-sub">{activePeer.institution}</span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    <button
+                      className="msg-buyer-banner__btn msg-buyer-banner__btn--offer"
+                      onClick={() => { setShowOfferModal(true); setOfferError(""); setOfferAmount(""); }}
+                      type="button"
+                    >
+                      Send Offer
+                    </button>
+                    <button
+                      className="msg-buyer-banner__btn"
+                      onClick={() => onViewProfile?.(activePeer.id)}
+                      type="button"
+                    >
+                      {profileActionLabel}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Send Offer Modal ── */}
+            {showOfferModal && conversationListing && (
+              <div className="msg-offer-modal-overlay" onClick={() => setShowOfferModal(false)}>
+                <div className="msg-offer-modal" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="msg-offer-modal__title">Send an Offer</h3>
+                  <p className="msg-offer-modal__sub">
+                    Listing price: <strong>R{Number(conversationListing.price).toLocaleString("en-ZA")}</strong>
+                  </p>
+                  <div className="msg-offer-modal__input-wrap">
+                    <span className="msg-offer-modal__currency">R</span>
+                    <input
+                      className="msg-offer-modal__input"
+                      type="number"
+                      min="1"
+                      placeholder="0"
+                      value={offerAmount}
+                      onChange={(e) => { setOfferAmount(e.target.value); setOfferError(""); }}
+                      autoFocus
+                    />
+                  </div>
+                  {offerError && <p className="msg-offer-modal__error">{offerError}</p>}
+                  <div className="msg-offer-modal__actions">
+                    <button className="msg-offer-modal__cancel" onClick={() => setShowOfferModal(false)} type="button">Cancel</button>
+                    <button className="msg-offer-modal__send" onClick={sendOffer} disabled={offerSending} type="button">
+                      {offerSending ? "Sending…" : "Send Offer"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="msg-chat__body">
               {msgsLoading && (
@@ -507,56 +845,135 @@ export default function MessagesPage({
                 </div>
               )}
 
-              {Object.entries(groupedMessages).map(([date, msgs]) => (
-                <div key={date}>
-                  <div className="msg-date-divider"><span>{dateLabel(date)}</span></div>
-                  {msgs.map((msg) => {
-                    const mine = msg.sender_id === user.id;
-                    const tickStatus = !msg.id
-                      ? "sending"
-                      : msg.is_read
-                      ? "read"
-                      : "sent";
-                    return (
-                      <div key={msg.id} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
-                        {!mine && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
-                        <div className={`msg-bubble ${mine ? "msg-bubble--mine" : "msg-bubble--theirs"}`}>
-                          <p>{msg.content}</p>
-                          <span className="msg-bubble__time" style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
-                            {new Date(msg.created_at).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
-                            {mine && <ReadTicks status={tickStatus} />}
-                          </span>
+              {(() => {
+                // Merge messages and offers into one sorted timeline
+                const timeline = [
+                  ...messages.map((m) => ({ ...m, _type: "message" })),
+                  ...offers.map((o) => ({ ...o, _type: "offer" })),
+                ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+                // Group by date
+                const groups = {};
+                for (const item of timeline) {
+                  const date = new Date(item.created_at).toDateString();
+                  if (!groups[date]) groups[date] = [];
+                  groups[date].push(item);
+                }
+
+                return Object.entries(groups).map(([date, items]) => (
+                  <div key={date}>
+                    <div className="msg-date-divider"><span>{dateLabel(date)}</span></div>
+                    {items.map((item) => {
+                      if (item._type === "offer") {
+                        const iMadeOffer = item.sender_id === user.id;
+                        const isPending = item.status === "pending";
+                        const isAccepted = item.status === "accepted";
+                        const isDeclined = item.status === "declined";
+                        return (
+                          <div key={`offer-${item.id}`} className={`msg-offer-card-wrap ${iMadeOffer ? "msg-offer-card-wrap--mine" : "msg-offer-card-wrap--theirs"}`}>
+                            {!iMadeOffer && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
+                            <div className={`msg-offer-card ${iMadeOffer ? "msg-offer-card--mine" : "msg-offer-card--theirs"} ${isAccepted ? "msg-offer-card--accepted" : isDeclined ? "msg-offer-card--declined" : item.status === "cancelled" ? "msg-offer-card--declined" : ""}`}>
+                              <div className="msg-offer-card__header">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                                <span className="msg-offer-card__label">
+                                  {iMadeOffer ? `You offered ${peerName(activePeer)}` : `${peerName(activePeer)} offered you`}
+                                </span>
+                              </div>
+                              <p className="msg-offer-card__note">
+                                This offer only records the agreed price. Payment and collection are arranged later in chat.
+                              </p>
+                              <div className="msg-offer-card__amount">
+                                R{Number(item.amount).toLocaleString("en-ZA")}
+                              </div>
+                              {isPending && !iMadeOffer && (
+                                <div className="msg-offer-card__actions">
+                                  <button className="msg-offer-card__decline" onClick={() => respondToOffer(item.id, false)} type="button">Decline</button>
+                                  <button className="msg-offer-card__accept" onClick={() => respondToOffer(item.id, true)} type="button">Accept</button>
+                                </div>
+                              )}
+                              {isPending && iMadeOffer && (
+                                <div className="msg-offer-card__actions">
+                                  <p className="msg-offer-card__status msg-offer-card__status--pending" style={{ margin: 0 }}>Waiting for response…</p>
+                                  <button className="msg-offer-card__cancel-offer" onClick={() => cancelOffer(item.id)} type="button">Cancel Offer</button>
+                                </div>
+                              )}
+                              {isAccepted && (
+                                <p className="msg-offer-card__status msg-offer-card__status--accepted">✓ Offer accepted</p>
+                              )}
+                              {isDeclined && (
+                                <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer declined</p>
+                              )}
+                              {item.status === "cancelled" && (
+                                <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer cancelled</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Regular message bubble
+                      const mine = item.sender_id === user.id;
+                      const tickStatus = !item.id ? "sending" : item.is_read ? "read" : "sent";
+                      return (
+                        <div key={item.id} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
+                          {!mine && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
+                          <div className={`msg-bubble ${mine ? "msg-bubble--mine" : "msg-bubble--theirs"}`}>
+                            <p>{item.content}</p>
+                            <span className="msg-bubble__time" style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
+                              {new Date(item.created_at).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
+                              {mine && <ReadTicks status={tickStatus} />}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
               <div ref={bottomRef} />
             </div>
 
             <footer className="msg-composer">
-              <textarea
-                ref={textareaRef}
-                className="msg-composer__input"
-                placeholder="Type a message… (Enter to send)"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={1}
-                disabled={sending}
-              />
-              <button
-                className={`msg-composer__send ${draft.trim() ? "msg-composer__send--active" : ""}`}
-                onClick={sendMessage}
-                disabled={!draft.trim() || sending}
-                aria-label="Send message"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              </button>
+              {showSellerQuickReplies && (
+                <div className="msg-composer__quick-replies" aria-label="Seller quick replies">
+                  {SELLER_QUICK_REPLIES.map((reply) => (
+                    <button
+                      key={reply}
+                      className="msg-composer__quick-reply"
+                      onClick={() => sendMessage(reply)}
+                      disabled={sending}
+                      type="button"
+                    >
+                      {reply}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="msg-composer__row">
+                <textarea
+                  ref={textareaRef}
+                  className="msg-composer__input"
+                  placeholder="Type a message… (Enter to send)"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                  disabled={sending}
+                />
+                <button
+                  className={`msg-composer__send ${draft.trim() ? "msg-composer__send--active" : ""}`}
+                  onClick={() => sendMessage()}
+                  disabled={!draft.trim() || sending}
+                  aria-label="Send message"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              </div>
             </footer>
           </>
         )}

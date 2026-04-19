@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, beforeEach, expect, test } from "vitest";
 import AdminDashboard from "./AdminDashboard";
 import Hero from "./Hero";
@@ -55,6 +55,19 @@ const sellerProfile = {
   created_at: "2024-01-01T00:00:00.000Z",
 };
 
+const buyerProfile = {
+  id: "buyer-1",
+  name: "Buyer Person",
+  display_name: "Buyer",
+  about: "Interested buyer.",
+  province: "KwaZulu-Natal",
+  institution: "University of KwaZulu-Natal (UKZN)",
+  birthdate: "2002-02-02",
+  sex: "Male",
+  avatar_url: "",
+  created_at: "2024-06-01T00:00:00.000Z",
+};
+
 const userListing = {
   id: "listing-1",
   title: "Desk Lamp",
@@ -69,7 +82,7 @@ const userListing = {
   created_at: "2026-01-01T00:00:00.000Z",
 };
 
-const messages = [
+const defaultMessages = [
   {
     id: "m1",
     created_at: new Date().toISOString(),
@@ -89,6 +102,25 @@ const messages = [
     listing_id: "listing-2",
   },
 ];
+const messages = [...defaultMessages];
+const defaultOffers = [];
+const offers = [...defaultOffers];
+const defaultListingRecords = {
+  "listing-1": userListing,
+  "listing-2": {
+    id: "listing-2",
+    title: "Textbook",
+    price: 500,
+    user_id: "seller-1",
+  },
+  "listing-3": {
+    id: "listing-3",
+    title: "Ball",
+    price: 120,
+    user_id: "seller-1",
+  },
+};
+const listingRecords = structuredClone(defaultListingRecords);
 
 function resultFor(table, mode, filters = {}) {
   if (table === "listings" && mode === "count") {
@@ -103,12 +135,24 @@ function resultFor(table, mode, filters = {}) {
     return { data: null, count: 24, error: null };
   }
   if (table === "profiles" && mode === "single") {
-    return { data: filters.id === "seller-1" ? sellerProfile : profile, error: null };
+    if (filters.id === "seller-1") return { data: sellerProfile, error: null };
+    if (filters.id === "buyer-1") return { data: buyerProfile, error: null };
+    return { data: profile, error: null };
   }
-  if (table === "profiles") return { data: [sellerProfile], error: null };
+  if (table === "profiles") {
+    const ids = Array.isArray(filters.id) ? filters.id : filters.id ? [filters.id] : null;
+    return { data: [sellerProfile, buyerProfile].filter((entry) => !ids || ids.includes(entry.id)), error: null };
+  }
   if (table === "messages") return { data: messages, error: null };
+  if (table === "offers") return { data: offers, error: null };
   if (table === "ratings") return { data: [{ listing_id: "listing-2", rating: 4 }], error: null };
-  if (table === "listings" && mode === "rateable") return { data: [{ id: "listing-2", title: "Textbook" }], error: null };
+  if (table === "listings" && mode === "rateable") {
+    const ids = Array.isArray(filters.id) ? filters.id : filters.id ? [filters.id] : [];
+    return { data: ids.map((id) => listingRecords[id]).filter(Boolean), error: null };
+  }
+  if (table === "listings" && mode === "single") {
+    return { data: listingRecords[filters.id] || userListing, error: null };
+  }
   if (table === "listings") return { data: [userListing], error: null };
   if (table === "facilities") {
     return {
@@ -151,7 +195,15 @@ function makeQuery(table, mode = "list", filters = {}) {
     not: () => query,
     or: () => query,
     order: () => query,
-    in: () => makeQuery(table, "rateable", filters),
+    in: (column, values) => {
+      filters[column] = values;
+      return table === "listings" ? makeQuery(table, "rateable", filters) : query;
+    },
+    is: (column, value) => {
+      filters[column] = value;
+      return query;
+    },
+    maybeSingle: () => Promise.resolve(resultFor(table, "single", filters)),
     single: () => Promise.resolve(resultFor(table, "single", filters)),
     update: (payload) => {
       mocks.update(table, payload);
@@ -264,6 +316,9 @@ vi.mock("jspdf-autotable", () => ({ default: vi.fn() }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  messages.splice(0, messages.length, ...defaultMessages);
+  offers.splice(0, offers.length, ...defaultOffers);
+  Object.assign(listingRecords, structuredClone(defaultListingRecords));
   HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
     this.open = true;
   });
@@ -298,6 +353,7 @@ test("ProfileSetupPage validates steps and saves completed profile", async () =>
     "profiles",
     expect.objectContaining({
       id: "user-1",
+      email: "student@example.com",
       name: "Test Student",
       display_name: "Test",
       institution: "University of Johannesburg (UJ)",
@@ -326,7 +382,11 @@ test("ProfilePage loads profile, validates phone, and saves updates", async () =
 
   await waitFor(() => expect(mocks.upsert).toHaveBeenCalledWith(
     "profiles",
-    expect.objectContaining({ display_name: "Campus Seller", phone: "0712345678" }),
+    expect.objectContaining({
+      email: "student@example.com",
+      display_name: "Campus Seller",
+      phone: "0712345678",
+    }),
     { onConflict: "id" }
   ));
   expect(onNameChange).toHaveBeenCalledWith("Campus Seller");
@@ -381,7 +441,10 @@ test("YourListingsPage edits status and deletes a listing", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: /edit/i }));
   fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Desk Lamp Pro" } });
-  fireEvent.change(screen.getByLabelText(/price/i), { target: { value: "300" } });
+  const priceInput = screen.getByLabelText(/price/i);
+  fireEvent.focus(priceInput);
+  fireEvent.change(priceInput, { target: { value: "300.75" } });
+  expect(priceInput).toHaveValue("300.75");
   fireEvent.submit(screen.getByRole("button", { name: /save changes/i }).closest("form"));
 
   await waitFor(() =>
@@ -390,7 +453,7 @@ test("YourListingsPage edits status and deletes a listing", async () => {
         ([table, payload]) =>
           table === "listings" &&
           payload?.title === "Desk Lamp Pro" &&
-          payload?.price === 300
+          payload?.price === 300.75
       )
     ).toBe(true)
   );
@@ -459,11 +522,17 @@ test("MessagesPage opens a conversation and sends a message", async () => {
     <MessagesPage
       initialRecipientId="seller-1"
       initialListingTitle="Textbook"
+      initialListingId="listing-2"
       onBack={onBack}
       onViewProfile={onViewProfile}
       onUnreadChange={onUnreadChange}
     />
   );
+
+  expect(await screen.findByText(/seller's listing/i)).toBeInTheDocument();
+  expect(screen.getAllByRole("button", { name: /seller - textbook/i }).length).toBeGreaterThan(0);
+  expect(screen.getByRole("button", { name: /view seller/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Yes. Are you interested?" })).not.toBeInTheDocument();
 
   const sellerButtons = await screen.findAllByRole("button", { name: /seller/i });
   fireEvent.click(sellerButtons[1]);
@@ -486,6 +555,123 @@ test("MessagesPage opens a conversation and sends a message", async () => {
   fireEvent.click(screen.getByRole("button", { name: /back/i }));
   expect(onBack).toHaveBeenCalled();
   expect(onUnreadChange).toHaveBeenCalled();
+});
+
+test("MessagesPage creates separate threads for different listings from the same seller", async () => {
+  messages.splice(
+    0,
+    messages.length,
+    {
+      id: "m-listing-2",
+      created_at: new Date("2026-04-18T08:00:00.000Z").toISOString(),
+      sender_id: "seller-1",
+      receiver_id: "user-1",
+      content: "Textbook is still available",
+      is_read: false,
+      listing_id: "listing-2",
+    },
+    {
+      id: "m-listing-3",
+      created_at: new Date("2026-04-18T09:00:00.000Z").toISOString(),
+      sender_id: "seller-1",
+      receiver_id: "user-1",
+      content: "Ball is still available",
+      is_read: false,
+      listing_id: "listing-3",
+    }
+  );
+
+  render(
+    <MessagesPage
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect(await screen.findByRole("button", { name: /seller - textbook/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /seller - ball/i })).toBeInTheDocument();
+});
+
+test("MessagesPage keeps offer-only threads tied to a specific listing", async () => {
+  messages.splice(0, messages.length);
+  offers.splice(
+    0,
+    offers.length,
+    {
+      id: "offer-1",
+      created_at: new Date("2026-04-18T10:00:00.000Z").toISOString(),
+      sender_id: "user-1",
+      receiver_id: "seller-1",
+      listing_id: "listing-3",
+      amount: 5000,
+      status: "accepted",
+    }
+  );
+
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingId="listing-3"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect((await screen.findAllByRole("button", { name: /seller - ball/i })).length).toBeGreaterThan(0);
+  expect(screen.getByText(/seller's listing/i)).toBeInTheDocument();
+  expect(screen.getAllByText(/ball/i).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/offer accepted/i).length).toBeGreaterThan(0);
+});
+
+test("MessagesPage shows seller quick replies and sends the selected response", async () => {
+  listingRecords["listing-2"] = {
+    ...listingRecords["listing-2"],
+    user_id: "user-1",
+    title: "Desk Lamp",
+  };
+  messages.splice(
+    0,
+    messages.length,
+    {
+      id: "m-buyer-1",
+      created_at: new Date().toISOString(),
+      sender_id: "buyer-1",
+      receiver_id: "user-1",
+      content: "Is this still available?",
+      is_read: false,
+      listing_id: "listing-2",
+    }
+  );
+
+  render(
+    <MessagesPage
+      initialRecipientId="buyer-1"
+      initialListingId="listing-2"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect(await screen.findByRole("button", { name: "Yes. Are you interested?" })).toBeInTheDocument();
+  expect(screen.getByText(/your listing/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /view buyer/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "In talks. I'll let you know." })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Sorry, it's not available." })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Yes. Are you interested?" }));
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "messages",
+    expect.objectContaining({
+      sender_id: "user-1",
+      receiver_id: "buyer-1",
+      content: "Yes. Are you interested?",
+      listing_id: "listing-2",
+    })
+  ));
 });
 
 test("AdminDashboard loads facilities, saves changes, and generates a report", async () => {

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { vi, beforeEach, afterEach, expect, test } from "vitest";
 import Footer from "./Footer";
 import FilterBar from "./FilterBar";
@@ -277,7 +277,8 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
   fireEvent.click(screen.getByRole("button", { name: /settings/i }));
   expect(onSettings).toHaveBeenCalled();
 
-  fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
+  fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+  fireEvent.click(within(screen.getByRole("navigation", { name: /side menu/i })).getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
 });
 
@@ -343,17 +344,37 @@ test("SignupPage validates passwords and shows success after signup", async () =
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/at least 6/i);
 
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "secret123" } });
+  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "Secret123" } });
   fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "different" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/do not match/i);
 
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "secret123" } });
+  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "Secret123" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
   expect(await screen.findByRole("heading", { name: /check your email/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /back to sign in/i }));
   expect(onNavigate).toHaveBeenCalledWith("login");
+});
+
+test("SignupPage reports when an email is already registered", async () => {
+  authFns.signUp.mockResolvedValueOnce({
+    data: { user: { identities: [] } },
+    error: null,
+  });
+
+  render(<SignupPage onNavigate={vi.fn()} />);
+
+  fireEvent.change(screen.getByLabelText(/email address/i), {
+    target: { value: "student@example.com" },
+  });
+  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "Secret123" } });
+  fireEvent.change(screen.getByLabelText(/confirm password/i), {
+    target: { value: "Secret123" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(/email is already registered/i);
 });
 
 test("SettingsPage updates password, preferences, theme, and delete confirmation", async () => {
@@ -369,21 +390,23 @@ test("SettingsPage updates password, preferences, theme, and delete confirmation
     />
   );
 
+  await waitFor(() => expect(profileEq).toHaveBeenCalledWith("id", "user-1"));
+
   fireEvent.click(screen.getByText(/back/i));
   expect(onBack).toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /update password/i }));
-  expect(screen.getByText(/at least 6 characters/i)).toBeInTheDocument();
+  expect(screen.getByText(/password must be at least 6 characters/i)).toBeInTheDocument();
 
-  fireEvent.change(screen.getByPlaceholderText(/at least 6 characters/i), {
-    target: { value: "secret123" },
+  fireEvent.change(screen.getByPlaceholderText(/min\. 6 chars, upper & lowercase, 1 number/i), {
+    target: { value: "Secret123" },
   });
   fireEvent.change(screen.getByPlaceholderText(/repeat new password/i), {
-    target: { value: "secret123" },
+    target: { value: "Secret123" },
   });
   fireEvent.click(screen.getByRole("button", { name: /update password/i }));
   expect(await screen.findByText(/password updated successfully/i)).toBeInTheDocument();
-  expect(updateUser).toHaveBeenCalledWith({ password: "secret123" });
+  expect(updateUser).toHaveBeenCalledWith({ password: "Secret123" });
 
   fireEvent.click(screen.getByRole("button", { name: /toggle message notifications/i }));
   fireEvent.click(screen.getByRole("button", { name: /save preferences/i }));
@@ -432,14 +455,15 @@ test("ListingForm validates required fields and publishes a completed listing", 
   expect(await screen.findByAltText(/upload 1/i)).toHaveAttribute("src", readerResult);
 
   fireEvent.change(screen.getByLabelText(/item name/i), { target: { value: "Lamp" } });
-  fireEvent.change(screen.getByLabelText(/asking price/i), { target: { value: "250" } });
+  fireEvent.change(screen.getByLabelText(/asking price/i), { target: { value: "250.75" } });
+  expect(screen.getByLabelText(/asking price/i)).toHaveValue("250.75");
   fireEvent.click(screen.getByRole("radio", { name: /good/i }));
   fireEvent.click(screen.getByRole("button", { name: /for trade/i }));
   fireEvent.click(screen.getByRole("button", { name: /publish listing/i }));
 
   await waitFor(() => expect(insert).toHaveBeenCalledWith(expect.objectContaining({
     title: "Lamp",
-    price: 250,
+    price: 250.75,
     condition: "Good",
     status: "for_trade",
   })));

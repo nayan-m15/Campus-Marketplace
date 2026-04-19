@@ -51,7 +51,12 @@ const MOCK_LISTINGS = [
 
 function formatPrice(price) {
   if (price === null || price === undefined) return "R 0";
-  return `R ${Number(price).toLocaleString("en-ZA")}`;
+  const num = Number(price);
+  const hasCents = Math.round(num * 100) % 100 !== 0;
+  return `R ${num.toLocaleString("en-US", {
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).replace(/,/g, " ")}`;
 }
 
 function getCategoryEmoji(category) {

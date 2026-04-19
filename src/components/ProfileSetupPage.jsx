@@ -246,6 +246,10 @@ export default function ProfileSetupPage({ onComplete }) {
   const handleFinish = async () => {
     const err = validateStep();
     if (err) { setError(err); return; }
+    if (!user?.id || !user?.email) {
+      setError("We could not find your account email. Please sign in again and try setup once more.");
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -256,6 +260,7 @@ export default function ProfileSetupPage({ onComplete }) {
       const { error: upsertError } = await supabase.from("profiles").upsert(
         {
           id: user.id,
+          email: user.email,
           name: form.name.trim(),
           display_name: displayName,
           sex: form.sex,

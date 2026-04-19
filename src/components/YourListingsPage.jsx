@@ -6,24 +6,36 @@ import { CONDITION_COLORS } from "../data/listings";
 const LISTING_TITLE_MAX = 90;
 const LISTING_DESCRIPTION_MAX = 350;
 const LISTING_PRICE_MAX_DIGITS = 8;
-const LISTING_PRICE_MAX_VALUE = 99999999;
+const LISTING_PRICE_MAX_VALUE = 99999999.99;
 
-function getDigitsOnly(value) {
-  return String(value ?? "").replace(/\D/g, "");
-}
+function clampPriceInput(value) {
+  const cleaned = String(value ?? "")
+    .replace(",", ".")
+    .replace(/[^0-9.]/g, "");
+  const dotIndex = cleaned.indexOf(".");
+  const whole = (dotIndex === -1 ? cleaned : cleaned.slice(0, dotIndex))
+    .replace(/\./g, "")
+    .slice(0, LISTING_PRICE_MAX_DIGITS);
 
-function clampPriceDigits(value) {
-  return getDigitsOnly(value).slice(0, LISTING_PRICE_MAX_DIGITS);
+  if (dotIndex === -1) {
+    return whole;
+  }
+
+  const cents = cleaned
+    .slice(dotIndex + 1)
+    .replace(/\./g, "")
+    .slice(0, 2);
+  return `${whole}.${cents}`;
 }
 
 function formatZAR(value) {
   const num = Number(String(value).replace(/[^0-9.]/g, ""));
   if (isNaN(num)) return "R 0";
-  return new Intl.NumberFormat("en-ZA", {
-    style: "currency",
-    currency: "ZAR",
-    minimumFractionDigits: 0,
-  }).format(num);
+  const hasCents = Math.round(num * 100) % 100 !== 0;
+  return `R ${num.toLocaleString("en-US", {
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).replace(/,/g, " ")}`;
 }
 
 function clampLength(value, maxLength) {
@@ -31,16 +43,16 @@ function clampLength(value, maxLength) {
 }
 
 function formatEditPrice(value) {
-  const digits = clampPriceDigits(value);
+  const price = clampPriceInput(value);
 
-  if (!digits) {
+  if (!price || price === ".") {
     return "";
   }
 
-  return `R${Number(digits).toLocaleString("en-US", {
+  return `R ${Number(price).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).replace(/,/g, ", ")}`;
+  }).replace(/,/g, " ")}`;
 }
 export default function YourListingsPage({ onBack, onListingChanged }) {
   const { user } = useAuth();
@@ -109,7 +121,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   async function handleEditSave(e) {
     e?.preventDefault?.();
     const { id, title, price, condition, description, category } = editingItem;
-    const normalizedPrice = clampPriceDigits(price);
+    const normalizedPrice = clampPriceInput(price);
     const numericPrice = Number(normalizedPrice);
 
     if (!normalizedPrice || Number.isNaN(numericPrice) || numericPrice <= 0) {
@@ -117,8 +129,8 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
       return;
     }
 
-    if (normalizedPrice.length > LISTING_PRICE_MAX_DIGITS || numericPrice > LISTING_PRICE_MAX_VALUE) {
-      setError("Price must be 8 digits or less. The maximum allowed is R 99 999 999.");
+    if (numericPrice > LISTING_PRICE_MAX_VALUE) {
+      setError("Price must be R 99 999 999.99 or less.");
       return;
     }
 
@@ -246,7 +258,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                         ...item,
                         title: clampLength(item.title, LISTING_TITLE_MAX),
                         description: clampLength(item.description, LISTING_DESCRIPTION_MAX),
-                        price: clampPriceDigits(item.price),
+                        price: clampPriceInput(item.price),
                       });
                       setIsEditingPrice(false);
                     }}
@@ -329,13 +341,13 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 Price
                 <input
                   type="text"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   pattern="[0-9\\s,\\.R]*"
                   placeholder="R0.00"
                   value={isEditingPrice ? editingItem.price : formatEditPrice(editingItem.price)}
                   onChange={(e) => {
                     setError(null);
-                    setEditingItem({ ...editingItem, price: clampPriceDigits(e.target.value) });
+                    setEditingItem({ ...editingItem, price: clampPriceInput(e.target.value) });
                   }}
                   onFocus={() => setIsEditingPrice(true)}
                   onBlur={() => setIsEditingPrice(false)}
@@ -351,7 +363,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   required
                 />
                 <span style={{ fontSize: 12, fontWeight: 500, color: "var(--gray-500)" }}>
-                  Currency format. Maximum 8 digits, up to R 99 999 999.
+                  Currency format. Maximum 8 digits before the decimal and 2 cents digits, up to R 99 999 999.99.
                 </span>
               </label>
 

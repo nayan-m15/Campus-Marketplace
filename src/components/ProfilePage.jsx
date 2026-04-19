@@ -361,6 +361,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
       const { error } = await supabase.from("profiles").upsert(
         {
           id: user.id,
+          email: user.email,
           name: form.name.trim() || null,
           display_name: form.display_name.trim() || null,
           about: form.about.trim() || null,
