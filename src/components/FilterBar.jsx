@@ -6,14 +6,24 @@ export default function FilterBar({
   onCategoryChange,
   activeCondition,
   onConditionChange,
+  priceSort = "",
+  onPriceSortChange,
+  priceRange = { min: "", max: "" },
+  onPriceRangeChange,
+  showSorting = true,
 }) {
   const hasActiveFilters =
     activeCategory !== "All Items" ||
-    activeCondition !== "All Conditions";
+    activeCondition !== "All Conditions" ||
+    (showSorting && priceSort !== "");
 
   function handleClear() {
     onCategoryChange("All Items");
     onConditionChange("All Conditions");
+    if (showSorting) {
+      onPriceSortChange?.("");
+      onPriceRangeChange?.({ min: "", max: "" });
+    }
   }
 
   return (
@@ -52,6 +62,69 @@ export default function FilterBar({
             ))}
           </select>
         </label>
+
+        {showSorting && (
+          <label className="filter-bar__label" htmlFor="filter-price">
+            <span className="filter-bar__label-text">Sort By</span>
+            <select
+              id="filter-price"
+              className="filter-bar__select"
+              value={priceSort}
+              onChange={(e) => {
+                onPriceSortChange?.(e.target.value);
+                if (e.target.value !== "custom") {
+                  onPriceRangeChange?.({ min: "", max: "" });
+                }
+              }}
+            >
+              <option value="">Any price</option>
+              <option value="price_asc">Price Low to High</option>
+              <option value="price_desc">Price High to Low</option>
+              <option value="condition_asc">Condition Low to High</option>
+              <option value="condition_desc">Condition High to Low</option>
+              <option value="newest">Newest Arrivals</option>
+              <option value="custom">Custom Price Range</option>
+            </select>
+          </label>
+        )}
+
+        {showSorting && priceSort === "custom" && (
+          <fieldset className="filter-bar__range-fieldset">
+            <legend className="filter-bar__range-legend">Price range</legend>
+
+            <label className="filter-bar__range-label" htmlFor="price-min">
+              <span className="filter-bar__label-text">Minimum price</span>
+              <input
+                id="price-min"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={priceRange.min}
+                onChange={(e) =>
+                  onPriceRangeChange?.({ ...priceRange, min: e.target.value })
+                }
+                className="filter-bar__range-input"
+                aria-label="Minimum price in Rand"
+              />
+            </label>
+
+            <label className="filter-bar__range-label" htmlFor="price-max">
+              <span className="filter-bar__label-text">Maximum price</span>
+              <input
+                id="price-max"
+                type="number"
+                min="0"
+                placeholder="Any"
+                value={priceRange.max}
+                onChange={(e) =>
+                  onPriceRangeChange?.({ ...priceRange, max: e.target.value })
+                }
+                className="filter-bar__range-input"
+                aria-label="Maximum price in Rand"
+              />
+            </label>
+          </fieldset>
+        )}
 
         {hasActiveFilters && (
           <button

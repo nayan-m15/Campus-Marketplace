@@ -413,7 +413,9 @@ function AppInner() {
     ) || 64;
     const filterBarHeight = filterBarRef.current.getBoundingClientRect().height;
     const isDesktopSidebar =
-      typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(min-width: 1024px)").matches;
     const listingsTop =
       listingsSectionRef.current.getBoundingClientRect().top +
       window.scrollY -
@@ -830,8 +832,9 @@ function AppInner() {
           />
         </section>
 
-        <section className="marketplace-shell" ref={listingsSectionRef}>
+        <section className="marketplace-shell">
           <aside
+            role="navigation"
             className="marketplace-shell__filters"
             aria-label="Categories"
             ref={filterBarRef}
@@ -841,10 +844,15 @@ function AppInner() {
               onCategoryChange={handleCategoryChange}
               activeCondition={activeCondition}
               onConditionChange={setActiveCondition}
+              priceSort={priceSort}
+              onPriceSortChange={setPriceSort}
+              priceRange={priceRange}
+              onPriceRangeChange={setPriceRange}
+              showSorting={false}
             />
           </aside>
 
-          <div className="marketplace-shell__results">
+          <div className="marketplace-shell__results" ref={listingsSectionRef}>
             {listingsError ? (
               <p style={{ padding: "24px 40px", color: "crimson" }}>{listingsError}</p>
             ) : listingsLoading ? (
