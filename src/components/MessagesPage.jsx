@@ -10,6 +10,20 @@ const SELLER_QUICK_REPLIES = [
   "Sorry, it's not available.",
 ];
 
+function buildConversationKey(peerId, listingId = null) {
+  return `${peerId}::${listingId || "general"}`;
+}
+
+function buildOfferPreview(offer, currentUserId) {
+  if (!offer) return "";
+  const amount = `R${Number(offer.amount).toLocaleString("en-ZA")}`;
+  if (offer.status === "accepted") return `Offer accepted: ${amount}`;
+  if (offer.status === "declined") return `Offer declined: ${amount}`;
+  if (offer.status === "cancelled") return `Offer cancelled: ${amount}`;
+  const sentByMe = offer.sender_id === currentUserId;
+  return sentByMe ? `You offered ${amount}` : `Offer received: ${amount}`;
+}
+
 // ── Helpers ────────────────────────────────────────────────
 function timeLabel(iso) {
   const d = new Date(iso);
@@ -98,10 +112,11 @@ export default function MessagesPage({
   const [conversations, setConversations] = useState([]);
   const [convsLoading, setConvsLoading] = useState(true);
 
-  // unreadByPeer: { [peerId]: number }
+  // unreadByConversation: { [conversationKey]: number }
   const [unreadByPeer, setUnreadByPeer] = useState({});
 
   const [activeId, setActiveId] = useState(null);
+  const [activeConversationKey, setActiveConversationKey] = useState(null);
   const [activePeer, setActivePeer] = useState(null);
   const [messages, setMessages] = useState([]);
   const [msgsLoading, setMsgsLoading] = useState(false);
@@ -139,29 +154,58 @@ export default function MessagesPage({
 
     const { data: msgs } = await supabase
       .from("messages")
-      .select("id, created_at, sender_id, receiver_id, content, is_read")
+      .select("id, created_at, sender_id, receiver_id, content, is_read, listing_id")
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .order("created_at", { ascending: false });
+    const { data: offerRows } = await supabase
+      .from("offers")
+      .select("id, created_at, sender_id, receiver_id, amount, status, listing_id")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
-    if (!msgs) { setConvsLoading(false); return; }
+    if (!msgs && !offerRows) { setConvsLoading(false); return; }
 
-    // Build per-peer last message map
-    const peerMap = new Map();
+    // Build per-thread last message map
+    const threadMap = new Map();
     const unreadMap = {};
 
-    for (const m of msgs) {
+    for (const m of msgs || []) {
       const peerId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
-      if (!peerMap.has(peerId)) peerMap.set(peerId, m);
+      const conversationKey = buildConversationKey(peerId, m.listing_id);
+      if (!threadMap.has(conversationKey)) {
+        threadMap.set(conversationKey, { peerId, listingId: m.listing_id || null, lastMsg: m });
+      }
 
       // Count unread messages sent TO me (not from me) that aren't read
       if (m.receiver_id === user.id && !m.is_read) {
-        unreadMap[peerId] = (unreadMap[peerId] || 0) + 1;
+        unreadMap[conversationKey] = (unreadMap[conversationKey] || 0) + 1;
+      }
+    }
+
+    for (const offer of offerRows || []) {
+      const peerId = offer.sender_id === user.id ? offer.receiver_id : offer.sender_id;
+      const conversationKey = buildConversationKey(peerId, offer.listing_id);
+      if (!threadMap.has(conversationKey)) {
+        threadMap.set(conversationKey, {
+          peerId,
+          listingId: offer.listing_id || null,
+          lastMsg: {
+            id: `offer-preview-${offer.id}`,
+            created_at: offer.created_at,
+            sender_id: null,
+            receiver_id: offer.receiver_id,
+            content: buildOfferPreview(offer, user.id),
+            is_read: true,
+            listing_id: offer.listing_id || null,
+          },
+        });
       }
     }
 
     setUnreadByPeer(unreadMap);
 
-    const peerIds = [...peerMap.keys()].filter(Boolean);
+    const peerIds = [...new Set([...threadMap.values()].map((thread) => thread.peerId).filter(Boolean))];
+    const listingIds = [...new Set([...threadMap.values()].map((thread) => thread.listingId).filter(Boolean))];
     let profiles = [];
     if (peerIds.length > 0) {
       const { data } = await supabase
@@ -170,13 +214,25 @@ export default function MessagesPage({
         .in("id", peerIds);
       profiles = data || [];
     }
+    let listings = [];
+    if (listingIds.length > 0) {
+      const { data } = await supabase
+        .from("listings")
+        .select("id, title, price, user_id")
+        .in("id", listingIds);
+      listings = data || [];
+    }
 
     const profileById = Object.fromEntries(profiles.map((p) => [p.id, p]));
+    const listingById = Object.fromEntries(listings.map((listing) => [listing.id, listing]));
 
-    const convList = [...peerMap.entries()].map(([peerId, lastMsg]) => ({
-      peerId,
-      profile: profileById[peerId] || null,
-      lastMsg,
+    const convList = [...threadMap.entries()].map(([conversationKey, thread]) => ({
+      key: conversationKey,
+      peerId: thread.peerId,
+      listingId: thread.listingId,
+      profile: profileById[thread.peerId] || null,
+      listing: thread.listingId ? listingById[thread.listingId] || null : null,
+      lastMsg: thread.lastMsg,
     }));
 
     setConversations(convList);
@@ -189,7 +245,7 @@ export default function MessagesPage({
   useEffect(() => {
     if (!initialRecipientId || !user) return;
     setActiveListingId(initialListingId || null);
-    openChat(initialRecipientId);
+    openChat(initialRecipientId, initialListingId || null);
     if (initialListingTitle) {
       setDraft(`Hi! I'm interested in your listing: "${initialListingTitle}". Is it still available?`);
     }
@@ -197,29 +253,33 @@ export default function MessagesPage({
   }, [initialRecipientId, initialListingId, user]);
 
   // ── Mark messages as read ────────────────────────────────
-  const markAsRead = useCallback(async (peerId) => {
+  const markAsRead = useCallback(async (peerId, listingId = null) => {
     if (!peerId || !user) return;
     // Update DB: mark all messages from this peer to me as read
-    await supabase
+    let query = supabase
       .from("messages")
       .update({ is_read: true })
       .eq("receiver_id", user.id)
       .eq("sender_id", peerId)
       .eq("is_read", false);
+    query = listingId ? query.eq("listing_id", listingId) : query.is("listing_id", null);
+    await query;
 
-    // Clear local unread count for this peer
+    // Clear local unread count for this thread
     setUnreadByPeer((prev) => {
       const next = { ...prev };
-      delete next[peerId];
+      delete next[buildConversationKey(peerId, listingId)];
       return next;
     });
   }, [user]);
 
   // ── Open a chat ───────────────────────────────────────────
-  const openChat = useCallback(async (peerId) => {
+  const openChat = useCallback(async (peerId, listingId = null) => {
     if (!peerId) return;
-    if (peerId !== initialRecipientId) setActiveListingId(null);
+    const conversationKey = buildConversationKey(peerId, listingId);
     setActiveId(peerId);
+    setActiveConversationKey(conversationKey);
+    setActiveListingId(listingId);
     setMessages([]);
     setMsgsLoading(true);
     setIAmTheLister(false);
@@ -244,12 +304,26 @@ export default function MessagesPage({
       )
       .order("created_at", { ascending: true });
 
-    setMessages(msgs || []);
-    setMsgsLoading(false);
+    const threadMessages = (msgs || []).filter((message) =>
+      listingId ? String(message.listing_id) === String(listingId) : !message.listing_id
+    );
+
+    setMessages(threadMessages);
+    let threadOffers = [];
+    if (listingId) {
+      const { data: existingOffers } = await supabase
+        .from("offers")
+        .select("*")
+        .eq("listing_id", String(listingId))
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${user.id})`)
+        .order("created_at", { ascending: true });
+      threadOffers = existingOffers || [];
+    }
 
     // ── Buyer info banner ────────────────────────────────────
     // Use the most recent message that has a listing_id (latest inquired listing)
-    const msgWithListing = [...(msgs || [])].reverse().find((m) => m.listing_id);
+    const msgWithListing = [...threadMessages].reverse().find((m) => m.listing_id) ||
+      (listingId ? { listing_id: listingId, sender_id: peerId } : null);
 
     if (msgWithListing) {
       setActiveListingId(msgWithListing.listing_id || null);
@@ -269,33 +343,26 @@ export default function MessagesPage({
         user_id: iOwnThisListing ? user.id : peerId,
       });
 
-      // Both sides fetch offers for this listing + conversation
-      const { data: existingOffers } = await supabase
-        .from("offers")
-        .select("*")
-        .eq("listing_id", String(msgWithListing.listing_id))
-        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${user.id})`)
-        .order("created_at", { ascending: true });
-      setOffers(existingOffers || []);
-    } else {
-      // Fallback: fetch offers by participants (no listing_id in any message)
-      const { data: fallbackOffers } = await supabase
-        .from("offers")
-        .select("*")
-        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${user.id})`)
-        .order("created_at", { ascending: true });
-      setOffers(fallbackOffers || []);
     }
+    setOffers(threadOffers);
+    setMsgsLoading(false);
 
     // Mark as read now that we've opened the chat
-    await markAsRead(peerId);
+    await markAsRead(peerId, listingId);
 
     setConversations((prev) => {
-      const exists = prev.find((c) => c.peerId === peerId);
+      const exists = prev.find((c) => c.key === conversationKey);
       if (exists) return prev;
-      return [{ peerId, profile: profile || { id: peerId }, lastMsg: null }, ...prev];
+      return [{
+        key: conversationKey,
+        peerId,
+        listingId,
+        profile: profile || { id: peerId },
+        listing: listingId ? { id: listingId, title: initialListingTitle || null } : null,
+        lastMsg: null,
+      }, ...prev];
     });
-  }, [user, markAsRead, initialRecipientId]);
+  }, [user, markAsRead, initialListingTitle]);
 
   // ── Realtime ──────────────────────────────────────────────
   useEffect(() => {
@@ -310,9 +377,10 @@ export default function MessagesPage({
         if (!isForMe) return;
 
         const peerId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+        const conversationKey = buildConversationKey(peerId, msg.listing_id);
 
-        setActiveId((curActive) => {
-          if (curActive === peerId) {
+        setActiveConversationKey((curActiveConversationKey) => {
+          if (curActiveConversationKey === conversationKey) {
             setMessages((prev) => {
               if (msg.sender_id === user.id) {
                 const hasOptimistic = prev.find((m) => m.id === null && m.content === msg.content && m.sender_id === msg.sender_id);
@@ -327,25 +395,33 @@ export default function MessagesPage({
             });
             // Auto-mark as read if conversation is open
             if (msg.receiver_id === user.id) {
-              markAsRead(peerId);
+              markAsRead(peerId, msg.listing_id || null);
             }
           } else {
             // Increment unread count if this peer's chat isn't open
             if (msg.receiver_id === user.id) {
               setUnreadByPeer((prev) => ({
                 ...prev,
-                [peerId]: (prev[peerId] || 0) + 1,
+                [conversationKey]: (prev[conversationKey] || 0) + 1,
               }));
             }
           }
-          return curActive;
+          return curActiveConversationKey;
         });
 
         setConversations((prev) => {
-          const existing = prev.find((c) => c.peerId === peerId);
-          if (existing) return prev.map((c) => c.peerId === peerId ? { ...c, lastMsg: msg } : c);
-          return [{ peerId, profile: null, lastMsg: msg }, ...prev];
+          const existing = prev.find((c) => c.key === conversationKey);
+          if (existing) return prev.map((c) => c.key === conversationKey ? { ...c, lastMsg: msg } : c);
+          return [{
+            key: conversationKey,
+            peerId,
+            listingId: msg.listing_id || null,
+            profile: null,
+            listing: null,
+            lastMsg: msg,
+          }, ...prev];
         });
+        loadConversations();
       })
       // ── Listen for is_read updates so sender's ticks turn green in real-time ──
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
@@ -355,12 +431,13 @@ export default function MessagesPage({
         setMessages((prev) =>
           prev.map((m) => m.id === updated.id ? { ...m, is_read: updated.is_read } : m)
         );
+        loadConversations();
       })
       .subscribe();
 
     realtimeRef.current = channel;
     return () => supabase.removeChannel(channel);
-  }, [user, markAsRead]);
+  }, [user, markAsRead, loadConversations]);
 
   // ── Realtime: offers ──────────────────────────────────────
   useEffect(() => {
@@ -370,9 +447,9 @@ export default function MessagesPage({
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "offers" }, (payload) => {
         const offer = payload.new;
         if (offer.sender_id !== user.id && offer.receiver_id !== user.id) return;
-        setActiveId((curActive) => {
+        setActiveConversationKey((curActiveConversationKey) => {
           const peerId = offer.sender_id === user.id ? offer.receiver_id : offer.sender_id;
-          if (curActive === peerId) {
+          if (curActiveConversationKey === buildConversationKey(peerId, offer.listing_id || null)) {
             setOffers((prev) => {
               if (prev.find((o) => o.id === offer.id)) return prev;
               // If this new offer replaces a pending one from the same sender, mark old ones declined
@@ -386,17 +463,19 @@ export default function MessagesPage({
               ];
             });
           }
-          return curActive;
+          return curActiveConversationKey;
         });
+        loadConversations();
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "offers" }, (payload) => {
         const offer = payload.new;
         if (offer.sender_id !== user.id && offer.receiver_id !== user.id) return;
         setOffers((prev) => prev.map((o) => o.id === offer.id ? offer : o));
+        loadConversations();
       })
       .subscribe();
     return () => supabase.removeChannel(channel);
-  }, [user]);
+  }, [user, loadConversations]);
 
   // ── Scroll to bottom ──────────────────────────────────────
   useEffect(() => {
@@ -537,7 +616,8 @@ export default function MessagesPage({
 
   const filteredConvs = conversations.filter((c) => {
     if (!search.trim()) return true;
-    return peerName(c.profile).toLowerCase().includes(search.toLowerCase());
+    const label = `${peerName(c.profile)} ${c.listing?.title || ""}`.toLowerCase();
+    return label.includes(search.toLowerCase());
   });
 
   const latestTextMessage = [...messages].reverse().find((message) => message.content?.trim());
@@ -596,19 +676,20 @@ export default function MessagesPage({
           )}
 
           {filteredConvs.map((conv) => {
-            const unread = unreadByPeer[conv.peerId] || 0;
-            const isActive = activeId === conv.peerId;
+            const unread = unreadByPeer[conv.key] || 0;
+            const isActive = activeConversationKey === conv.key;
+            const threadTitle = conv.listing?.title ? `${peerName(conv.profile)} - ${conv.listing.title}` : peerName(conv.profile);
             return (
-              <li key={conv.peerId}>
+              <li key={conv.key}>
                 <button
                   className={`msg-conv-item ${isActive ? "msg-conv-item--active" : ""} ${unread > 0 && !isActive ? "msg-conv-item--unread" : ""}`}
-                  onClick={() => openChat(conv.peerId)}
+                  onClick={() => openChat(conv.peerId, conv.listingId)}
                 >
                   <Avatar url={conv.profile?.avatar_url} name={peerName(conv.profile)} size={46} />
                   <div className="msg-conv-item__body">
                     <div className="msg-conv-item__top">
                       <span className={`msg-conv-item__name ${unread > 0 && !isActive ? "msg-conv-item__name--unread" : ""}`}>
-                        {peerName(conv.profile)}
+                        {threadTitle}
                       </span>
                       {conv.lastMsg && (
                         <span className="msg-conv-item__time">{timeLabel(conv.lastMsg.created_at)}</span>
@@ -662,12 +743,14 @@ export default function MessagesPage({
         ) : (
           <>
             <header className="msg-chat__header">
-              <button className="msg-chat__back-mobile" onClick={() => setActiveId(null)}>←</button>
+              <button className="msg-chat__back-mobile" onClick={() => { setActiveId(null); setActiveConversationKey(null); setActiveListingId(null); }}>←</button>
               {activePeer && (
                 <>
                   <Avatar url={activePeer.avatar_url} name={peerName(activePeer)} size={38} />
                   <div className="msg-chat__header-info">
-                    <button className="msg-chat__header-name msg-chat__header-name--link" onClick={() => onViewProfile?.(activePeer.id)} type="button">{peerName(activePeer)}</button>
+                    <button className="msg-chat__header-name msg-chat__header-name--link" onClick={() => onViewProfile?.(activePeer.id)} type="button">
+                      {conversationListing?.title ? `${peerName(activePeer)} - ${conversationListing.title}` : peerName(activePeer)}
+                    </button>
                     {activePeer.institution && (
                       <span className="msg-chat__header-sub">{activePeer.institution}</span>
                     )}

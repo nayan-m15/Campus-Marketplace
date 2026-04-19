@@ -103,12 +103,20 @@ const defaultMessages = [
   },
 ];
 const messages = [...defaultMessages];
+const defaultOffers = [];
+const offers = [...defaultOffers];
 const defaultListingRecords = {
   "listing-1": userListing,
   "listing-2": {
     id: "listing-2",
     title: "Textbook",
     price: 500,
+    user_id: "seller-1",
+  },
+  "listing-3": {
+    id: "listing-3",
+    title: "Ball",
+    price: 120,
     user_id: "seller-1",
   },
 };
@@ -136,8 +144,12 @@ function resultFor(table, mode, filters = {}) {
     return { data: [sellerProfile, buyerProfile].filter((entry) => !ids || ids.includes(entry.id)), error: null };
   }
   if (table === "messages") return { data: messages, error: null };
+  if (table === "offers") return { data: offers, error: null };
   if (table === "ratings") return { data: [{ listing_id: "listing-2", rating: 4 }], error: null };
-  if (table === "listings" && mode === "rateable") return { data: [{ id: "listing-2", title: "Textbook" }], error: null };
+  if (table === "listings" && mode === "rateable") {
+    const ids = Array.isArray(filters.id) ? filters.id : filters.id ? [filters.id] : [];
+    return { data: ids.map((id) => listingRecords[id]).filter(Boolean), error: null };
+  }
   if (table === "listings" && mode === "single") {
     return { data: listingRecords[filters.id] || userListing, error: null };
   }
@@ -186,6 +198,10 @@ function makeQuery(table, mode = "list", filters = {}) {
     in: (column, values) => {
       filters[column] = values;
       return table === "listings" ? makeQuery(table, "rateable", filters) : query;
+    },
+    is: (column, value) => {
+      filters[column] = value;
+      return query;
     },
     maybeSingle: () => Promise.resolve(resultFor(table, "single", filters)),
     single: () => Promise.resolve(resultFor(table, "single", filters)),
@@ -301,6 +317,7 @@ vi.mock("jspdf-autotable", () => ({ default: vi.fn() }));
 beforeEach(() => {
   vi.clearAllMocks();
   messages.splice(0, messages.length, ...defaultMessages);
+  offers.splice(0, offers.length, ...defaultOffers);
   Object.assign(listingRecords, structuredClone(defaultListingRecords));
   HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
     this.open = true;
@@ -505,6 +522,7 @@ test("MessagesPage opens a conversation and sends a message", async () => {
     <MessagesPage
       initialRecipientId="seller-1"
       initialListingTitle="Textbook"
+      initialListingId="listing-2"
       onBack={onBack}
       onViewProfile={onViewProfile}
       onUnreadChange={onUnreadChange}
@@ -512,6 +530,7 @@ test("MessagesPage opens a conversation and sends a message", async () => {
   );
 
   expect(await screen.findByText(/seller's listing/i)).toBeInTheDocument();
+  expect(screen.getAllByRole("button", { name: /seller - textbook/i }).length).toBeGreaterThan(0);
   expect(screen.getByRole("button", { name: /view seller/i })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Yes. Are you interested?" })).not.toBeInTheDocument();
 
@@ -536,6 +555,74 @@ test("MessagesPage opens a conversation and sends a message", async () => {
   fireEvent.click(screen.getByRole("button", { name: /back/i }));
   expect(onBack).toHaveBeenCalled();
   expect(onUnreadChange).toHaveBeenCalled();
+});
+
+test("MessagesPage creates separate threads for different listings from the same seller", async () => {
+  messages.splice(
+    0,
+    messages.length,
+    {
+      id: "m-listing-2",
+      created_at: new Date("2026-04-18T08:00:00.000Z").toISOString(),
+      sender_id: "seller-1",
+      receiver_id: "user-1",
+      content: "Textbook is still available",
+      is_read: false,
+      listing_id: "listing-2",
+    },
+    {
+      id: "m-listing-3",
+      created_at: new Date("2026-04-18T09:00:00.000Z").toISOString(),
+      sender_id: "seller-1",
+      receiver_id: "user-1",
+      content: "Ball is still available",
+      is_read: false,
+      listing_id: "listing-3",
+    }
+  );
+
+  render(
+    <MessagesPage
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect(await screen.findByRole("button", { name: /seller - textbook/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /seller - ball/i })).toBeInTheDocument();
+});
+
+test("MessagesPage keeps offer-only threads tied to a specific listing", async () => {
+  messages.splice(0, messages.length);
+  offers.splice(
+    0,
+    offers.length,
+    {
+      id: "offer-1",
+      created_at: new Date("2026-04-18T10:00:00.000Z").toISOString(),
+      sender_id: "user-1",
+      receiver_id: "seller-1",
+      listing_id: "listing-3",
+      amount: 5000,
+      status: "accepted",
+    }
+  );
+
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingId="listing-3"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect((await screen.findAllByRole("button", { name: /seller - ball/i })).length).toBeGreaterThan(0);
+  expect(screen.getByText(/seller's listing/i)).toBeInTheDocument();
+  expect(screen.getAllByText(/ball/i).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/offer accepted/i).length).toBeGreaterThan(0);
 });
 
 test("MessagesPage shows seller quick replies and sends the selected response", async () => {
