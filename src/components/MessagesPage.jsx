@@ -865,31 +865,32 @@ export default function MessagesPage({
                     <div className="msg-date-divider"><span>{dateLabel(date)}</span></div>
                     {items.map((item) => {
                       if (item._type === "offer") {
-                        const iMadeoffer = item.sender_id === user.id;
+                        const iMadeOffer = item.sender_id === user.id;
                         const isPending = item.status === "pending";
                         const isAccepted = item.status === "accepted";
                         const isDeclined = item.status === "declined";
                         return (
-                          <div key={`offer-${item.id}`} className="msg-offer-card-wrap">
-                            <div className={`msg-offer-card ${isAccepted ? "msg-offer-card--accepted" : isDeclined ? "msg-offer-card--declined" : item.status === "cancelled" ? "msg-offer-card--declined" : ""}`}>
+                          <div key={`offer-${item.id}`} className={`msg-offer-card-wrap ${iMadeOffer ? "msg-offer-card-wrap--mine" : "msg-offer-card-wrap--theirs"}`}>
+                            {!iMadeOffer && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
+                            <div className={`msg-offer-card ${iMadeOffer ? "msg-offer-card--mine" : "msg-offer-card--theirs"} ${isAccepted ? "msg-offer-card--accepted" : isDeclined ? "msg-offer-card--declined" : item.status === "cancelled" ? "msg-offer-card--declined" : ""}`}>
                               <div className="msg-offer-card__header">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                                 </svg>
                                 <span className="msg-offer-card__label">
-                                  {iMadeoffer ? `You offered ${peerName(activePeer)}` : `${peerName(activePeer)} offered you`}
+                                  {iMadeOffer ? `You offered ${peerName(activePeer)}` : `${peerName(activePeer)} offered you`}
                                 </span>
                               </div>
                               <div className="msg-offer-card__amount">
                                 R{Number(item.amount).toLocaleString("en-ZA")}
                               </div>
-                              {isPending && !iMadeoffer && (
+                              {isPending && !iMadeOffer && (
                                 <div className="msg-offer-card__actions">
                                   <button className="msg-offer-card__decline" onClick={() => respondToOffer(item.id, false)} type="button">Decline</button>
                                   <button className="msg-offer-card__accept" onClick={() => respondToOffer(item.id, true)} type="button">Accept</button>
                                 </div>
                               )}
-                              {isPending && iMadeoffer && (
+                              {isPending && iMadeOffer && (
                                 <div className="msg-offer-card__actions">
                                   <p className="msg-offer-card__status msg-offer-card__status--pending" style={{ margin: 0 }}>Waiting for response…</p>
                                   <button className="msg-offer-card__cancel-offer" onClick={() => cancelOffer(item.id)} type="button">Cancel Offer</button>
