@@ -412,11 +412,13 @@ function AppInner() {
       getComputedStyle(document.documentElement).getPropertyValue("--navbar-height"),
     ) || 64;
     const filterBarHeight = filterBarRef.current.getBoundingClientRect().height;
+    const isDesktopSidebar =
+      typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
     const listingsTop =
       listingsSectionRef.current.getBoundingClientRect().top +
       window.scrollY -
       navbarOffset -
-      filterBarHeight;
+      (isDesktopSidebar ? 20 : filterBarHeight);
 
     window.scrollTo({
       top: Math.max(listingsTop, 0),
@@ -828,37 +830,43 @@ function AppInner() {
           />
         </section>
 
-        <nav aria-label="Categories" ref={filterBarRef}>
-          <CategoryBar
-            activeCategory={activeCategory}
-            onCategoryChange={handleCategoryChange}
-            activeCondition={activeCondition}
-            onConditionChange={setActiveCondition}
-            priceSort={priceSort}
-            onPriceSortChange={setPriceSort}
-            priceRange={priceRange}
-            onPriceRangeChange={setPriceRange}
-          />
-        </nav>
-
-        <section ref={listingsSectionRef}>
-          {listingsError ? (
-            <p style={{ padding: "24px 40px", color: "crimson" }}>{listingsError}</p>
-          ) : listingsLoading ? (
-            <p style={{ padding: "24px 40px", color: "var(--gray-600)" }}>Loading listings…</p>
-          ) : (
-            <ListingsGrid
-              listings={filteredListings}
-              searchQuery={searchQuery}
+        <section className="marketplace-shell" ref={listingsSectionRef}>
+          <aside
+            className="marketplace-shell__filters"
+            aria-label="Categories"
+            ref={filterBarRef}
+          >
+            <CategoryBar
               activeCategory={activeCategory}
-              onListingClick={setSelectedListing}
-              onMessageSeller={handleMessageSeller}
-              onSellerClick={handleSellerClick}
-              isWishlisted={isWishlisted}
-              onToggleWishlist={user ? toggleWishlist : null}
-              user={user}
+              onCategoryChange={handleCategoryChange}
+              activeCondition={activeCondition}
+              onConditionChange={setActiveCondition}
             />
-          )}
+          </aside>
+
+          <div className="marketplace-shell__results">
+            {listingsError ? (
+              <p style={{ padding: "24px 40px", color: "crimson" }}>{listingsError}</p>
+            ) : listingsLoading ? (
+              <p style={{ padding: "24px 40px", color: "var(--gray-600)" }}>Loading listings…</p>
+            ) : (
+              <ListingsGrid
+                listings={filteredListings}
+                searchQuery={searchQuery}
+                activeCategory={activeCategory}
+                priceSort={priceSort}
+                onPriceSortChange={setPriceSort}
+                priceRange={priceRange}
+                onPriceRangeChange={setPriceRange}
+                onListingClick={setSelectedListing}
+                onMessageSeller={handleMessageSeller}
+                onSellerClick={handleSellerClick}
+                isWishlisted={isWishlisted}
+                onToggleWishlist={user ? toggleWishlist : null}
+                user={user}
+              />
+            )}
+          </div>
         </section>
       </main>
 
