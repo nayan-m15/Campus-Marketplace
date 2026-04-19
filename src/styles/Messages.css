@@ -663,6 +663,13 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+.msg-offer-card__note {
+  margin: -2px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.45);
+}
+
 .msg-offer-card__amount {
   font-size: 26px;
   font-weight: 800;

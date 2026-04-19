@@ -881,6 +881,9 @@ export default function MessagesPage({
                                   {iMadeOffer ? `You offered ${peerName(activePeer)}` : `${peerName(activePeer)} offered you`}
                                 </span>
                               </div>
+                              <p className="msg-offer-card__note">
+                                This offer only records the agreed price. Payment and collection are arranged later in chat.
+                              </p>
                               <div className="msg-offer-card__amount">
                                 R{Number(item.amount).toLocaleString("en-ZA")}
                               </div>
