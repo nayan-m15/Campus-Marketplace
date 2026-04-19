@@ -103,6 +103,16 @@ const defaultMessages = [
   },
 ];
 const messages = [...defaultMessages];
+const defaultListingRecords = {
+  "listing-1": userListing,
+  "listing-2": {
+    id: "listing-2",
+    title: "Textbook",
+    price: 500,
+    user_id: "seller-1",
+  },
+};
+const listingRecords = structuredClone(defaultListingRecords);
 
 function resultFor(table, mode, filters = {}) {
   if (table === "listings" && mode === "count") {
@@ -129,7 +139,7 @@ function resultFor(table, mode, filters = {}) {
   if (table === "ratings") return { data: [{ listing_id: "listing-2", rating: 4 }], error: null };
   if (table === "listings" && mode === "rateable") return { data: [{ id: "listing-2", title: "Textbook" }], error: null };
   if (table === "listings" && mode === "single") {
-    return { data: filters.id === "listing-2" ? { id: "listing-2", title: "Textbook", price: 500 } : userListing, error: null };
+    return { data: listingRecords[filters.id] || userListing, error: null };
   }
   if (table === "listings") return { data: [userListing], error: null };
   if (table === "facilities") {
@@ -291,6 +301,7 @@ vi.mock("jspdf-autotable", () => ({ default: vi.fn() }));
 beforeEach(() => {
   vi.clearAllMocks();
   messages.splice(0, messages.length, ...defaultMessages);
+  Object.assign(listingRecords, structuredClone(defaultListingRecords));
   HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
     this.open = true;
   });
@@ -500,6 +511,10 @@ test("MessagesPage opens a conversation and sends a message", async () => {
     />
   );
 
+  expect(await screen.findByText(/seller's listing/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /view seller/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Yes. Are you interested?" })).not.toBeInTheDocument();
+
   const sellerButtons = await screen.findAllByRole("button", { name: /seller/i });
   fireEvent.click(sellerButtons[1]);
   expect(onViewProfile).toHaveBeenCalledWith("seller-1");
@@ -524,6 +539,11 @@ test("MessagesPage opens a conversation and sends a message", async () => {
 });
 
 test("MessagesPage shows seller quick replies and sends the selected response", async () => {
+  listingRecords["listing-2"] = {
+    ...listingRecords["listing-2"],
+    user_id: "user-1",
+    title: "Desk Lamp",
+  };
   messages.splice(
     0,
     messages.length,
@@ -549,6 +569,8 @@ test("MessagesPage shows seller quick replies and sends the selected response", 
   );
 
   expect(await screen.findByRole("button", { name: "Yes. Are you interested?" })).toBeInTheDocument();
+  expect(screen.getByText(/your listing/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /view buyer/i })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "In talks. I'll let you know." })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Sorry, it's not available." })).toBeInTheDocument();
 

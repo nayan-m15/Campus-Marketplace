@@ -252,24 +252,22 @@ export default function MessagesPage({
     const msgWithListing = [...(msgs || [])].reverse().find((m) => m.listing_id);
 
     if (msgWithListing) {
-      // The lister is whoever OWNS the listing (not the one who sent the first message).
-      // The buyer sends the first message about a listing, so:
-      //   - if the peer sent the message → peer is the buyer → I am the lister
-      //   - if I sent the message → I am the buyer → peer is the lister
-      const buyerIsThePeer = msgWithListing.sender_id === peerId;
-      setIAmTheLister(buyerIsThePeer);
       setActiveListingId(msgWithListing.listing_id || null);
 
       const { data: listing } = await supabase
         .from("listings")
-        .select("id, title, price")
+        .select("id, title, price, user_id")
         .eq("id", String(msgWithListing.listing_id))
         .maybeSingle();
 
-      if (buyerIsThePeer) {
-        // I am the lister — store listing so I can send offers
-        setConversationListing(listing || { id: msgWithListing.listing_id, title: null, price: null });
-      }
+      const iOwnThisListing = listing ? listing.user_id === user.id : msgWithListing.sender_id === peerId;
+      setIAmTheLister(iOwnThisListing);
+      setConversationListing(listing || {
+        id: msgWithListing.listing_id,
+        title: null,
+        price: null,
+        user_id: iOwnThisListing ? user.id : peerId,
+      });
 
       // Both sides fetch offers for this listing + conversation
       const { data: existingOffers } = await supabase
@@ -549,6 +547,8 @@ export default function MessagesPage({
     latestTextMessage &&
     latestTextMessage.sender_id === activeId
   );
+  const listingOwnerLabel = iAmTheLister ? "Your listing" : `${peerName(activePeer)}'s listing`;
+  const profileActionLabel = iAmTheLister ? "View buyer" : "View seller";
 
   const dateLabel = (dateStr) => {
     const today = new Date().toDateString();
@@ -677,7 +677,7 @@ export default function MessagesPage({
             </header>
 
             {/* ── Buyer Info Banner (shown to lister only) ── */}
-            {iAmTheLister && activePeer && (
+            {conversationListing && activePeer && (
               <div className="msg-buyer-banner">
                 <div className="msg-buyer-banner__listing-row">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -687,7 +687,7 @@ export default function MessagesPage({
                   </svg>
                   <span>
                     {conversationListing?.title
-                      ? <>Your listing · <strong>{conversationListing.title}</strong>{conversationListing.price != null ? <> · <em>R{Number(conversationListing.price).toLocaleString("en-ZA")}</em></> : null}</>
+                      ? <>{listingOwnerLabel} · <strong>{conversationListing.title}</strong>{conversationListing.price != null ? <> · <em>R{Number(conversationListing.price).toLocaleString("en-ZA")}</em></> : null}</>
                       : "Marketplace listing"}
                   </span>
                 </div>
@@ -712,7 +712,7 @@ export default function MessagesPage({
                       onClick={() => onViewProfile?.(activePeer.id)}
                       type="button"
                     >
-                      View buyer
+                      {profileActionLabel}
                     </button>
                   </div>
                 </div>
