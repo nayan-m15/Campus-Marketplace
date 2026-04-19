@@ -1,3 +1,6 @@
+// Main structure for the listing form feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useRef, useCallback } from "react";
 import { CONDITION_COLORS } from "../data/listings";
 import { supabase } from "../supabaseClient";
@@ -11,10 +14,14 @@ const LISTING_PRICE_MAX_DIGITS = 8;
 const LISTING_PRICE_MAX_VALUE = 99999999.99;
 const LISTING_PRICE_MAX_CHARS = LISTING_PRICE_MAX_DIGITS + 3;
 
+// A focused piece of component behavior is handled here.
+// Keeping it separate makes the main flow less crowded.
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
+// A focused piece of component behavior is handled here.
+// Keeping it separate makes the main flow less crowded.
 function clampPriceInput(value) {
   const cleaned = String(value ?? "")
     .replace(",", ".")
@@ -40,6 +47,8 @@ function ImageScrollStrip({ images, onChange }) {
   const fileInputRef = useRef(null);
   const [draggingOver, setDraggingOver] = useState(false);
  
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleFiles = useCallback(
     (files) => {
       const remaining = MAX_IMAGES - images.length;
@@ -271,6 +280,8 @@ export default function ListingForm({ onCancel, onSuccess }) {
     return next;
   };
  
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleSubmit = async () => {
     const errs = validate();
     if (Object.keys(errs).length) {

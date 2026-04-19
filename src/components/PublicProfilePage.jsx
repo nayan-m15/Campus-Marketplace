@@ -1,3 +1,6 @@
+// Main structure for the public profile page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
@@ -139,6 +142,8 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
       });
   }, [user, userId]);
 
+  // Small prep work happens in this helper before the UI uses the result.
+  // It keeps lookup, formatting, or data shaping out of the render path.
   function showToast(msg) {
     setRatingToast(msg);
     setTimeout(() => setRatingToast(null), 3000);

@@ -1,3 +1,6 @@
+// Main structure for the your listings page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
@@ -8,6 +11,8 @@ const LISTING_DESCRIPTION_MAX = 350;
 const LISTING_PRICE_MAX_DIGITS = 8;
 const LISTING_PRICE_MAX_VALUE = 99999999.99;
 
+// A focused piece of component behavior is handled here.
+// Keeping it separate makes the main flow less crowded.
 function clampPriceInput(value) {
   const cleaned = String(value ?? "")
     .replace(",", ".")
@@ -28,6 +33,8 @@ function clampPriceInput(value) {
   return `${whole}.${cents}`;
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function formatZAR(value) {
   const num = Number(String(value).replace(/[^0-9.]/g, ""));
   if (isNaN(num)) return "R 0";
@@ -38,10 +45,14 @@ function formatZAR(value) {
   }).replace(/,/g, " ")}`;
 }
 
+// A focused piece of component behavior is handled here.
+// Keeping it separate makes the main flow less crowded.
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function formatEditPrice(value) {
   const price = clampPriceInput(value);
 
@@ -54,6 +65,8 @@ function formatEditPrice(value) {
     maximumFractionDigits: 2,
   }).replace(/,/g, " ")}`;
 }
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function YourListingsPage({ onBack, onListingChanged }) {
   const { user } = useAuth();
   const [listings, setListings] = useState([]);
@@ -156,6 +169,8 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     showSuccess("Listing updated!");
   }
 
+  // Small prep work happens in this helper before the UI uses the result.
+  // It keeps lookup, formatting, or data shaping out of the render path.
   function showSuccess(msg) {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(""), 3000);

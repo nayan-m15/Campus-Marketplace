@@ -1,3 +1,6 @@
+// Main structure for the profile page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
@@ -146,22 +149,30 @@ const PROFILE_ABOUT_MAX = 300;
 const PROFILE_PHONE_MAX = 15;
 const MIN_BIRTHDATE = "1900-01-01";
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function getMaxBirthdate() {
   const today = new Date();
   today.setFullYear(today.getFullYear() - 12);
   return today.toISOString().split("T")[0];
 }
 
+// A focused piece of component behavior is handled here.
+// Keeping it separate makes the main flow less crowded.
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function parseBirthdate(value) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+// Quick guard logic sits here for this decision point.
+// The check keeps the rest of the flow cleaner to read.
 function isValidBirthdate(value) {
   if (!value) return true;
 
@@ -305,6 +316,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     setForm((f) => ({ ...f, province: val, institution: "" }));
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
@@ -321,6 +334,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
@@ -401,6 +416,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     );
   }
 
+  // Small prep work happens in this helper before the UI uses the result.
+  // It keeps lookup, formatting, or data shaping out of the render path.
   function formatPhone(value) {
     const digits = value.replace(/\D/g, "").slice(0, 10);
 
@@ -409,11 +426,15 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
   }
 
+  // Quick guard logic sits here for this decision point.
+  // The check keeps the rest of the flow cleaner to read.
   function isValidPhone(phone) {
     const digits = phone.replace(/\D/g, "");
     return /^(0[6-8]\d{8})$/.test(digits);
   }
 
+  // Quick guard logic sits here for this decision point.
+  // The check keeps the rest of the flow cleaner to read.
   function isNotFake(phone) {
     const digits = phone.replace(/\D/g, "");
     return !/^(\d)\1+$/.test(digits);

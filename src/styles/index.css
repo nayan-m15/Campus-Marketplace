@@ -1,5 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,700&display=swap');
 
+/* Design notes for index live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 /* ── Reset & Base ── */
 *,
 *::before,
@@ -365,3 +368,4 @@ html.dark section {
   background: #1f2937 !important;
   border-color: #374151 !important;
 }
+

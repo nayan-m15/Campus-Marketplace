@@ -1,6 +1,11 @@
+// Main structure for the filter bar feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { CATEGORIES, CONDITIONS } from "../data/listings";
 import "../styles/FilterBar.css";
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function FilterBar({
   activeCategory,
   onCategoryChange,
@@ -17,6 +22,8 @@ export default function FilterBar({
     activeCondition !== "All Conditions" ||
     (showSorting && priceSort !== "");
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleClear() {
     onCategoryChange("All Items");
     onConditionChange("All Conditions");

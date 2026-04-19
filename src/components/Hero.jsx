@@ -1,8 +1,13 @@
+// Main structure for the hero feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import "../styles/Hero.css";
 import { useState, useEffect, useRef } from "react";
 import { fetchListings, CONDITION_COLORS } from "../data/listings";
 import { supabase } from "../supabaseClient";
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function getSemesterStart(date = new Date()) {
   const month = date.getMonth();
   return month < 6
@@ -10,10 +15,14 @@ function getSemesterStart(date = new Date()) {
     : new Date(date.getFullYear(), 6, 1);
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function formatRand(value) {
   return `R ${Number(value || 0).toLocaleString("en-ZA")}`;
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function formatStatCount(value) {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return "N/A";
@@ -22,6 +31,8 @@ function formatStatCount(value) {
   return value.toLocaleString("en-ZA");
 }
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function Hero({
   onListingClick,
   onBrowseClick,
@@ -116,14 +127,20 @@ export default function Hero({
     };
   }, [topListings.length, user?.id]);
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % topListings.length);
   };
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + topListings.length) % topListings.length);
   };
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const goToSlide = (index) => {
     setCurrentSlide(index);
   };
@@ -142,7 +159,11 @@ export default function Hero({
     };
   }, [isPaused, topListings.length]);
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleMouseEnter = () => setIsPaused(true);
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleMouseLeave = () => setIsPaused(false);
 
   return (

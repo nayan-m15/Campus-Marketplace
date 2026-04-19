@@ -1,3 +1,6 @@
+/* Design notes for messages live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 /* ── Page Shell ─────────────────────────────────────────── */
 .msg-page {
   display: flex;
@@ -901,3 +904,4 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+

@@ -1,3 +1,6 @@
+// Main structure for the messages page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
@@ -10,10 +13,14 @@ const SELLER_QUICK_REPLIES = [
   "Sorry, it's not available.",
 ];
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function buildConversationKey(peerId, listingId = null) {
   return `${peerId}::${listingId || "general"}`;
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function buildOfferPreview(offer, currentUserId) {
   if (!offer) return "";
   const amount = `R${Number(offer.amount).toLocaleString("en-ZA")}`;
@@ -36,6 +43,8 @@ function timeLabel(iso) {
   return d.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
 }
 
+// Supporting logic for the avatar flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function Avatar({ url, name, size = 40 }) {
   const initials = (name || "?")
     .split(" ")
@@ -528,6 +537,8 @@ export default function MessagesPage({
     await loadConversations();
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
@@ -612,6 +623,8 @@ export default function MessagesPage({
     }
   };
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const peerName = (profile) => profile?.display_name || profile?.name || "Unknown User";
 
   const filteredConvs = conversations.filter((c) => {
@@ -630,6 +643,8 @@ export default function MessagesPage({
   const listingOwnerLabel = iAmTheLister ? "Your listing" : `${peerName(activePeer)}'s listing`;
   const profileActionLabel = iAmTheLister ? "View buyer" : "View seller";
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const dateLabel = (dateStr) => {
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 86400000).toDateString();

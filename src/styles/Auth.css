@@ -1,3 +1,6 @@
+/* Design notes for auth live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 /* ── Auth Page Layout ───────────────────────────────────── */
 .auth-page {
   min-height: 100vh;
@@ -278,4 +281,5 @@
   font-size: 48px;
   margin-bottom: 8px;
 }
+
 

@@ -1,3 +1,6 @@
+// Main structure for the trade facility dashboard feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import "../styles/TradeFacilityDashboard.css";
 
@@ -174,6 +177,8 @@ const BOOKING_STATUS_META = {
   rescheduled:{ label: "Rescheduled",cls: "bstatus--rescheduled"},
 };
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function formatDate(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr + "T00:00:00");
@@ -184,6 +189,8 @@ function formatDate(dateStr) {
   return d.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
 }
 
+// Supporting logic for the initials flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function initials(name) {
   return name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
 }
@@ -200,11 +207,15 @@ function StatusBadge({ status }) {
   );
 }
 
+// Supporting logic for the booking status badge flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function BookingStatusBadge({ status }) {
   const meta = BOOKING_STATUS_META[status] || { label: status, cls: "" };
   return <span className={`booking-status-badge ${meta.cls}`}>{meta.label}</span>;
 }
 
+// Supporting logic for the avatar flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function Avatar({ name, size = "md" }) {
   return (
     <span className={`avatar avatar--${size}`} aria-hidden="true">
@@ -213,6 +224,8 @@ function Avatar({ name, size = "md" }) {
   );
 }
 
+// Supporting logic for the stat card flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function StatCard({ icon, iconColor, value, label, subLabel }) {
   return (
     <article className="stat-card">
@@ -230,6 +243,8 @@ function StatCard({ icon, iconColor, value, label, subLabel }) {
   );
 }
 
+// Supporting logic for the empty state flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function EmptyState({ icon, title, description }) {
   return (
     <section className="empty-state" aria-label={title}>
@@ -814,6 +829,8 @@ const NAV_ITEMS = [
   { key: "transactions", label: "All Transactions",     icon: "📋" },
 ];
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function TradeFacilityDashboard({onSignOut}) {
   const [activeView,    setActiveView]    = useState("overview");
   const [transactions,  setTransactions]  = useState(INITIAL_TRANSACTIONS);
@@ -876,6 +893,8 @@ export default function TradeFacilityDashboard({onSignOut}) {
     setDialog(null);
   }, [dialog, showToast]);
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleDialogCancel = useCallback(() => setDialog(null), []);
 
   // ── Date / time header ──

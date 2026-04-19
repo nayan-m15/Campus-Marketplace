@@ -1,3 +1,6 @@
+// Main structure for the main feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/index.css'

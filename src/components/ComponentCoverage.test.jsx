@@ -1,3 +1,6 @@
+// Main structure for the component coverage test feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { vi, beforeEach, afterEach, expect, test } from "vitest";
 import Footer from "./Footer";

@@ -1,3 +1,6 @@
+/* Design notes for hero live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 /* ── Hero Shell ────────────────────────────────────────── */
 .hero {
   position: relative;
@@ -921,3 +924,4 @@ html.dark .carousel-nav--next {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+

@@ -1,3 +1,6 @@
+/* Design notes for navbar live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 .navbar-spacer {
   height: var(--navbar-height);
 }
@@ -396,3 +399,4 @@ html.dark .navbar__hamburger span {
     min-width: min(240px, calc(100vw - 32px));
   }
 }
+

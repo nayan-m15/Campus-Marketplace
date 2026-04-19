@@ -1,3 +1,6 @@
+// Main structure for the signup page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getAppBaseUrl } from "../utils/appUrl";
@@ -6,6 +9,8 @@ import "../styles/Auth.css";
 
 const EMAIL_REGISTERED_MESSAGE = "Email is already registered. Try signing in instead.";
 
+// Quick guard logic sits here for this decision point.
+// The check keeps the rest of the flow cleaner to read.
 function isEmailAlreadyRegistered({ data, error }) {
   const message = error?.message?.toLowerCase() || "";
 
@@ -18,6 +23,8 @@ function isEmailAlreadyRegistered({ data, error }) {
   );
 }
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function SignupPage({ onNavigate }) {
   const { signUp, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState("");

@@ -1,6 +1,11 @@
+// Main structure for the nav bar feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState } from "react";
 import "../styles/Navbar.css";
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function Navbar({
   searchQuery,
   onSearchChange,

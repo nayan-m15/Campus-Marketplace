@@ -1,3 +1,6 @@
+// Main structure for the admin dashboard feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect } from "react";
 import "../styles/AdminDashboard.css";
 import { supabase } from "../supabaseClient";
@@ -377,6 +380,8 @@ function ReportsPanel() {
     return stringValue;
   };
 
+  // Small prep work happens in this helper before the UI uses the result.
+  // It keeps lookup, formatting, or data shaping out of the render path.
   const fetchReport = async () => {
     let query;
     switch (reportType) {
@@ -408,6 +413,8 @@ function ReportsPanel() {
     setGenerated(true);
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleGenerate = async () => {
     setLoading(true);
     setGenerated(false);
@@ -502,6 +509,8 @@ function ReportsPanel() {
     doc.save(`report-${reportType}.pdf`);
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleDownload = () => {
     if (format === "csv") downloadCSV();
     if (format === "pdf") downloadPDF();
@@ -733,6 +742,8 @@ export default function AdminDashboard({ onSignOut }) {
     );
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleToggleDay = (id, day) => {
     setFacilities((prev) =>
       prev.map((f) => {
@@ -746,6 +757,8 @@ export default function AdminDashboard({ onSignOut }) {
     );
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleTimeChange = (id, day, field, value) => {
     setFacilities((prev) =>
       prev.map((f) => {
@@ -759,6 +772,8 @@ export default function AdminDashboard({ onSignOut }) {
     );
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleCapacityChange = (id, rawValue) => {
     const parsed = parseInt(rawValue, 10);
     if (!isNaN(parsed) && parsed > 0) {
@@ -797,6 +812,8 @@ export default function AdminDashboard({ onSignOut }) {
     }
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {

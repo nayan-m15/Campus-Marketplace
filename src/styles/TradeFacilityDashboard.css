@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
 
+/* Design notes for trade facility dashboard live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 *,
 *::before,
 *::after {
@@ -1364,3 +1367,4 @@ dialog.confirm-dialog::backdrop {
   border-color: rgba(239, 68, 68, 0.4);
   color: var(--danger);
 }
+

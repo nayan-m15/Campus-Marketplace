@@ -1,7 +1,12 @@
+// Main structure for the login page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import "../styles/Auth.css";
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function LoginPage({ onNavigate }) {
   const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState("");

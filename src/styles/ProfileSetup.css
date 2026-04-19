@@ -1,3 +1,6 @@
+/* Design notes for profile setup live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 /* ── Page ───────────────────────────────────────────────────── */
 .setup-page {
   min-height: 100vh;
@@ -278,4 +281,5 @@
   .setup-radio-row { flex-direction: column; }
   .setup-radio-btn { width: 100%; }
 }
+
 

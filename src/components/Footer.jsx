@@ -1,3 +1,6 @@
+// Main structure for the footer feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 export default function Footer() {
   return (
     <footer

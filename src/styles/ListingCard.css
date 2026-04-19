@@ -1,3 +1,6 @@
+/* Design notes for listing card live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 .listing-card {
   background: var(--surface-muted);
   border-radius: 16px;
@@ -932,5 +935,6 @@
 .listing-card__seller--link:hover {
   color: var(--green);
 }
+
 
 

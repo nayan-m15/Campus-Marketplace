@@ -1,3 +1,6 @@
+// Main structure for the auth context feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { getAppBaseUrl } from "../utils/appUrl";
@@ -68,14 +71,20 @@ export function AuthProvider({ children }) {
     fetchProfile();
   }, [user]);
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const signUp = async (email, password, options = {}) => {
     return supabase.auth.signUp({ email, password, options });
   };
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const signIn = async (email, password) => {
     return supabase.auth.signInWithPassword({ email, password });
   };
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const signInWithGoogle = async ({ redirectTo } = {}) => {
     const resolvedRedirect = redirectTo ?? getAppBaseUrl();
 
@@ -85,6 +94,8 @@ export function AuthProvider({ children }) {
     });
   };
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const signOut = async () => {
     return supabase.auth.signOut();
   };

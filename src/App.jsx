@@ -1,3 +1,6 @@
+// Main structure for the app feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Navbar from "./components/NavBar";
@@ -26,6 +29,8 @@ import { insertMessage } from "./utils/messageDelivery";
 
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
+// Quick guard logic sits here for this decision point.
+// The check keeps the rest of the flow cleaner to read.
 function isProfileComplete(profile) {
   if (!profile) return false;
   return REQUIRED_PROFILE_FIELDS.every((f) => !!profile[f]);
@@ -36,6 +41,8 @@ function canUseBrowserNotifications() {
   return typeof window !== "undefined" && "Notification" in window;
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function showBrowserNotification(title, options) {
   if (!canUseBrowserNotifications() || window.Notification.permission !== "granted") return false;
   new window.Notification(title, options);
@@ -86,6 +93,8 @@ async function fetchNotificationPrefs(userId, fallback) {
   };
 }
 
+// Related state and side effects are grouped in this hook.
+// That keeps the surrounding component easier to follow.
 function useUnreadCount(user, onIncomingMessage) {
   const [unreadCount, setUnreadCount] = useState(0);
   const notificationPrefsRef = useRef({
@@ -179,6 +188,8 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
   }, [item?.id]);
 
   useEffect(() => {
+    // User-driven changes pass through this handler first.
+    // State updates and follow-up UI actions are triggered here.
     function handleEscape(e) {
       if (e.key === "Escape") onClose();
     }
@@ -208,11 +219,15 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
   const joinedLabel =
     item.joined_label || (item.joined_year ? String(item.joined_year) : "Not provided");
 
+  // Small prep work happens in this helper before the UI uses the result.
+  // It keeps lookup, formatting, or data shaping out of the render path.
   function showPreviousImage() {
     if (images.length <= 1) return;
     setCurrentImageIndex((index) => (index === 0 ? images.length - 1 : index - 1));
   }
 
+  // Small prep work happens in this helper before the UI uses the result.
+  // It keeps lookup, formatting, or data shaping out of the render path.
   function showNextImage() {
     if (images.length <= 1) return;
     setCurrentImageIndex((index) => (index === images.length - 1 ? 0 : index + 1));
@@ -362,6 +377,8 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
     </div>
   );
 }
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 function AppInner() {
   const { user, loading, signOut } = useAuth();
 
@@ -405,6 +422,8 @@ function AppInner() {
   const filterBarRef = useRef(null);
   const listingsSectionRef = useRef(null);
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleScrollToListings() {
     if (!filterBarRef.current || !listingsSectionRef.current) return;
 
@@ -438,6 +457,8 @@ function AppInner() {
       window.history.replaceState({ ...currentState, page: "home" }, "");
     }
 
+    // User-driven changes pass through this handler first.
+    // State updates and follow-up UI actions are triggered here.
     function handlePopState(event) {
       skipHistoryPushRef.current = true;
       setPage(event.state?.page || "home");
@@ -497,6 +518,8 @@ function AppInner() {
       .catch(() => setProfileChecked(true));
   }, [user]);
 
+  // Small prep work happens in this helper before the UI uses the result.
+  // It keeps lookup, formatting, or data shaping out of the render path.
   function numericPrice(item) {
     if (!item?.price) return 0;
     const n = parseFloat(String(item.price).replace(/[^0-9.]/g, ""));
@@ -541,21 +564,29 @@ function AppInner() {
     return result;
   })();
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleCategoryChange(category) {
     setActiveCategory(category);
     setSearchQuery("");
   }
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleClearFilters() {
     setActiveCondition("All Conditions");
     setPriceRange({ min: "", max: "" });
     setPriceSort("");
   }
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleAuthNavigate(target) {
     setPage(target === "home" ? "home" : target);
   }
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleListingSuccess() {
     setShowForm(false);
     setSuccessMessage("🎉 Your listing has been published!");
@@ -565,6 +596,8 @@ function AppInner() {
       .catch((err) => setListingsError(err.message));
   }
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleMessageSeller(item) {
     if (!user) {
       setPage("login");
@@ -576,6 +609,8 @@ function AppInner() {
     setPage("messages");
   }
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleSellerClick(sellerId) {
     if (user && sellerId === user.id) {
       setPage("profile");
@@ -586,16 +621,22 @@ function AppInner() {
     setPage("publicProfile");
   }
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleSetupComplete() {
     setNeedsSetup(false);
     setPage("home");
   }
 
+  // Supporting logic for the go home flow is kept here.
+  // Breaking it out makes the file easier to scan and maintain.
   function goHome() {
     setPage("home");
     setSearchQuery("");
   }
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleAccountDeleted() {
     setPage("home");
     setSearchQuery("");
@@ -883,6 +924,8 @@ function AppInner() {
   );
 }
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function App() {
   return (
     <AuthProvider>

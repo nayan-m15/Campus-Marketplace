@@ -1,3 +1,6 @@
+// Main structure for the app test feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import App from "./App";
@@ -95,10 +98,14 @@ vi.mock("./data/listings", () => ({
   },
 }));
 
+// Supporting logic for the render app flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function renderApp() {
   render(<App />);
 }
 
+// Supporting logic for the mock listings scroll targets flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function mockListingsScrollTargets(listingsHeading, filterBarTop = 120, listingsTop = 420) {
   const innerListingsSection = listingsHeading.closest("section");
   const listingsScrollSection = innerListingsSection?.parentElement;

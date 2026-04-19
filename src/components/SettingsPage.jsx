@@ -1,8 +1,13 @@
+// Main structure for the settings page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { validatePassword } from "../utils/passwordValidation";
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
   const { user } = useAuth();
   const notifSavedTimeoutRef = useRef(null);
@@ -27,6 +32,8 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
   const [deleteError, setDeleteError] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleDarkMode(val) {
     setDarkMode(val);
     if (val) {
@@ -181,6 +188,8 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
     display: "block",
   };
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const toggleStyle = (active) => ({
     width: 44,
     height: 24,
@@ -193,6 +202,8 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
     flexShrink: 0,
   });
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const toggleKnobStyle = (active) => ({
     position: "absolute",
     top: 3,
