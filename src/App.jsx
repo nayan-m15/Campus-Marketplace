@@ -890,6 +890,7 @@ function AppInner() {
               priceRange={priceRange}
               onPriceRangeChange={setPriceRange}
               showSorting={false}
+              mobileSorting
             />
           </aside>
 

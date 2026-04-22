@@ -169,6 +169,45 @@ test("FilterBar fires callbacks for filter changes and clearing", () => {
   expect(onPriceRangeChange).toHaveBeenCalledWith({ min: "", max: "" });
 });
 
+test("FilterBar opens separate mobile filter and sort panels", () => {
+  const onCategoryChange = vi.fn();
+  const onConditionChange = vi.fn();
+  const onPriceSortChange = vi.fn();
+  const onPriceRangeChange = vi.fn();
+
+  render(
+    <FilterBar
+      activeCategory="All Items"
+      onCategoryChange={onCategoryChange}
+      activeCondition="All Conditions"
+      onConditionChange={onConditionChange}
+      priceSort=""
+      onPriceSortChange={onPriceSortChange}
+      priceRange={{ min: "", max: "" }}
+      onPriceRangeChange={onPriceRangeChange}
+      showSorting={false}
+      mobileSorting
+    />
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: /filter/i }));
+  const filterPanel = screen.getByRole("region", { name: /filter listings panel/i });
+  expect(within(filterPanel).getByRole("heading", { name: /^filter$/i })).toBeInTheDocument();
+
+  fireEvent.change(within(filterPanel).getByLabelText(/^category$/i), {
+    target: { value: "Electronics" },
+  });
+  expect(onCategoryChange).toHaveBeenCalledWith("Electronics");
+
+  fireEvent.click(screen.getByRole("button", { name: /apply/i }));
+  fireEvent.click(screen.getByRole("button", { name: /sort by/i }));
+  const sortPanel = screen.getByRole("region", { name: /sort listings panel/i });
+  expect(within(sortPanel).getByRole("heading", { name: /sort by/i })).toBeInTheDocument();
+
+  fireEvent.click(within(sortPanel).getByRole("button", { name: /price high to low/i }));
+  expect(onPriceSortChange).toHaveBeenCalledWith("price_desc");
+});
+
 test("ListingCard supports keyboard open, seller navigation, messaging, and wishlist toggles", () => {
   const onClick = vi.fn();
   const onSellerClick = vi.fn();
