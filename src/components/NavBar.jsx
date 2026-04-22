@@ -24,6 +24,9 @@ export default function Navbar({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // This lets us tell whether a tap happened inside the navbar
+  // or somewhere else on the page while mobile search is open.
+  const headerRef = useRef(null);
   // We only need this ref for the mobile overlay search.
   // When the overlay opens, focus should land in the field immediately.
   const mobileSearchInputRef = useRef(null);
@@ -45,6 +48,24 @@ export default function Navbar({
     if (searchOpen) {
       mobileSearchInputRef.current?.focus();
     }
+  }, [searchOpen]);
+
+  // Mobile search should behave like a temporary overlay.
+  // If someone taps anywhere outside the navbar, close it and bring back the normal nav.
+  useEffect(() => {
+    if (!searchOpen) return undefined;
+
+    function handlePointerDown(event) {
+      if (!headerRef.current?.contains(event.target)) {
+        setSearchOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
   }, [searchOpen]);
 
   // Shared fallback avatar so the no-photo state looks intentional
@@ -84,7 +105,7 @@ export default function Navbar({
     <>
       {/* Keeps page content from sliding under the fixed navbar. */}
       <div className="navbar-spacer" aria-hidden="true" />
-      <header className={`navbar${searchOpen ? " navbar--mobile-search-open" : ""}`}>
+      <header ref={headerRef} className={`navbar${searchOpen ? " navbar--mobile-search-open" : ""}`}>
         {searchOpen ? (
           // Mobile-only search state:
           // when search is open, we swap out the normal compact mobile navbar
