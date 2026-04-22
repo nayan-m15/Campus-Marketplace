@@ -47,6 +47,17 @@ export default function Navbar({
     }
   }, [searchOpen]);
 
+  // Shared fallback avatar so the no-photo state looks intentional
+  // on both desktop and mobile instead of each view inventing its own version.
+  const renderFallbackAvatar = (className) => (
+    <span className={className} aria-hidden="true">
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="3.5" />
+        <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+
   // This is the shared search field markup used by the mobile overlay.
   // Desktop keeps its own inline version below so the desktop layout stays separate.
   const searchField = (
@@ -180,7 +191,7 @@ export default function Navbar({
                       {avatarUrl ? (
                         <img src={avatarUrl} alt="Profile" className="navbar__mobile-avatar" />
                       ) : (
-                        <span className="navbar__mobile-avatar navbar__mobile-avatar--placeholder">P</span>
+                        renderFallbackAvatar("navbar__mobile-avatar navbar__mobile-avatar--placeholder")
                       )}
                     </button>
 
@@ -238,7 +249,7 @@ export default function Navbar({
                           {avatarUrl ? (
                             <img src={avatarUrl} alt="Profile" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                           ) : (
-                            <span>ðŸ‘¤</span>
+                            renderFallbackAvatar("navbar__desktop-avatar-placeholder")
                           )}
                           {displayName}
                         </button>
