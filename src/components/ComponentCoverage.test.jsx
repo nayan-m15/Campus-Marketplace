@@ -18,6 +18,8 @@ const authFns = {
   signIn: vi.fn(),
   signUp: vi.fn(),
   signInWithGoogle: vi.fn(),
+  resetPassword: vi.fn(),
+  clearPasswordRecovery: vi.fn(),
 };
 
 const updateUser = vi.fn();
@@ -33,6 +35,7 @@ const getUser = vi.fn();
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
     user: { id: "user-1", email: "student@example.com" },
+    isPasswordRecovery: false,
     ...authFns,
   }),
 }));
@@ -120,6 +123,7 @@ beforeEach(() => {
   authFns.signIn.mockResolvedValue({ error: null });
   authFns.signUp.mockResolvedValue({ data: {}, error: null });
   authFns.signInWithGoogle.mockResolvedValue({ error: null });
+  authFns.resetPassword.mockResolvedValue({ error: null });
   updateUser.mockResolvedValue({ error: null });
   signOut.mockResolvedValue({});
   rpc.mockResolvedValue({ error: null });
@@ -372,6 +376,21 @@ test("LoginPage submits credentials and shows provider errors", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent("OAuth failed");
+});
+
+test("LoginPage can request a password reset email", async () => {
+  render(<LoginPage onNavigate={vi.fn()} />);
+
+  fireEvent.change(screen.getByLabelText(/email address/i), {
+    target: { value: "student@example.com" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /forgot your password/i }));
+  fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
+
+  await waitFor(() => {
+    expect(authFns.resetPassword).toHaveBeenCalledWith("student@example.com");
+  });
+  expect(await screen.findByText(/password reset link sent/i)).toBeInTheDocument();
 });
 
 test("SignupPage validates passwords and shows success after signup", async () => {

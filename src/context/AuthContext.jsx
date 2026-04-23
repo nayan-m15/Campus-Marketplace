@@ -11,11 +11,18 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
       const { data } = await supabase.auth.getSession();
       setUser(data?.session?.user ?? null);
+
+      if (typeof window !== "undefined") {
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        setIsPasswordRecovery(hash.get("type") === "recovery");
+      }
+
       setLoading(false);
     };
 
@@ -26,7 +33,12 @@ export function AuthProvider({ children }) {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
-        // Ensure profile exists on login
+        if (event === "PASSWORD_RECOVERY") {
+          setIsPasswordRecovery(true);
+        } else if (event === "SIGNED_OUT") {
+          setIsPasswordRecovery(false);
+        }
+
         if (event === "SIGNED_IN" && currentUser) {
           supabase
             .from("profiles")
@@ -71,20 +83,14 @@ export function AuthProvider({ children }) {
     fetchProfile();
   }, [user]);
 
-  // A focused piece of component behavior is handled here.
-  // Keeping it separate makes the main flow less crowded.
   const signUp = async (email, password, options = {}) => {
     return supabase.auth.signUp({ email, password, options });
   };
 
-  // A focused piece of component behavior is handled here.
-  // Keeping it separate makes the main flow less crowded.
   const signIn = async (email, password) => {
     return supabase.auth.signInWithPassword({ email, password });
   };
 
-  // A focused piece of component behavior is handled here.
-  // Keeping it separate makes the main flow less crowded.
   const signInWithGoogle = async ({ redirectTo } = {}) => {
     const resolvedRedirect = redirectTo ?? getAppBaseUrl();
 
@@ -94,9 +100,20 @@ export function AuthProvider({ children }) {
     });
   };
 
-  // A focused piece of component behavior is handled here.
-  // Keeping it separate makes the main flow less crowded.
+  const resetPassword = async (email, { redirectTo } = {}) => {
+    const resolvedRedirect = redirectTo ?? getAppBaseUrl();
+
+    return supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: resolvedRedirect,
+    });
+  };
+
+  const clearPasswordRecovery = () => {
+    setIsPasswordRecovery(false);
+  };
+
   const signOut = async () => {
+    setIsPasswordRecovery(false);
     return supabase.auth.signOut();
   };
 
@@ -109,6 +126,9 @@ export function AuthProvider({ children }) {
         signUp,
         signIn,
         signInWithGoogle,
+        resetPassword,
+        isPasswordRecovery,
+        clearPasswordRecovery,
         signOut,
       }}
     >

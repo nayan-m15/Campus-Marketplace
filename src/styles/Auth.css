@@ -179,6 +179,24 @@
   text-align: left;
 }
 
+.auth-error--list {
+  margin: 0 0 12px;
+  padding-left: 30px;
+}
+
+.auth-success-message {
+  width: 100%;
+  background: rgba(31, 107, 82, 0.12);
+  color: var(--green-dark);
+  border: 1px solid rgba(31, 107, 82, 0.18);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
 /* ── Form ───────────────────────────────────────────────── */
 .auth-form {
   width: 100%;
@@ -220,6 +238,24 @@
 
 .auth-field input::placeholder {
   color: #b0b9c9;
+}
+
+.auth-inline-link {
+  width: fit-content;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-inline-link--center {
+  margin-top: 14px;
 }
 
 /* ── Submit Button ──────────────────────────────────────── */

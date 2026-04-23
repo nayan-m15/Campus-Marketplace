@@ -9,6 +9,7 @@ import CategoryBar from "./components/FilterBar.jsx";
 import ListingsGrid from "./components/ListingsGrid";
 import Footer from "./components/Footer";
 import LoginPage from "./components/LoginPage";
+import ResetPasswordPage from "./components/ResetPasswordPage";
 import SignupPage from "./components/SignupPage";
 import ProfilePage from "./components/ProfilePage";
 import PublicProfilePage from "./components/PublicProfilePage";
@@ -380,7 +381,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
 // Component entry point for this part of the interface.
 // Rendering and feature-specific behavior are coordinated here.
 function AppInner() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, isPasswordRecovery, clearPasswordRecovery } = useAuth();
 
   const [page, setPage] = useState("home");
   const skipHistoryPushRef = useRef(false);
@@ -650,6 +651,12 @@ function AppInner() {
     window.location.assign(getAppBaseUrl());
   }
 
+  function handlePasswordResetComplete() {
+    clearPasswordRecovery();
+    setPage("home");
+    window.history.replaceState({ ...(window.history.state || {}), page: "home" }, "");
+  }
+
   useEffect(() => {
     if (loading || !user || (page !== "login" && page !== "signup")) return;
 
@@ -664,6 +671,10 @@ function AppInner() {
         Loading…
       </div>
     );
+  }
+
+  if (isPasswordRecovery) {
+    return <ResetPasswordPage onComplete={handlePasswordResetComplete} />;
   }
 
   if (page === "login") return <LoginPage onNavigate={handleAuthNavigate} />;
