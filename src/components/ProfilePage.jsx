@@ -195,6 +195,33 @@ function isValidBirthdate(value) {
   return true;
 }
 
+// ── Star display (read-only) ─────────────────────────────────
+function StarDisplay({ average = 0, count = 0 }) {
+  return (
+    <div className="pub-rating__display">
+      <div className="pub-rating__stars">
+        {[1, 2, 3, 4, 5].map((i) => {
+          const filled = average >= i;
+          const half = !filled && average >= i - 0.5;
+          return (
+            <span
+              key={i}
+              className={`pub-rating__star ${filled ? "pub-rating__star--filled" : half ? "pub-rating__star--half" : ""}`}
+            >
+              ★
+            </span>
+          );
+        })}
+      </div>
+      <span className="pub-rating__label">
+        {count > 0
+          ? `${average} (${count} review${count !== 1 ? "s" : ""})`
+          : "No reviews yet"}
+      </span>
+    </div>
+  );
+}
+
 // ── Profile completion config ────────────────────────────────
 const COMPLETION_FIELDS = [
   { key: "avatar", label: "Profile photo" },
@@ -254,6 +281,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
   const [avatarFile, setAvatarFile] = useState(null);
   const [memberSince, setMemberSince] = useState(null);
   const [phoneError, setPhoneError] = useState("");
+  const [ratingAvg, setRatingAvg] = useState(0);
+  const [ratingCount, setRatingCount] = useState(0);
 
   const [form, setForm] = useState({
     name: "",
@@ -306,6 +335,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
             phone: data.phone || "",
           });
           if (data.avatar_url) setAvatarPreview(data.avatar_url);
+          setRatingAvg(parseFloat(data.avg_rating) || 0);
+          setRatingCount(parseInt(data.rating_count) || 0);
         }
         setLoading(false);
       });
@@ -485,6 +516,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
             <div className="profile-card__avatar-info">
               <h2>{form.display_name || form.name || "Your Profile"}</h2>
               <p>{user?.email}</p>
+              <StarDisplay average={ratingAvg} count={ratingCount} />
               {memberSince && (
                 <p style={{ fontSize: 12, color: "var(--gray-400)", marginTop: 4 }}>
                   🗓 Member since {memberSince}
