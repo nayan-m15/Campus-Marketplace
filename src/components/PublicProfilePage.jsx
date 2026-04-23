@@ -25,7 +25,9 @@ function StarDisplay({ average = 0, count = 0 }) {
         })}
       </div>
       <span className="pub-rating__label">
-        {count > 0 ? `${average} (${count} review${count !== 1 ? "s" : ""})` : "No reviews yet"}
+        {count > 0
+          ? `${average} (${count} review${count !== 1 ? "s" : ""})`
+          : "No reviews yet"}
       </span>
     </div>
   );
@@ -61,7 +63,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Rating state
+  // Rating display state — populated from profile columns (avg_rating, rating_count)
   const [ratingAvg, setRatingAvg] = useState(0);
   const [ratingCount, setRatingCount] = useState(0);
 
@@ -72,35 +74,30 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
   const [submitting, setSubmitting] = useState(false);
   const [ratingToast, setRatingToast] = useState(null);
 
-  // Load profile
+  // ── Load profile (includes avg_rating + rating_count columns) ──
   useEffect(() => {
     if (!userId) return;
     supabase
       .from("profiles")
-      .select("name, display_name, about, province, institution, sex, birthdate, avatar_url, created_at")
+      .select(
+        "name, display_name, about, province, institution, sex, birthdate, avatar_url, created_at, avg_rating, rating_count"
+      )
       .eq("id", userId)
       .single()
       .then(({ data, error }) => {
-        if (error) setError("Could not load this profile.");
-        else setProfile(data);
+        if (error) {
+          setError("Could not load this profile.");
+        } else {
+          setProfile(data);
+          // Populate rating state directly from the stored columns — no RPC needed
+          setRatingAvg(parseFloat(data.avg_rating) || 0);
+          setRatingCount(parseInt(data.rating_count) || 0);
+        }
       })
       .finally(() => setLoading(false));
   }, [userId]);
 
-  // Load average rating via RPC
-  useEffect(() => {
-    if (!userId) return;
-    supabase
-      .rpc("get_seller_rating", { seller_id: userId })
-      .then(({ data }) => {
-        if (data && data[0]) {
-          setRatingAvg(parseFloat(data[0].average) || 0);
-          setRatingCount(parseInt(data[0].count) || 0);
-        }
-      });
-  }, [userId]);
-
-  // Load listings the current user has messaged the seller about
+  // ── Load listings the current user has messaged the seller about ──
   useEffect(() => {
     if (!user || !userId || user.id === userId) return;
 
@@ -122,7 +119,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
 
         if (!listings) return;
 
-        // Check which ones they've already rated
+        // Check which ones the user has already rated
         const { data: existingRatings } = await supabase
           .from("ratings")
           .select("listing_id, rating")
@@ -142,8 +139,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
       });
   }, [user, userId]);
 
-  // Small prep work happens in this helper before the UI uses the result.
-  // It keeps lookup, formatting, or data shaping out of the render path.
+  // ── Helpers ──────────────────────────────────────────────────
   function showToast(msg) {
     setRatingToast(msg);
     setTimeout(() => setRatingToast(null), 3000);
@@ -151,16 +147,16 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
 
   async function handleSubmitRating() {
     if (!selectedListing) { showToast("Please select a listing first."); return; }
-    if (!selectedStars) { showToast("Please select a star rating."); return; }
+    if (!selectedStars)    { showToast("Please select a star rating.");   return; }
 
     setSubmitting(true);
     try {
       const { error } = await supabase.from("ratings").upsert(
         {
-          rater_id: user.id,
-          rated_id: userId,
+          rater_id:   user.id,
+          rated_id:   userId,
           listing_id: selectedListing,
-          rating: selectedStars,
+          rating:     selectedStars,
         },
         { onConflict: "rater_id,listing_id" }
       );
@@ -170,14 +166,20 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
       setSelectedListing("");
       setSelectedStars(0);
 
-      // Refresh average
-      const { data } = await supabase.rpc("get_seller_rating", { seller_id: userId });
-      if (data && data[0]) {
-        setRatingAvg(parseFloat(data[0].average) || 0);
-        setRatingCount(parseInt(data[0].count) || 0);
+      // Re-fetch the profile row so avg_rating + rating_count reflect the
+      // trigger's recalculation — no RPC call required.
+      const { data: updated } = await supabase
+        .from("profiles")
+        .select("avg_rating, rating_count")
+        .eq("id", userId)
+        .single();
+
+      if (updated) {
+        setRatingAvg(parseFloat(updated.avg_rating) || 0);
+        setRatingCount(parseInt(updated.rating_count) || 0);
       }
 
-      // Update local rateable listings
+      // Mark the listing as rated in local state
       setRateableListings((prev) =>
         prev.map((l) =>
           l.id === selectedListing ? { ...l, existingRating: selectedStars } : l
@@ -190,9 +192,19 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
     }
   }
 
+  // ── Loading / error states ────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.4)", background: "linear-gradient(160deg, var(--navy) 0%, var(--gray-900) 100%)" }}>
+      <div
+        style={{
+          minHeight: "60vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "rgba(255,255,255,0.4)",
+          background: "linear-gradient(160deg, var(--navy) 0%, var(--gray-900) 100%)",
+        }}
+      >
         Loading profile…
       </div>
     );
@@ -211,6 +223,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
     );
   }
 
+  // ── Derived display values ────────────────────────────────────
   const displayName = profile.display_name || profile.name || "Anonymous";
   const initials = displayName
     .split(" ")
@@ -228,6 +241,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
 
   const selectedListingData = rateableListings.find((l) => l.id === selectedListing);
 
+  // ── Render ────────────────────────────────────────────────────
   return (
     <div className="profile-page">
       {ratingToast && <div className="profile-toast">{ratingToast}</div>}
@@ -240,7 +254,11 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
           <div className="profile-card__avatar-section">
             <div className="profile-card__avatar-wrap">
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt={displayName} className="profile-card__avatar" />
+                <img
+                  src={profile.avatar_url}
+                  alt={displayName}
+                  className="profile-card__avatar"
+                />
               ) : (
                 <div className="profile-card__avatar-placeholder">{initials}</div>
               )}
@@ -265,7 +283,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
             </div>
           </div>
 
-          {/* Read-only body */}
+          {/* Read-only profile body */}
           <div className="profile-card__body">
 
             {profile.about && (
@@ -292,9 +310,9 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
                       <label>Date of birth</label>
                       <div className="profile-public-value">
                         {new Date(profile.birthdate).toLocaleDateString("en-ZA", {
-                          day: "2-digit",
+                          day:   "2-digit",
                           month: "long",
-                          year: "numeric",
+                          year:  "numeric",
                         })}
                       </div>
                     </div>
@@ -341,7 +359,8 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
                       <option value="">Choose a listing…</option>
                       {rateableListings.map((l) => (
                         <option key={l.id} value={l.id}>
-                          {l.title}{l.existingRating ? ` (rated: ${l.existingRating}★)` : ""}
+                          {l.title}
+                          {l.existingRating ? ` (rated: ${l.existingRating}★)` : ""}
                         </option>
                       ))}
                     </select>
