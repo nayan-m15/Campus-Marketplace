@@ -117,19 +117,20 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     showSuccess(newStatus === "sold" ? "Marked as sold!" : "Relisted!");
     onListingChanged?.();
   }
-  async function handleMarkTrade(id, currentStatus) {
-  const newStatus = currentStatus === "for_trade" ? "active" : "for_trade";
-  const { error } = await supabase
-    .from("listings")
-    .update({ status: newStatus })
-    .eq("id", id);
-  if (error) { setError(error.message); return; }
-  setListings((prev) =>
-    prev.map((l) => (l.id === id ? { ...l, status: newStatus } : l))
-  );
-  showSuccess(newStatus === "for_trade" ? "Listed for trade!" : "Relisted!");
-  onListingChanged?.();
-}
+
+  async function handleMarkTrade(id, currentType) {
+    const newType = currentType === "trade" ? "cash" : "trade";
+    const { error } = await supabase
+      .from("listings")
+      .update({ listing_type: newType })
+      .eq("id", id);
+    if (error) { setError(error.message); return; }
+    setListings((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, listing_type: newType } : l))
+    );
+    showSuccess(newType === "trade" ? "Listed for trade!" : "Relisted as cash!");
+    onListingChanged?.();
+  }
 
   async function handleEditSave(e) {
     e?.preventDefault?.();
@@ -229,16 +230,16 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
             <article key={item.id} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", border: "1px solid var(--gray-200)", opacity: isSold ? 0.7 : 1, position: "relative" }}>
 
               {/* Status badge */}
-                {item.status && item.status !== "active" && (
-                  <div style={{
-                    position: "absolute", top: 12, left: 12, zIndex: 1,
-                    background: item.status === "sold" ? "#111" : "#3b82f6",
-                    color: "#fff", borderRadius: 8, padding: "4px 10px",
-                    fontSize: 12, fontWeight: 700
-                  }}>
-                    {item.status === "sold" ? "SOLD" : "FOR TRADE"}
-                  </div>
-                )}
+              {(item.status === "sold" || item.listing_type === "trade") && (
+                <div style={{
+                  position: "absolute", top: 12, left: 12, zIndex: 1,
+                  background: item.status === "sold" ? "#111" : "#3b82f6",
+                  color: "#fff", borderRadius: 8, padding: "4px 10px",
+                  fontSize: 12, fontWeight: 700
+                }}>
+                  {item.status === "sold" ? "SOLD" : "FOR TRADE"}
+                </div>
+              )}
 
               {/* Image */}
               <div style={{ height: 160, background: "var(--surface-soft)", overflow: "hidden" }}>
@@ -282,18 +283,18 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                     Edit
                   </button>
                   <button
-                    className="your-listings-btn" 
+                    className="your-listings-btn"
                     onClick={() => handleMarkSold(item.id, item.status)}
                     style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "sold" ? "#f0fdf4" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "sold" ? "var(--green)" : "var(--gray-800)" }}
                   >
                     {item.status === "sold" ? "Relist" : " Mark Sold"}
                   </button>
                   <button
-                   className="your-listings-btn"
-                    onClick={() => handleMarkTrade(item.id, item.status)}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "for_trade" ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "for_trade" ? "#3b82f6" : "var(--gray-800)" }}
+                    className="your-listings-btn"
+                    onClick={() => handleMarkTrade(item.id, item.listing_type)}
+                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.listing_type === "trade" ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.listing_type === "trade" ? "#3b82f6" : "var(--gray-800)" }}
                   >
-                    {item.status === "for_trade" ? "Unlist Trade" : "For Trade"}
+                    {item.listing_type === "trade" ? "Unlist Trade" : "For Trade"}
                   </button>
                   <button
                     className="your-listings-btn"

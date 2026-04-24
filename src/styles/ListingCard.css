@@ -50,6 +50,22 @@
   background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
 }
 
+/* ── For Trade Badge ───────────────────────────────────── */
+.listing-card__trade-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  background: #3b82f6;
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  pointer-events: none;
+}
+
 /* ── Wishlist Heart Button (on card image) ───────────────── */
 .listing-card__wishlist-btn {
   position: absolute;

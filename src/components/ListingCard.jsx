@@ -57,6 +57,13 @@ export default function ListingCard({
           </figure>
         )}
 
+        {/* ── For Trade badge ── */}
+        {item.listing_type === "trade" && (
+          <span className="listing-card__trade-badge">
+            🔄 For Trade
+          </span>
+        )}
+        
         {/* ── Wishlist heart button ── */}
         {onToggleWishlist && (
           <button
