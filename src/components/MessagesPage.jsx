@@ -542,7 +542,7 @@ export default function MessagesPage({
   // ── Scroll to bottom ──────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, offers]);
 
   // ── Auto-resize textarea ──────────────────────────────────
   useEffect(() => {
