@@ -60,7 +60,7 @@ export default function ListingCard({
         {/* ── For Trade badge ── */}
         {item.listing_type === "trade" && (
           <span className="listing-card__trade-badge">
-            🔄 For Trade
+            For Trade
           </span>
         )}
         
