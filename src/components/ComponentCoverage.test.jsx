@@ -530,7 +530,6 @@ test("ListingForm validates required fields and publishes a completed listing", 
 
   fireEvent.change(screen.getByLabelText(/item name/i), { target: { value: "Lamp" } });
   fireEvent.change(screen.getByLabelText(/asking price/i), { target: { value: "250.75" } });
-  fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Electronics" } });
   fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Furniture" } });
   expect(screen.getByLabelText(/asking price/i)).toHaveValue("250.75");
   fireEvent.click(screen.getByRole("radio", { name: /good/i }));
@@ -541,7 +540,8 @@ test("ListingForm validates required fields and publishes a completed listing", 
     title: "Lamp",
     price: 250.75,
     condition: "Good",
-    status: "for_trade",
+    listing_type: "trade",
+    status: "active",
   })));
   expect(onSuccess).toHaveBeenCalled();
   expect(onCancel).toHaveBeenCalledTimes(2);
