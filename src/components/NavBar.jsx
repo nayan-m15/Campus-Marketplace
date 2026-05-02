@@ -21,6 +21,8 @@ export default function Navbar({
   wishlistCount = 0,
   unreadCount = 0,
   onSettings,
+  onAdminDashboard,
+  isAdmin = false,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -334,6 +336,13 @@ export default function Navbar({
                                 Your Listings
                               </button>
                             </li>
+                            {isAdmin && (
+                              <li>
+                                <button onClick={() => { onAdminDashboard?.(); setMenuOpen(false); }}>
+                                  Admin Dashboard
+                                </button>
+                              </li>
+                            )}
                             <li>
                               <button
                                 onClick={() => { onWishlist?.(); setMenuOpen(false); }}

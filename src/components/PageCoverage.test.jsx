@@ -56,6 +56,8 @@ const sellerProfile = {
   sex: "Female",
   avatar_url: "",
   created_at: "2024-01-01T00:00:00.000Z",
+  avg_rating: 4,
+  rating_count: 1,
 };
 
 const buyerProfile = {
@@ -83,6 +85,7 @@ const userListing = {
   image_url: "",
   emoji: "Lamp",
   created_at: "2026-01-01T00:00:00.000Z",
+  status: "active",
 };
 
 const defaultMessages = [
@@ -115,12 +118,16 @@ const defaultListingRecords = {
     title: "Textbook",
     price: 500,
     user_id: "seller-1",
+    status: "active",
+    flag_reason: "",
   },
   "listing-3": {
     id: "listing-3",
     title: "Ball",
     price: 120,
     user_id: "seller-1",
+    status: "active",
+    flag_reason: "",
   },
 };
 const listingRecords = structuredClone(defaultListingRecords);
@@ -676,6 +683,44 @@ test("MessagesPage shows seller quick replies and sends the selected response", 
       sender_id: "user-1",
       receiver_id: "buyer-1",
       content: "Yes. Are you interested?",
+      listing_id: "listing-2",
+    })
+  ));
+});
+
+test("MessagesPage warns before sending a message for a flagged listing", async () => {
+  listingRecords["listing-2"] = {
+    ...listingRecords["listing-2"],
+    status: "flagged",
+    flag_reason: "Reported for suspicious payment requests.",
+  };
+
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingId="listing-2"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  const composer = await screen.findByPlaceholderText(/type a message/i);
+  fireEvent.change(composer, { target: { value: "Can I collect today?" } });
+  fireEvent.click(screen.getByRole("button", { name: /send message/i }));
+
+  expect(await screen.findByRole("heading", { name: /flagged listing warning/i })).toBeInTheDocument();
+  expect(screen.getByText(/reported for suspicious payment requests\./i)).toBeInTheDocument();
+  expect(mocks.insert).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "messages",
+    expect.objectContaining({
+      sender_id: "user-1",
+      receiver_id: "seller-1",
+      content: "Can I collect today?",
       listing_id: "listing-2",
     })
   ));

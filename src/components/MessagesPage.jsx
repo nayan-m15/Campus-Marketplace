@@ -112,6 +112,7 @@ export default function MessagesPage({
   initialRecipientId = null,
   initialListingTitle = null,
   initialListingId = null,
+  initialAcknowledgedFlaggedListingId = null,
   onBack,
   onViewProfile,
   onUnreadChange,   // ← NEW: callback(count) so parent can update navbar badge
@@ -134,6 +135,11 @@ export default function MessagesPage({
   const [activeListingId, setActiveListingId] = useState(initialListingId);
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
+  const [flaggedWarningOpen, setFlaggedWarningOpen] = useState(false);
+  const [pendingFlaggedMessage, setPendingFlaggedMessage] = useState("");
+  const [acknowledgedFlaggedListingIds, setAcknowledgedFlaggedListingIds] = useState(() =>
+    initialAcknowledgedFlaggedListingId ? new Set([String(initialAcknowledgedFlaggedListingId)]) : new Set()
+  );
 
   // Buyer info banner: shown to the lister when a buyer messages about a listing
   const [iAmTheLister, setIAmTheLister] = useState(false);
@@ -339,7 +345,7 @@ export default function MessagesPage({
 
       const { data: listing } = await supabase
         .from("listings")
-        .select("id, title, price, user_id")
+        .select("id, title, price, user_id, status, flag_reason")
         .eq("id", String(msgWithListing.listing_id))
         .maybeSingle();
 
@@ -350,6 +356,8 @@ export default function MessagesPage({
         title: null,
         price: null,
         user_id: iOwnThisListing ? user.id : peerId,
+        status: "active",
+        flag_reason: "",
       });
 
     }
@@ -500,9 +508,10 @@ export default function MessagesPage({
   }, [draft]);
 
   // ── Send ──────────────────────────────────────────────────
-  const sendMessage = async (messageText = draft) => {
+  const sendMessageNow = async (messageText = draft) => {
     const text = messageText.trim();
     if (!text || !activeId || sending) return;
+
     setSending(true);
     if (messageText === draft) setDraft("");
 
@@ -533,8 +542,26 @@ export default function MessagesPage({
       setMessages((prev) => prev.filter((m) => m !== optimistic));
     }
     setSending(false);
+    setPendingFlaggedMessage("");
     textareaRef.current?.focus();
     await loadConversations();
+  };
+
+  const sendMessage = async (messageText = draft) => {
+    const text = messageText.trim();
+    if (!text || !activeId || sending) return;
+
+    if (
+      conversationListing?.status === "flagged" &&
+      !flaggedWarningOpen &&
+      !acknowledgedFlaggedListingIds.has(String(conversationListing.id))
+    ) {
+      setPendingFlaggedMessage(text);
+      setFlaggedWarningOpen(true);
+      return;
+    }
+
+    await sendMessageNow(text);
   };
 
   // User-driven changes pass through this handler first.
@@ -842,6 +869,51 @@ export default function MessagesPage({
                     <button className="msg-offer-modal__cancel" onClick={() => setShowOfferModal(false)} type="button">Cancel</button>
                     <button className="msg-offer-modal__send" onClick={sendOffer} disabled={offerSending} type="button">
                       {offerSending ? "Sending…" : "Send Offer"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {flaggedWarningOpen && conversationListing?.status === "flagged" && (
+              <div className="msg-offer-modal-overlay" onClick={() => setFlaggedWarningOpen(false)}>
+                <div className="msg-offer-modal" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="msg-offer-modal__title">Flagged listing warning</h3>
+                  <p className="msg-offer-modal__sub">
+                    This listing has been flagged by an admin.
+                  </p>
+                  <p className="msg-offer-modal__sub" style={{ marginTop: 8 }}>
+                    <strong>Reason:</strong> {conversationListing.flag_reason?.trim() || "No reason was provided."}
+                  </p>
+                  <div className="msg-offer-modal__actions">
+                    <button
+                      className="msg-offer-modal__cancel"
+                      onClick={() => {
+                        setFlaggedWarningOpen(false);
+                        setPendingFlaggedMessage("");
+                      }}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="msg-offer-modal__send"
+                      onClick={() => {
+                        const text = pendingFlaggedMessage;
+                        setFlaggedWarningOpen(false);
+                        setPendingFlaggedMessage("");
+                        setAcknowledgedFlaggedListingIds((prev) => {
+                          const next = new Set(prev);
+                          if (conversationListing?.id != null) {
+                            next.add(String(conversationListing.id));
+                          }
+                          return next;
+                        });
+                        sendMessageNow(text);
+                      }}
+                      type="button"
+                    >
+                      Continue
                     </button>
                   </div>
                 </div>

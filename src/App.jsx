@@ -180,11 +180,13 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showFlaggedWarning, setShowFlaggedWarning] = useState(false);
 
   useEffect(() => {
     if (item) {
       setMessage(`Hi, is the ${item.title || "item"} still available?`);
       setCurrentImageIndex(0);
+      setShowFlaggedWarning(false);
     }
   }, [item?.id]);
 
@@ -234,7 +236,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
     setCurrentImageIndex((index) => (index === images.length - 1 ? 0 : index + 1));
   }
 
-  async function handleSendMessage() {
+  async function performSendMessage() {
     if (!message.trim()) { setSendError("Please enter a message."); setSendSuccess(""); return; }
     if (!user) { setSendError("You must be logged in to send a message."); setSendSuccess(""); return; }
     if (!item.user_id) { setSendError("Seller information is missing."); setSendSuccess(""); return; }
@@ -262,9 +264,19 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
     }
   }
 
+  function handleSendMessage() {
+    if (item?.status === "flagged") {
+      setShowFlaggedWarning(true);
+      return;
+    }
+
+    performSendMessage();
+  }
+
   return (
-    <div className="item-modal-overlay" onClick={onClose}>
-      <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+    <>
+      <div className="item-modal-overlay" onClick={onClose}>
+        <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Close item details" type="button">x</button>
 
         <div className="item-modal-scroll">
@@ -308,6 +320,12 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
                     <div className="item-modal-top-bottom">
                       <div className="item-modal-top-text">
                         <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
+
+                        {item.status === "flagged" && (
+                          <p className="item-modal-error" style={{ marginBottom: 0 }}>
+                            This listing has been flagged by an admin. Please review it carefully before continuing.
+                          </p>
+                        )}
 
                         <div className="item-modal-summary">
                           <p className="item-modal-price">
@@ -374,6 +392,181 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
             </section>
           </div>
         </div>
+        </article>
+      </div>
+      {showFlaggedWarning && (
+        <div className="item-modal-overlay" onClick={() => setShowFlaggedWarning(false)}>
+          <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowFlaggedWarning(false)} aria-label="Close flagged warning" type="button">x</button>
+            <div className="item-modal-scroll">
+              <div className="item-modal-scroll-inner">
+                <section className="item-modal-layout">
+                  <div className="item-modal-right-column item-modal-right-column--full">
+                    <div className="item-modal-top-card">
+                      <div className="item-modal-top-text">
+                        <h2 className="item-modal-title">Flagged listing warning</h2>
+                        <div className="item-modal-description-card">
+                          <p>This listing has been flagged by an admin.</p>
+                          <p><strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="item-modal-bottom-card">
+                      <div className="item-modal-contact" style={{ gridColumn: "1 / -1" }}>
+                        <h3>Do you still want to send this message?</h3>
+                        <div className="item-modal-actions">
+                          <button
+                            type="button"
+                            className="item-modal-send-btn"
+                            onClick={() => {
+                              setShowFlaggedWarning(false);
+                              performSendMessage();
+                            }}
+                          >
+                            Continue
+                          </button>
+                          <button
+                            type="button"
+                            className="item-modal-send-btn item-modal-send-btn--secondary"
+                            onClick={() => setShowFlaggedWarning(false)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </article>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ModerationModal({
+  item,
+  actionState,
+  moderationReason,
+  onReasonChange,
+  onClose,
+  onFlagListing,
+  onRemoveListing,
+}) {
+  if (!item) return null;
+
+  return (
+    <div className="item-modal-overlay" onClick={onClose}>
+      <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Close moderation panel" type="button">x</button>
+
+        <div className="item-modal-scroll">
+          <div className="item-modal-scroll-inner">
+            <section className="item-modal-layout">
+              <div className="item-modal-right-column item-modal-right-column--full">
+                <div className="item-modal-top-card">
+                  <div className="item-modal-top-text">
+                    <h2 className="item-modal-title">Review moderation</h2>
+                    <div className="item-modal-description-card">
+                      <p>
+                        Moderate listing safety for <strong>{item.title}</strong>. Use <strong>Flag listing</strong> to warn buyers that this listing needs caution, or <strong>Remove listing</strong> to take it down entirely.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="item-modal-bottom-card">
+                  <div className="item-modal-info">
+                    <div className="item-modal-meta">
+                      <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
+                      <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
+                      <p><strong>Status:</strong> {item.status || "active"}</p>
+                    </div>
+                  </div>
+
+                  <div className="item-modal-contact">
+                    <h3>Moderation actions</h3>
+                    <label className="profile-field" style={{ display: "block", marginBottom: 14 }}>
+                      <span style={{ display: "block", fontWeight: 700, marginBottom: 8 }}>Flag reason</span>
+                      <textarea
+                        className="item-modal-textarea"
+                        value={moderationReason}
+                        onChange={(e) => onReasonChange(e.target.value)}
+                        rows={4}
+                        placeholder="Explain why this listing is being flagged."
+                        style={{ marginBottom: 0 }}
+                      />
+                    </label>
+                    {actionState.error && <p className="item-modal-error">{actionState.error}</p>}
+                    {actionState.success && <p className="item-modal-success">{actionState.success}</p>}
+                    <div className="item-modal-actions">
+                      <button
+                        type="button"
+                        className="item-modal-send-btn"
+                        onClick={() => onFlagListing(item)}
+                        disabled={Boolean(actionState.loading)}
+                      >
+                        {actionState.loading === "flag" ? "Flagging..." : "Flag listing"}
+                      </button>
+                      <button
+                        type="button"
+                        className="item-modal-send-btn item-modal-send-btn--secondary"
+                        onClick={() => onRemoveListing(item)}
+                        disabled={Boolean(actionState.loading)}
+                      >
+                        {actionState.loading === "remove" ? "Removing..." : "Remove listing"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function FlaggedListingWarningModal({ item, onClose, onContinue }) {
+  if (!item) return null;
+
+  return (
+    <div className="item-modal-overlay" onClick={onClose}>
+      <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Close flagged listing warning" type="button">x</button>
+        <div className="item-modal-scroll">
+          <div className="item-modal-scroll-inner">
+            <section className="item-modal-layout">
+              <div className="item-modal-right-column item-modal-right-column--full">
+                <div className="item-modal-top-card">
+                  <div className="item-modal-top-text">
+                    <h2 className="item-modal-title">Flagged listing warning</h2>
+                    <div className="item-modal-description-card">
+                      <p>This listing has been flagged by an admin.</p>
+                      <p><strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="item-modal-bottom-card">
+                  <div className="item-modal-contact" style={{ gridColumn: "1 / -1" }}>
+                    <h3>Do you still want to message this seller?</h3>
+                    <div className="item-modal-actions">
+                      <button type="button" className="item-modal-send-btn" onClick={onContinue}>
+                        Continue
+                      </button>
+                      <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={onClose}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
       </article>
     </div>
   );
@@ -393,6 +586,15 @@ function AppInner() {
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
   const [selectedListing, setSelectedListing] = useState(null);
+  const [moderationListing, setModerationListing] = useState(null);
+  const [flaggedListingPrompt, setFlaggedListingPrompt] = useState(null);
+  const [acknowledgedFlaggedListingId, setAcknowledgedFlaggedListingId] = useState(null);
+  const [moderationState, setModerationState] = useState({
+    loading: "",
+    success: "",
+    error: "",
+  });
+  const [moderationReason, setModerationReason] = useState("");
 
   const [allListings, setAllListings] = useState([]);
   const [listingsLoading, setListingsLoading] = useState(true);
@@ -599,7 +801,13 @@ function AppInner() {
 
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
-  function handleMessageSeller(item) {
+  function openMessagesForListing(item, { acknowledged = false } = {}) {
+    if (acknowledged && item?.id) {
+      setAcknowledgedFlaggedListingId(item.id);
+    } else {
+      setAcknowledgedFlaggedListingId(null);
+    }
+
     if (!user) {
       setPage("login");
       return;
@@ -608,6 +816,15 @@ function AppInner() {
     setMsgListingTitle(item.title);
     setMsgListingId(item.id || null);
     setPage("messages");
+  }
+
+  function handleMessageSeller(item) {
+    if (item?.status === "flagged") {
+      setFlaggedListingPrompt(item);
+      return;
+    }
+
+    openMessagesForListing(item);
   }
 
   // User-driven changes pass through this handler first.
@@ -661,6 +878,80 @@ function AppInner() {
     );
   }
 
+  function handleOpenModeration(item) {
+    setModerationListing(item);
+    setModerationReason(item.flag_reason || "");
+    setModerationState({ loading: "", success: "", error: "" });
+  }
+
+  async function refreshListings() {
+    const listings = await fetchListings(user?.id);
+    setAllListings(listings);
+  }
+
+  async function handleFlagListing(item) {
+    const reason = moderationReason.trim();
+    if (!reason) {
+      setModerationState({
+        loading: "",
+        success: "",
+        error: "Please enter a reason before flagging this listing.",
+      });
+      return;
+    }
+
+    setModerationState({ loading: "flag", success: "", error: "" });
+
+    try {
+      const { error } = await supabase
+        .from("listings")
+        .update({ status: "flagged", flag_reason: reason })
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      await refreshListings();
+      setModerationState({
+        loading: "",
+        success: "Listing flagged. Buyers will now see a warning on it.",
+        error: "",
+      });
+    } catch (err) {
+      setModerationState({
+        loading: "",
+        success: "",
+        error: err.message || "Could not flag this listing.",
+      });
+    }
+  }
+
+  async function handleRemoveListing(item) {
+    setModerationState({ loading: "remove", success: "", error: "" });
+
+    try {
+      const { error } = await supabase
+        .from("listings")
+        .delete()
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      await refreshListings();
+      setModerationState({
+        loading: "",
+        success: "Listing removed.",
+        error: "",
+      });
+      setModerationListing(null);
+    } catch (err) {
+      setModerationState({
+        loading: "",
+        success: "",
+        error: err.message || "Could not remove this listing.",
+      });
+    }
+  }
+
   useEffect(() => {
     if (loading || !user || (page !== "login" && page !== "signup")) return;
 
@@ -686,7 +977,7 @@ function AppInner() {
 
   if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
   if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} />;
-  if (user && isAdmin) return <AdminDashboard onSignOut={signOut} />;
+  if (user && isAdmin && page === "admin") return <AdminDashboard onSignOut={signOut} />;
 
   const navbarProps = {
     searchQuery,
@@ -714,6 +1005,8 @@ function AppInner() {
     wishlistCount: wishlistItems.length,
     onSettings: () => setPage("settings"),
     unreadCount,
+    isAdmin,
+    onAdminDashboard: () => setPage("admin"),
   };
 
   const messageNoticeToast = messageNotice && (
@@ -776,10 +1069,12 @@ function AppInner() {
           initialRecipientId={msgRecipientId}
           initialListingTitle={msgListingTitle}
           initialListingId={msgListingId}
+          initialAcknowledgedFlaggedListingId={acknowledgedFlaggedListingId}
           onBack={() => {
             setMsgRecipientId(null);
             setMsgListingTitle(null);
             setMsgListingId(null);
+            setAcknowledgedFlaggedListingId(null);
             goHome();
           }}
           onViewProfile={(sellerId) => {
@@ -832,6 +1127,24 @@ function AppInner() {
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
           />
+        <ModerationModal
+          item={moderationListing}
+          actionState={moderationState}
+          moderationReason={moderationReason}
+          onReasonChange={setModerationReason}
+          onClose={() => setModerationListing(null)}
+          onFlagListing={handleFlagListing}
+          onRemoveListing={handleRemoveListing}
+        />
+        <FlaggedListingWarningModal
+          item={flaggedListingPrompt}
+          onClose={() => setFlaggedListingPrompt(null)}
+          onContinue={() => {
+            const item = flaggedListingPrompt;
+            setFlaggedListingPrompt(null);
+            if (item) openMessagesForListing(item, { acknowledged: true });
+          }}
+        />
       </>
     );
   }
@@ -874,6 +1187,24 @@ function AppInner() {
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
+        />
+        <ModerationModal
+          item={moderationListing}
+          actionState={moderationState}
+          moderationReason={moderationReason}
+          onReasonChange={setModerationReason}
+          onClose={() => setModerationListing(null)}
+          onFlagListing={handleFlagListing}
+          onRemoveListing={handleRemoveListing}
+        />
+        <FlaggedListingWarningModal
+          item={flaggedListingPrompt}
+          onClose={() => setFlaggedListingPrompt(null)}
+          onContinue={() => {
+            const item = flaggedListingPrompt;
+            setFlaggedListingPrompt(null);
+            if (item) openMessagesForListing(item, { acknowledged: true });
+          }}
         />
       </header>
 
@@ -926,6 +1257,8 @@ function AppInner() {
                 onListingClick={setSelectedListing}
                 onMessageSeller={handleMessageSeller}
                 onSellerClick={handleSellerClick}
+                isAdmin={isAdmin}
+                onModerateListing={isAdmin ? handleOpenModeration : null}
                 isWishlisted={isWishlisted}
                 onToggleWishlist={user ? toggleWishlist : null}
                 user={user}
