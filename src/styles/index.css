@@ -197,8 +197,7 @@ html.dark .listing-card__price {
   color: #f9fafb;
 }
 
-html.dark .listing-card__seller,
-html.dark .listing-card__distance {
+html.dark .listing-card__seller {
   color: #9ca3af;
 }
 

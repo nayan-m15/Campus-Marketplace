@@ -350,7 +350,6 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
                       <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
                       <p><strong>Joined since:</strong> {joinedLabel}</p>
                       {item.category && <p><strong>Category:</strong> {item.category}</p>}
-                      <p><strong>Distance:</strong> {item.distance || "0 km"}</p>
                     </div>
                   </div>
 

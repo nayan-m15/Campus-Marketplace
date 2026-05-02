@@ -231,7 +231,7 @@
   white-space: nowrap;
 }
 
-/* ── Seller / Distance ─────────────────────────────────── */
+/* ── Seller ─────────────────────────────────── */
 .listing-card__meta {
   display: flex;
   flex-direction: column;

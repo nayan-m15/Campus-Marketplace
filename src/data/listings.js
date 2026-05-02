@@ -40,7 +40,6 @@ const MOCK_LISTINGS = [
     approximate_location: "Gauteng",
     joined_year: 2026,
     joined_label: "April 2026",
-    distance: "0.3 km",
     image_url: null,
     image_urls: [],
     emoji: "📚",
@@ -111,7 +110,6 @@ export function normaliseListing(listing, profile) {
     approximate_location: profile?.province ?? "Location not provided",
     joined_year: getJoinedYear(profile?.created_at),
     joined_label: getJoinedLabel(profile?.created_at),
-    distance: "0 km",
     image_url: primaryImage,
     image_urls: primaryImage
       ? [primaryImage, ...imageUrls.filter((url) => url !== primaryImage)]
