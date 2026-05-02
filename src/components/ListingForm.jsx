@@ -1,4 +1,3 @@
-```jsx
 // Main structure for the listing form feature lives here.
 // Shared UI pieces and page-level behavior are tied together in this file.
 
@@ -567,4 +566,3 @@ export default function ListingForm({ onCancel, onSuccess }) {
     </main>
   );
 }
-```
