@@ -12,21 +12,5 @@ function removeEmptyOptionalFields(payload) {
 
 export async function insertMessage(payload) {
   const messagePayload = removeEmptyOptionalFields(payload);
-  const result = await supabase.from("messages").insert(messagePayload);
-
-  if (!result.error || !("listing_id" in messagePayload)) {
-    return result;
-  }
-
-  const { listing_id, ...messageWithoutListing } = messagePayload;
-  const retryResult = await supabase.from("messages").insert(messageWithoutListing);
-
-  if (!retryResult.error) {
-    console.warn(
-      "Message sent without listing_id because Supabase rejected the listing metadata.",
-      result.error.message
-    );
-  }
-
-  return retryResult;
+  return supabase.from("messages").insert(messagePayload);
 }
