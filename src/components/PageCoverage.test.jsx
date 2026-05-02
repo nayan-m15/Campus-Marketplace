@@ -11,6 +11,7 @@ import ProfileSetupPage from "./ProfileSetupPage";
 import PublicProfilePage from "./PublicProfilePage";
 import TradeFacilityDashboard from "./TradeFacilityDashboard";
 import YourListingsPage from "./YourListingsPage";
+import { StudentBookingsPage } from "./BookingsUi";
 
 const mocks = vi.hoisted(() => ({
   upsert: vi.fn(),
@@ -108,6 +109,30 @@ const defaultMessages = [
 const messages = [...defaultMessages];
 const defaultOffers = [];
 const offers = [...defaultOffers];
+const defaultTransactions = [
+  {
+    id: "txn-1",
+    item: "Textbook",
+    seller_id: "seller-1",
+    buyer_id: "user-1",
+    price: 500,
+    status: "awaiting_dropoff",
+    dropoff_id: "booking-1",
+    collection_id: null,
+    created_at: "2026-04-18T10:00:00.000Z",
+  },
+];
+const transactions = [...defaultTransactions];
+const defaultBookings = [
+  {
+    id: "booking-1",
+    type: "dropoff",
+    scheduled_time: "2026-04-19T10:00:00.000Z",
+    location: "Main Trade Desk",
+    created_at: "2026-04-18T10:05:00.000Z",
+  },
+];
+const bookings = [...defaultBookings];
 const defaultListingRecords = {
   "listing-1": userListing,
   "listing-2": {
@@ -146,10 +171,37 @@ function resultFor(table, mode, filters = {}) {
   }
   if (table === "profiles") {
     const ids = Array.isArray(filters.id) ? filters.id : filters.id ? [filters.id] : null;
-    return { data: [sellerProfile, buyerProfile].filter((entry) => !ids || ids.includes(entry.id)), error: null };
+    return { data: [profile, sellerProfile, buyerProfile].filter((entry) => !ids || ids.includes(entry.id)), error: null };
   }
   if (table === "messages") return { data: messages, error: null };
+  if (table === "offers" && mode === "single") {
+    const row = offers.find((offer) => !filters.id || offer.id === filters.id) || null;
+    return { data: row, error: null };
+  }
   if (table === "offers") return { data: offers, error: null };
+  if (table === "transactions" && mode === "single") {
+    const row = transactions.find((transaction) => !filters.id || transaction.id === filters.id) || null;
+    return { data: row, error: null };
+  }
+  if (table === "transactions") {
+    let rows = [...transactions];
+    if (filters.seller_id) rows = rows.filter((row) => row.seller_id === filters.seller_id);
+    if (filters.buyer_id) rows = rows.filter((row) => row.buyer_id === filters.buyer_id);
+    if (filters.item) rows = rows.filter((row) => row.item === filters.item);
+    if (filters.id) {
+      const ids = Array.isArray(filters.id) ? filters.id : [filters.id];
+      rows = rows.filter((row) => ids.includes(row.id));
+    }
+    return { data: rows, error: null };
+  }
+  if (table === "bookings") {
+    let rows = [...bookings];
+    if (filters.id) {
+      const ids = Array.isArray(filters.id) ? filters.id : [filters.id];
+      rows = rows.filter((row) => ids.includes(row.id));
+    }
+    return { data: rows, error: null };
+  }
   if (table === "ratings") return { data: [{ listing_id: "listing-2", rating: 4 }], error: null };
   if (table === "listings" && mode === "rateable") {
     const ids = Array.isArray(filters.id) ? filters.id : filters.id ? [filters.id] : [];
@@ -167,9 +219,19 @@ function resultFor(table, mode, filters = {}) {
           name: "Main Trade Desk",
           capacity: 8,
           facility_hours: [
-            { day: "Mon", open: true, start_time: "09:00", end_time: "17:00" },
+            { day: "Monday", open: true, start_time: "09:00", end_time: "17:00" },
+            { day: "Tuesday", open: true, start_time: "09:00", end_time: "17:00" },
           ],
         },
+      ],
+      error: null,
+    };
+  }
+  if (table === "facility_hours") {
+    return {
+      data: [
+        { id: 1, facility_id: "facility-1", day: "Monday", open: true, start_time: "09:00", end_time: "17:00" },
+        { id: 2, facility_id: "facility-1", day: "Tuesday", open: true, start_time: "09:00", end_time: "17:00" },
       ],
       error: null,
     };
@@ -199,6 +261,7 @@ function makeQuery(table, mode = "list", filters = {}) {
       return query;
     },
     gte: () => query,
+    lte: () => query,
     not: () => query,
     or: () => query,
     order: () => query,
@@ -325,6 +388,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   messages.splice(0, messages.length, ...defaultMessages);
   offers.splice(0, offers.length, ...defaultOffers);
+  transactions.splice(0, transactions.length, ...defaultTransactions);
+  bookings.splice(0, bookings.length, ...defaultBookings);
   Object.assign(listingRecords, structuredClone(defaultListingRecords));
   HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
     this.open = true;
@@ -632,6 +697,51 @@ test("MessagesPage keeps offer-only threads tied to a specific listing", async (
   expect(screen.getAllByText(/offer accepted/i).length).toBeGreaterThan(0);
 });
 
+test("MessagesPage creates a transaction when an offer is accepted", async () => {
+  transactions.splice(0, transactions.length);
+  offers.splice(
+    0,
+    offers.length,
+    {
+      id: "offer-pending-1",
+      created_at: new Date("2026-04-18T10:00:00.000Z").toISOString(),
+      sender_id: "seller-1",
+      receiver_id: "user-1",
+      listing_id: "listing-2",
+      amount: 500,
+      status: "pending",
+    }
+  );
+
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingId="listing-2"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  fireEvent.click(await screen.findByRole("button", { name: /accept/i }));
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "transactions",
+    expect.objectContaining({
+      item: "Textbook",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 500,
+      status: "awaiting_dropoff",
+    })
+  ));
+
+  expect(mocks.update).toHaveBeenCalledWith(
+    "listings",
+    expect.objectContaining({ sold_price: 500, status: "sold" })
+  );
+});
+
 test("MessagesPage shows seller quick replies and sends the selected response", async () => {
   listingRecords["listing-2"] = {
     ...listingRecords["listing-2"],
@@ -703,7 +813,7 @@ test("AdminDashboard loads facilities, saves changes, and generates a report", a
 
 test("TradeFacilityDashboard renders navigation and sign out", () => {
   const onSignOut = vi.fn();
-  render(<TradeFacilityDashboard onSignOut={onSignOut} />);
+  render(<TradeFacilityDashboard onSignOut={onSignOut} staffProfile={profile} />);
 
   expect(screen.getByRole("heading", { name: /dashboard overview/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /drop-off bookings/i }));
@@ -714,4 +824,50 @@ test("TradeFacilityDashboard renders navigation and sign out", () => {
 
   fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
+});
+
+test("StudentBookingsPage shows a seller drop-off booking action for accepted trades", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-2",
+      item: "Desk Lamp",
+      seller_id: "user-1",
+      buyer_id: "buyer-1",
+      price: 250,
+      status: "awaiting_dropoff",
+      dropoff_id: null,
+      collection_id: null,
+      created_at: "2026-04-18T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  expect(await screen.findByText(/my bookings/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /book drop-off/i })).toBeInTheDocument();
+});
+
+test("StudentBookingsPage lets a buyer book collection after staff confirms drop-off", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-3",
+      item: "Desk Lamp",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 250,
+      status: "item_received",
+      dropoff_id: "booking-1",
+      collection_id: null,
+      created_at: "2026-04-18T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  expect(await screen.findByText(/my bookings/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /book collection/i })).toBeInTheDocument();
 });
