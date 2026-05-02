@@ -5,21 +5,33 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import { vi } from "vitest";
 import App from "./App";
 
+const mockGetSession = vi.fn(() => Promise.resolve({ data: { session: null } }));
+const mockOnAuthStateChange = vi.fn(() => ({
+  data: { subscription: { unsubscribe: vi.fn() } },
+}));
+
 vi.mock("./supabaseClient", () => ({
   supabase: {
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: null, error: null }),
-        }),
-      }),
-    }),
-    auth: {
-      getSession: () => Promise.resolve({ data: { session: null } }),
-      onAuthStateChange: () => ({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      }),
+    from: () => {
+      const query = {
+        eq: vi.fn(() => query),
+        single: vi.fn(() => Promise.resolve({ data: null, error: null })),
+        then: vi.fn((resolve) => Promise.resolve(resolve({ data: null, error: null, count: 0 }))),
+      };
+
+      return {
+        select: vi.fn(() => query),
+      };
     },
+    auth: {
+      getSession: (...args) => mockGetSession(...args),
+      onAuthStateChange: (...args) => mockOnAuthStateChange(...args),
+    },
+    channel: vi.fn(() => ({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn(() => ({})),
+    })),
+    removeChannel: vi.fn(),
   },
 }));
 
@@ -103,6 +115,16 @@ vi.mock("./data/listings", () => ({
 function renderApp() {
   render(<App />);
 }
+
+beforeEach(() => {
+  mockGetSession.mockReset();
+  mockGetSession.mockResolvedValue({ data: { session: null } });
+  mockOnAuthStateChange.mockReset();
+  mockOnAuthStateChange.mockReturnValue({
+    data: { subscription: { unsubscribe: vi.fn() } },
+  });
+  window.history.replaceState({}, "", "/");
+});
 
 // Supporting logic for the mock listings scroll targets flow is kept here.
 // Breaking it out makes the file easier to scan and maintain.
@@ -505,4 +527,20 @@ test("returns to the home hero when the browser goes back from signup", async ()
   await waitFor(() => {
     expect(screen.getByRole("region", { name: /hero/i })).toBeInTheDocument();
   });
+});
+
+test("shows the reset password page when the recovery link uses query params", async () => {
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "student@example.com" },
+      },
+    },
+  });
+  window.history.replaceState({}, "", "/?type=recovery&token_hash=abc123");
+
+  renderApp();
+
+  expect(await screen.findByRole("heading", { name: /reset your password/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /log in/i })).not.toBeInTheDocument();
 });

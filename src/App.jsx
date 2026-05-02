@@ -654,7 +654,11 @@ function AppInner() {
   function handlePasswordResetComplete() {
     clearPasswordRecovery();
     setPage("home");
-    window.history.replaceState({ ...(window.history.state || {}), page: "home" }, "");
+    window.history.replaceState(
+      { ...(window.history.state || {}), page: "home" },
+      "",
+      window.location.pathname
+    );
   }
 
   useEffect(() => {
