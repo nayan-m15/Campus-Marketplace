@@ -13,6 +13,16 @@ const LISTING_DESCRIPTION_MAX = 350;
 const LISTING_PRICE_MAX_DIGITS = 8;
 const LISTING_PRICE_MAX_VALUE = 99999999.99;
 const LISTING_PRICE_MAX_CHARS = LISTING_PRICE_MAX_DIGITS + 3;
+const LISTING_CATEGORIES = [
+  { label: "Textbooks",   emoji: "📚" },
+  { label: "Electronics", emoji: "💻" },
+  { label: "Furniture",   emoji: "🛋️" },
+  { label: "Clothing",    emoji: "👕" },
+  { label: "Sports",      emoji: "⚽" },
+  { label: "Instruments", emoji: "🎸" },
+  { label: "Stationery",  emoji: "✏️" },
+  { label: "Other",       emoji: "📦" },
+];
 
 // A focused piece of component behavior is handled here.
 // Keeping it separate makes the main flow less crowded.
@@ -262,6 +272,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState("");
+  const [category, setCategory] = useState("");
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -277,6 +288,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
       next.price = "Price must be R 99 999 999.99 or less.";
     }
     if (!condition) next.condition = "Please select a condition.";
+    if (!category) next.category = "Please select a category.";
     return next;
   };
  
@@ -325,6 +337,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
           description: description.trim() || null,
           price: Number(price),
           condition,
+          category,
           image_url: imageUrls[0],   // first image → existing column
           image_urls: imageUrls,  // all images → new array column
           status: "active",
@@ -348,8 +361,9 @@ export default function ListingForm({ onCancel, onSuccess }) {
     price &&
     Number(price) > 0 &&
     Number(price) <= LISTING_PRICE_MAX_VALUE &&
-    condition;
- 
+    condition &&
+    category;
+
   return (
     <main className="lf__wrapper">
       <article className="lf__card">
@@ -487,6 +501,40 @@ export default function ListingForm({ onCancel, onSuccess }) {
           {errors.condition && <p className="lf__error" role="alert">{errors.condition}</p>}
         </section>
  
+        {/* ── Category ── */}
+        <section className="lf__section">
+          <label className="lf__label" htmlFor="lf-category">Category</label>
+          <div style={{ position: "relative" }}>
+            <select
+              id="lf-category"
+              className={`lf__input ${errors.category ? "lf__input--error" : ""}`}
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setErrors((er) => ({ ...er, category: undefined }));
+              }}
+              style={{ appearance: "none", paddingRight: 36, cursor: "pointer" }}
+              aria-invalid={!!errors.category}
+            >
+          <option value="" disabled>Select a category…</option>
+            {LISTING_CATEGORIES.map(({ label, emoji }) => (
+          <option key={label} value={label}>{emoji} {label}</option>
+              ))}
+            </select>
+            {/* Chevron icon */}
+          <span style={{
+            position: "absolute",
+            right: 14,
+            top: "50%",
+            transform: "translateY(-50%)",
+            pointerEvents: "none",
+            fontSize: 12,
+            color: "var(--gray-400)",
+            }}>▾</span>
+          </div>
+            {errors.category && <p className="lf__error" role="alert">{errors.category}</p>}
+        </section>
+
         {/* ── Submit Error ── */}
         {submitError && (
           <section className="lf__section">
