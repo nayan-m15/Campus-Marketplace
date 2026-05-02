@@ -421,7 +421,7 @@ export default function MessagesPage({
       setIAmTheLister(iOwnThisListing);
       setConversationListing(listing || {
         id: msgWithListing.listing_id,
-        title: null,
+        title: initialListingTitle || null,
         price: null,
         user_id: iOwnThisListing ? user.id : peerId,
         status: "active",
@@ -595,9 +595,10 @@ export default function MessagesPage({
   }, [draft]);
 
   // ── Send ──────────────────────────────────────────────────
-  const sendMessageNow = async (messageText = draft) => {
+  const sendMessageNow = async (messageText = draft, { listingId = activeListingId } = {}) => {
     const text = messageText.trim();
     if (!text || !activeId || sending) return;
+    const messageListingId = listingId || null;
 
     setSending(true);
     if (messageText === draft) setDraft("");
@@ -610,7 +611,7 @@ export default function MessagesPage({
       content: text,
       created_at: new Date().toISOString(),
       is_read: false,
-      listing_id: activeListingId,
+      listing_id: messageListingId,
     };
     setMessages((prev) => [...prev, optimistic]);
 
@@ -619,7 +620,7 @@ export default function MessagesPage({
       receiver_id: activeId,
       content: text,
       created_at: optimistic.created_at,
-      listing_id: activeListingId,
+      listing_id: messageListingId,
     });
 
     if (error) {
@@ -660,7 +661,7 @@ export default function MessagesPage({
     }
   };
 
-  const sendMessage = async (messageText = draft) => {
+  const sendMessage = async (messageText = draft, options = {}) => {
     const text = messageText.trim();
     if (!text || !activeId || sending) return;
 
@@ -676,7 +677,7 @@ export default function MessagesPage({
       return;
     }
 
-    await sendMessageNow(text);
+    await sendMessageNow(text, options);
   };
 
   // User-driven changes pass through this handler first.
@@ -693,8 +694,10 @@ export default function MessagesPage({
     setOfferSending(true);
     setOfferError("");
 
+    const offerListingId = conversationListing.id || activeListingId;
+
     if (sendDraftBeforeOffer && draft.trim()) {
-      await sendMessage(draft);
+      await sendMessage(draft, { listingId: offerListingId });
       setSendDraftBeforeOffer(false);
     }
 
@@ -702,7 +705,7 @@ export default function MessagesPage({
     await supabase
       .from("offers")
       .update({ status: "declined", responded_at: new Date().toISOString() })
-      .eq("listing_id", conversationListing.id)
+      .eq("listing_id", offerListingId)
       .eq("sender_id", user.id)
       .eq("receiver_id", activeId)
       .eq("status", "pending");
@@ -710,7 +713,7 @@ export default function MessagesPage({
     const { data: newOffer, error } = await supabase
       .from("offers")
       .insert({
-        listing_id: conversationListing.id,
+        listing_id: offerListingId,
         sender_id: user.id,
         receiver_id: activeId,
         amount,
