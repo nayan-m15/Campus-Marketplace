@@ -116,7 +116,7 @@ export function normaliseListing(listing, profile) {
       ? [primaryImage, ...imageUrls.filter((url) => url !== primaryImage)]
       : imageUrls,
     emoji: primaryImage ? null : getCategoryEmoji(category),
-    listing_type: listing.listing_type ?? "cash",
+    listing_type: listing.listing_type ?? "sale",
     status: listing.status ?? "active",
     flag_reason: listing.flag_reason ?? "",
   };

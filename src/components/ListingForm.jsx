@@ -246,7 +246,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [listingType, setListingType] = useState("cash");
+  const [listingType, setListingType] = useState("sale");
 
   function validate() {
     const next = {};
@@ -432,7 +432,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
           <div style={{ display: "flex", gap: 10 }}>
             <button
               type="button"
-              onClick={() => setListingType("cash")}
+              onClick={() => setListingType("sale")}
               style={{
                 flex: 1,
                 padding: "10px",
@@ -442,9 +442,9 @@ export default function ListingForm({ onCancel, onSuccess }) {
                 cursor: "pointer",
                 fontFamily: "var(--font)",
                 transition: "all 0.15s",
-                border: listingType === "cash" ? "2px solid var(--green)" : "1.5px solid var(--gray-200)",
-                background: listingType === "cash" ? "#f0fdf4" : "#fff",
-                color: listingType === "cash" ? "var(--green)" : "var(--gray-600)",
+                border: listingType === "sale" ? "2px solid var(--green)" : "1.5px solid var(--gray-200)",
+                background: listingType === "sale" ? "#f0fdf4" : "#fff",
+                color: listingType === "sale" ? "var(--green)" : "var(--gray-600)",
               }}
             >
               For Sale
