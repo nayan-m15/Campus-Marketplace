@@ -968,3 +968,88 @@ test("StudentBookingsPage lets a buyer book collection after staff confirms drop
   expect(await screen.findByText(/my bookings/i)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /book collection/i })).toBeInTheDocument();
 });
+
+test("StudentBookingsPage lets a seller complete a drop-off booking flow", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-4",
+      item: "Desk Lamp",
+      seller_id: "user-1",
+      buyer_id: "buyer-1",
+      price: 250,
+      status: "awaiting_dropoff",
+      dropoff_id: null,
+      collection_id: null,
+      created_at: "2026-05-03T10:00:00.000Z",
+    }
+  );
+  bookings.splice(0, bookings.length);
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /book drop-off/i }));
+  fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
+  fireEvent.change(screen.getByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  fireEvent.click(screen.getByRole("button", { name: /next/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
+  fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "bookings",
+    expect.objectContaining({
+      type: "dropoff",
+      location: "Main Trade Desk",
+      status: "pending_approval",
+    })
+  ));
+  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
+    "transactions",
+    expect.objectContaining({
+      status: "awaiting_dropoff",
+    })
+  ));
+});
+
+test("StudentBookingsPage lets a buyer complete a collection booking flow", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-5",
+      item: "Desk Lamp",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 250,
+      status: "item_received",
+      dropoff_id: "booking-1",
+      collection_id: null,
+      created_at: "2026-05-03T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /book collection/i }));
+  fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
+  fireEvent.change(screen.getByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  fireEvent.click(screen.getByRole("button", { name: /next/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
+  fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "bookings",
+    expect.objectContaining({
+      type: "collection",
+      location: "Main Trade Desk",
+      status: "pending_approval",
+    })
+  ));
+  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
+    "transactions",
+    expect.objectContaining({
+      status: "item_received",
+    })
+  ));
+});
