@@ -67,6 +67,7 @@ vi.mock("./data/listings", () => ({
         approximate_location: "Johannesburg",
         institution: "Wits",
         joined_year: 2024,
+        listing_type: "trade",
         created_at: "2026-02-01T08:00:00.000Z",
       },
       {
@@ -316,6 +317,8 @@ test("opens listing details modal when a listing card is clicked", async () => {
   await waitFor(() => {
     expect(screen.getByRole("heading", { name: /description/i })).toBeInTheDocument();
   });
+  const modal = document.querySelector(".item-modal-content");
+  expect(within(modal).getByText(/for trade/i)).toBeInTheDocument();
 });
 
 test("modal shows login prompt when user is not logged in", async () => {

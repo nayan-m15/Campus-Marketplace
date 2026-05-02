@@ -711,6 +711,16 @@
   padding: 6px 12px;
 }
 
+.item-modal-trade-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: #3b82f6;
+  border-radius: 999px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
 .item-modal-price {
   margin: 0;
   font-size: 34px;

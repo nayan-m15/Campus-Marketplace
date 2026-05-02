@@ -220,6 +220,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
   const wishlisted = isWishlisted?.(item.id) ?? false;
   const joinedLabel =
     item.joined_label || (item.joined_year ? String(item.joined_year) : "Not provided");
+  const isTradeListing = item.listing_type === "trade" || item.status === "for_trade";
 
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.
@@ -316,6 +317,9 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
                             {item.price || "Price not available"}
                           </p>
                           <span className="item-modal-condition">{item.condition || "Good"}</span>
+                          {isTradeListing && (
+                            <span className="item-modal-trade-badge">For Trade</span>
+                          )}
                         </div>
 
                         {user && onToggleWishlist && (
