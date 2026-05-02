@@ -27,7 +27,7 @@
   position: relative;
   width: 100%;
   padding-top: 75%;
-  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
+  background: #e5e7eb;
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -39,7 +39,10 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 12px;
+}
+
+.listing-card__image-wrap img {
+  padding: 0;
 }
 
 .listing-card__image-placeholder {
@@ -47,7 +50,8 @@
   align-items: center;
   justify-content: center;
   font-size: 56px;
-  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
+  background: #e5e7eb;
+  padding: 12px;
 }
 
 /* ── For Trade Badge ───────────────────────────────────── */
@@ -609,7 +613,7 @@
   aspect-ratio: 16 / 8.5;
   border-radius: 24px;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
+  background: #e5e7eb;
 }
 
 .item-modal-carousel__nav {
@@ -664,7 +668,7 @@
   width: 100%;
   height: 100%;
   border-radius: 24px;
-  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
+  background: #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -673,7 +677,6 @@
 
 .item-modal-top-image {
   object-fit: contain;
-  padding: 14px;
 }
 
 .item-modal-top-text {
