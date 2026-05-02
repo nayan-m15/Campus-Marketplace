@@ -8,6 +8,26 @@ export const DAYS = [
   "Saturday",
 ];
 
+const DAY_ALIASES = {
+  sun: "Sunday",
+  sunday: "Sunday",
+  mon: "Monday",
+  monday: "Monday",
+  tue: "Tuesday",
+  tues: "Tuesday",
+  tuesday: "Tuesday",
+  wed: "Wednesday",
+  wednesday: "Wednesday",
+  thu: "Thursday",
+  thur: "Thursday",
+  thurs: "Thursday",
+  thursday: "Thursday",
+  fri: "Friday",
+  friday: "Friday",
+  sat: "Saturday",
+  saturday: "Saturday",
+};
+
 export function formatBookingDate(dateStr) {
   if (!dateStr) return "TBD";
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-ZA", {
@@ -79,8 +99,15 @@ export function buildBookingId(prefix = "BK") {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}`;
 }
 
+export function normalizeFacilityDay(day) {
+  if (!day) return "";
+  return DAY_ALIASES[String(day).trim().toLowerCase()] || String(day).trim();
+}
+
 export function mapHoursByDay(hours = []) {
-  return new Map(hours.map((entry) => [entry.day, entry]));
+  return new Map(
+    hours.map((entry) => [normalizeFacilityDay(entry.day), { ...entry, day: normalizeFacilityDay(entry.day) }])
+  );
 }
 
 export function isTransactionParty(transaction, userId) {
