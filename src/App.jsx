@@ -17,7 +17,7 @@ import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import WishlistPage from "./components/WishlistPage";
-import { fetchListings, fetchListingById, CONDITIONS } from "./data/listings";
+import { fetchListings, CONDITIONS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
@@ -207,13 +207,13 @@ function ListingDetailsModal({
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [showFlaggedWarning, setShowFlaggedWarning] = useState(false);
+  const [flaggedWarningItem, setFlaggedWarningItem] = useState(null);
 
   useEffect(() => {
     if (item) {
       setMessage(`Hi, is the ${item.title || "item"} still available?`);
       setCurrentImageIndex(0);
-      setShowFlaggedWarning(false);
+      setFlaggedWarningItem(null);
     }
   }, [item?.id]);
 
@@ -294,7 +294,7 @@ function ListingDetailsModal({
   async function handleSendMessage() {
     const latestItem = await resolveListingForMessaging?.(item) || item;
     if (latestItem?.status === "flagged") {
-      setShowFlaggedWarning(true);
+      setFlaggedWarningItem(latestItem);
       return;
     }
 
@@ -430,7 +430,7 @@ function ListingDetailsModal({
         </div>
         </article>
       </div>
-      {showFlaggedWarning && (
+      {flaggedWarningItem && (
         <aside
           role="alertdialog"
           aria-labelledby="listing-flagged-warning-title"
@@ -438,7 +438,7 @@ function ListingDetailsModal({
           style={warningToastStyle(24)}
         >
           <button
-            onClick={() => setShowFlaggedWarning(false)}
+            onClick={() => setFlaggedWarningItem(null)}
             aria-label="Close flagged warning"
             type="button"
             style={{ position: "absolute", top: 10, right: 10, border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
@@ -450,13 +450,13 @@ function ListingDetailsModal({
           </h2>
           <p style={{ margin: "0 0 8px" }}>This listing has been flagged by an admin.</p>
           <p style={{ margin: "0 0 16px" }}>
-            <strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}
+            <strong>Reason:</strong> {flaggedWarningItem.flag_reason?.trim() || "No reason was provided."}
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
             <button
               type="button"
               className="item-modal-send-btn item-modal-send-btn--secondary"
-              onClick={() => setShowFlaggedWarning(false)}
+              onClick={() => setFlaggedWarningItem(null)}
             >
               Cancel
             </button>
@@ -464,7 +464,7 @@ function ListingDetailsModal({
               type="button"
               className="item-modal-send-btn"
               onClick={() => {
-                setShowFlaggedWarning(false);
+                setFlaggedWarningItem(null);
                 performSendMessage();
               }}
             >
@@ -852,8 +852,20 @@ function AppInner() {
     if (!item?.id) return item;
 
     try {
-      const latestListing = await fetchListingById(item.id);
-      return latestListing || item;
+      const { data: latestListing, error } = await supabase
+        .from("listings")
+        .select("id, title, user_id, status, flag_reason")
+        .eq("id", item.id)
+        .maybeSingle();
+
+      if (error || !latestListing) return item;
+
+      return {
+        ...item,
+        ...latestListing,
+        flag_reason: latestListing.flag_reason ?? item.flag_reason ?? "",
+        status: latestListing.status ?? item.status ?? "active",
+      };
     } catch {
       return item;
     }

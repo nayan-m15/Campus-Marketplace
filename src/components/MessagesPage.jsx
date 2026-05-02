@@ -566,14 +566,42 @@ export default function MessagesPage({
     await loadConversations();
   };
 
+  const resolveConversationListingForSend = async () => {
+    if (!conversationListing?.id) return conversationListing;
+
+    try {
+      const { data: latestListing, error } = await supabase
+        .from("listings")
+        .select("id, title, price, user_id, status, flag_reason")
+        .eq("id", String(conversationListing.id))
+        .maybeSingle();
+
+      if (error || !latestListing) return conversationListing;
+
+      const mergedListing = {
+        ...conversationListing,
+        ...latestListing,
+        flag_reason: latestListing.flag_reason ?? conversationListing.flag_reason ?? "",
+        status: latestListing.status ?? conversationListing.status ?? "active",
+      };
+
+      setConversationListing(mergedListing);
+      return mergedListing;
+    } catch {
+      return conversationListing;
+    }
+  };
+
   const sendMessage = async (messageText = draft) => {
     const text = messageText.trim();
     if (!text || !activeId || sending) return;
 
+    const latestListing = await resolveConversationListingForSend();
+
     if (
-      conversationListing?.status === "flagged" &&
+      latestListing?.status === "flagged" &&
       !flaggedWarningOpen &&
-      !acknowledgedFlaggedListingIds.has(String(conversationListing.id))
+      !acknowledgedFlaggedListingIds.has(String(latestListing.id))
     ) {
       setPendingFlaggedMessage(text);
       setFlaggedWarningOpen(true);
