@@ -304,7 +304,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   }
 
   async function handleMarkTrade(id, currentType) {
-    const newType = currentType === "trade" ? "cash" : "trade";
+    const newType = currentType === "trade" ? "sale" : "trade";
     const { error } = await supabase
       .from("listings")
       .update({ listing_type: newType })
@@ -313,7 +313,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     setListings((prev) =>
       prev.map((l) => (l.id === id ? { ...l, listing_type: newType } : l))
     );
-    showSuccess(newType === "trade" ? "Listed for trade!" : "Relisted as cash!");
+    showSuccess(newType === "trade" ? "Listed for trade!" : "Relisted as sale!");
     onListingChanged?.();
   }
 

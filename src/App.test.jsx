@@ -9,19 +9,104 @@ const mockGetSession = vi.fn(() => Promise.resolve({ data: { session: null } }))
 const mockOnAuthStateChange = vi.fn(() => ({
   data: { subscription: { unsubscribe: vi.fn() } },
 }));
+const mockInsertMessage = vi.fn(() => Promise.resolve({ error: null }));
 
 vi.mock("./supabaseClient", () => ({
   supabase: {
-    from: () => {
+    from: (table) => {
+      let selectedColumns = "";
+
       const query = {
         eq: vi.fn(() => query),
-        single: vi.fn(() => Promise.resolve({ data: null, error: null })),
-        then: vi.fn((resolve) => Promise.resolve(resolve({ data: null, error: null, count: 0 }))),
+        in: vi.fn(() => query),
+        is: vi.fn(() => query),
+        neq: vi.fn(() => query),
+        or: vi.fn(() => query),
+        order: vi.fn(() => query),
+        update: vi.fn(() => query),
+        select: vi.fn(() => query),
+        maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+        single: vi.fn(() => {
+          if (table === "profiles") {
+            return Promise.resolve({
+              data: {
+                id: "user-123",
+                name: "Test Student",
+                display_name: "Test Student",
+                avatar_url: "",
+                role: "student",
+                sex: "Female",
+                birthdate: "2001-01-01",
+                province: "Gauteng",
+                institution: "Wits",
+              },
+              error: null,
+            });
+          }
+
+          if (table === "listings") {
+            return Promise.resolve({
+              data: {
+                id: "1",
+                title: "Sony PS5",
+                price: 10999,
+                user_id: "user-abc",
+                status: "flagged",
+                flag_reason: "Reported for suspicious payment requests.",
+              },
+              error: null,
+            });
+          }
+
+          return Promise.resolve({ data: null, error: null });
+        }),
+        then: vi.fn((resolve) => {
+          if (table === "wishlists") {
+            return Promise.resolve(resolve({ data: [], error: null, count: 0 }));
+          }
+
+          if (table === "messages" || table === "offers") {
+            return Promise.resolve(resolve({ data: [], error: null, count: 0 }));
+          }
+
+          if (table === "listings") {
+            return Promise.resolve(resolve({ data: [], error: null, count: 0 }));
+          }
+
+          return Promise.resolve(resolve({
+            data: null,
+            error: null,
+            count: 0,
+          }));
+        }),
       };
 
-      return {
-        select: vi.fn(() => query),
-      };
+      query.select = vi.fn((columns) => {
+        selectedColumns = columns;
+        return query;
+      });
+
+      query.maybeSingle = vi.fn(() => {
+        if (table === "listings") {
+          return Promise.resolve({
+            data: {
+              id: "1",
+              title: "Sony PS5",
+              price: 10999,
+              user_id: "user-abc",
+              status: selectedColumns.includes("status") ? "flagged" : undefined,
+              flag_reason: selectedColumns.includes("flag_reason")
+                ? "Reported for suspicious payment requests."
+                : undefined,
+            },
+            error: null,
+          });
+        }
+
+        return Promise.resolve({ data: null, error: null });
+      });
+
+      return query;
     },
     auth: {
       getSession: (...args) => mockGetSession(...args),
@@ -33,6 +118,10 @@ vi.mock("./supabaseClient", () => ({
     })),
     removeChannel: vi.fn(),
   },
+}));
+
+vi.mock("./utils/messageDelivery", () => ({
+  insertMessage: (...args) => mockInsertMessage(...args),
 }));
 
 vi.mock("./components/Hero", () => ({
@@ -68,6 +157,8 @@ vi.mock("./data/listings", () => ({
         institution: "Wits",
         joined_year: 2024,
         created_at: "2026-02-01T08:00:00.000Z",
+        status: "flagged",
+        flag_reason: "Reported for suspicious payment requests.",
       },
       {
         id: "2",
@@ -123,6 +214,9 @@ beforeEach(() => {
   mockOnAuthStateChange.mockReturnValue({
     data: { subscription: { unsubscribe: vi.fn() } },
   });
+  mockInsertMessage.mockReset();
+  mockInsertMessage.mockResolvedValue({ error: null });
+  Element.prototype.scrollIntoView = vi.fn();
   window.history.replaceState({}, "", "/");
 });
 
@@ -336,6 +430,56 @@ test("modal shows seller info", async () => {
   expect(within(modalContent).getByText(/seller:/i)).toBeInTheDocument();
   expect(within(modalContent).getByText(/institution:/i)).toBeInTheDocument();
   expect(within(modalContent).getByText(/Wits/)).toBeInTheDocument();
+});
+
+test("warns before sending a message about a flagged listing and shows the admin reason", async () => {
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "student@example.com" },
+      },
+    },
+  });
+
+  renderApp();
+  fireEvent.click(await screen.findByRole("button", { name: /open details for sony ps5/i }));
+
+  fireEvent.click(await screen.findByRole("button", { name: /send message/i }));
+
+  expect(await screen.findByRole("heading", { name: /flagged listing warning/i })).toBeInTheDocument();
+  expect(screen.getByText(/reported for suspicious payment requests\./i)).toBeInTheDocument();
+  expect(mockInsertMessage).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+  await waitFor(() => {
+    expect(mockInsertMessage).toHaveBeenCalledWith(expect.objectContaining({
+      sender_id: "user-123",
+      receiver_id: "user-abc",
+      listing_id: "1",
+    }));
+  });
+});
+
+test("warns before opening chat from the flagged listing message action", async () => {
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "student@example.com" },
+      },
+    },
+  });
+
+  renderApp();
+
+  fireEvent.click(await screen.findByRole("button", { name: /message saurav/i }));
+
+  expect(await screen.findByRole("heading", { name: /flagged listing warning/i })).toBeInTheDocument();
+  expect(screen.getByText(/reported for suspicious payment requests\./i)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+  expect(await screen.findByPlaceholderText(/type a message/i)).toBeInTheDocument();
 });
 
 test("closes modal when close button is clicked", async () => {

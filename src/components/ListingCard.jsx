@@ -11,6 +11,8 @@ export default function ListingCard({
   onClick,
   onMessageSeller,
   onSellerClick,
+  isAdmin = false,
+  onModerate,
   // Wishlist props
   isWishlisted = false,
   onToggleWishlist,
@@ -31,8 +33,13 @@ export default function ListingCard({
   // State updates and follow-up UI actions are triggered here.
   function handleWishlistClick(e) {
     e.stopPropagation();
-    if (!user) return; // silently ignore if not logged in — caller can show auth prompt
+    if (!user) return;
     onToggleWishlist?.(item.id);
+  }
+
+  function handleModerateClick(e) {
+    e.stopPropagation();
+    onModerate?.(item);
   }
 
   return (
@@ -56,14 +63,29 @@ export default function ListingCard({
           </figure>
         )}
 
-        {/* ── For Trade badge ── */}
         {item.listing_type === "trade" && (
           <span className="listing-card__trade-badge">
             For Trade
           </span>
         )}
-        
-        {/* ── Wishlist heart button ── */}
+
+        {item.status === "flagged" && (
+          <span className="listing-card__flagged-badge">
+            Flagged
+          </span>
+        )}
+
+        {isAdmin && (
+          <button
+            className="listing-card__report-btn"
+            onClick={handleModerateClick}
+            aria-label={`Report ${item.title}`}
+            type="button"
+          >
+            Report
+          </button>
+        )}
+
         {onToggleWishlist && (
           <button
             className={`listing-card__wishlist-btn${isWishlisted ? " listing-card__wishlist-btn--active" : ""}`}
@@ -105,7 +127,10 @@ export default function ListingCard({
           {onSellerClick && item.user_id ? (
             <button
               className="listing-card__seller listing-card__seller--link"
-              onClick={(e) => { e.stopPropagation(); onSellerClick(item.user_id, item.seller); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSellerClick(item.user_id, item.seller);
+              }}
               type="button"
               aria-label={`View profile of ${item.seller}`}
             >
@@ -120,7 +145,10 @@ export default function ListingCard({
         {onMessageSeller && (
           <button
             className="listing-card__msg-btn"
-            onClick={(e) => { e.stopPropagation(); onMessageSeller(item); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onMessageSeller(item);
+            }}
             aria-label={`Message ${item.seller}`}
             type="button"
           >
