@@ -1,7 +1,7 @@
 // Main structure for the your listings page feature lives here.
 // Shared UI pieces and page-level behavior are tied together in this file.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { CONDITION_COLORS } from "../data/listings";
@@ -10,6 +10,8 @@ const LISTING_TITLE_MAX = 90;
 const LISTING_DESCRIPTION_MAX = 350;
 const LISTING_PRICE_MAX_DIGITS = 8;
 const LISTING_PRICE_MAX_VALUE = 99999999.99;
+// Keep the edit modal aligned with the create-listing photo limit.
+const MAX_IMAGES = 5;
 
 // A focused piece of component behavior is handled here.
 // Keeping it separate makes the main flow less crowded.
@@ -51,6 +53,49 @@ function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
+// Builds the editable photo list from both the legacy cover column and the
+// multi-image column, keeping the current cover as the first thumbnail.
+function getListingImages(item) {
+  const imageUrls = Array.isArray(item?.image_urls)
+    ? item.image_urls.filter(Boolean)
+    : [];
+  const coverUrl = item?.image_url || imageUrls[0] || "";
+  const orderedUrls = coverUrl
+    ? [coverUrl, ...imageUrls.filter((url) => url !== coverUrl)]
+    : imageUrls;
+
+  return orderedUrls.slice(0, MAX_IMAGES).map((url, index) => ({
+    id: `existing-${index}-${url}`,
+    preview: url,
+    url,
+    file: null,
+  }));
+}
+
+// Cards and edit state both treat image_url as the preferred cover fallback.
+function getListingCover(item) {
+  return item?.image_url || (Array.isArray(item?.image_urls) ? item.image_urls.find(Boolean) : "");
+}
+
+// Reorders thumbnails without mutating React state in place.
+function moveArrayItem(items, fromIndex, toIndex) {
+  if (toIndex < 0 || toIndex >= items.length) return items;
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
+// Storage paths cannot safely use arbitrary file names, so user-provided
+// pieces are reduced to short URL/path-friendly segments before upload.
+function safeStorageSegment(value) {
+  return String(value ?? "image")
+    .toLowerCase()
+    .replace(/[^a-z0-9.-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "image";
+}
+
 // Small prep work happens in this helper before the UI uses the result.
 // It keeps lookup, formatting, or data shaping out of the render path.
 function formatEditPrice(value) {
@@ -65,6 +110,139 @@ function formatEditPrice(value) {
     maximumFractionDigits: 2,
   }).replace(/,/g, " ")}`;
 }
+
+// Photo editor used inside the listing edit modal. Existing URLs and newly
+// selected files share one ordered thumbnail strip so the first item is cover.
+function EditImageStrip({ images, onChange }) {
+  const [draggingOver, setDraggingOver] = useState(false);
+
+  // Reads selected or dropped files into previews, while preserving the File
+  // object for upload when the user saves the listing.
+  function handleFiles(files) {
+    const remaining = MAX_IMAGES - images.length;
+    if (remaining <= 0) return;
+
+    Array.from(files || [])
+      .filter((file) => file.type.startsWith("image/"))
+      .slice(0, remaining)
+      .forEach((file, fileIndex) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          onChange((prev) => [
+            ...prev,
+            {
+              // Stable file-derived IDs keep React keys and storage names usable.
+              id: `new-${safeStorageSegment(file.name)}-${file.lastModified}-${file.size}-${images.length + fileIndex}`,
+              preview: reader.result,
+              url: null,
+              file,
+            },
+          ]);
+        };
+        reader.readAsDataURL(file);
+      });
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6 }}>
+        {images.map((image, index) => (
+          // Each thumbnail can be removed; non-cover thumbnails can move left
+          // until they become the cover image.
+          <div
+            key={image.id}
+            style={{
+              position: "relative",
+              flexShrink: 0,
+              width: 86,
+              height: 86,
+              borderRadius: 10,
+              overflow: "hidden",
+              border: index === 0 ? "2px solid var(--green)" : "1.5px solid var(--gray-200)",
+              background: "var(--surface-soft)",
+            }}
+          >
+            <img src={image.preview} alt={`Listing photo ${index + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            {index === 0 && (
+              <span style={{ position: "absolute", left: 5, bottom: 5, background: "var(--green)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>
+                Cover
+              </span>
+            )}
+            <div style={{ position: "absolute", top: 5, right: 5, display: "flex", gap: 4 }}>
+              {index > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onChange((prev) => moveArrayItem(prev, index, index - 1))}
+                  aria-label={`Move photo ${index + 1} left`}
+                  style={{ width: 22, height: 22, borderRadius: 999, border: "none", background: "rgba(0,0,0,0.58)", color: "#fff", cursor: "pointer", padding: 0 }}
+                >
+                  &lt;
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => onChange((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}
+                aria-label={`Remove photo ${index + 1}`}
+                style={{ width: 22, height: 22, borderRadius: 999, border: "none", background: "rgba(0,0,0,0.58)", color: "#fff", cursor: "pointer", padding: 0 }}
+              >
+                x
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {images.length < MAX_IMAGES && (
+          // The add slot doubles as a drag-and-drop target and a native picker.
+          <label
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDraggingOver(true);
+            }}
+            onDragLeave={() => setDraggingOver(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDraggingOver(false);
+              handleFiles(event.dataTransfer.files);
+            }}
+            style={{
+              flexShrink: 0,
+              width: 86,
+              height: 86,
+              borderRadius: 10,
+              border: `2px dashed ${draggingOver ? "var(--green)" : "var(--gray-200)"}`,
+              background: draggingOver ? "var(--mint)" : "var(--surface-soft)",
+              color: "var(--gray-600)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              fontSize: 12,
+              fontWeight: 700,
+              padding: 8,
+            }}
+          >
+            Add photo
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(event) => {
+                handleFiles(event.target.files);
+                event.target.value = "";
+              }}
+              style={{ display: "none" }}
+              aria-label="Add listing photos"
+            />
+          </label>
+        )}
+      </div>
+      <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
+        First photo is the cover. Add up to {MAX_IMAGES}, remove old photos, or move a photo left to make it the cover.
+      </p>
+    </div>
+  );
+}
 // Component entry point for this part of the interface.
 // Rendering and feature-specific behavior are coordinated here.
 export default function YourListingsPage({ onBack, onListingChanged }) {
@@ -77,12 +255,10 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [successMsg, setSuccessMsg] = useState("");
 
-  useEffect(() => {
+  // Memoized so the effect can fetch the owner's listings without tripping the
+  // hook dependency rule when the signed-in user changes.
+  const fetchUserListings = useCallback(async () => {
     if (!user) return;
-    fetchUserListings();
-  }, [user]);
-
-  async function fetchUserListings() {
     setLoading(true);
     const { data, error } = await supabase
       .from("listings")
@@ -93,7 +269,13 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     if (error) setError(error.message);
     else setListings(data || []);
     setLoading(false);
-  }
+  }, [user]);
+
+  useEffect(() => {
+    // Defer the fetch one microtask to satisfy the repo's strict React lint
+    // rule against synchronous state updates during effect execution.
+    void Promise.resolve().then(fetchUserListings);
+  }, [fetchUserListings]);
 
   async function handleDelete(id) {
     const { error } = await supabase.from("listings").delete().eq("id", id);
@@ -148,9 +330,52 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
       return;
     }
 
+    const savedImageUrls = [];
+
+    // Keep existing URLs as-is and upload only the new File objects selected in
+    // the edit modal, preserving the user's thumbnail order.
+    for (const [imageIndex, image] of (editingItem.editImages || []).entries()) {
+      if (image.url) {
+        savedImageUrls.push(image.url);
+        continue;
+      }
+
+      if (!image.file) continue;
+
+      const ext = image.file.name.split(".").pop() || "jpg";
+      // The file path is deterministic from the prepared image ID and order.
+      const filePath = `${user.id}/${safeStorageSegment(image.id)}-${imageIndex}.${safeStorageSegment(ext)}`;
+      const { error: uploadError } = await supabase.storage
+        .from("listing-images")
+        .upload(filePath, image.file, { upsert: false });
+
+      if (uploadError) {
+        setError("Image upload failed: " + uploadError.message);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("listing-images")
+        .getPublicUrl(filePath);
+
+      if (urlData?.publicUrl) savedImageUrls.push(urlData.publicUrl);
+    }
+
+    // Save both image_url for legacy cover consumers and image_urls for the
+    // carousel/multi-photo views.
+    const updatePayload = {
+      title,
+      price: numericPrice,
+      condition,
+      description,
+      category,
+      image_url: savedImageUrls[0] || null,
+      image_urls: savedImageUrls,
+    };
+
     const { error } = await supabase
       .from("listings")
-      .update({ title, price: numericPrice, condition, description, category })
+      .update(updatePayload)
       .eq("id", id);
     if (error) { setError(error.message); return; }
     setListings((prev) =>
@@ -161,6 +386,8 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
               ...editingItem,
               price: numericPrice,
               description: clampLength(description, LISTING_DESCRIPTION_MAX),
+              image_url: savedImageUrls[0] || "",
+              image_urls: savedImageUrls,
             }
           : l
       ))
@@ -168,6 +395,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     setEditingItem(null);
     setIsEditingPrice(false);
     showSuccess("Listing updated!");
+    onListingChanged?.();
   }
 
   // Small prep work happens in this helper before the UI uses the result.
@@ -225,6 +453,9 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
         {listings.map((item) => {
           const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
           const isSold = item.status === "sold";
+          // Prefer the saved cover, but still render listings that only have the
+          // multi-image array populated.
+          const coverImage = getListingCover(item);
 
           return (
             <article key={item.id} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", border: "1px solid var(--gray-200)", opacity: isSold ? 0.7 : 1, position: "relative" }}>
@@ -243,8 +474,8 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
 
               {/* Image */}
               <div style={{ height: 160, background: "var(--surface-soft)", overflow: "hidden" }}>
-                {item.image_url ? (
-                  <img src={item.image_url} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                {coverImage ? (
+                  <img src={coverImage} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : (
                   <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>
                     {item.emoji || "📦"}
@@ -275,6 +506,9 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                         title: clampLength(item.title, LISTING_TITLE_MAX),
                         description: clampLength(item.description, LISTING_DESCRIPTION_MAX),
                         price: clampPriceInput(item.price),
+                        // Seed the modal with ordered existing images so users
+                        // can remove, reorder, or append photos before saving.
+                        editImages: getListingImages(item),
                       });
                       setIsEditingPrice(false);
                     }}
@@ -341,6 +575,23 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
           <div style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 480, width: "90%", maxHeight: "90vh", overflowY: "auto" }}>
             <h3 style={{ fontWeight: 800, marginBottom: 24, fontSize: 18 }}>Edit Listing</h3>
             <form onSubmit={handleEditSave} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
+                <span>Photos</span>
+                {/* The image strip owns photo-only edits; the parent keeps the
+                    full listing draft so Save Changes can persist everything. */}
+                <EditImageStrip
+                  images={editingItem.editImages || []}
+                  onChange={(updater) => {
+                    setError(null);
+                    setEditingItem((current) => ({
+                      ...current,
+                      editImages: typeof updater === "function"
+                        ? updater(current.editImages || [])
+                        : updater,
+                    }));
+                  }}
+                />
+              </div>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
                 Title

@@ -81,7 +81,9 @@ const userListing = {
   category: "Electronics",
   status: "active",
   user_id: "user-1",
-  image_url: "",
+  // Seed a real existing image so the edit-photo test covers replacement.
+  image_url: "https://example.com/old-lamp.jpg",
+  image_urls: ["https://example.com/old-lamp.jpg"],
   emoji: "Lamp",
   created_at: "2026-01-01T00:00:00.000Z",
 };
@@ -535,6 +537,53 @@ test("YourListingsPage edits status and deletes a listing", async () => {
 
   await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("listings"));
   expect(onListingChanged).toHaveBeenCalled();
+});
+
+test("YourListingsPage updates listing photos in the edit modal", async () => {
+  const onListingChanged = vi.fn();
+  render(<YourListingsPage onBack={vi.fn()} onListingChanged={onListingChanged} />);
+
+  // Open the existing listing and verify the current photo is loaded first.
+  fireEvent.click(await screen.findByRole("button", { name: /edit/i }));
+  expect(screen.getByAltText(/listing photo 1/i)).toHaveAttribute("src", "https://example.com/old-lamp.jpg");
+
+  // Remove the old cover so the newly selected file becomes the saved cover.
+  fireEvent.click(screen.getByRole("button", { name: /remove photo 1/i }));
+
+  const file = new File(["new image"], "new-lamp.png", { type: "image/png" });
+  const readerResult = "data:image/png;base64,bmV3LWxhbXA=";
+  // Mock FileReader because jsdom does not create image previews from files.
+  class MockFileReader {
+    readAsDataURL() {
+      this.result = readerResult;
+      this.onloadend();
+    }
+  }
+  vi.stubGlobal("FileReader", MockFileReader);
+
+  fireEvent.change(document.querySelector('input[aria-label="Add listing photos"]'), {
+    target: { files: [file] },
+  });
+
+  // Saving should upload the new file and write both cover and gallery columns.
+  expect(await screen.findByAltText(/listing photo 1/i)).toHaveAttribute("src", readerResult);
+  fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
+
+  await waitFor(() => expect(mocks.upload).toHaveBeenCalledWith(
+    expect.stringMatching(/^user-1\/.+\.png$/),
+    file,
+    { upsert: false }
+  ));
+  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
+    "listings",
+    expect.objectContaining({
+      image_url: "https://example.com/avatar.png",
+      image_urls: ["https://example.com/avatar.png"],
+    })
+  ));
+  expect(onListingChanged).toHaveBeenCalled();
+
+  vi.unstubAllGlobals();
 });
 
 test("Hero loads listings, opens help popup, and routes CTA clicks", async () => {
