@@ -269,6 +269,17 @@
   transform: scale(1.04);
 }
 
+/* ── Category Select ─────────────────────────────────────────── */
+select.lf__input {
+  height: 44px;
+  line-height: 44px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--surface);
+  cursor: pointer;
+}
+
 /* ── Action Buttons ──────────────────────────────────────────── */
 .lf__actions {
   padding: 4px 24px 24px;
