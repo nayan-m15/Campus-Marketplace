@@ -140,7 +140,7 @@ afterEach(() => {
 
 test("renders footer brand copy", () => {
   render(<Footer />);
-  expect(screen.getByText(/unexus/i)).toBeInTheDocument();
+  expect(screen.getByText(/campusxchange/i)).toBeInTheDocument();
   expect(screen.getByText(/student marketplace/i)).toBeInTheDocument();
 });
 

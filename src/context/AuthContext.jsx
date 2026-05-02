@@ -7,6 +7,15 @@ import { getAppBaseUrl } from "../utils/appUrl";
 
 const AuthContext = createContext(null);
 
+function getRecoveryTypeFromUrl() {
+  if (typeof window === "undefined") return false;
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+  return searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery";
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -17,11 +26,7 @@ export function AuthProvider({ children }) {
     const initAuth = async () => {
       const { data } = await supabase.auth.getSession();
       setUser(data?.session?.user ?? null);
-
-      if (typeof window !== "undefined") {
-        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-        setIsPasswordRecovery(hash.get("type") === "recovery");
-      }
+      setIsPasswordRecovery(getRecoveryTypeFromUrl());
 
       setLoading(false);
     };

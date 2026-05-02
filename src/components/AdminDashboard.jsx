@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import "../styles/AdminDashboard.css";
 import { supabase } from "../supabaseClient";
+import { DAYS, normalizeFacilityDay } from "../utils/bookingScheduling";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -15,8 +16,6 @@ const MARKETPLACE_REPORT_TYPES = [
   { value: "listing_health", label: "Listing Health" },
   { value: "trend", label: "Listings Trend" },
 ];
-
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // Helper: create empty hours object for all days
 const emptyHours = () =>
@@ -44,6 +43,7 @@ function SaveToast({ visible }) {
 function FacilityCard({ facility, onToggleDay, onTimeChange, onCapacityChange }) {
   const [expanded, setExpanded] = useState(false);
   const openDays = DAYS.filter((d) => facility.hours[d].open).length;
+  const shortDayLabel = (day) => day.slice(0, 3);
 
   return (
     <article className={`facility-card ${expanded ? "facility-card--open" : ""}`}>
@@ -100,7 +100,7 @@ function FacilityCard({ facility, onToggleDay, onTimeChange, onCapacityChange })
                       <span className="toggle-track" aria-hidden="true">
                         <span className="toggle-thumb" />
                       </span>
-                      <span className="day-name">{day}</span>
+                      <span className="day-name">{shortDayLabel(day)}</span>
                     </label>
 
                     {slot.open ? (
@@ -454,7 +454,7 @@ function ReportsPanel() {
     const insightLines = generateInsights(reportType, reportData);
 
     doc.setFontSize(18);
-    doc.text("Unexus Marketplace Report", 14, 20);
+    doc.text("CAMPUSXCHANGE Marketplace Report", 14, 20);
     doc.setFontSize(12);
     doc.text(MARKETPLACE_REPORT_TYPES.find(r => r.value === reportType)?.label || "", 14, 28);
     doc.setFontSize(10);
@@ -503,7 +503,7 @@ function ReportsPanel() {
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     doc.setFontSize(9);
-    doc.text("Unexus Reporting System", 14, pageHeight - 10);
+    doc.text("CAMPUSXCHANGE Reporting System", 14, pageHeight - 10);
     doc.text("Page 1", pageWidth - 20, pageHeight - 10); // fixed x coordinate
 
     doc.save(`report-${reportType}.pdf`);
@@ -713,7 +713,9 @@ export default function AdminDashboard({ onSignOut }) {
     const formatted = data.map((f) => {
       const hours = emptyHours(); // start with all days closed
       f.facility_hours.forEach((h) => {
-        hours[h.day] = {
+        const normalizedDay = normalizeFacilityDay(h.day);
+        if (!hours[normalizedDay]) return;
+        hours[normalizedDay] = {
           open: h.open,
           start: h.start_time,
           end: h.end_time,
@@ -845,9 +847,9 @@ export default function AdminDashboard({ onSignOut }) {
       {/* Sidebar navigation */}
       <nav className="sidebar" aria-label="Admin navigation">
         <header className="sidebar__brand">
-          <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="sidebar__logo" />
+          <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="sidebar__logo" />
           <hgroup className="sidebar__brand-text">
-            <h1 className="sidebar__app-name">Unexus</h1>
+            <h1 className="sidebar__app-name">CAMPUSXCHANGE</h1>
             <p className="sidebar__role">Admin Portal</p>
           </hgroup>
         </header>

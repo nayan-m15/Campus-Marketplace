@@ -17,6 +17,7 @@ export default function Navbar({
   onMessages,
   onHome,
   onYourListings,
+  onBookings,
   onWishlist,
   wishlistCount = 0,
   unreadCount = 0,
@@ -141,9 +142,9 @@ export default function Navbar({
               }}
             >
               <strong className="navbar__logo-icon">
-                <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="navbar__logo-img" />
+                <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="navbar__logo-img" />
               </strong>
-              <span className="navbar__logo-text">Unexus</span>
+              <span className="navbar__logo-text">CAMPUSXCHANGE</span>
             </button>
 
             {/* Desktop search lives inline in the main navbar.
@@ -275,6 +276,7 @@ export default function Navbar({
                           {displayName}
                         </button>
                       </li>
+                      <li><button className="navbar__link" onClick={onBookings}>My Bookings</button></li>
                       <li><button className="navbar__link" onClick={onSignOut}>Sign Out</button></li>
                       <li>
                         <button className="btn-primary navbar__list-btn" onClick={onShowListingForm}>
@@ -332,6 +334,11 @@ export default function Navbar({
                             <li>
                               <button onClick={() => { onYourListings?.(); setMenuOpen(false); }}>
                                 Your Listings
+                              </button>
+                            </li>
+                            <li>
+                              <button onClick={() => { onBookings?.(); setMenuOpen(false); }}>
+                                My Bookings
                               </button>
                             </li>
                             <li>

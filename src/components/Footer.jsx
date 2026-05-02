@@ -14,7 +14,7 @@ export default function Footer() {
       }}
     >
       <p>
-        <strong style={{ color: "var(--amber)" }}>Unexus</strong>{" "}
+        <strong style={{ color: "var(--amber)" }}>CAMPUSXCHANGE</strong>{" "}
         — Student marketplace. Safe. Local. Trusted.
       </p>
     </footer>
