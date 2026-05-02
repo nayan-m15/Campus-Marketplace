@@ -271,7 +271,7 @@
   white-space: nowrap;
 }
 
-/* ── Seller / Distance ─────────────────────────────────── */
+/* ── Seller ─────────────────────────────────── */
 .listing-card__meta {
   display: flex;
   flex-direction: column;
@@ -751,6 +751,16 @@
   padding: 6px 12px;
 }
 
+.item-modal-trade-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: #3b82f6;
+  border-radius: 999px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
 .item-modal-price {
   margin: 0;
   font-size: 34px;
@@ -911,6 +921,11 @@
 
 .item-modal-send-btn--secondary {
   background: linear-gradient(135deg, #295e50 0%, #1f6b52 100%);
+}
+
+.item-modal-send-btn--offer {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);
 }
 
 .item-modal-actions {

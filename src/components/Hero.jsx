@@ -284,7 +284,6 @@ export default function Hero({
 
                         <p className="listing-seller-info">
                           <span className="listing-seller">{listing.seller}</span>
-                          <span className="listing-distance">📍 {listing.distance}</span>
                         </p>
 
                         <p className="listing-price-condition">

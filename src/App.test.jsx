@@ -145,7 +145,6 @@ vi.mock("./data/listings", () => ({
         condition: "Good",
         category: "Electronics",
         seller: "Saurav",
-        distance: "0 km",
         image_url: "/ps5-1.jpg",
         image_urls: ["/ps5-1.jpg", "/ps5-2.jpg"],
         emoji: "Gamepad",
@@ -156,6 +155,7 @@ vi.mock("./data/listings", () => ({
         approximate_location: "Johannesburg",
         institution: "Wits",
         joined_year: 2024,
+        listing_type: "trade",
         created_at: "2026-02-01T08:00:00.000Z",
         status: "flagged",
         flag_reason: "Reported for suspicious payment requests.",
@@ -168,7 +168,6 @@ vi.mock("./data/listings", () => ({
         condition: "Like New",
         category: "Other",
         seller: "Nayan",
-        distance: "0 km",
         image_url: "",
         emoji: "Toy",
         rating: 0,
@@ -410,6 +409,8 @@ test("opens listing details modal when a listing card is clicked", async () => {
   await waitFor(() => {
     expect(screen.getByRole("heading", { name: /description/i })).toBeInTheDocument();
   });
+  const modal = document.querySelector(".item-modal-content");
+  expect(within(modal).getByText(/for trade/i)).toBeInTheDocument();
 });
 
 test("modal shows login prompt when user is not logged in", async () => {

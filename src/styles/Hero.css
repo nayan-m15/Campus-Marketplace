@@ -340,14 +340,6 @@
   color: var(--gray-500);
 }
 
-.listing-distance {
-  color: var(--green-dark);
-  background: var(--mint-pale);
-  padding: 0.15rem 0.4rem;
-  border-radius: 6px;
-  font-weight: 500;
-}
-
 .listing-price-condition {
   display: flex;
   justify-content: space-between;
@@ -776,12 +768,6 @@
   }
 }
 /* ── DARK MODE FIXES FOR HERO CAROUSEL ── */
-
-html.dark .listing-distance {
-  color: #f3f4f6 !important;
-  background: rgba(255, 255, 255, 0.12) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
 
 html.dark .listing-seller {
   color: #9ca3af !important;
