@@ -326,8 +326,9 @@ export default function ListingForm({ onCancel, onSuccess }) {
           price: Number(price),
           condition,
           image_url: imageUrls[0],   // first image → existing column
-          image_urls: imageUrls,
-          status: listingType,      // all images → new array column
+          image_urls: imageUrls,  // all images → new array column
+          status: "active",
+          listing_type: listingType === "for_trade" ? "trade" : "sale",
         });
  
       if (insertError) throw new Error("Failed to save listing: " + insertError.message);
