@@ -13,15 +13,7 @@ import {
   mapHoursByDay,
   toDateInputValue,
 } from "../utils/bookingScheduling";
-
-const TRANSACTION_STATUS_META = {
-  pending: "Pending",
-  awaiting_dropoff: "Awaiting Drop-off",
-  dropped_off: "Dropped Off",
-  awaiting_collection: "Awaiting Collection",
-  completed: "Completed",
-  cancelled: "Cancelled",
-};
+import { canBookCollectionForStatus, TRANSACTION_STATUS_META } from "../utils/tradeWorkflow";
 
 function StepIndicator({ step }) {
   return (
@@ -208,7 +200,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
     const nextStatus =
       bookingType === "dropoff"
         ? "awaiting_dropoff"
-        : "awaiting_collection";
+        : "collection_pending_approval";
 
     try {
       const existingBookingId = bookingType === "dropoff" ? transaction.dropoff_id : transaction.collection_id;
@@ -224,6 +216,16 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
           .eq("id", existingBookingId);
 
         if (updateBookingError) throw updateBookingError;
+
+        const { error: updateTransactionError } = await supabase
+          .from("transactions")
+          .update({
+            [bookingColumn]: existingBookingId,
+            status: nextStatus,
+          })
+          .eq("id", transaction.id);
+
+        if (updateTransactionError) throw updateTransactionError;
       } else {
         const { error: insertBookingError } = await supabase
           .from("bookings")
@@ -424,7 +426,7 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
   const userIsSeller = transaction.seller_id === userId;
   const userIsBuyer = transaction.buyer_id === userId;
   const canBookDropoff = userIsSeller && !transaction.dropoff_booking && ["pending", "awaiting_dropoff"].includes(transaction.status);
-  const canBookCollection = userIsBuyer && !transaction.collection_booking && ["dropped_off", "awaiting_collection"].includes(transaction.status);
+  const canBookCollection = userIsBuyer && !transaction.collection_booking && canBookCollectionForStatus(transaction.status);
 
   return (
     <article className="bookings-page-card">
@@ -550,6 +552,28 @@ export function StudentBookingsPage({ user, onBack }) {
   useEffect(() => {
     loadTransactions();
   }, [loadTransactions]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`student-bookings-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, (payload) => {
+        const next = payload.new || payload.old;
+        if (!next) return;
+        if (next.seller_id === user.id || next.buyer_id === user.id) {
+          loadTransactions();
+        }
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+        loadTransactions();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadTransactions, user?.id]);
 
   return (
     <section className="bookings-page">
