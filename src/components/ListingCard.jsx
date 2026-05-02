@@ -56,7 +56,6 @@ export default function ListingCard({
           <img
             src={item.image_url}
             alt={item.title}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
           <figure className="listing-card__image-placeholder" aria-hidden="true">

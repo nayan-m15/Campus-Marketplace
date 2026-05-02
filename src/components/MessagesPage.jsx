@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { insertMessage } from "../utils/messageDelivery";
+import { buildTradeTransactionId } from "../utils/tradeWorkflow";
 import "../styles/Messages.css";
 
 function flaggedWarningToastStyle() {
@@ -660,11 +661,71 @@ export default function MessagesPage({
     setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
 
     if (accept && updatedOffer) {
-      // Update listing: set sold_price to accepted amount
-      await supabase
+      const { data: listing } = await supabase
         .from("listings")
-        .update({ sold_price: updatedOffer.amount })
+        .select("id, title, user_id")
+        .eq("id", updatedOffer.listing_id)
+        .single();
+
+      const listingTitle = listing?.title || conversationListing?.title || "Marketplace item";
+      const sellerId = listing?.user_id || conversationListing?.user_id || activeId;
+      const buyerId = updatedOffer.sender_id === sellerId ? updatedOffer.receiver_id : updatedOffer.sender_id;
+
+      const { data: existingTransactions } = await supabase
+        .from("transactions")
+        .select("id, status, dropoff_id")
+        .eq("seller_id", sellerId)
+        .eq("buyer_id", buyerId)
+        .eq("item", listingTitle)
+        .order("created_at", { ascending: false });
+
+      const activeTransaction = (existingTransactions || []).find(
+        (transaction) => !["item_released", "completed", "cancelled"].includes(transaction.status)
+      );
+
+      const transactionPayload = {
+        item: listingTitle,
+        seller_id: sellerId,
+        buyer_id: buyerId,
+        price: updatedOffer.amount,
+        status: activeTransaction?.dropoff_id ? activeTransaction.status : "awaiting_dropoff",
+      };
+
+      const transactionRequest = activeTransaction
+        ? supabase.from("transactions").update(transactionPayload).eq("id", activeTransaction.id)
+        : supabase.from("transactions").insert({
+            id: buildTradeTransactionId(),
+            ...transactionPayload,
+          });
+
+      const listingRequest = supabase
+        .from("listings")
+        .update({ sold_price: updatedOffer.amount, status: "sold" })
         .eq("id", updatedOffer.listing_id);
+
+      const offerCleanupRequest = supabase
+        .from("offers")
+        .update({ status: "declined", responded_at: new Date().toISOString() })
+        .eq("listing_id", updatedOffer.listing_id)
+        .eq("status", "pending");
+
+      const otherUserId = updatedOffer.sender_id === user.id ? updatedOffer.receiver_id : updatedOffer.sender_id;
+      const systemNote = `${listingTitle} now has an accepted offer for R${Number(updatedOffer.amount).toLocaleString("en-ZA")}. The seller can book a drop-off slot from My Bookings.`;
+      const messageRequest = otherUserId
+        ? insertMessage({
+            sender_id: user.id,
+            receiver_id: otherUserId,
+            content: systemNote,
+            listing_id: updatedOffer.listing_id,
+          })
+        : Promise.resolve();
+
+      await Promise.allSettled([
+        transactionRequest,
+        listingRequest,
+        offerCleanupRequest,
+        messageRequest,
+      ]);
     }
   };
 

@@ -17,6 +17,7 @@ export default function Navbar({
   onMessages,
   onHome,
   onYourListings,
+  onBookings,
   onWishlist,
   wishlistCount = 0,
   unreadCount = 0,
@@ -277,6 +278,7 @@ export default function Navbar({
                           {displayName}
                         </button>
                       </li>
+                      <li><button className="navbar__link" onClick={onBookings}>My Bookings</button></li>
                       <li><button className="navbar__link" onClick={onSignOut}>Sign Out</button></li>
                       <li>
                         <button className="btn-primary navbar__list-btn" onClick={onShowListingForm}>
@@ -343,6 +345,11 @@ export default function Navbar({
                                 </button>
                               </li>
                             )}
+                            <li>
+                              <button onClick={() => { onBookings?.(); setMenuOpen(false); }}>
+                                My Bookings
+                              </button>
+                            </li>
                             <li>
                               <button
                                 onClick={() => { onWishlist?.(); setMenuOpen(false); }}

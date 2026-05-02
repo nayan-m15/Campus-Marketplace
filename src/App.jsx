@@ -27,6 +27,7 @@ import { useWishlist } from "./context/useWishlist";
 import SettingsPage from "./components/SettingsPage";
 import { getAppBaseUrl } from "./utils/appUrl";
 import { insertMessage } from "./utils/messageDelivery";
+import { StudentBookingsPage } from "./components/BookingsUi";
 
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
@@ -636,6 +637,7 @@ function AppInner() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
+  const [currentProfile, setCurrentProfile] = useState(null);
 
   // ── Unread message count for navbar badge ─────────────────
   const handleIncomingMessage = useCallback((notice) => {
@@ -723,12 +725,13 @@ function AppInner() {
       setAvatarUrl(null);
       setIsAdmin(false);
       setIsStaff(false);
+      setCurrentProfile(null);
       return;
     }
 
     supabase
       .from("profiles")
-      .select("name, display_name, avatar_url, role, sex, birthdate, province, institution")
+      .select("id, name, display_name, avatar_url, role, sex, birthdate, province, institution, email")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
@@ -738,8 +741,10 @@ function AppInner() {
           setIsAdmin(data.role === "admin");
           setIsStaff(data.role === "staff");
           setNeedsSetup(!isProfileComplete(data));
+          setCurrentProfile(data);
         } else {
           setNeedsSetup(true);
+          setCurrentProfile(null);
         }
         setProfileChecked(true);
       })
@@ -1024,10 +1029,12 @@ function AppInner() {
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
 
   if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
-  if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} />;
+  if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
+  if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} staffProfile={currentProfile} />;
   if (user && isAdmin && page === "admin") {
     return <AdminDashboard onSignOut={signOut} onBackToMarketplace={goHome} />;
   }
+
 
   const navbarProps = {
     searchQuery,
@@ -1051,6 +1058,7 @@ function AppInner() {
     onSignOut: signOut,
     onHome: goHome,
     onYourListings: () => setPage("yourlistings"),
+    onBookings: () => setPage("bookings"),
     onWishlist: () => setPage("wishlist"),
     wishlistCount: wishlistItems.length,
     onSettings: () => setPage("settings"),
@@ -1151,6 +1159,16 @@ function AppInner() {
               .catch((err) => setListingsError(err.message))
           }
         />
+      </>
+    );
+  }
+
+  if (page === "bookings") {
+    return (
+      <>
+        <header><Navbar {...navbarProps} /></header>
+        {messageNoticeToast}
+        <StudentBookingsPage user={user} onBack={goHome} />
       </>
     );
   }

@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import "../styles/AdminDashboard.css";
 import { supabase } from "../supabaseClient";
+import { DAYS, normalizeFacilityDay } from "../utils/bookingScheduling";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -15,8 +16,6 @@ const MARKETPLACE_REPORT_TYPES = [
   { value: "listing_health", label: "Listing Health" },
   { value: "trend", label: "Listings Trend" },
 ];
-
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // Helper: create empty hours object for all days
 const emptyHours = () =>
@@ -44,6 +43,7 @@ function SaveToast({ visible }) {
 function FacilityCard({ facility, onToggleDay, onTimeChange, onCapacityChange }) {
   const [expanded, setExpanded] = useState(false);
   const openDays = DAYS.filter((d) => facility.hours[d].open).length;
+  const shortDayLabel = (day) => day.slice(0, 3);
 
   return (
     <article className={`facility-card ${expanded ? "facility-card--open" : ""}`}>
@@ -100,7 +100,7 @@ function FacilityCard({ facility, onToggleDay, onTimeChange, onCapacityChange })
                       <span className="toggle-track" aria-hidden="true">
                         <span className="toggle-thumb" />
                       </span>
-                      <span className="day-name">{day}</span>
+                      <span className="day-name">{shortDayLabel(day)}</span>
                     </label>
 
                     {slot.open ? (
@@ -713,7 +713,9 @@ export default function AdminDashboard({ onSignOut, onBackToMarketplace }) {
     const formatted = data.map((f) => {
       const hours = emptyHours(); // start with all days closed
       f.facility_hours.forEach((h) => {
-        hours[h.day] = {
+        const normalizedDay = normalizeFacilityDay(h.day);
+        if (!hours[normalizedDay]) return;
+        hours[normalizedDay] = {
           open: h.open,
           start: h.start_time,
           end: h.end_time,
