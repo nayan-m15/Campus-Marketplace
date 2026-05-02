@@ -8,6 +8,24 @@ import { insertMessage } from "../utils/messageDelivery";
 import { buildTradeTransactionId } from "../utils/tradeWorkflow";
 import "../styles/Messages.css";
 
+function flaggedWarningToastStyle() {
+  return {
+    position: "fixed",
+    top: 20,
+    right: 20,
+    width: "min(420px, calc(100vw - 32px))",
+    textAlign: "left",
+    background: "#fff7ed",
+    color: "#7c2d12",
+    padding: "16px 18px",
+    borderRadius: 12,
+    border: "1px solid #fdba74",
+    zIndex: 10000,
+    boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+    fontFamily: "var(--font)",
+  };
+}
+
 const SELLER_QUICK_REPLIES = [
   "Yes. Are you interested?",
   "In talks. I'll let you know.",
@@ -113,6 +131,7 @@ export default function MessagesPage({
   initialRecipientId = null,
   initialListingTitle = null,
   initialListingId = null,
+  initialAcknowledgedFlaggedListingId = null,
   onBack,
   onViewProfile,
   onUnreadChange,   // ← NEW: callback(count) so parent can update navbar badge
@@ -135,6 +154,11 @@ export default function MessagesPage({
   const [activeListingId, setActiveListingId] = useState(initialListingId);
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
+  const [flaggedWarningOpen, setFlaggedWarningOpen] = useState(false);
+  const [pendingFlaggedMessage, setPendingFlaggedMessage] = useState("");
+  const [acknowledgedFlaggedListingIds, setAcknowledgedFlaggedListingIds] = useState(() =>
+    initialAcknowledgedFlaggedListingId ? new Set([String(initialAcknowledgedFlaggedListingId)]) : new Set()
+  );
 
   // Buyer info banner: shown to the lister when a buyer messages about a listing
   const [iAmTheLister, setIAmTheLister] = useState(false);
@@ -340,7 +364,7 @@ export default function MessagesPage({
 
       const { data: listing } = await supabase
         .from("listings")
-        .select("id, title, price, user_id")
+        .select("id, title, price, user_id, status, flag_reason")
         .eq("id", String(msgWithListing.listing_id))
         .maybeSingle();
 
@@ -351,6 +375,8 @@ export default function MessagesPage({
         title: null,
         price: null,
         user_id: iOwnThisListing ? user.id : peerId,
+        status: "active",
+        flag_reason: "",
       });
 
     }
@@ -501,9 +527,10 @@ export default function MessagesPage({
   }, [draft]);
 
   // ── Send ──────────────────────────────────────────────────
-  const sendMessage = async (messageText = draft) => {
+  const sendMessageNow = async (messageText = draft) => {
     const text = messageText.trim();
     if (!text || !activeId || sending) return;
+
     setSending(true);
     if (messageText === draft) setDraft("");
 
@@ -534,8 +561,26 @@ export default function MessagesPage({
       setMessages((prev) => prev.filter((m) => m !== optimistic));
     }
     setSending(false);
+    setPendingFlaggedMessage("");
     textareaRef.current?.focus();
     await loadConversations();
+  };
+
+  const sendMessage = async (messageText = draft) => {
+    const text = messageText.trim();
+    if (!text || !activeId || sending) return;
+
+    if (
+      conversationListing?.status === "flagged" &&
+      !flaggedWarningOpen &&
+      !acknowledgedFlaggedListingIds.has(String(conversationListing.id))
+    ) {
+      setPendingFlaggedMessage(text);
+      setFlaggedWarningOpen(true);
+      return;
+    }
+
+    await sendMessageNow(text);
   };
 
   // User-driven changes pass through this handler first.
@@ -907,6 +952,67 @@ export default function MessagesPage({
                   </div>
                 </div>
               </div>
+            )}
+
+            {flaggedWarningOpen && conversationListing?.status === "flagged" && (
+              <aside
+                role="alertdialog"
+                aria-labelledby="messages-flagged-warning-title"
+                aria-live="assertive"
+                style={flaggedWarningToastStyle()}
+              >
+                <button
+                  onClick={() => {
+                    setFlaggedWarningOpen(false);
+                    setPendingFlaggedMessage("");
+                  }}
+                  aria-label="Close flagged listing warning"
+                  type="button"
+                  style={{ position: "absolute", top: 10, right: 10, border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
+                >
+                  x
+                </button>
+                <h3 id="messages-flagged-warning-title" style={{ margin: "0 28px 8px 0" }}>
+                  Flagged listing warning
+                </h3>
+                <p style={{ margin: "0 0 8px" }}>
+                  This listing has been flagged by an admin.
+                </p>
+                <p style={{ margin: "0 0 16px" }}>
+                  <strong>Reason:</strong> {conversationListing.flag_reason?.trim() || "No reason was provided."}
+                </p>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  <button
+                    className="msg-offer-modal__cancel"
+                    onClick={() => {
+                      setFlaggedWarningOpen(false);
+                      setPendingFlaggedMessage("");
+                    }}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="msg-offer-modal__send"
+                    onClick={() => {
+                      const text = pendingFlaggedMessage;
+                      setFlaggedWarningOpen(false);
+                      setPendingFlaggedMessage("");
+                      setAcknowledgedFlaggedListingIds((prev) => {
+                        const next = new Set(prev);
+                        if (conversationListing?.id != null) {
+                          next.add(String(conversationListing.id));
+                        }
+                        return next;
+                      });
+                      sendMessageNow(text);
+                    }}
+                    type="button"
+                  >
+                    Continue
+                  </button>
+                </div>
+              </aside>
             )}
 
             <div className="msg-chat__body">

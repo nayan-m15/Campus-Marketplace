@@ -217,6 +217,7 @@ test("ListingCard supports keyboard open, seller navigation, messaging, and wish
   const onSellerClick = vi.fn();
   const onMessageSeller = vi.fn();
   const onToggleWishlist = vi.fn();
+  const onModerate = vi.fn();
 
   render(
     <ListingCard
@@ -224,6 +225,8 @@ test("ListingCard supports keyboard open, seller navigation, messaging, and wish
       onClick={onClick}
       onSellerClick={onSellerClick}
       onMessageSeller={onMessageSeller}
+      isAdmin
+      onModerate={onModerate}
       onToggleWishlist={onToggleWishlist}
       isWishlisted
       user={{ id: "user-1" }}
@@ -242,6 +245,9 @@ test("ListingCard supports keyboard open, seller navigation, messaging, and wish
 
   fireEvent.click(screen.getByRole("button", { name: /remove from wishlist/i }));
   expect(onToggleWishlist).toHaveBeenCalledWith("listing-1");
+
+  fireEvent.click(screen.getByRole("button", { name: /report desk lamp/i }));
+  expect(onModerate).toHaveBeenCalledWith(listing);
 });
 
 test("ListingsGrid renders empty state and forwards listing clicks", () => {
@@ -289,6 +295,7 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
   const onWishlist = vi.fn();
   const onSettings = vi.fn();
   const onSignOut = vi.fn();
+  const onAdminDashboard = vi.fn();
 
   render(
     <Navbar
@@ -300,6 +307,8 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
       onWishlist={onWishlist}
       onSettings={onSettings}
       onSignOut={onSignOut}
+      onAdminDashboard={onAdminDashboard}
+      isAdmin
       wishlistCount={2}
       unreadCount={101}
     />
@@ -318,6 +327,10 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
   fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
   fireEvent.click(screen.getByRole("button", { name: /wishlist/i }));
   expect(onWishlist).toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+  fireEvent.click(screen.getByRole("button", { name: /admin dashboard/i }));
+  expect(onAdminDashboard).toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
   fireEvent.click(screen.getByRole("button", { name: /settings/i }));
@@ -517,6 +530,7 @@ test("ListingForm validates required fields and publishes a completed listing", 
 
   fireEvent.change(screen.getByLabelText(/item name/i), { target: { value: "Lamp" } });
   fireEvent.change(screen.getByLabelText(/asking price/i), { target: { value: "250.75" } });
+  fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Furniture" } });
   expect(screen.getByLabelText(/asking price/i)).toHaveValue("250.75");
   fireEvent.click(screen.getByRole("radio", { name: /good/i }));
   fireEvent.click(screen.getByRole("button", { name: /for trade/i }));
@@ -526,7 +540,8 @@ test("ListingForm validates required fields and publishes a completed listing", 
     title: "Lamp",
     price: 250.75,
     condition: "Good",
-    status: "for_trade",
+    status: "active",
+    listing_type: "trade",
   })));
   expect(onSuccess).toHaveBeenCalled();
   expect(onCancel).toHaveBeenCalledTimes(2);

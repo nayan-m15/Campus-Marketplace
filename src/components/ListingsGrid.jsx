@@ -17,6 +17,8 @@ export default function ListingsGrid({
   onListingClick,
   onMessageSeller,
   onSellerClick,
+  isAdmin = false,
+  onModerateListing,
   isWishlisted,
   onToggleWishlist,
   user,
@@ -119,6 +121,8 @@ export default function ListingsGrid({
                 onClick={() => onListingClick?.({ ...item })}
                 onMessageSeller={onMessageSeller}
                 onSellerClick={onSellerClick}
+                isAdmin={isAdmin}
+                onModerate={onModerateListing}
                 isWishlisted={isWishlisted?.(item.id) ?? false}
                 onToggleWishlist={onToggleWishlist}
                 user={user}

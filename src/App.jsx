@@ -17,7 +17,7 @@ import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import WishlistPage from "./components/WishlistPage";
-import { fetchListings, CONDITIONS } from "./data/listings";
+import { fetchListings, fetchListingById, CONDITIONS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
@@ -49,6 +49,24 @@ function showBrowserNotification(title, options) {
   if (!canUseBrowserNotifications() || window.Notification.permission !== "granted") return false;
   new window.Notification(title, options);
   return true;
+}
+
+function warningToastStyle(top = 20) {
+  return {
+    position: "fixed",
+    top,
+    right: 20,
+    width: "min(420px, calc(100vw - 32px))",
+    textAlign: "left",
+    background: "#fff7ed",
+    color: "#7c2d12",
+    padding: "16px 18px",
+    borderRadius: 12,
+    border: "1px solid #fdba74",
+    zIndex: 10000,
+    boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+    fontFamily: "var(--font)",
+  };
 }
 
 async function buildIncomingMessageNotice(message) {
@@ -175,17 +193,27 @@ function useUnreadCount(user, onIncomingMessage) {
 }
 
 // ── Item Details Modal ─────────────────────────────────────
-function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishlisted, onToggleWishlist }) {
+function ListingDetailsModal({
+  item,
+  onClose,
+  onMessageSeller,
+  user,
+  isWishlisted,
+  onToggleWishlist,
+  resolveListingForMessaging,
+}) {
   const [message, setMessage] = useState(`Hi, is the ${item?.title || "item"} still available?`);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showFlaggedWarning, setShowFlaggedWarning] = useState(false);
 
   useEffect(() => {
     if (item) {
       setMessage(`Hi, is the ${item.title || "item"} still available?`);
       setCurrentImageIndex(0);
+      setShowFlaggedWarning(false);
     }
   }, [item?.id]);
 
@@ -235,7 +263,7 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
     setCurrentImageIndex((index) => (index === images.length - 1 ? 0 : index + 1));
   }
 
-  async function handleSendMessage() {
+  async function performSendMessage() {
     if (!message.trim()) { setSendError("Please enter a message."); setSendSuccess(""); return; }
     if (!user) { setSendError("You must be logged in to send a message."); setSendSuccess(""); return; }
     if (!item.user_id) { setSendError("Seller information is missing."); setSendSuccess(""); return; }
@@ -263,9 +291,20 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
     }
   }
 
+  async function handleSendMessage() {
+    const latestItem = await resolveListingForMessaging?.(item) || item;
+    if (latestItem?.status === "flagged") {
+      setShowFlaggedWarning(true);
+      return;
+    }
+
+    performSendMessage();
+  }
+
   return (
-    <div className="item-modal-overlay" onClick={onClose}>
-      <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+    <>
+      <div className="item-modal-overlay" onClick={onClose}>
+        <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Close item details" type="button">x</button>
 
         <div className="item-modal-scroll">
@@ -309,6 +348,12 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
                     <div className="item-modal-top-bottom">
                       <div className="item-modal-top-text">
                         <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
+
+                        {item.status === "flagged" && (
+                          <p className="item-modal-error" style={{ marginBottom: 0 }}>
+                            This listing has been flagged by an admin. Please review it carefully before continuing.
+                          </p>
+                        )}
 
                         <div className="item-modal-summary">
                           <p className="item-modal-price">
@@ -363,7 +408,15 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
                           <button type="button" className="item-modal-send-btn" onClick={handleSendMessage} disabled={sending}>
                             {sending ? "Sending..." : "Send message"}
                           </button>
-                          <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={() => { onClose(); onMessageSeller(item); }}>
+                          <button
+                            type="button"
+                            className="item-modal-send-btn item-modal-send-btn--secondary"
+                            onClick={async () => {
+                              const latestItem = await resolveListingForMessaging?.(item) || item;
+                              onClose();
+                              onMessageSeller(latestItem);
+                            }}
+                          >
                             Open chat
                           </button>
                         </div>
@@ -375,8 +428,173 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
             </section>
           </div>
         </div>
+        </article>
+      </div>
+      {showFlaggedWarning && (
+        <aside
+          role="alertdialog"
+          aria-labelledby="listing-flagged-warning-title"
+          aria-live="assertive"
+          style={warningToastStyle(24)}
+        >
+          <button
+            onClick={() => setShowFlaggedWarning(false)}
+            aria-label="Close flagged warning"
+            type="button"
+            style={{ position: "absolute", top: 10, right: 10, border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
+          >
+            x
+          </button>
+          <h2 id="listing-flagged-warning-title" style={{ margin: "0 28px 8px 0", fontSize: 20 }}>
+            Flagged listing warning
+          </h2>
+          <p style={{ margin: "0 0 8px" }}>This listing has been flagged by an admin.</p>
+          <p style={{ margin: "0 0 16px" }}>
+            <strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="item-modal-send-btn item-modal-send-btn--secondary"
+              onClick={() => setShowFlaggedWarning(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="item-modal-send-btn"
+              onClick={() => {
+                setShowFlaggedWarning(false);
+                performSendMessage();
+              }}
+            >
+              Continue
+            </button>
+          </div>
+        </aside>
+      )}
+    </>
+  );
+}
+
+function ModerationModal({
+  item,
+  actionState,
+  moderationReason,
+  onReasonChange,
+  onClose,
+  onFlagListing,
+  onRemoveListing,
+}) {
+  if (!item) return null;
+
+  return (
+    <div className="item-modal-overlay" onClick={onClose}>
+      <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Close moderation panel" type="button">x</button>
+
+        <div className="item-modal-scroll">
+          <div className="item-modal-scroll-inner">
+            <section className="item-modal-layout">
+              <div className="item-modal-right-column item-modal-right-column--full">
+                <div className="item-modal-top-card">
+                  <div className="item-modal-top-text">
+                    <h2 className="item-modal-title">Review moderation</h2>
+                    <div className="item-modal-description-card">
+                      <p>
+                        Moderate listing safety for <strong>{item.title}</strong>. Use <strong>Flag listing</strong> to warn buyers that this listing needs caution, or <strong>Remove listing</strong> to take it down entirely.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="item-modal-bottom-card">
+                  <div className="item-modal-info">
+                    <div className="item-modal-meta">
+                      <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
+                      <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
+                      <p><strong>Status:</strong> {item.status || "active"}</p>
+                    </div>
+                  </div>
+
+                  <div className="item-modal-contact">
+                    <h3>Moderation actions</h3>
+                    <label className="profile-field" style={{ display: "block", marginBottom: 14 }}>
+                      <span style={{ display: "block", fontWeight: 700, marginBottom: 8 }}>Flag reason</span>
+                      <textarea
+                        className="item-modal-textarea"
+                        value={moderationReason}
+                        onChange={(e) => onReasonChange(e.target.value)}
+                        rows={4}
+                        placeholder="Explain why this listing is being flagged."
+                        style={{ marginBottom: 0 }}
+                      />
+                    </label>
+                    {actionState.error && <p className="item-modal-error">{actionState.error}</p>}
+                    {actionState.success && <p className="item-modal-success">{actionState.success}</p>}
+                    <div className="item-modal-actions">
+                      <button
+                        type="button"
+                        className="item-modal-send-btn"
+                        onClick={() => onFlagListing(item)}
+                        disabled={Boolean(actionState.loading)}
+                      >
+                        {actionState.loading === "flag" ? "Flagging..." : "Flag listing"}
+                      </button>
+                      <button
+                        type="button"
+                        className="item-modal-send-btn item-modal-send-btn--secondary"
+                        onClick={() => onRemoveListing(item)}
+                        disabled={Boolean(actionState.loading)}
+                      >
+                        {actionState.loading === "remove" ? "Removing..." : "Remove listing"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
       </article>
     </div>
+  );
+}
+
+function FlaggedListingWarningToast({ item, onClose, onContinue }) {
+  if (!item) return null;
+
+  return (
+    <aside
+      role="alertdialog"
+      aria-labelledby="flagged-listing-warning-title"
+      aria-live="assertive"
+      style={warningToastStyle()}
+    >
+      <button
+        onClick={onClose}
+        aria-label="Close flagged listing warning"
+        type="button"
+        style={{ position: "absolute", top: 10, right: 10, border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
+      >
+        x
+      </button>
+      <h2 id="flagged-listing-warning-title" style={{ margin: "0 28px 8px 0", fontSize: 20 }}>
+        Flagged listing warning
+      </h2>
+      <p style={{ margin: "0 0 8px" }}>This listing has been flagged by an admin.</p>
+      <p style={{ margin: "0 0 16px" }}>
+        <strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}
+      </p>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+        <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button type="button" className="item-modal-send-btn" onClick={onContinue}>
+          Continue
+        </button>
+      </div>
+    </aside>
   );
 }
 // Component entry point for this part of the interface.
@@ -394,6 +612,15 @@ function AppInner() {
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
   const [selectedListing, setSelectedListing] = useState(null);
+  const [moderationListing, setModerationListing] = useState(null);
+  const [flaggedListingPrompt, setFlaggedListingPrompt] = useState(null);
+  const [acknowledgedFlaggedListingId, setAcknowledgedFlaggedListingId] = useState(null);
+  const [moderationState, setModerationState] = useState({
+    loading: "",
+    success: "",
+    error: "",
+  });
+  const [moderationReason, setModerationReason] = useState("");
 
   const [allListings, setAllListings] = useState([]);
   const [listingsLoading, setListingsLoading] = useState(true);
@@ -604,7 +831,13 @@ function AppInner() {
 
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
-  function handleMessageSeller(item) {
+  function openMessagesForListing(item, { acknowledged = false } = {}) {
+    if (acknowledged && item?.id) {
+      setAcknowledgedFlaggedListingId(item.id);
+    } else {
+      setAcknowledgedFlaggedListingId(null);
+    }
+
     if (!user) {
       setPage("login");
       return;
@@ -613,6 +846,27 @@ function AppInner() {
     setMsgListingTitle(item.title);
     setMsgListingId(item.id || null);
     setPage("messages");
+  }
+
+  async function resolveListingForMessaging(item) {
+    if (!item?.id) return item;
+
+    try {
+      const latestListing = await fetchListingById(item.id);
+      return latestListing || item;
+    } catch {
+      return item;
+    }
+  }
+
+  async function handleMessageSeller(item) {
+    const latestItem = await resolveListingForMessaging(item);
+    if (latestItem?.status === "flagged") {
+      setFlaggedListingPrompt(latestItem);
+      return;
+    }
+
+    openMessagesForListing(latestItem);
   }
 
   // User-driven changes pass through this handler first.
@@ -666,6 +920,91 @@ function AppInner() {
     );
   }
 
+  function handleOpenModeration(item) {
+    setModerationListing(item);
+    setModerationReason(item.flag_reason || "");
+    setModerationState({ loading: "", success: "", error: "" });
+  }
+
+  async function refreshListings() {
+    const listings = await fetchListings(user?.id);
+    setAllListings(listings);
+  }
+
+  async function handleFlagListing(item) {
+    const reason = moderationReason.trim();
+    if (!reason) {
+      setModerationState({
+        loading: "",
+        success: "",
+        error: "Please enter a reason before flagging this listing.",
+      });
+      return;
+    }
+
+    setModerationState({ loading: "flag", success: "", error: "" });
+
+    try {
+      const { error } = await supabase
+        .from("listings")
+        .update({ status: "flagged", flag_reason: reason })
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      await refreshListings();
+      setModerationState({
+        loading: "",
+        success: "Listing flagged. Buyers will now see a warning on it.",
+        error: "",
+      });
+    } catch (err) {
+      setModerationState({
+        loading: "",
+        success: "",
+        error: err.message || "Could not flag this listing.",
+      });
+    }
+  }
+
+  async function handleRemoveListing(item) {
+    setModerationState({ loading: "remove", success: "", error: "" });
+
+    try {
+      const relatedTables = ["messages", "offers", "ratings", "wishlists"];
+
+      for (const table of relatedTables) {
+        const { error: relatedError } = await supabase
+          .from(table)
+          .delete()
+          .eq("listing_id", item.id);
+
+        if (relatedError) throw relatedError;
+      }
+
+      const { error } = await supabase
+        .from("listings")
+        .delete()
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      await refreshListings();
+      setModerationState({
+        loading: "",
+        success: "Listing removed.",
+        error: "",
+      });
+      setModerationListing(null);
+    } catch (err) {
+      setModerationState({
+        loading: "",
+        success: "",
+        error: err.message || "Could not remove this listing.",
+      });
+    }
+  }
+
   useEffect(() => {
     if (loading || !user || (page !== "login" && page !== "signup")) return;
 
@@ -690,8 +1029,12 @@ function AppInner() {
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
 
   if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
+  if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
   if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} staffProfile={currentProfile} />;
-  if (user && isAdmin) return <AdminDashboard onSignOut={signOut} />;
+  if (user && isAdmin && page === "admin") {
+    return <AdminDashboard onSignOut={signOut} onBackToMarketplace={goHome} />;
+  }
+
 
   const navbarProps = {
     searchQuery,
@@ -720,6 +1063,8 @@ function AppInner() {
     wishlistCount: wishlistItems.length,
     onSettings: () => setPage("settings"),
     unreadCount,
+    isAdmin,
+    onAdminDashboard: () => setPage("admin"),
   };
 
   const messageNoticeToast = messageNotice && (
@@ -782,10 +1127,12 @@ function AppInner() {
           initialRecipientId={msgRecipientId}
           initialListingTitle={msgListingTitle}
           initialListingId={msgListingId}
+          initialAcknowledgedFlaggedListingId={acknowledgedFlaggedListingId}
           onBack={() => {
             setMsgRecipientId(null);
             setMsgListingTitle(null);
             setMsgListingId(null);
+            setAcknowledgedFlaggedListingId(null);
             goHome();
           }}
           onViewProfile={(sellerId) => {
@@ -847,7 +1194,26 @@ function AppInner() {
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
+          resolveListingForMessaging={resolveListingForMessaging}
           />
+        <ModerationModal
+          item={moderationListing}
+          actionState={moderationState}
+          moderationReason={moderationReason}
+          onReasonChange={setModerationReason}
+          onClose={() => setModerationListing(null)}
+          onFlagListing={handleFlagListing}
+          onRemoveListing={handleRemoveListing}
+        />
+        <FlaggedListingWarningToast
+          item={flaggedListingPrompt}
+          onClose={() => setFlaggedListingPrompt(null)}
+          onContinue={() => {
+            const item = flaggedListingPrompt;
+            setFlaggedListingPrompt(null);
+            if (item) openMessagesForListing(item, { acknowledged: true });
+          }}
+        />
       </>
     );
   }
@@ -890,6 +1256,25 @@ function AppInner() {
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
+          resolveListingForMessaging={resolveListingForMessaging}
+        />
+        <ModerationModal
+          item={moderationListing}
+          actionState={moderationState}
+          moderationReason={moderationReason}
+          onReasonChange={setModerationReason}
+          onClose={() => setModerationListing(null)}
+          onFlagListing={handleFlagListing}
+          onRemoveListing={handleRemoveListing}
+        />
+        <FlaggedListingWarningToast
+          item={flaggedListingPrompt}
+          onClose={() => setFlaggedListingPrompt(null)}
+          onContinue={() => {
+            const item = flaggedListingPrompt;
+            setFlaggedListingPrompt(null);
+            if (item) openMessagesForListing(item, { acknowledged: true });
+          }}
         />
       </header>
 
@@ -942,6 +1327,8 @@ function AppInner() {
                 onListingClick={setSelectedListing}
                 onMessageSeller={handleMessageSeller}
                 onSellerClick={handleSellerClick}
+                isAdmin={isAdmin}
+                onModerateListing={isAdmin ? handleOpenModeration : null}
                 isWishlisted={isWishlisted}
                 onToggleWishlist={user ? toggleWishlist : null}
                 user={user}
