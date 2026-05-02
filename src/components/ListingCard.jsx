@@ -64,20 +64,22 @@ export default function ListingCard({
         )}
 
         {item.listing_type === "trade" && (
-          <span className="listing-card__trade-badge">
+          <span
+            className={`listing-card__trade-badge${item.status === "flagged" ? " listing-card__trade-badge--stacked" : ""}${isAdmin ? " listing-card__trade-badge--admin-offset" : ""}`}
+          >
             For Trade
           </span>
         )}
 
         {item.status === "flagged" && (
-          <span className="listing-card__flagged-badge">
+          <span className={`listing-card__flagged-badge${isAdmin ? " listing-card__flagged-badge--admin-offset" : ""}`}>
             Flagged
           </span>
         )}
 
         {isAdmin && (
           <button
-            className="listing-card__report-btn"
+            className="listing-card__report-btn listing-card__report-btn--admin-left"
             onClick={handleModerateClick}
             aria-label={`Report ${item.title}`}
             type="button"

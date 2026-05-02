@@ -70,9 +70,21 @@
   pointer-events: none;
 }
 
+.listing-card__trade-badge--stacked {
+  top: 46px;
+}
+
+.listing-card__trade-badge--admin-offset {
+  top: 50px;
+}
+
+.listing-card__trade-badge--stacked.listing-card__trade-badge--admin-offset {
+  top: 86px;
+}
+
 .listing-card__flagged-badge {
   position: absolute;
-  top: 42px;
+  top: 10px;
   left: 10px;
   z-index: 2;
   background: #b91c1c;
@@ -85,10 +97,14 @@
   pointer-events: none;
 }
 
+.listing-card__flagged-badge--admin-offset {
+  top: 50px;
+}
+
 /* ── Wishlist Heart Button (on card image) ───────────────── */
 .listing-card__wishlist-btn {
   position: absolute;
-  top: 50px;
+  top: 10px;
   right: 10px;
   z-index: 2;
   width: 34px;
@@ -129,7 +145,7 @@
 
 .listing-card__report-btn {
   position: absolute;
-  top: 10px;
+  top: 50px;
   right: 10px;
   z-index: 2;
   border: none;
@@ -144,6 +160,12 @@
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
   backdrop-filter: blur(6px);
   transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.listing-card__report-btn--admin-left {
+  top: 10px;
+  left: 10px;
+  right: auto;
 }
 
 .listing-card__report-btn:hover {
@@ -271,7 +293,7 @@
   white-space: nowrap;
 }
 
-/* ── Seller / Distance ─────────────────────────────────── */
+/* ── Seller ─────────────────────────────────── */
 .listing-card__meta {
   display: flex;
   flex-direction: column;
@@ -751,6 +773,16 @@
   padding: 6px 12px;
 }
 
+.item-modal-trade-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: #3b82f6;
+  border-radius: 999px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
 .item-modal-price {
   margin: 0;
   font-size: 34px;
@@ -911,6 +943,11 @@
 
 .item-modal-send-btn--secondary {
   background: linear-gradient(135deg, #295e50 0%, #1f6b52 100%);
+}
+
+.item-modal-send-btn--offer {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);
 }
 
 .item-modal-actions {

@@ -212,6 +212,7 @@ function ListingDetailsModal({
   item,
   onClose,
   onMessageSeller,
+  onSendOffer,
   user,
   isWishlisted,
   onToggleWishlist,
@@ -263,6 +264,7 @@ function ListingDetailsModal({
   const wishlisted = isWishlisted?.(item.id) ?? false;
   const joinedLabel =
     item.joined_label || (item.joined_year ? String(item.joined_year) : "Not provided");
+  const isTradeListing = item.listing_type === "trade" || item.status === "for_trade";
 
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.
@@ -278,7 +280,7 @@ function ListingDetailsModal({
     setCurrentImageIndex((index) => (index === images.length - 1 ? 0 : index + 1));
   }
 
-  async function performSendMessage() {
+  async function performSendMessage({ acknowledged = false } = {}) {
     if (!message.trim()) { setSendError("Please enter a message."); setSendSuccess(""); return; }
     if (!user) { setSendError("You must be logged in to send a message."); setSendSuccess(""); return; }
     if (!item.user_id) { setSendError("Seller information is missing."); setSendSuccess(""); return; }
@@ -298,7 +300,7 @@ function ListingDetailsModal({
       if (error) throw new Error(error.message);
       setMessage("");
       setSendSuccess("Message sent! Opening conversation...");
-      setTimeout(() => { onClose(); onMessageSeller(item); }, 1000);
+      setTimeout(() => { onClose(); onMessageSeller(item, { acknowledged }); }, 1000);
     } catch (err) {
       setSendError(err.message || "Failed to send message.");
     } finally {
@@ -376,6 +378,9 @@ function ListingDetailsModal({
                             {item.price || "Price not available"}
                           </p>
                           <span className="item-modal-condition">{item.condition || "Good"}</span>
+                          {isTradeListing && (
+                            <span className="item-modal-trade-badge">For Trade</span>
+                          )}
                         </div>
 
                         {user && onToggleWishlist && (
@@ -434,6 +439,17 @@ function ListingDetailsModal({
                           >
                             Open chat
                           </button>
+                          <button
+                            type="button"
+                            className="item-modal-send-btn item-modal-send-btn--offer"
+                            onClick={async () => {
+                              const latestItem = await resolveListingForMessaging?.(item) || item;
+                              onClose();
+                              onSendOffer?.(latestItem);
+                            }}
+                          >
+                            Send Offer
+                          </button>
                         </div>
                       </>
                     )}
@@ -480,7 +496,7 @@ function ListingDetailsModal({
               className="item-modal-send-btn"
               onClick={() => {
                 setFlaggedWarningItem(null);
-                performSendMessage();
+                performSendMessage({ acknowledged: true });
               }}
             >
               Continue
@@ -646,6 +662,8 @@ function AppInner() {
   const [msgRecipientId, setMsgRecipientId] = useState(null);
   const [msgListingTitle, setMsgListingTitle] = useState(null);
   const [msgListingId, setMsgListingId] = useState(null);
+  const [msgInitialDraft, setMsgInitialDraft] = useState(null);
+  const [msgInitialAction, setMsgInitialAction] = useState(null);
   const [messageNotice, setMessageNotice] = useState(null);
 
   const [profileChecked, setProfileChecked] = useState(false);
@@ -846,7 +864,10 @@ function AppInner() {
 
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
-  function openMessagesForListing(item, { acknowledged = false } = {}) {
+  function openMessagesForListing(
+    item,
+    { acknowledged = false, initialDraft = null, initialAction = null } = {},
+  ) {
     if (acknowledged && item?.id) {
       setAcknowledgedFlaggedListingId(item.id);
     } else {
@@ -860,6 +881,8 @@ function AppInner() {
     setMsgRecipientId(item.user_id || null);
     setMsgListingTitle(item.title);
     setMsgListingId(item.id || null);
+    setMsgInitialDraft(initialDraft);
+    setMsgInitialAction(initialAction);
     setPage("messages");
   }
 
@@ -886,14 +909,32 @@ function AppInner() {
     }
   }
 
-  async function handleMessageSeller(item) {
+  async function handleMessageSeller(item, { acknowledged = false } = {}) {
     const latestItem = await resolveListingForMessaging(item);
-    if (latestItem?.status === "flagged") {
-      setFlaggedListingPrompt(latestItem);
+    if (latestItem?.status === "flagged" && !acknowledged) {
+      setFlaggedListingPrompt({ ...latestItem, __pendingAction: "message" });
       return;
     }
 
-    openMessagesForListing(latestItem);
+    openMessagesForListing(latestItem, { acknowledged });
+  }
+
+  async function handleSendOffer(item) {
+    if (!user) {
+      setPage("login");
+      return;
+    }
+
+    const latestItem = await resolveListingForMessaging(item);
+    if (latestItem?.status === "flagged") {
+      setFlaggedListingPrompt({ ...latestItem, __pendingAction: "offer" });
+      return;
+    }
+
+    openMessagesForListing(latestItem, {
+      initialDraft: `Hello, I'd like to send an offer for "${latestItem.title}".`,
+      initialAction: "offer",
+    });
   }
 
   // User-driven changes pass through this handler first.
@@ -932,6 +973,8 @@ function AppInner() {
     setMsgRecipientId(null);
     setMsgListingTitle(null);
     setMsgListingId(null);
+    setMsgInitialDraft(null);
+    setMsgInitialAction(null);
     setPublicProfileId(null);
     setPrevPage("home");
     window.location.assign(getAppBaseUrl());
@@ -1056,7 +1099,6 @@ function AppInner() {
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
 
   if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
-  if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
   if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} staffProfile={currentProfile} />;
   if (user && isAdmin && page === "admin") {
     return <AdminDashboard onSignOut={signOut} onBackToMarketplace={goHome} />;
@@ -1080,6 +1122,8 @@ function AppInner() {
       setMsgRecipientId(null);
       setMsgListingTitle(null);
       setMsgListingId(null);
+      setMsgInitialDraft(null);
+      setMsgInitialAction(null);
       setPage("messages");
     },
     onSignOut: signOut,
@@ -1102,6 +1146,8 @@ function AppInner() {
         setMsgRecipientId(null);
         setMsgListingTitle(null);
         setMsgListingId(null);
+        setMsgInitialDraft(null);
+        setMsgInitialAction(null);
         setPage("messages");
       }}
       style={{ position: "fixed", top: 20, right: 20, maxWidth: 320, textAlign: "left", background: "var(--gray-900)", color: "#fff", padding: "12px 16px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", cursor: "pointer", fontFamily: "var(--font)" }}
@@ -1136,6 +1182,8 @@ function AppInner() {
                   setMsgRecipientId(publicProfileId);
                   setMsgListingTitle(null);
                   setMsgListingId(null);
+                  setMsgInitialDraft(null);
+                  setMsgInitialAction(null);
                   setPage("messages");
                 }
               : null
@@ -1154,11 +1202,15 @@ function AppInner() {
           initialRecipientId={msgRecipientId}
           initialListingTitle={msgListingTitle}
           initialListingId={msgListingId}
+          initialDraft={msgInitialDraft}
+          initialAction={msgInitialAction}
           initialAcknowledgedFlaggedListingId={acknowledgedFlaggedListingId}
           onBack={() => {
             setMsgRecipientId(null);
             setMsgListingTitle(null);
             setMsgListingId(null);
+            setMsgInitialDraft(null);
+            setMsgInitialAction(null);
             setAcknowledgedFlaggedListingId(null);
             goHome();
           }}
@@ -1218,6 +1270,7 @@ function AppInner() {
           item={selectedListing}
           onClose={() => setSelectedListing(null)}
           onMessageSeller={handleMessageSeller}
+          onSendOffer={handleSendOffer}
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
@@ -1238,7 +1291,18 @@ function AppInner() {
           onContinue={() => {
             const item = flaggedListingPrompt;
             setFlaggedListingPrompt(null);
-            if (item) openMessagesForListing(item, { acknowledged: true });
+            if (!item) return;
+
+            if (item.__pendingAction === "offer") {
+              openMessagesForListing(item, {
+                acknowledged: true,
+                initialDraft: `Hello, I'd like to send an offer for "${item.title}".`,
+                initialAction: "offer",
+              });
+              return;
+            }
+
+            openMessagesForListing(item, { acknowledged: true });
           }}
         />
       </>
@@ -1280,6 +1344,7 @@ function AppInner() {
           item={selectedListing}
           onClose={() => setSelectedListing(null)}
           onMessageSeller={handleMessageSeller}
+          onSendOffer={handleSendOffer}
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
@@ -1300,7 +1365,18 @@ function AppInner() {
           onContinue={() => {
             const item = flaggedListingPrompt;
             setFlaggedListingPrompt(null);
-            if (item) openMessagesForListing(item, { acknowledged: true });
+            if (!item) return;
+
+            if (item.__pendingAction === "offer") {
+              openMessagesForListing(item, {
+                acknowledged: true,
+                initialDraft: `Hello, I'd like to send an offer for "${item.title}".`,
+                initialAction: "offer",
+              });
+              return;
+            }
+
+            openMessagesForListing(item, { acknowledged: true });
           }}
         />
       </header>

@@ -352,7 +352,6 @@ vi.mock("../data/listings", () => ({
         condition: "Good",
         category: "Electronics",
         seller: "Seller",
-        distance: "0 km",
         image_url: "",
         emoji: "Calc",
       },
@@ -363,7 +362,6 @@ vi.mock("../data/listings", () => ({
         condition: "Like New",
         category: "Textbooks",
         seller: "Amina",
-        distance: "1 km",
         image_url: "",
         emoji: "Book",
       },
@@ -945,7 +943,7 @@ test("StudentBookingsPage shows a seller drop-off booking action for accepted tr
   render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
 
   expect(await screen.findByText(/my bookings/i)).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /book drop-off/i })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /book drop-off/i })).toBeInTheDocument();
 });
 
 test("StudentBookingsPage lets a buyer book collection after staff confirms drop-off", async () => {

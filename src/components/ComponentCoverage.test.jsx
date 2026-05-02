@@ -540,8 +540,8 @@ test("ListingForm validates required fields and publishes a completed listing", 
     title: "Lamp",
     price: 250.75,
     condition: "Good",
-    status: "active",
     listing_type: "trade",
+    status: "active",
   })));
   expect(onSuccess).toHaveBeenCalled();
   expect(onCancel).toHaveBeenCalledTimes(2);
