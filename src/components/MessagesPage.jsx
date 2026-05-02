@@ -7,6 +7,24 @@ import { useAuth } from "../context/AuthContext";
 import { insertMessage } from "../utils/messageDelivery";
 import "../styles/Messages.css";
 
+function flaggedWarningToastStyle() {
+  return {
+    position: "fixed",
+    top: 20,
+    right: 20,
+    width: "min(420px, calc(100vw - 32px))",
+    textAlign: "left",
+    background: "#fff7ed",
+    color: "#7c2d12",
+    padding: "16px 18px",
+    borderRadius: 12,
+    border: "1px solid #fdba74",
+    zIndex: 10000,
+    boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+    fontFamily: "var(--font)",
+  };
+}
+
 const SELLER_QUICK_REPLIES = [
   "Yes. Are you interested?",
   "In talks. I'll let you know.",
@@ -876,48 +894,64 @@ export default function MessagesPage({
             )}
 
             {flaggedWarningOpen && conversationListing?.status === "flagged" && (
-              <div className="msg-offer-modal-overlay" onClick={() => setFlaggedWarningOpen(false)}>
-                <div className="msg-offer-modal" onClick={(e) => e.stopPropagation()}>
-                  <h3 className="msg-offer-modal__title">Flagged listing warning</h3>
-                  <p className="msg-offer-modal__sub">
-                    This listing has been flagged by an admin.
-                  </p>
-                  <p className="msg-offer-modal__sub" style={{ marginTop: 8 }}>
-                    <strong>Reason:</strong> {conversationListing.flag_reason?.trim() || "No reason was provided."}
-                  </p>
-                  <div className="msg-offer-modal__actions">
-                    <button
-                      className="msg-offer-modal__cancel"
-                      onClick={() => {
-                        setFlaggedWarningOpen(false);
-                        setPendingFlaggedMessage("");
-                      }}
-                      type="button"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="msg-offer-modal__send"
-                      onClick={() => {
-                        const text = pendingFlaggedMessage;
-                        setFlaggedWarningOpen(false);
-                        setPendingFlaggedMessage("");
-                        setAcknowledgedFlaggedListingIds((prev) => {
-                          const next = new Set(prev);
-                          if (conversationListing?.id != null) {
-                            next.add(String(conversationListing.id));
-                          }
-                          return next;
-                        });
-                        sendMessageNow(text);
-                      }}
-                      type="button"
-                    >
-                      Continue
-                    </button>
-                  </div>
+              <aside
+                role="alertdialog"
+                aria-labelledby="messages-flagged-warning-title"
+                aria-live="assertive"
+                style={flaggedWarningToastStyle()}
+              >
+                <button
+                  onClick={() => {
+                    setFlaggedWarningOpen(false);
+                    setPendingFlaggedMessage("");
+                  }}
+                  aria-label="Close flagged listing warning"
+                  type="button"
+                  style={{ position: "absolute", top: 10, right: 10, border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
+                >
+                  x
+                </button>
+                <h3 id="messages-flagged-warning-title" style={{ margin: "0 28px 8px 0" }}>
+                  Flagged listing warning
+                </h3>
+                <p style={{ margin: "0 0 8px" }}>
+                  This listing has been flagged by an admin.
+                </p>
+                <p style={{ margin: "0 0 16px" }}>
+                  <strong>Reason:</strong> {conversationListing.flag_reason?.trim() || "No reason was provided."}
+                </p>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  <button
+                    className="msg-offer-modal__cancel"
+                    onClick={() => {
+                      setFlaggedWarningOpen(false);
+                      setPendingFlaggedMessage("");
+                    }}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="msg-offer-modal__send"
+                    onClick={() => {
+                      const text = pendingFlaggedMessage;
+                      setFlaggedWarningOpen(false);
+                      setPendingFlaggedMessage("");
+                      setAcknowledgedFlaggedListingIds((prev) => {
+                        const next = new Set(prev);
+                        if (conversationListing?.id != null) {
+                          next.add(String(conversationListing.id));
+                        }
+                        return next;
+                      });
+                      sendMessageNow(text);
+                    }}
+                    type="button"
+                  >
+                    Continue
+                  </button>
                 </div>
-              </div>
+              </aside>
             )}
 
             <div className="msg-chat__body">

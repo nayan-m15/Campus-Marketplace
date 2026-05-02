@@ -684,7 +684,7 @@ function ReportsPanel() {
 }
 
 // ── Main AdminDashboard Component ───────────────────────────────
-export default function AdminDashboard({ onSignOut }) {
+export default function AdminDashboard({ onSignOut, onBackToMarketplace }) {
   const [activeTab, setActiveTab] = useState("facilities");
   const [facilities, setFacilities] = useState([]);
   const [toastVisible, setToastVisible] = useState(false);
@@ -853,6 +853,17 @@ export default function AdminDashboard({ onSignOut }) {
         </header>
 
         <ul className="sidebar__nav" role="list">
+          {onBackToMarketplace && (
+            <li>
+              <button
+                className="sidebar__nav-btn"
+                onClick={onBackToMarketplace}
+              >
+                <span className="sidebar__nav-icon" aria-hidden="true">←</span>
+                <span>Marketplace</span>
+              </button>
+            </li>
+          )}
           {NAV_ITEMS.map((item) => (
             <li key={item.id}>
               <button

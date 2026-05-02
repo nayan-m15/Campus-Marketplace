@@ -17,7 +17,7 @@ import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import WishlistPage from "./components/WishlistPage";
-import { fetchListings, CONDITIONS } from "./data/listings";
+import { fetchListings, fetchListingById, CONDITIONS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
 import { supabase } from "./supabaseClient";
@@ -48,6 +48,24 @@ function showBrowserNotification(title, options) {
   if (!canUseBrowserNotifications() || window.Notification.permission !== "granted") return false;
   new window.Notification(title, options);
   return true;
+}
+
+function warningToastStyle(top = 20) {
+  return {
+    position: "fixed",
+    top,
+    right: 20,
+    width: "min(420px, calc(100vw - 32px))",
+    textAlign: "left",
+    background: "#fff7ed",
+    color: "#7c2d12",
+    padding: "16px 18px",
+    borderRadius: 12,
+    border: "1px solid #fdba74",
+    zIndex: 10000,
+    boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+    fontFamily: "var(--font)",
+  };
 }
 
 async function buildIncomingMessageNotice(message) {
@@ -174,7 +192,15 @@ function useUnreadCount(user, onIncomingMessage) {
 }
 
 // ── Item Details Modal ─────────────────────────────────────
-function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishlisted, onToggleWishlist }) {
+function ListingDetailsModal({
+  item,
+  onClose,
+  onMessageSeller,
+  user,
+  isWishlisted,
+  onToggleWishlist,
+  resolveListingForMessaging,
+}) {
   const [message, setMessage] = useState(`Hi, is the ${item?.title || "item"} still available?`);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
@@ -264,8 +290,9 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
     }
   }
 
-  function handleSendMessage() {
-    if (item?.status === "flagged") {
+  async function handleSendMessage() {
+    const latestItem = await resolveListingForMessaging?.(item) || item;
+    if (latestItem?.status === "flagged") {
       setShowFlaggedWarning(true);
       return;
     }
@@ -380,7 +407,15 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
                           <button type="button" className="item-modal-send-btn" onClick={handleSendMessage} disabled={sending}>
                             {sending ? "Sending..." : "Send message"}
                           </button>
-                          <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={() => { onClose(); onMessageSeller(item); }}>
+                          <button
+                            type="button"
+                            className="item-modal-send-btn item-modal-send-btn--secondary"
+                            onClick={async () => {
+                              const latestItem = await resolveListingForMessaging?.(item) || item;
+                              onClose();
+                              onMessageSeller(latestItem);
+                            }}
+                          >
                             Open chat
                           </button>
                         </div>
@@ -395,52 +430,47 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
         </article>
       </div>
       {showFlaggedWarning && (
-        <div className="item-modal-overlay" onClick={() => setShowFlaggedWarning(false)}>
-          <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowFlaggedWarning(false)} aria-label="Close flagged warning" type="button">x</button>
-            <div className="item-modal-scroll">
-              <div className="item-modal-scroll-inner">
-                <section className="item-modal-layout">
-                  <div className="item-modal-right-column item-modal-right-column--full">
-                    <div className="item-modal-top-card">
-                      <div className="item-modal-top-text">
-                        <h2 className="item-modal-title">Flagged listing warning</h2>
-                        <div className="item-modal-description-card">
-                          <p>This listing has been flagged by an admin.</p>
-                          <p><strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="item-modal-bottom-card">
-                      <div className="item-modal-contact" style={{ gridColumn: "1 / -1" }}>
-                        <h3>Do you still want to send this message?</h3>
-                        <div className="item-modal-actions">
-                          <button
-                            type="button"
-                            className="item-modal-send-btn"
-                            onClick={() => {
-                              setShowFlaggedWarning(false);
-                              performSendMessage();
-                            }}
-                          >
-                            Continue
-                          </button>
-                          <button
-                            type="button"
-                            className="item-modal-send-btn item-modal-send-btn--secondary"
-                            onClick={() => setShowFlaggedWarning(false)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </div>
-            </div>
-          </article>
-        </div>
+        <aside
+          role="alertdialog"
+          aria-labelledby="listing-flagged-warning-title"
+          aria-live="assertive"
+          style={warningToastStyle(24)}
+        >
+          <button
+            onClick={() => setShowFlaggedWarning(false)}
+            aria-label="Close flagged warning"
+            type="button"
+            style={{ position: "absolute", top: 10, right: 10, border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
+          >
+            x
+          </button>
+          <h2 id="listing-flagged-warning-title" style={{ margin: "0 28px 8px 0", fontSize: 20 }}>
+            Flagged listing warning
+          </h2>
+          <p style={{ margin: "0 0 8px" }}>This listing has been flagged by an admin.</p>
+          <p style={{ margin: "0 0 16px" }}>
+            <strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="item-modal-send-btn item-modal-send-btn--secondary"
+              onClick={() => setShowFlaggedWarning(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="item-modal-send-btn"
+              onClick={() => {
+                setShowFlaggedWarning(false);
+                performSendMessage();
+              }}
+            >
+              Continue
+            </button>
+          </div>
+        </aside>
       )}
     </>
   );
@@ -530,45 +560,40 @@ function ModerationModal({
   );
 }
 
-function FlaggedListingWarningModal({ item, onClose, onContinue }) {
+function FlaggedListingWarningToast({ item, onClose, onContinue }) {
   if (!item) return null;
 
   return (
-    <div className="item-modal-overlay" onClick={onClose}>
-      <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Close flagged listing warning" type="button">x</button>
-        <div className="item-modal-scroll">
-          <div className="item-modal-scroll-inner">
-            <section className="item-modal-layout">
-              <div className="item-modal-right-column item-modal-right-column--full">
-                <div className="item-modal-top-card">
-                  <div className="item-modal-top-text">
-                    <h2 className="item-modal-title">Flagged listing warning</h2>
-                    <div className="item-modal-description-card">
-                      <p>This listing has been flagged by an admin.</p>
-                      <p><strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="item-modal-bottom-card">
-                  <div className="item-modal-contact" style={{ gridColumn: "1 / -1" }}>
-                    <h3>Do you still want to message this seller?</h3>
-                    <div className="item-modal-actions">
-                      <button type="button" className="item-modal-send-btn" onClick={onContinue}>
-                        Continue
-                      </button>
-                      <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={onClose}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-        </div>
-      </article>
-    </div>
+    <aside
+      role="alertdialog"
+      aria-labelledby="flagged-listing-warning-title"
+      aria-live="assertive"
+      style={warningToastStyle()}
+    >
+      <button
+        onClick={onClose}
+        aria-label="Close flagged listing warning"
+        type="button"
+        style={{ position: "absolute", top: 10, right: 10, border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
+      >
+        x
+      </button>
+      <h2 id="flagged-listing-warning-title" style={{ margin: "0 28px 8px 0", fontSize: 20 }}>
+        Flagged listing warning
+      </h2>
+      <p style={{ margin: "0 0 8px" }}>This listing has been flagged by an admin.</p>
+      <p style={{ margin: "0 0 16px" }}>
+        <strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}
+      </p>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+        <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button type="button" className="item-modal-send-btn" onClick={onContinue}>
+          Continue
+        </button>
+      </div>
+    </aside>
   );
 }
 // Component entry point for this part of the interface.
@@ -818,13 +843,25 @@ function AppInner() {
     setPage("messages");
   }
 
-  function handleMessageSeller(item) {
-    if (item?.status === "flagged") {
-      setFlaggedListingPrompt(item);
+  async function resolveListingForMessaging(item) {
+    if (!item?.id) return item;
+
+    try {
+      const latestListing = await fetchListingById(item.id);
+      return latestListing || item;
+    } catch {
+      return item;
+    }
+  }
+
+  async function handleMessageSeller(item) {
+    const latestItem = await resolveListingForMessaging(item);
+    if (latestItem?.status === "flagged") {
+      setFlaggedListingPrompt(latestItem);
       return;
     }
 
-    openMessagesForListing(item);
+    openMessagesForListing(latestItem);
   }
 
   // User-driven changes pass through this handler first.
@@ -929,6 +966,17 @@ function AppInner() {
     setModerationState({ loading: "remove", success: "", error: "" });
 
     try {
+      const relatedTables = ["messages", "offers", "ratings", "wishlists"];
+
+      for (const table of relatedTables) {
+        const { error: relatedError } = await supabase
+          .from(table)
+          .delete()
+          .eq("listing_id", item.id);
+
+        if (relatedError) throw relatedError;
+      }
+
       const { error } = await supabase
         .from("listings")
         .delete()
@@ -977,7 +1025,9 @@ function AppInner() {
 
   if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
   if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} />;
-  if (user && isAdmin && page === "admin") return <AdminDashboard onSignOut={signOut} />;
+  if (user && isAdmin && page === "admin") {
+    return <AdminDashboard onSignOut={signOut} onBackToMarketplace={goHome} />;
+  }
 
   const navbarProps = {
     searchQuery,
@@ -1126,6 +1176,7 @@ function AppInner() {
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
+          resolveListingForMessaging={resolveListingForMessaging}
           />
         <ModerationModal
           item={moderationListing}
@@ -1136,7 +1187,7 @@ function AppInner() {
           onFlagListing={handleFlagListing}
           onRemoveListing={handleRemoveListing}
         />
-        <FlaggedListingWarningModal
+        <FlaggedListingWarningToast
           item={flaggedListingPrompt}
           onClose={() => setFlaggedListingPrompt(null)}
           onContinue={() => {
@@ -1187,6 +1238,7 @@ function AppInner() {
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
+          resolveListingForMessaging={resolveListingForMessaging}
         />
         <ModerationModal
           item={moderationListing}
@@ -1197,7 +1249,7 @@ function AppInner() {
           onFlagListing={handleFlagListing}
           onRemoveListing={handleRemoveListing}
         />
-        <FlaggedListingWarningModal
+        <FlaggedListingWarningToast
           item={flaggedListingPrompt}
           onClose={() => setFlaggedListingPrompt(null)}
           onContinue={() => {
