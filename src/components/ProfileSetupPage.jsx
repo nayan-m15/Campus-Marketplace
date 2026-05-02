@@ -171,7 +171,7 @@ function getBirthdateError(value) {
 
   const today = new Date();
   const minAge = new Date(today.getFullYear() - 12, today.getMonth(), today.getDate());
-  if (date > minAge) return "You must be at least 12 years old to use Unexus.";
+  if (date > minAge) return "You must be at least 12 years old to use CAMPUSXCHANGE.";
 
   return null;
 }
@@ -309,8 +309,10 @@ export default function ProfileSetupPage({ onComplete }) {
         {/* Header */}
         <div className="setup-header">
           <div className="setup-logo">
-            <strong className="setup-logo__icon">UX</strong>
-            <span className="setup-logo__text">Unexus</span>
+            <strong className="setup-logo__icon">
+              <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="setup-logo__img" />
+            </strong>
+            <span className="setup-logo__text">CAMPUSXCHANGE</span>
           </div>
           <StepDots current={step} total={TOTAL_STEPS} />
           <h1 className="setup-title">

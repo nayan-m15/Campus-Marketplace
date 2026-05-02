@@ -72,9 +72,9 @@ export default function LoginPage({ onNavigate }) {
 
         <div className="auth-logo">
           <span className="auth-logo__icon">
-            <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="navbar__logo-img" />
+            <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="navbar__logo-img" />
           </span>
-          <span className="auth-logo__text">Unexus</span>
+          <span className="auth-logo__text">CAMPUSXCHANGE</span>
         </div>
 
         <h1 className="auth-title">Welcome back</h1>

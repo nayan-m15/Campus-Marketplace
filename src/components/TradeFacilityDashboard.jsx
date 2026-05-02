@@ -919,9 +919,9 @@ export default function TradeFacilityDashboard({onSignOut}) {
       {/* ── Sidebar ── */}
       <aside className="sidebar">
         <header className="sidebar__brand">
-          <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="sidebar__logo" />
+          <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="sidebar__logo" />
           <section className="sidebar__brand-text">
-            <p className="sidebar__app-name">Unexus</p>
+            <p className="sidebar__app-name">CAMPUSXCHANGE</p>
             <p className="sidebar__role">Trade Facility</p>
           </section>
         </header>

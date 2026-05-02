@@ -454,7 +454,7 @@ function ReportsPanel() {
     const insightLines = generateInsights(reportType, reportData);
 
     doc.setFontSize(18);
-    doc.text("Unexus Marketplace Report", 14, 20);
+    doc.text("CAMPUSXCHANGE Marketplace Report", 14, 20);
     doc.setFontSize(12);
     doc.text(MARKETPLACE_REPORT_TYPES.find(r => r.value === reportType)?.label || "", 14, 28);
     doc.setFontSize(10);
@@ -503,7 +503,7 @@ function ReportsPanel() {
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     doc.setFontSize(9);
-    doc.text("Unexus Reporting System", 14, pageHeight - 10);
+    doc.text("CAMPUSXCHANGE Reporting System", 14, pageHeight - 10);
     doc.text("Page 1", pageWidth - 20, pageHeight - 10); // fixed x coordinate
 
     doc.save(`report-${reportType}.pdf`);
@@ -845,9 +845,9 @@ export default function AdminDashboard({ onSignOut }) {
       {/* Sidebar navigation */}
       <nav className="sidebar" aria-label="Admin navigation">
         <header className="sidebar__brand">
-          <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="sidebar__logo" />
+          <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="sidebar__logo" />
           <hgroup className="sidebar__brand-text">
-            <h1 className="sidebar__app-name">Unexus</h1>
+            <h1 className="sidebar__app-name">CAMPUSXCHANGE</h1>
             <p className="sidebar__role">Admin Portal</p>
           </hgroup>
         </header>
