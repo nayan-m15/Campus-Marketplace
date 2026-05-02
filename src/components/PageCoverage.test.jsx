@@ -848,3 +848,26 @@ test("StudentBookingsPage shows a seller drop-off booking action for accepted tr
   expect(await screen.findByText(/my bookings/i)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /book drop-off/i })).toBeInTheDocument();
 });
+
+test("StudentBookingsPage lets a buyer book collection after staff confirms drop-off", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-3",
+      item: "Desk Lamp",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 250,
+      status: "item_received",
+      dropoff_id: "booking-1",
+      collection_id: null,
+      created_at: "2026-04-18T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  expect(await screen.findByText(/my bookings/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /book collection/i })).toBeInTheDocument();
+});

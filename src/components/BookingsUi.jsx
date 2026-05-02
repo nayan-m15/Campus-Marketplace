@@ -426,7 +426,10 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
   const userIsSeller = transaction.seller_id === userId;
   const userIsBuyer = transaction.buyer_id === userId;
   const canBookDropoff = userIsSeller && !transaction.dropoff_booking && ["pending", "awaiting_dropoff"].includes(transaction.status);
-  const canBookCollection = userIsBuyer && !transaction.collection_booking && canBookCollectionForStatus(transaction.status);
+  const collectionRequestReady =
+    canBookCollectionForStatus(transaction.status) ||
+    (transaction.status === "item_received" && Boolean(transaction.dropoff_booking));
+  const canBookCollection = userIsBuyer && !transaction.collection_booking && collectionRequestReady;
 
   return (
     <article className="bookings-page-card">

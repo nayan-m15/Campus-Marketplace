@@ -14,7 +14,12 @@ export function buildTradeTransactionId(prefix = "TXN") {
 }
 
 export function canBookCollectionForStatus(status) {
-  return ["dropped_off", "item_received", "awaiting_collection"].includes(status);
+  return [
+    "dropped_off",
+    "item_received",
+    "collection_pending_approval",
+    "awaiting_collection",
+  ].includes(status);
 }
 
 export function deriveBookingStatus(type, transactionStatus) {
