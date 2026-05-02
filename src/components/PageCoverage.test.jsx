@@ -371,6 +371,8 @@ vi.mock("../data/listings", () => ({
   CATEGORIES: [
     { label: "All Items", emoji: "All" },
     { label: "Electronics", emoji: "Laptop" },
+    { label: "Textbooks", emoji: "Book" },
+    { label: "Other", emoji: "Box" },
   ],
   CONDITIONS: ["All Conditions", "New", "Like New", "Good", "Fair", "Poor"],
 }));
@@ -515,6 +517,8 @@ test("YourListingsPage edits status and deletes a listing", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: /edit/i }));
   fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Desk Lamp Pro" } });
+  // Category edits should use the same Save Changes path as the other fields.
+  fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Textbooks" } });
   const priceInput = screen.getByLabelText(/price/i);
   fireEvent.focus(priceInput);
   fireEvent.change(priceInput, { target: { value: "300.75" } });
@@ -527,7 +531,8 @@ test("YourListingsPage edits status and deletes a listing", async () => {
         ([table, payload]) =>
           table === "listings" &&
           payload?.title === "Desk Lamp Pro" &&
-          payload?.price === 300.75
+          payload?.price === 300.75 &&
+          payload?.category === "Textbooks"
       )
     ).toBe(true)
   );

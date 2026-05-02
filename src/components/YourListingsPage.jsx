@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
-import { CONDITION_COLORS } from "../data/listings";
+import { CATEGORIES, CONDITION_COLORS } from "../data/listings";
 
 const LISTING_TITLE_MAX = 90;
 const LISTING_DESCRIPTION_MAX = 350;
@@ -12,6 +12,9 @@ const LISTING_PRICE_MAX_DIGITS = 8;
 const LISTING_PRICE_MAX_VALUE = 99999999.99;
 // Keep the edit modal aligned with the create-listing photo limit.
 const MAX_IMAGES = 5;
+// The edit modal should offer real listing categories, excluding the filter-only
+// "All Items" option used by the browsing UI.
+const EDITABLE_CATEGORIES = CATEGORIES.filter((category) => category.label !== "All Items");
 
 // A focused piece of component behavior is handled here.
 // Keeping it separate makes the main flow less crowded.
@@ -643,6 +646,24 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 >
                   {["Like New", "Good", "Fair", "Poor"].map((c) => (
                     <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
+                Category
+                <select
+                  value={editingItem.category || "Other"}
+                  onChange={(e) => {
+                    // Keep the draft category in local state until Save Changes
+                    // persists it with the rest of the listing edit payload.
+                    setError(null);
+                    setEditingItem({ ...editingItem, category: e.target.value });
+                  }}
+                  style={{ padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--gray-200)", fontSize: 14, fontFamily: "var(--font)", outline: "none" }}
+                >
+                  {EDITABLE_CATEGORIES.map((category) => (
+                    <option key={category.label} value={category.label}>{category.label}</option>
                   ))}
                 </select>
               </label>
