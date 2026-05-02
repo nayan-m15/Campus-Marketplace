@@ -9,6 +9,7 @@ const STATUS_META = {
   item_received: { label: "Item Received", cls: "status--item-received", icon: "📦" },
   collection_pending_approval: { label: "Collection Pending Approval", cls: "status--awaiting-collection", icon: "📝" },
   awaiting_collection: { label: "Awaiting Collection", cls: "status--awaiting-collection", icon: "🔔" },
+  item_released: { label: "Item Released", cls: "status--completed", icon: "🏁" },
   completed: { label: "Completed", cls: "status--completed", icon: "🏁" },
   cancelled: { label: "Cancelled", cls: "status--cancelled", icon: "✕" },
 };
@@ -19,6 +20,39 @@ const BOOKING_STATUS_META = {
   completed: { label: "Completed", cls: "bstatus--completed" },
   cancelled: { label: "Cancelled", cls: "bstatus--no-show" },
 };
+
+const TRANSACTION_STATUS_OPTIONS = [
+  "awaiting_dropoff",
+  "item_received",
+  "awaiting_collection",
+  "item_released",
+];
+
+const BOOKING_STATUS_OPTIONS = [
+  "pending_approval",
+  "scheduled",
+  "completed",
+  "cancelled",
+];
+
+function mapBookingStatusToTransactionStatus(bookingType, bookingStatus, currentStatus) {
+  if (bookingStatus === "cancelled") return "cancelled";
+
+  if (bookingType === "dropoff") {
+    if (bookingStatus === "completed") return "item_received";
+    if (bookingStatus === "scheduled" || bookingStatus === "pending_approval") {
+      return currentStatus === "cancelled" ? "awaiting_dropoff" : currentStatus;
+    }
+  }
+
+  if (bookingType === "collection") {
+    if (bookingStatus === "pending_approval") return "collection_pending_approval";
+    if (bookingStatus === "scheduled") return "awaiting_collection";
+    if (bookingStatus === "completed") return "item_released";
+  }
+
+  return currentStatus;
+}
 
 const NAV_ITEMS = [
   { key: "overview", label: "Overview", icon: "🏠" },
@@ -165,7 +199,16 @@ function buildBookings(transactions, profilesById, bookingsById) {
   });
 }
 
-function BookingCard({ booking, transaction, onConfirmReceipt, onApproveCollection, onDeclineCollection, onConfirmRelease }) {
+function BookingCard({
+  booking,
+  transaction,
+  onConfirmReceipt,
+  onApproveCollection,
+  onDeclineCollection,
+  onConfirmRelease,
+  onStatusChange,
+  statusSaving,
+}) {
   const isDropoff = booking.type === "dropoff";
   const isCollection = booking.type === "collection";
   const isScheduled = booking.status === "scheduled" || booking.status === "pending_approval";
@@ -217,6 +260,24 @@ function BookingCard({ booking, transaction, onConfirmReceipt, onApproveCollecti
               <StatusBadge status={transaction.status} />
             </li>
           ) : null}
+          <li className="booking-card__detail booking-card__detail--status-control">
+            <span className="booking-card__detail-label">Set Status</span>
+            <label className="status-select-wrap">
+              <span className="sr-only">Update booking status</span>
+              <select
+                className="status-select"
+                value={booking.status}
+                onChange={(event) => onStatusChange(booking, transaction, event.target.value)}
+                disabled={statusSaving}
+              >
+                {BOOKING_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {BOOKING_STATUS_META[status]?.label || status}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </li>
         </ul>
       </section>
 
@@ -325,7 +386,7 @@ function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
 }
 
 function OverviewSection({ transactions, bookings }) {
-  const active = transactions.filter((transaction) => !["completed", "cancelled"].includes(transaction.status)).length;
+  const active = transactions.filter((transaction) => !["item_released", "completed", "cancelled"].includes(transaction.status)).length;
   const awaitingDropoff = transactions.filter((transaction) => transaction.status === "awaiting_dropoff").length;
   const awaitingCollection = transactions.filter((transaction) => transaction.status === "awaiting_collection").length;
   const pendingCollectionApprovals = transactions.filter((transaction) => transaction.status === "collection_pending_approval").length;
@@ -353,7 +414,17 @@ function OverviewSection({ transactions, bookings }) {
   );
 }
 
-function BookingsSection({ type, bookings, transactions, onConfirmReceipt, onApproveCollection, onDeclineCollection, onConfirmRelease }) {
+function BookingsSection({
+  type,
+  bookings,
+  transactions,
+  onConfirmReceipt,
+  onApproveCollection,
+  onDeclineCollection,
+  onConfirmRelease,
+  onStatusChange,
+  statusSavingIds,
+}) {
   const [search, setSearch] = useState("");
   const label = type === "dropoff" ? "Drop-off" : "Collection";
 
@@ -422,6 +493,8 @@ function BookingsSection({ type, bookings, transactions, onConfirmReceipt, onApp
                     onApproveCollection={onApproveCollection}
                     onDeclineCollection={onDeclineCollection}
                     onConfirmRelease={onConfirmRelease}
+                    onStatusChange={onStatusChange}
+                    statusSaving={Boolean(statusSavingIds[booking.id])}
                   />
                 </li>
               );
@@ -433,7 +506,7 @@ function BookingsSection({ type, bookings, transactions, onConfirmReceipt, onApp
   );
 }
 
-function TransactionsSection({ transactions, bookings }) {
+function TransactionsSection({ transactions, bookings, onTransactionStatusChange, statusSavingIds }) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => transactions.filter((transaction) => {
@@ -525,7 +598,26 @@ function TransactionsSection({ transactions, bookings }) {
                         </section>
                       </td>
                       <td className="txn-price">R {Number(transaction.price || 0).toLocaleString("en-ZA")}</td>
-                      <td><StatusBadge status={transaction.status} /></td>
+                      <td>
+                        <div className="txn-status-stack">
+                          <StatusBadge status={transaction.status} />
+                          <label className="status-select-wrap">
+                            <span className="sr-only">Update transaction status</span>
+                            <select
+                              className="status-select status-select--compact"
+                              value={transaction.status}
+                              onChange={(event) => onTransactionStatusChange(transaction.id, event.target.value)}
+                              disabled={Boolean(statusSavingIds[transaction.id])}
+                            >
+                              {TRANSACTION_STATUS_OPTIONS.map((status) => (
+                                <option key={status} value={status}>
+                                  {STATUS_META[status]?.label || status}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      </td>
                       <td>
                         {dropoff ? (
                           <section className="txn-booking-cell">
@@ -564,6 +656,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   const [error, setError] = useState("");
   const [dialog, setDialog] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [statusSavingIds, setStatusSavingIds] = useState({});
   const [toast, setToast] = useState({ msg: "", visible: false });
   const toastTimer = useRef(null);
 
@@ -673,6 +766,67 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     }
   }, [saving]);
 
+  const updateTransactionStatus = useCallback(async (transactionId, nextStatus) => {
+    setStatusSavingIds((prev) => ({ ...prev, [transactionId]: true }));
+    try {
+      const { error: updateError } = await supabase
+        .from("transactions")
+        .update({ status: nextStatus })
+        .eq("id", transactionId);
+
+      if (updateError) throw updateError;
+      showToast(`Transaction status updated to ${STATUS_META[nextStatus]?.label || nextStatus}.`);
+      await loadDashboard();
+    } catch (err) {
+      showToast(err.message || "Unable to update the transaction status.");
+    } finally {
+      setStatusSavingIds((prev) => {
+        const next = { ...prev };
+        delete next[transactionId];
+        return next;
+      });
+    }
+  }, [loadDashboard, showToast]);
+
+  const updateBookingStatus = useCallback(async (booking, transaction, nextStatus) => {
+    setStatusSavingIds((prev) => ({ ...prev, [booking.id]: true }));
+    try {
+      const updates = [];
+      updates.push(
+        supabase
+          .from("bookings")
+          .update({ status: nextStatus })
+          .eq("id", booking.id)
+      );
+
+      if (transaction?.id) {
+        updates.push(
+          supabase
+            .from("transactions")
+            .update({
+              status: mapBookingStatusToTransactionStatus(booking.type, nextStatus, transaction.status),
+            })
+            .eq("id", transaction.id)
+        );
+      }
+
+      const results = await Promise.all(updates);
+      const failed = results.find((result) => result.error);
+      if (failed?.error) throw failed.error;
+
+      showToast(`Booking status updated to ${BOOKING_STATUS_META[nextStatus]?.label || nextStatus}.`);
+      await loadDashboard();
+    } catch (err) {
+      showToast(err.message || "Unable to update the booking status.");
+    } finally {
+      setStatusSavingIds((prev) => {
+        const next = { ...prev };
+        delete next[booking.id];
+        return next;
+      });
+    }
+  }, [loadDashboard, showToast]);
+
   const handleDialogConfirm = useCallback(async () => {
     if (!dialog) return;
 
@@ -744,14 +898,14 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
       } else {
         const { error: updateError } = await supabase
           .from("transactions")
-          .update({ status: "completed" })
+          .update({ status: "item_released" })
           .eq("id", transaction.id);
 
         if (updateError) {
           throw updateError;
         }
 
-        showToast(`Item released to ${booking.personName}. Transaction marked complete.`);
+        showToast(`Item released to ${booking.personName}. Transaction marked as released.`);
       }
 
       setDialog(null);
@@ -851,6 +1005,8 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
             onApproveCollection={handleApproveCollection}
             onDeclineCollection={handleDeclineCollection}
             onConfirmRelease={handleConfirmRelease}
+            onStatusChange={updateBookingStatus}
+            statusSavingIds={statusSavingIds}
           />
         ) : null}
         {!loading && !error && activeView === "collections" ? (
@@ -862,10 +1018,17 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
             onApproveCollection={handleApproveCollection}
             onDeclineCollection={handleDeclineCollection}
             onConfirmRelease={handleConfirmRelease}
+            onStatusChange={updateBookingStatus}
+            statusSavingIds={statusSavingIds}
           />
         ) : null}
         {!loading && !error && activeView === "transactions" ? (
-          <TransactionsSection transactions={transactions} bookings={bookings} />
+          <TransactionsSection
+            transactions={transactions}
+            bookings={bookings}
+            onTransactionStatusChange={updateTransactionStatus}
+            statusSavingIds={statusSavingIds}
+          />
         ) : null}
       </main>
 

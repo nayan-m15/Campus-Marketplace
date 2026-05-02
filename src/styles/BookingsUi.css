@@ -620,6 +620,17 @@
   color: #155eef;
 }
 
+.bookings-page-status--item_received {
+  background: #dff7e8;
+  color: #166534;
+}
+
+.bookings-page-status--collection_pending_approval {
+  background: #eef4ff;
+  color: #1d4ed8;
+}
+
+.bookings-page-status--item_released,
 .bookings-page-status--completed {
   background: #dcfce7;
   color: #166534;

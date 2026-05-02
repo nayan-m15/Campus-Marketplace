@@ -635,7 +635,7 @@ export default function MessagesPage({
         .order("created_at", { ascending: false });
 
       const activeTransaction = (existingTransactions || []).find(
-        (transaction) => !["completed", "cancelled"].includes(transaction.status)
+        (transaction) => !["item_released", "completed", "cancelled"].includes(transaction.status)
       );
 
       const transactionPayload = {

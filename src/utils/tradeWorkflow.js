@@ -1,10 +1,10 @@
 export const TRANSACTION_STATUS_META = {
   pending: "Pending",
   awaiting_dropoff: "Awaiting Drop-off",
-  dropped_off: "Dropped Off",
   item_received: "Item Received",
   collection_pending_approval: "Collection Pending Approval",
   awaiting_collection: "Awaiting Collection",
+  item_released: "Item Released",
   completed: "Completed",
   cancelled: "Cancelled",
 };
@@ -15,7 +15,6 @@ export function buildTradeTransactionId(prefix = "TXN") {
 
 export function canBookCollectionForStatus(status) {
   return [
-    "dropped_off",
     "item_received",
     "collection_pending_approval",
     "awaiting_collection",
@@ -25,7 +24,7 @@ export function canBookCollectionForStatus(status) {
 export function deriveBookingStatus(type, transactionStatus) {
   if (transactionStatus === "cancelled") return "cancelled";
   if (type === "dropoff") {
-    return ["awaiting_collection", "item_received", "completed"].includes(transactionStatus)
+    return ["awaiting_collection", "item_received", "item_released", "completed"].includes(transactionStatus)
       ? "completed"
       : "scheduled";
   }
@@ -34,5 +33,5 @@ export function deriveBookingStatus(type, transactionStatus) {
     return "pending_approval";
   }
 
-  return transactionStatus === "completed" ? "completed" : "scheduled";
+  return ["item_released", "completed"].includes(transactionStatus) ? "completed" : "scheduled";
 }
