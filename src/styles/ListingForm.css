@@ -1,3 +1,6 @@
+/* Design notes for listing form live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 .lf__wrapper {
   display: flex;
   justify-content: center;
@@ -478,3 +481,4 @@
   max-width: none;
   box-shadow: none; /* shadow is on draggable-modal itself */
 }
+

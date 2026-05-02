@@ -1,6 +1,11 @@
+// Main structure for the listing card feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { CONDITION_COLORS } from "../data/listings";
 import "../styles/ListingCard.css";
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function ListingCard({
   item,
   onClick,
@@ -13,6 +18,8 @@ export default function ListingCard({
 }) {
   const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleKeyDown(e) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -20,6 +27,8 @@ export default function ListingCard({
     }
   }
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleWishlistClick(e) {
     e.stopPropagation();
     if (!user) return; // silently ignore if not logged in — caller can show auth prompt
@@ -48,6 +57,13 @@ export default function ListingCard({
           </figure>
         )}
 
+        {/* ── For Trade badge ── */}
+        {item.listing_type === "trade" && (
+          <span className="listing-card__trade-badge">
+            For Trade
+          </span>
+        )}
+        
         {/* ── Wishlist heart button ── */}
         {onToggleWishlist && (
           <button

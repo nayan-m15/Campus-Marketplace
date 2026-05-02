@@ -1,3 +1,6 @@
+// Main structure for the page coverage test feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, beforeEach, expect, test } from "vitest";
 import AdminDashboard from "./AdminDashboard";
@@ -122,6 +125,8 @@ const defaultListingRecords = {
 };
 const listingRecords = structuredClone(defaultListingRecords);
 
+// Supporting logic for the result for flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function resultFor(table, mode, filters = {}) {
   if (table === "listings" && mode === "count") {
     const excludedUserId = filters.__neq?.user_id;
@@ -172,6 +177,8 @@ function resultFor(table, mode, filters = {}) {
   return { data: [], error: null };
 }
 
+// Supporting logic for the make query flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function makeQuery(table, mode = "list", filters = {}) {
   const query = {
     select: (_columns, options = {}) => {

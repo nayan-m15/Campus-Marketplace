@@ -117,6 +117,7 @@ export function normaliseListing(listing, profile) {
       ? [primaryImage, ...imageUrls.filter((url) => url !== primaryImage)]
       : imageUrls,
     emoji: primaryImage ? null : getCategoryEmoji(category),
+    listing_type: listing.listing_type ?? "cash",
   };
 }
 
@@ -126,7 +127,7 @@ export async function fetchListings(currentUserId = null) {
   try {
     let query = supabase
       .from("listings")
-      .select("id, title, description, price, condition, user_id, image_url, image_urls, category, status")
+      .select("id, title, description, price, condition, user_id, image_url, image_urls, category, status, listing_type")
       .neq("status", "sold")
       .order("created_at", { ascending: false });
 

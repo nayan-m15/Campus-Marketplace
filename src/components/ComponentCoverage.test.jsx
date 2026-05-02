@@ -1,3 +1,6 @@
+// Main structure for the component coverage test feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { vi, beforeEach, afterEach, expect, test } from "vitest";
 import Footer from "./Footer";
@@ -15,6 +18,8 @@ const authFns = {
   signIn: vi.fn(),
   signUp: vi.fn(),
   signInWithGoogle: vi.fn(),
+  resetPassword: vi.fn(),
+  clearPasswordRecovery: vi.fn(),
 };
 
 const updateUser = vi.fn();
@@ -30,6 +35,7 @@ const getUser = vi.fn();
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
     user: { id: "user-1", email: "student@example.com" },
+    isPasswordRecovery: false,
     ...authFns,
   }),
 }));
@@ -117,6 +123,7 @@ beforeEach(() => {
   authFns.signIn.mockResolvedValue({ error: null });
   authFns.signUp.mockResolvedValue({ data: {}, error: null });
   authFns.signInWithGoogle.mockResolvedValue({ error: null });
+  authFns.resetPassword.mockResolvedValue({ error: null });
   updateUser.mockResolvedValue({ error: null });
   signOut.mockResolvedValue({});
   rpc.mockResolvedValue({ error: null });
@@ -133,7 +140,7 @@ afterEach(() => {
 
 test("renders footer brand copy", () => {
   render(<Footer />);
-  expect(screen.getByText(/unexus/i)).toBeInTheDocument();
+  expect(screen.getByText(/campusxchange/i)).toBeInTheDocument();
   expect(screen.getByText(/student marketplace/i)).toBeInTheDocument();
 });
 
@@ -164,6 +171,45 @@ test("FilterBar fires callbacks for filter changes and clearing", () => {
   expect(onConditionChange).toHaveBeenCalledWith("All Conditions");
   expect(onPriceSortChange).toHaveBeenCalledWith("");
   expect(onPriceRangeChange).toHaveBeenCalledWith({ min: "", max: "" });
+});
+
+test("FilterBar opens separate mobile filter and sort panels", () => {
+  const onCategoryChange = vi.fn();
+  const onConditionChange = vi.fn();
+  const onPriceSortChange = vi.fn();
+  const onPriceRangeChange = vi.fn();
+
+  render(
+    <FilterBar
+      activeCategory="All Items"
+      onCategoryChange={onCategoryChange}
+      activeCondition="All Conditions"
+      onConditionChange={onConditionChange}
+      priceSort=""
+      onPriceSortChange={onPriceSortChange}
+      priceRange={{ min: "", max: "" }}
+      onPriceRangeChange={onPriceRangeChange}
+      showSorting={false}
+      mobileSorting
+    />
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: /filter/i }));
+  const filterPanel = screen.getByRole("region", { name: /filter listings panel/i });
+  expect(within(filterPanel).getByRole("heading", { name: /^filter$/i })).toBeInTheDocument();
+
+  fireEvent.change(within(filterPanel).getByLabelText(/^category$/i), {
+    target: { value: "Electronics" },
+  });
+  expect(onCategoryChange).toHaveBeenCalledWith("Electronics");
+
+  fireEvent.click(screen.getByRole("button", { name: /apply/i }));
+  fireEvent.click(screen.getByRole("button", { name: /sort by/i }));
+  const sortPanel = screen.getByRole("region", { name: /sort listings panel/i });
+  expect(within(sortPanel).getByRole("heading", { name: /sort by/i })).toBeInTheDocument();
+
+  fireEvent.click(within(sortPanel).getByRole("button", { name: /price high to low/i }));
+  expect(onPriceSortChange).toHaveBeenCalledWith("price_desc");
 });
 
 test("ListingCard supports keyboard open, seller navigation, messaging, and wishlist toggles", () => {
@@ -330,6 +376,21 @@ test("LoginPage submits credentials and shows provider errors", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent("OAuth failed");
+});
+
+test("LoginPage can request a password reset email", async () => {
+  render(<LoginPage onNavigate={vi.fn()} />);
+
+  fireEvent.change(screen.getByLabelText(/email address/i), {
+    target: { value: "student@example.com" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /forgot your password/i }));
+  fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
+
+  await waitFor(() => {
+    expect(authFns.resetPassword).toHaveBeenCalledWith("student@example.com");
+  });
+  expect(await screen.findByText(/password reset link sent/i)).toBeInTheDocument();
 });
 
 test("SignupPage validates passwords and shows success after signup", async () => {

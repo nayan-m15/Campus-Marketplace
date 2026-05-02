@@ -1,3 +1,6 @@
+// Main structure for the your listings page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
@@ -8,6 +11,8 @@ const LISTING_DESCRIPTION_MAX = 350;
 const LISTING_PRICE_MAX_DIGITS = 8;
 const LISTING_PRICE_MAX_VALUE = 99999999.99;
 
+// A focused piece of component behavior is handled here.
+// Keeping it separate makes the main flow less crowded.
 function clampPriceInput(value) {
   const cleaned = String(value ?? "")
     .replace(",", ".")
@@ -28,6 +33,8 @@ function clampPriceInput(value) {
   return `${whole}.${cents}`;
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function formatZAR(value) {
   const num = Number(String(value).replace(/[^0-9.]/g, ""));
   if (isNaN(num)) return "R 0";
@@ -38,10 +45,14 @@ function formatZAR(value) {
   }).replace(/,/g, " ")}`;
 }
 
+// A focused piece of component behavior is handled here.
+// Keeping it separate makes the main flow less crowded.
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function formatEditPrice(value) {
   const price = clampPriceInput(value);
 
@@ -54,6 +65,8 @@ function formatEditPrice(value) {
     maximumFractionDigits: 2,
   }).replace(/,/g, " ")}`;
 }
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function YourListingsPage({ onBack, onListingChanged }) {
   const { user } = useAuth();
   const [listings, setListings] = useState([]);
@@ -104,19 +117,20 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     showSuccess(newStatus === "sold" ? "Marked as sold!" : "Relisted!");
     onListingChanged?.();
   }
-  async function handleMarkTrade(id, currentStatus) {
-  const newStatus = currentStatus === "for_trade" ? "active" : "for_trade";
-  const { error } = await supabase
-    .from("listings")
-    .update({ status: newStatus })
-    .eq("id", id);
-  if (error) { setError(error.message); return; }
-  setListings((prev) =>
-    prev.map((l) => (l.id === id ? { ...l, status: newStatus } : l))
-  );
-  showSuccess(newStatus === "for_trade" ? "Listed for trade!" : "Relisted!");
-  onListingChanged?.();
-}
+
+  async function handleMarkTrade(id, currentType) {
+    const newType = currentType === "trade" ? "cash" : "trade";
+    const { error } = await supabase
+      .from("listings")
+      .update({ listing_type: newType })
+      .eq("id", id);
+    if (error) { setError(error.message); return; }
+    setListings((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, listing_type: newType } : l))
+    );
+    showSuccess(newType === "trade" ? "Listed for trade!" : "Relisted as cash!");
+    onListingChanged?.();
+  }
 
   async function handleEditSave(e) {
     e?.preventDefault?.();
@@ -156,6 +170,8 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     showSuccess("Listing updated!");
   }
 
+  // Small prep work happens in this helper before the UI uses the result.
+  // It keeps lookup, formatting, or data shaping out of the render path.
   function showSuccess(msg) {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(""), 3000);
@@ -214,16 +230,16 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
             <article key={item.id} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", border: "1px solid var(--gray-200)", opacity: isSold ? 0.7 : 1, position: "relative" }}>
 
               {/* Status badge */}
-                {item.status && item.status !== "active" && (
-                  <div style={{
-                    position: "absolute", top: 12, left: 12, zIndex: 1,
-                    background: item.status === "sold" ? "#111" : "#3b82f6",
-                    color: "#fff", borderRadius: 8, padding: "4px 10px",
-                    fontSize: 12, fontWeight: 700
-                  }}>
-                    {item.status === "sold" ? "SOLD" : "FOR TRADE"}
-                  </div>
-                )}
+              {(item.status === "sold" || item.listing_type === "trade") && (
+                <div style={{
+                  position: "absolute", top: 12, left: 12, zIndex: 1,
+                  background: item.status === "sold" ? "#111" : "#3b82f6",
+                  color: "#fff", borderRadius: 8, padding: "4px 10px",
+                  fontSize: 12, fontWeight: 700
+                }}>
+                  {item.status === "sold" ? "SOLD" : "FOR TRADE"}
+                </div>
+              )}
 
               {/* Image */}
               <div style={{ height: 160, background: "var(--surface-soft)", overflow: "hidden" }}>
@@ -267,18 +283,18 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                     Edit
                   </button>
                   <button
-                    className="your-listings-btn" 
+                    className="your-listings-btn"
                     onClick={() => handleMarkSold(item.id, item.status)}
                     style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "sold" ? "#f0fdf4" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "sold" ? "var(--green)" : "var(--gray-800)" }}
                   >
                     {item.status === "sold" ? "Relist" : " Mark Sold"}
                   </button>
                   <button
-                   className="your-listings-btn"
-                    onClick={() => handleMarkTrade(item.id, item.status)}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "for_trade" ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "for_trade" ? "#3b82f6" : "var(--gray-800)" }}
+                    className="your-listings-btn"
+                    onClick={() => handleMarkTrade(item.id, item.listing_type)}
+                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.listing_type === "trade" ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.listing_type === "trade" ? "#3b82f6" : "var(--gray-800)" }}
                   >
-                    {item.status === "for_trade" ? "Unlist Trade" : "For Trade"}
+                    {item.listing_type === "trade" ? "Unlist Trade" : "For Trade"}
                   </button>
                   <button
                     className="your-listings-btn"

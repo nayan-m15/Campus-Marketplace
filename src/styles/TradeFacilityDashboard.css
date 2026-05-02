@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
 
+/* Design notes for trade facility dashboard live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 *,
 *::before,
 *::after {
@@ -77,13 +80,10 @@ body {
 }
 
 .sidebar__logo {
-  font-size: 1.4rem;
-  background: var(--green);
   width: 40px;
   height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  object-fit: cover;
   border-radius: 10px;
   box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.1);
 }
@@ -93,9 +93,9 @@ body {
 }
 
 .sidebar__app-name {
-  font-size: 1.3rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
   color: white;
 }
 
@@ -1366,3 +1366,4 @@ dialog.confirm-dialog::backdrop {
   border-color: rgba(239, 68, 68, 0.4);
   color: var(--danger);
 }
+

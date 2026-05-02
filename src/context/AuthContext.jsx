@@ -1,3 +1,6 @@
+// Main structure for the auth context feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { getAppBaseUrl } from "../utils/appUrl";
@@ -8,11 +11,18 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
       const { data } = await supabase.auth.getSession();
       setUser(data?.session?.user ?? null);
+
+      if (typeof window !== "undefined") {
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        setIsPasswordRecovery(hash.get("type") === "recovery");
+      }
+
       setLoading(false);
     };
 
@@ -23,7 +33,12 @@ export function AuthProvider({ children }) {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
-        // Ensure profile exists on login
+        if (event === "PASSWORD_RECOVERY") {
+          setIsPasswordRecovery(true);
+        } else if (event === "SIGNED_OUT") {
+          setIsPasswordRecovery(false);
+        }
+
         if (event === "SIGNED_IN" && currentUser) {
           supabase
             .from("profiles")
@@ -85,7 +100,20 @@ export function AuthProvider({ children }) {
     });
   };
 
+  const resetPassword = async (email, { redirectTo } = {}) => {
+    const resolvedRedirect = redirectTo ?? getAppBaseUrl();
+
+    return supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: resolvedRedirect,
+    });
+  };
+
+  const clearPasswordRecovery = () => {
+    setIsPasswordRecovery(false);
+  };
+
   const signOut = async () => {
+    setIsPasswordRecovery(false);
     return supabase.auth.signOut();
   };
 
@@ -98,6 +126,9 @@ export function AuthProvider({ children }) {
         signUp,
         signIn,
         signInWithGoogle,
+        resetPassword,
+        isPasswordRecovery,
+        clearPasswordRecovery,
         signOut,
       }}
     >

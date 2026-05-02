@@ -1,3 +1,6 @@
+/* Design notes for app live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;
@@ -182,3 +185,4 @@
     border-right-color: var(--border);
   }
 }
+

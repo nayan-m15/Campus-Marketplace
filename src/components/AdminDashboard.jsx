@@ -1,3 +1,6 @@
+// Main structure for the admin dashboard feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect } from "react";
 import "../styles/AdminDashboard.css";
 import { supabase } from "../supabaseClient";
@@ -377,6 +380,8 @@ function ReportsPanel() {
     return stringValue;
   };
 
+  // Small prep work happens in this helper before the UI uses the result.
+  // It keeps lookup, formatting, or data shaping out of the render path.
   const fetchReport = async () => {
     let query;
     switch (reportType) {
@@ -408,6 +413,8 @@ function ReportsPanel() {
     setGenerated(true);
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleGenerate = async () => {
     setLoading(true);
     setGenerated(false);
@@ -447,7 +454,7 @@ function ReportsPanel() {
     const insightLines = generateInsights(reportType, reportData);
 
     doc.setFontSize(18);
-    doc.text("Unexus Marketplace Report", 14, 20);
+    doc.text("CAMPUSXCHANGE Marketplace Report", 14, 20);
     doc.setFontSize(12);
     doc.text(MARKETPLACE_REPORT_TYPES.find(r => r.value === reportType)?.label || "", 14, 28);
     doc.setFontSize(10);
@@ -496,12 +503,14 @@ function ReportsPanel() {
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     doc.setFontSize(9);
-    doc.text("Unexus Reporting System", 14, pageHeight - 10);
+    doc.text("CAMPUSXCHANGE Reporting System", 14, pageHeight - 10);
     doc.text("Page 1", pageWidth - 20, pageHeight - 10); // fixed x coordinate
 
     doc.save(`report-${reportType}.pdf`);
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleDownload = () => {
     if (format === "csv") downloadCSV();
     if (format === "pdf") downloadPDF();
@@ -733,6 +742,8 @@ export default function AdminDashboard({ onSignOut }) {
     );
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleToggleDay = (id, day) => {
     setFacilities((prev) =>
       prev.map((f) => {
@@ -746,6 +757,8 @@ export default function AdminDashboard({ onSignOut }) {
     );
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleTimeChange = (id, day, field, value) => {
     setFacilities((prev) =>
       prev.map((f) => {
@@ -759,6 +772,8 @@ export default function AdminDashboard({ onSignOut }) {
     );
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleCapacityChange = (id, rawValue) => {
     const parsed = parseInt(rawValue, 10);
     if (!isNaN(parsed) && parsed > 0) {
@@ -797,6 +812,8 @@ export default function AdminDashboard({ onSignOut }) {
     }
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
@@ -828,9 +845,9 @@ export default function AdminDashboard({ onSignOut }) {
       {/* Sidebar navigation */}
       <nav className="sidebar" aria-label="Admin navigation">
         <header className="sidebar__brand">
-          <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="sidebar__logo" />
+          <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="sidebar__logo" />
           <hgroup className="sidebar__brand-text">
-            <h1 className="sidebar__app-name">Unexus</h1>
+            <h1 className="sidebar__app-name">CAMPUSXCHANGE</h1>
             <p className="sidebar__role">Admin Portal</p>
           </hgroup>
         </header>

@@ -1,6 +1,6 @@
 /**
  * passwordValidation.js
- * Shared password validation rules for Unexus.
+ * Shared password validation rules for CAMPUSXCHANGE.
  * Import and use in SignupPage, SettingsPage, or any auth flow.
  */
 
