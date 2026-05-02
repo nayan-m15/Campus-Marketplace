@@ -113,6 +113,8 @@ export default function MessagesPage({
   initialRecipientId = null,
   initialListingTitle = null,
   initialListingId = null,
+  initialDraft = null,
+  initialAction = null,
   onBack,
   onViewProfile,
   onUnreadChange,   // ← NEW: callback(count) so parent can update navbar badge
@@ -146,6 +148,7 @@ export default function MessagesPage({
   const [offerAmount, setOfferAmount] = useState("");
   const [offerSending, setOfferSending] = useState(false);
   const [offerError, setOfferError] = useState("");
+  const [sendDraftBeforeOffer, setSendDraftBeforeOffer] = useState(false);
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
@@ -254,11 +257,22 @@ export default function MessagesPage({
   // ── Auto-open chat from listing ───────────────────────────
   useEffect(() => {
     if (!initialRecipientId || !user) return;
-    setActiveListingId(initialListingId || null);
-    openChat(initialRecipientId, initialListingId || null);
-    if (initialListingTitle) {
-      setDraft(`Hi! I'm interested in your listing: "${initialListingTitle}". Is it still available?`);
+    async function openInitialChat() {
+      setActiveListingId(initialListingId || null);
+      await openChat(initialRecipientId, initialListingId || null);
+      if (initialDraft) {
+        setDraft(initialDraft);
+      } else if (initialListingTitle) {
+        setDraft(`Hi! I'm interested in your listing: "${initialListingTitle}". Is it still available?`);
+      }
+      if (initialAction === "offer") {
+        setOfferError("");
+        setOfferAmount("");
+        setSendDraftBeforeOffer(true);
+        setShowOfferModal(true);
+      }
     }
+    openInitialChat();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRecipientId, initialListingId, user]);
 
@@ -298,6 +312,7 @@ export default function MessagesPage({
     setShowOfferModal(false);
     setOfferAmount("");
     setOfferError("");
+    setSendDraftBeforeOffer(false);
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -551,6 +566,11 @@ export default function MessagesPage({
     if (!conversationListing?.id || !activeId) return;
     setOfferSending(true);
     setOfferError("");
+
+    if (sendDraftBeforeOffer && draft.trim()) {
+      await sendMessage(draft);
+      setSendDraftBeforeOffer(false);
+    }
 
     // Cancel any existing pending offer for this listing+conversation (replace it)
     await supabase

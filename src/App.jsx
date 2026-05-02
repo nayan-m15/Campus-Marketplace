@@ -175,7 +175,7 @@ function useUnreadCount(user, onIncomingMessage) {
 }
 
 // ── Item Details Modal ─────────────────────────────────────
-function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishlisted, onToggleWishlist }) {
+function ListingDetailsModal({ item, onClose, onMessageSeller, onSendOffer, user, isWishlisted, onToggleWishlist }) {
   const [message, setMessage] = useState(`Hi, is the ${item?.title || "item"} still available?`);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
@@ -369,6 +369,9 @@ function ListingDetailsModal({ item, onClose, onMessageSeller, user, isWishliste
                           <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={() => { onClose(); onMessageSeller(item); }}>
                             Open chat
                           </button>
+                          <button type="button" className="item-modal-send-btn item-modal-send-btn--offer" onClick={() => { onClose(); onSendOffer?.(item); }}>
+                            Send Offer
+                          </button>
                         </div>
                       </>
                     )}
@@ -407,6 +410,8 @@ function AppInner() {
   const [msgRecipientId, setMsgRecipientId] = useState(null);
   const [msgListingTitle, setMsgListingTitle] = useState(null);
   const [msgListingId, setMsgListingId] = useState(null);
+  const [msgInitialDraft, setMsgInitialDraft] = useState(null);
+  const [msgInitialAction, setMsgInitialAction] = useState(null);
   const [messageNotice, setMessageNotice] = useState(null);
 
   const [profileChecked, setProfileChecked] = useState(false);
@@ -615,6 +620,21 @@ function AppInner() {
     setMsgRecipientId(item.user_id || null);
     setMsgListingTitle(item.title);
     setMsgListingId(item.id || null);
+    setMsgInitialDraft(null);
+    setMsgInitialAction(null);
+    setPage("messages");
+  }
+
+  function handleSendOffer(item) {
+    if (!user) {
+      setPage("login");
+      return;
+    }
+    setMsgRecipientId(item.user_id || null);
+    setMsgListingTitle(item.title);
+    setMsgListingId(item.id || null);
+    setMsgInitialDraft(`Hello, I'd like to send an offer for "${item.title}".`);
+    setMsgInitialAction("offer");
     setPage("messages");
   }
 
@@ -654,6 +674,8 @@ function AppInner() {
     setMsgRecipientId(null);
     setMsgListingTitle(null);
     setMsgListingId(null);
+    setMsgInitialDraft(null);
+    setMsgInitialAction(null);
     setPublicProfileId(null);
     setPrevPage("home");
     window.location.assign(getAppBaseUrl());
@@ -713,6 +735,8 @@ function AppInner() {
       setMsgRecipientId(null);
       setMsgListingTitle(null);
       setMsgListingId(null);
+      setMsgInitialDraft(null);
+      setMsgInitialAction(null);
       setPage("messages");
     },
     onSignOut: signOut,
@@ -733,6 +757,8 @@ function AppInner() {
         setMsgRecipientId(null);
         setMsgListingTitle(null);
         setMsgListingId(null);
+        setMsgInitialDraft(null);
+        setMsgInitialAction(null);
         setPage("messages");
       }}
       style={{ position: "fixed", top: 20, right: 20, maxWidth: 320, textAlign: "left", background: "var(--gray-900)", color: "#fff", padding: "12px 16px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", cursor: "pointer", fontFamily: "var(--font)" }}
@@ -767,6 +793,8 @@ function AppInner() {
                   setMsgRecipientId(publicProfileId);
                   setMsgListingTitle(null);
                   setMsgListingId(null);
+                  setMsgInitialDraft(null);
+                  setMsgInitialAction(null);
                   setPage("messages");
                 }
               : null
@@ -785,10 +813,14 @@ function AppInner() {
           initialRecipientId={msgRecipientId}
           initialListingTitle={msgListingTitle}
           initialListingId={msgListingId}
+          initialDraft={msgInitialDraft}
+          initialAction={msgInitialAction}
           onBack={() => {
             setMsgRecipientId(null);
             setMsgListingTitle(null);
             setMsgListingId(null);
+            setMsgInitialDraft(null);
+            setMsgInitialAction(null);
             goHome();
           }}
           onViewProfile={(sellerId) => {
@@ -847,6 +879,7 @@ function AppInner() {
           item={selectedListing}
           onClose={() => setSelectedListing(null)}
           onMessageSeller={handleMessageSeller}
+          onSendOffer={handleSendOffer}
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
@@ -890,6 +923,7 @@ function AppInner() {
           item={selectedListing}
           onClose={() => setSelectedListing(null)}
           onMessageSeller={handleMessageSeller}
+          onSendOffer={handleSendOffer}
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
