@@ -197,10 +197,11 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
     const scheduledTime = `${selectedDate}T${selectedTime}:00`;
     const bookingId = buildBookingId(bookingType === "dropoff" ? "DO" : "CL");
     const bookingColumn = bookingType === "dropoff" ? "dropoff_id" : "collection_id";
-    const nextStatus =
+    const bookingStatus = "pending_approval";
+    const nextTransactionStatus =
       bookingType === "dropoff"
         ? "awaiting_dropoff"
-        : "collection_pending_approval";
+        : transaction.status;
 
     try {
       const existingBookingId = bookingType === "dropoff" ? transaction.dropoff_id : transaction.collection_id;
@@ -212,6 +213,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
             scheduled_time: scheduledTime,
             location: selectedFacility.name,
             type: bookingType,
+            status: bookingStatus,
           })
           .eq("id", existingBookingId);
 
@@ -221,7 +223,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
           .from("transactions")
           .update({
             [bookingColumn]: existingBookingId,
-            status: nextStatus,
+            status: nextTransactionStatus,
           })
           .eq("id", transaction.id);
 
@@ -234,6 +236,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
             type: bookingType,
             scheduled_time: scheduledTime,
             location: selectedFacility.name,
+            status: bookingStatus,
           });
 
         if (insertBookingError) throw insertBookingError;
@@ -242,7 +245,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
           .from("transactions")
           .update({
             [bookingColumn]: bookingId,
-            status: nextStatus,
+            status: nextTransactionStatus,
           })
           .eq("id", transaction.id);
 

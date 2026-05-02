@@ -36,17 +36,15 @@ const BOOKING_STATUS_OPTIONS = [
 ];
 
 function mapBookingStatusToTransactionStatus(bookingType, bookingStatus, currentStatus) {
-  if (bookingStatus === "cancelled") return "cancelled";
-
   if (bookingType === "dropoff") {
     if (bookingStatus === "completed") return "item_received";
-    if (bookingStatus === "scheduled" || bookingStatus === "pending_approval") {
-      return currentStatus === "cancelled" ? "awaiting_dropoff" : currentStatus;
+    if (["scheduled", "pending_approval", "cancelled"].includes(bookingStatus)) {
+      return "awaiting_dropoff";
     }
   }
 
   if (bookingType === "collection") {
-    if (bookingStatus === "pending_approval") return "collection_pending_approval";
+    if (bookingStatus === "pending_approval" || bookingStatus === "cancelled") return "item_received";
     if (bookingStatus === "scheduled") return "awaiting_collection";
     if (bookingStatus === "completed") return "item_released";
   }
@@ -167,7 +165,7 @@ function buildBookings(transactions, profilesById, bookingsById) {
         role: "seller",
         scheduledDate: booking.scheduled_time?.slice(0, 10) || "",
         scheduledTime: booking.scheduled_time?.slice(11, 16) || when.time,
-        status: deriveBookingStatus("dropoff", transaction.status),
+        status: booking.status || deriveBookingStatus("dropoff", transaction.status),
         itemName: transaction.item,
         location: booking.location,
       });
@@ -185,7 +183,7 @@ function buildBookings(transactions, profilesById, bookingsById) {
         role: "buyer",
         scheduledDate: booking.scheduled_time?.slice(0, 10) || "",
         scheduledTime: booking.scheduled_time?.slice(11, 16) || when.time,
-        status: deriveBookingStatus("collection", transaction.status),
+        status: booking.status || deriveBookingStatus("collection", transaction.status),
         itemName: transaction.item,
         location: booking.location,
       });
@@ -211,9 +209,8 @@ function BookingCard({
 }) {
   const isDropoff = booking.type === "dropoff";
   const isCollection = booking.type === "collection";
-  const isScheduled = booking.status === "scheduled" || booking.status === "pending_approval";
-  const isPendingApproval = isCollection && transaction?.status === "collection_pending_approval";
-  const canConfirmReceipt = isDropoff && isScheduled && transaction?.status === "awaiting_dropoff";
+  const isPendingApproval = booking.status === "pending_approval";
+  const canConfirmReceipt = isDropoff && booking.status === "scheduled" && transaction?.status === "awaiting_dropoff";
   const canApproveCollection = isPendingApproval;
   const canDeclineCollection = isPendingApproval;
   const canConfirmRelease = isCollection && booking.status === "scheduled" && transaction?.status === "awaiting_collection";
@@ -389,7 +386,9 @@ function OverviewSection({ transactions, bookings }) {
   const active = transactions.filter((transaction) => !["item_released", "completed", "cancelled"].includes(transaction.status)).length;
   const awaitingDropoff = transactions.filter((transaction) => transaction.status === "awaiting_dropoff").length;
   const awaitingCollection = transactions.filter((transaction) => transaction.status === "awaiting_collection").length;
-  const pendingCollectionApprovals = transactions.filter((transaction) => transaction.status === "collection_pending_approval").length;
+  const pendingCollectionApprovals = bookings.filter(
+    (booking) => booking.type === "collection" && booking.status === "pending_approval"
+  ).length;
   const completedToday = bookings.filter((booking) => booking.status === "completed").length;
 
   return (
@@ -835,14 +834,13 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
     try {
       if (actionType === "receipt") {
-        const { error: updateError } = await supabase
-          .from("transactions")
-          .update({ status: "item_received" })
-          .eq("id", transaction.id);
+        const [{ error: bookingError }, { error: updateError }] = await Promise.all([
+          supabase.from("bookings").update({ status: "completed" }).eq("id", booking.id),
+          supabase.from("transactions").update({ status: "item_received" }).eq("id", transaction.id),
+        ]);
 
-        if (updateError) {
-          throw updateError;
-        }
+        if (bookingError) throw bookingError;
+        if (updateError) throw updateError;
 
         if (staffProfile?.id) {
           await insertMessage({
@@ -854,14 +852,13 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
         showToast(`Item received from ${booking.personName}. Buyer notified to book collection.`);
       } else if (actionType === "approve_collection") {
-        const { error: updateError } = await supabase
-          .from("transactions")
-          .update({ status: "awaiting_collection" })
-          .eq("id", transaction.id);
+        const [{ error: bookingError }, { error: updateError }] = await Promise.all([
+          supabase.from("bookings").update({ status: "scheduled" }).eq("id", booking.id),
+          supabase.from("transactions").update({ status: "awaiting_collection" }).eq("id", transaction.id),
+        ]);
 
-        if (updateError) {
-          throw updateError;
-        }
+        if (bookingError) throw bookingError;
+        if (updateError) throw updateError;
 
         if (staffProfile?.id) {
           await insertMessage({
@@ -896,14 +893,13 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
         showToast(`Collection booking declined for ${booking.personName}.`);
       } else {
-        const { error: updateError } = await supabase
-          .from("transactions")
-          .update({ status: "item_released" })
-          .eq("id", transaction.id);
+        const [{ error: bookingError }, { error: updateError }] = await Promise.all([
+          supabase.from("bookings").update({ status: "completed" }).eq("id", booking.id),
+          supabase.from("transactions").update({ status: "item_released" }).eq("id", transaction.id),
+        ]);
 
-        if (updateError) {
-          throw updateError;
-        }
+        if (bookingError) throw bookingError;
+        if (updateError) throw updateError;
 
         showToast(`Item released to ${booking.personName}. Transaction marked as released.`);
       }
