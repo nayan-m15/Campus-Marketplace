@@ -124,22 +124,13 @@ function useUnreadCount(user, onIncomingMessage) {
 
   useEffect(() => {
     if (!user) { setUnreadCount(0); return; }
-    // Count unread messages + unread offers together for the navbar badge
-    Promise.all([
-      supabase
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .eq("receiver_id", user.id)
-        .eq("is_read", false)
-        .eq("is_deleted", false),
-      supabase
-        .from("offers")
-        .select("id", { count: "exact", head: true })
-        .eq("receiver_id", user.id)
-        .eq("is_read", false),
-    ]).then(([{ count: msgCount }, { count: offerCount }]) => {
-      setUnreadCount((msgCount || 0) + (offerCount || 0));
-    });
+    supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("receiver_id", user.id)
+      .eq("is_read", false)
+      .eq("is_deleted", false)
+      .then(({ count }) => setUnreadCount(count || 0));
   }, [user]);
 
   useEffect(() => {
@@ -192,12 +183,6 @@ function useUnreadCount(user, onIncomingMessage) {
                 browser: false,
               });
             });
-        }
-      })
-      // Also increment badge for incoming offers
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "offers" }, (payload) => {
-        if (payload.new.receiver_id === user.id) {
-          setUnreadCount((prev) => prev + 1);
         }
       })
       .subscribe();
