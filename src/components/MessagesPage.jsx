@@ -139,7 +139,7 @@ export default function MessagesPage({
   initialAcknowledgedFlaggedListingId = null,
   onBack,
   onViewProfile,
-  onUnreadChange,   // ← NEW: callback(count) so parent can update navbar badge
+  onUnreadChange,   // ← callback(count) so parent can update navbar badge
 }) {
   const { user } = useAuth();
 
@@ -216,9 +216,10 @@ export default function MessagesPage({
       .select("id, created_at, sender_id, receiver_id, content, is_read, listing_id")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
+
     const { data: offerRows } = await supabase
       .from("offers")
-      .select("id, created_at, sender_id, receiver_id, amount, status, listing_id")
+      .select("id, created_at, sender_id, receiver_id, amount, status, listing_id, is_read")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
@@ -231,6 +232,7 @@ export default function MessagesPage({
     for (const m of msgs || []) {
       const peerId = m.sender_id === user.id ? m.receiver_id : m.sender_id;
       const conversationKey = buildConversationKey(peerId, m.listing_id);
+
       if (!threadMap.has(conversationKey)) {
         threadMap.set(conversationKey, { peerId, listingId: m.listing_id || null, lastMsg: m });
       }
@@ -244,20 +246,34 @@ export default function MessagesPage({
     for (const offer of offerRows || []) {
       const peerId = offer.sender_id === user.id ? offer.receiver_id : offer.sender_id;
       const conversationKey = buildConversationKey(peerId, offer.listing_id);
+
+      // FIX 1: Count unread offers received by me using the new is_read column
+      if (offer.receiver_id === user.id && !offer.is_read) {
+        unreadMap[conversationKey] = (unreadMap[conversationKey] || 0) + 1;
+      }
+
+      // FIX 2: Build offer preview and let it win if it's newer than existing lastMsg
+      const offerPreviewMsg = {
+        id: `offer-preview-${offer.id}`,
+        created_at: offer.created_at,
+        sender_id: offer.sender_id,
+        receiver_id: offer.receiver_id,
+        content: buildOfferPreview(offer, user.id),
+        is_read: offer.is_read,
+        listing_id: offer.listing_id || null,
+      };
+
       if (!threadMap.has(conversationKey)) {
         threadMap.set(conversationKey, {
           peerId,
           listingId: offer.listing_id || null,
-          lastMsg: {
-            id: `offer-preview-${offer.id}`,
-            created_at: offer.created_at,
-            sender_id: null,
-            receiver_id: offer.receiver_id,
-            content: buildOfferPreview(offer, user.id),
-            is_read: true,
-            listing_id: offer.listing_id || null,
-          },
+          lastMsg: offerPreviewMsg,
         });
+      } else {
+        const existing = threadMap.get(conversationKey);
+        if (new Date(offer.created_at) > new Date(existing.lastMsg.created_at)) {
+          threadMap.set(conversationKey, { ...existing, lastMsg: offerPreviewMsg });
+        }
       }
     }
 
@@ -294,6 +310,13 @@ export default function MessagesPage({
       lastMsg: thread.lastMsg,
     }));
 
+    // Sort by most recent lastMsg
+    convList.sort((a, b) => {
+      const aTime = a.lastMsg ? new Date(a.lastMsg.created_at) : 0;
+      const bTime = b.lastMsg ? new Date(b.lastMsg.created_at) : 0;
+      return bTime - aTime;
+    });
+
     setConversations(convList);
     setConvsLoading(false);
   }, [user]);
@@ -322,10 +345,11 @@ export default function MessagesPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRecipientId, initialListingId, user]);
 
-  // ── Mark messages as read ────────────────────────────────
+  // ── Mark messages AND offers as read ─────────────────────
   const markAsRead = useCallback(async (peerId, listingId = null) => {
     if (!peerId || !user) return;
-    // Update DB: mark all messages from this peer to me as read
+
+    // Mark messages as read
     let query = supabase
       .from("messages")
       .update({ is_read: true })
@@ -335,7 +359,18 @@ export default function MessagesPage({
     query = listingId ? query.eq("listing_id", listingId) : query.is("listing_id", null);
     await query;
 
-    // Clear local unread count for this thread
+    // FIX: Also mark offers as read when chat is opened
+    if (listingId) {
+      await supabase
+        .from("offers")
+        .update({ is_read: true })
+        .eq("receiver_id", user.id)
+        .eq("sender_id", peerId)
+        .eq("listing_id", listingId)
+        .eq("is_read", false);
+    }
+
+    // Clear local unread count for this thread (covers both messages + offers)
     setUnreadByPeer((prev) => {
       const next = { ...prev };
       delete next[buildConversationKey(peerId, listingId)];
@@ -392,7 +427,6 @@ export default function MessagesPage({
     }
 
     // ── Buyer info banner ────────────────────────────────────
-    // Use the most recent message that has a listing_id (latest inquired listing)
     const msgWithListing = [...threadMessages].reverse().find((m) => m.listing_id) ||
       (listingId ? { listing_id: listingId, sender_id: peerId } : null);
 
@@ -415,12 +449,11 @@ export default function MessagesPage({
         status: "active",
         flag_reason: "",
       });
-
     }
     setOffers(threadOffers);
     setMsgsLoading(false);
 
-    // Mark as read now that we've opened the chat
+    // Mark messages + offers as read now that we've opened the chat
     await markAsRead(peerId, listingId);
 
     setConversations((prev) => {
@@ -437,7 +470,7 @@ export default function MessagesPage({
     });
   }, [user, markAsRead, initialListingTitle]);
 
-  // ── Realtime ──────────────────────────────────────────────
+  // ── Realtime: messages ────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     if (realtimeRef.current) supabase.removeChannel(realtimeRef.current);
@@ -496,10 +529,9 @@ export default function MessagesPage({
         });
         loadConversations();
       })
-      // ── Listen for is_read updates so sender's ticks turn green in real-time ──
+      // Listen for is_read updates so sender's ticks turn green in real-time
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
         const updated = payload.new;
-        // Only care if the updated message was sent by me and is now read
         if (updated.sender_id !== user.id) return;
         setMessages((prev) =>
           prev.map((m) => m.id === updated.id ? { ...m, is_read: updated.is_read } : m)
@@ -520,12 +552,15 @@ export default function MessagesPage({
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "offers" }, (payload) => {
         const offer = payload.new;
         if (offer.sender_id !== user.id && offer.receiver_id !== user.id) return;
+
+        const peerId = offer.sender_id === user.id ? offer.receiver_id : offer.sender_id;
+        const conversationKey = buildConversationKey(peerId, offer.listing_id || null);
+
         setActiveConversationKey((curActiveConversationKey) => {
-          const peerId = offer.sender_id === user.id ? offer.receiver_id : offer.sender_id;
-          if (curActiveConversationKey === buildConversationKey(peerId, offer.listing_id || null)) {
+          if (curActiveConversationKey === conversationKey) {
+            // Chat is open — offer is visible, mark it read immediately
             setOffers((prev) => {
               if (prev.find((o) => o.id === offer.id)) return prev;
-              // If this new offer replaces a pending one from the same sender, mark old ones declined
               return [
                 ...prev.map((o) =>
                   o.sender_id === offer.sender_id && o.receiver_id === offer.receiver_id && o.status === "pending" && o.id !== offer.id
@@ -535,14 +570,32 @@ export default function MessagesPage({
                 offer,
               ];
             });
+            // Auto-mark offer as read since the chat is open
+            if (offer.receiver_id === user.id) {
+              supabase
+                .from("offers")
+                .update({ is_read: true })
+                .eq("id", offer.id)
+                .then(() => loadConversations());
+            }
+          } else {
+            // FIX 3: Chat is not open — increment unread badge for incoming offers
+            if (offer.receiver_id === user.id) {
+              setUnreadByPeer((prev) => ({
+                ...prev,
+                [conversationKey]: (prev[conversationKey] || 0) + 1,
+              }));
+            }
           }
           return curActiveConversationKey;
         });
+
         loadConversations();
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "offers" }, (payload) => {
         const offer = payload.new;
         if (offer.sender_id !== user.id && offer.receiver_id !== user.id) return;
+        // Update local offer state immediately — ticks turn green in real-time
         setOffers((prev) => prev.map((o) => o.id === offer.id ? offer : o));
         loadConversations();
       })
@@ -553,7 +606,7 @@ export default function MessagesPage({
   // ── Scroll to bottom ──────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, offers]);
 
   // ── Auto-resize textarea ──────────────────────────────────
   useEffect(() => {
@@ -655,7 +708,7 @@ export default function MessagesPage({
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-  // ── Send Offer (lister → buyer) ───────────────────────────
+  // ── Send Offer ────────────────────────────────────────────
   const sendOffer = async () => {
     const amount = parseFloat(offerAmount.replace(/[^0-9.]/g, ""));
     if (!amount || amount <= 0) { setOfferError("Please enter a valid amount."); return; }
@@ -687,6 +740,7 @@ export default function MessagesPage({
         receiver_id: activeId,
         amount,
         status: "pending",
+        // is_read defaults to false in DB — receiver hasn't seen it yet
       })
       .select()
       .single();
@@ -706,7 +760,7 @@ export default function MessagesPage({
     setOfferSending(false);
   };
 
-  // ── Cancel Offer (lister) ────────────────────────────────
+  // ── Cancel Offer ──────────────────────────────────────────
   const cancelOffer = async (offerId) => {
     const { data: updatedOffer, error } = await supabase
       .from("offers")
@@ -719,7 +773,7 @@ export default function MessagesPage({
     setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
   };
 
-  // ── Respond to Offer (buyer) ──────────────────────────────
+  // ── Respond to Offer ──────────────────────────────────────
   const respondToOffer = async (offerId, accept) => {
     const newStatus = accept ? "accepted" : "declined";
     const { data: updatedOffer, error } = await supabase
@@ -903,7 +957,7 @@ export default function MessagesPage({
                         </span>
                       )}
 
-                      {/* ── WhatsApp-style unread badge ── */}
+                      {/* unread badge */}
                       {unread > 0 && !isActive && (
                         <span style={{
                           background: "#25d366",
@@ -1131,6 +1185,8 @@ export default function MessagesPage({
                         const isPending = item.status === "pending";
                         const isAccepted = item.status === "accepted";
                         const isDeclined = item.status === "declined";
+                        // Tick status for offers I sent: read if receiver has opened the chat
+                        const offerTickStatus = item.is_read ? "read" : "sent";
                         return (
                           <div key={`offer-${item.id}`} className={`msg-offer-card-wrap ${iMadeOffer ? "msg-offer-card-wrap--mine" : "msg-offer-card-wrap--theirs"}`}>
                             {!iMadeOffer && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
@@ -1169,6 +1225,13 @@ export default function MessagesPage({
                               )}
                               {item.status === "cancelled" && (
                                 <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer cancelled</p>
+                              )}
+
+                              {/* Read ticks — only shown on offers I sent */}
+                              {iMadeOffer && (
+                                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+                                  <ReadTicks status={offerTickStatus} />
+                                </div>
                               )}
                             </div>
                           </div>
