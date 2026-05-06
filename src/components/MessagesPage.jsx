@@ -32,6 +32,9 @@ const SELLER_QUICK_REPLIES = [
   "Sorry, it's not available.",
 ];
 
+const OFFER_PRICE_MAX_DIGITS = 8;
+const OFFER_PRICE_MAX_CHARS = OFFER_PRICE_MAX_DIGITS + 3;
+
 // Small prep work happens in this helper before the UI uses the result.
 // It keeps lookup, formatting, or data shaping out of the render path.
 function buildConversationKey(peerId, listingId = null) {
@@ -175,6 +178,25 @@ export default function MessagesPage({
   const [sendDraftBeforeOffer, setSendDraftBeforeOffer] = useState(false);
 
   const bottomRef = useRef(null);
+
+  function clampOfferAmount(value) {
+    const cleaned = String(value ?? "").replace(",", ".").replace(/[^0-9.]/g, "");
+    const dotIndex = cleaned.indexOf(".");
+    const whole = (dotIndex === -1 ? cleaned : cleaned.slice(0, dotIndex))
+      .replace(/\./g, "")
+      .slice(0, OFFER_PRICE_MAX_DIGITS);
+
+    if (dotIndex === -1) {
+      return whole;
+    }
+
+    const cents = cleaned
+      .slice(dotIndex + 1)
+      .replace(/\./g, "")
+      .slice(0, 2);
+
+    return `${whole}.${cents}`.slice(0, OFFER_PRICE_MAX_CHARS);
+  }
   const textareaRef = useRef(null);
   const realtimeRef = useRef(null);
 
@@ -1046,11 +1068,12 @@ export default function MessagesPage({
                     <span className="msg-offer-modal__currency">R</span>
                     <input
                       className="msg-offer-modal__input"
-                      type="number"
-                      min="1"
-                      placeholder="0"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      maxLength={OFFER_PRICE_MAX_CHARS}
                       value={offerAmount}
-                      onChange={(e) => { setOfferAmount(e.target.value); setOfferError(""); }}
+                      onChange={(e) => { setOfferAmount(clampOfferAmount(e.target.value)); setOfferError(""); }}
                       autoFocus
                     />
                   </div>
