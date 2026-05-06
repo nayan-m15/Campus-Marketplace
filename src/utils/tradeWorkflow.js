@@ -14,6 +14,8 @@ export function buildTradeTransactionId(prefix = "TXN") {
 }
 
 export function canBookCollectionForStatus(status) {
+  // `collection_pending_approval` is a legacy UI alias; it should never be
+  // written to `transactions.status`, but we still recognize it defensively.
   return [
     "item_received",
     "collection_pending_approval",

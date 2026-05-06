@@ -914,10 +914,10 @@ test("TradeFacilityDashboard renders navigation and sign out", () => {
 
   expect(screen.getByRole("heading", { name: /dashboard overview/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /drop-off bookings/i }));
-  expect(screen.getAllByRole("heading", { name: /drop-off bookings/i }).length).toBeGreaterThan(0);
+  expect(screen.getByRole("heading", { name: /drop-off requests/i })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: /all transactions/i }));
-  expect(screen.getAllByRole("heading", { name: /all transactions/i }).length).toBeGreaterThan(0);
+  expect(screen.getByRole("heading", { name: /all transactions/i })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
@@ -1007,7 +1007,7 @@ test("StudentBookingsPage lets a seller complete a drop-off booking flow", async
   await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
     "transactions",
     expect.objectContaining({
-      status: "awaiting_dropoff",
+      dropoff_id: expect.stringMatching(/^DO-/),
     })
   ));
 });
@@ -1049,7 +1049,7 @@ test("StudentBookingsPage lets a buyer complete a collection booking flow", asyn
   await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
     "transactions",
     expect.objectContaining({
-      status: "item_received",
+      collection_id: expect.stringMatching(/^CL-/),
     })
   ));
 });

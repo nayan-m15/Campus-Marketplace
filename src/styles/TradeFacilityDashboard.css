@@ -1185,6 +1185,245 @@ body {
 
 .txn-na { color: var(--gray-300); font-size: 1rem; }
 
+.transactions-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.transactions-toolbar__search {
+  flex: 1 1 320px;
+  min-width: 240px;
+}
+
+dialog.receipt-dialog {
+  border: none;
+  border-radius: 24px;
+  padding: 0;
+  width: min(960px, calc(100vw - 32px));
+  max-width: 960px;
+  background: transparent;
+  overflow: visible;
+}
+
+dialog.receipt-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.receipt-dialog__inner {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbf9 100%);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.receipt-dialog__header,
+.receipt-dialog__footer {
+  padding: 24px 28px;
+}
+
+.receipt-dialog__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--surface-strong);
+}
+
+.receipt-dialog__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+
+.receipt-dialog__title {
+  font-size: 1.35rem;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+
+.receipt-dialog__subtitle {
+  font-size: 0.88rem;
+  color: var(--gray-500);
+  max-width: 620px;
+}
+
+.receipt-dialog__close {
+  border: 1px solid var(--gray-200);
+  background: white;
+  color: var(--gray-500);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.receipt-dialog__body {
+  padding: 24px 28px 8px 28px;
+}
+
+.receipt-dialog__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.receipt-dialog__toolbar .bookings-search {
+  flex: 1 1 320px;
+}
+
+.receipt-dialog__results {
+  font-size: 0.8rem;
+  color: var(--green);
+  font-weight: 600;
+}
+
+.receipt-dialog__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+  gap: 18px;
+}
+
+.receipt-dialog__list {
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+.receipt-dialog__empty,
+.receipt-preview {
+  border: 1px solid var(--gray-200);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.receipt-dialog__empty {
+  padding: 22px;
+  font-size: 0.9rem;
+  color: var(--gray-500);
+}
+
+.receipt-option {
+  border: 1px solid var(--gray-200);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.receipt-option:hover,
+.receipt-option--selected {
+  border-color: rgba(31, 107, 82, 0.4);
+  box-shadow: 0 12px 28px rgba(31, 107, 82, 0.1);
+  transform: translateY(-1px);
+}
+
+.receipt-option__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.receipt-option__price,
+.receipt-option__item {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.receipt-option__item {
+  font-size: 0.96rem;
+  margin-bottom: 6px;
+}
+
+.receipt-option__meta {
+  color: var(--gray-500);
+  font-size: 0.78rem;
+}
+
+.receipt-preview {
+  padding: 20px;
+  align-self: start;
+}
+
+.receipt-preview__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--green);
+  margin-bottom: 10px;
+}
+
+.receipt-preview__title {
+  font-size: 1.05rem;
+  color: var(--navy);
+  margin-bottom: 14px;
+}
+
+.receipt-preview__details {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.receipt-preview__details dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--green);
+  margin-bottom: 4px;
+}
+
+.receipt-preview__details dd {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.receipt-preview__description,
+.receipt-preview__placeholder,
+.receipt-dialog__error {
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.receipt-preview__description,
+.receipt-preview__placeholder {
+  color: var(--gray-500);
+  margin-top: 16px;
+}
+
+.receipt-dialog__error {
+  color: var(--danger);
+  margin-top: 16px;
+}
+
+.receipt-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--surface-strong);
+  background: rgba(255, 255, 255, 0.6);
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    CONFIRM DIALOG
    ═══════════════════════════════════════════════════════════════════ */
@@ -1361,6 +1600,7 @@ dialog.confirm-dialog::backdrop {
   .dashboard-main { padding: 0 16px 16px 16px; }
 
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .receipt-dialog__content { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 680px) {
@@ -1395,6 +1635,15 @@ dialog.confirm-dialog::backdrop {
   .booking-card__header { flex-direction: column; align-items: flex-start; }
 
   .confirm-dialog { max-width: calc(100vw - 32px); }
+  .transactions-toolbar { align-items: stretch; }
+  .transactions-toolbar .btn-primary { width: 100%; justify-content: center; }
+  .receipt-dialog__header,
+  .receipt-dialog__body,
+  .receipt-dialog__footer { padding-left: 18px; padding-right: 18px; }
+  .receipt-dialog__header { flex-direction: column; }
+  .receipt-dialog__footer { flex-direction: column-reverse; }
+  .receipt-dialog__footer .btn-export,
+  .receipt-dialog__footer .btn-primary { width: 100%; justify-content: center; }
 }
 
 @media (max-width: 480px) {

@@ -76,12 +76,12 @@ async function loadFacilitiesWithHours() {
   }));
 }
 
-async function fetchSlotUsage(location, selectedDate) {
+async function fetchSlotUsage(location, selectedDate, excludeBookingId = null) {
   const start = `${selectedDate}T00:00:00`;
   const end = `${selectedDate}T23:59:59`;
   const { data, error } = await supabase
     .from("bookings")
-    .select("id, scheduled_time")
+    .select("id, scheduled_time, status")
     .eq("location", location)
     .gte("scheduled_time", start)
     .lte("scheduled_time", end);
@@ -89,6 +89,8 @@ async function fetchSlotUsage(location, selectedDate) {
   if (error) throw error;
 
   return (data || []).reduce((acc, booking) => {
+    if (excludeBookingId && booking.id === excludeBookingId) return acc;
+    if (["cancelled"].includes(booking.status)) return acc;
     const slot = booking.scheduled_time?.slice(11, 16);
     if (!slot) return acc;
     acc[slot] = (acc[slot] || 0) + 1;
@@ -156,7 +158,8 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
 
     let active = true;
     setLoadingSlots(true);
-    fetchSlotUsage(selectedFacility.name, selectedDate)
+    const existingBookingId = bookingType === "dropoff" ? transaction.dropoff_id : transaction.collection_id;
+    fetchSlotUsage(selectedFacility.name, selectedDate, existingBookingId)
       .then((usage) => {
         if (!active) return;
         setSlotUsage(usage);
@@ -198,11 +201,6 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
     const bookingId = buildBookingId(bookingType === "dropoff" ? "DO" : "CL");
     const bookingColumn = bookingType === "dropoff" ? "dropoff_id" : "collection_id";
     const bookingStatus = "pending_approval";
-    const nextTransactionStatus =
-      bookingType === "dropoff"
-        ? "awaiting_dropoff"
-        : transaction.status;
-
     try {
       const existingBookingId = bookingType === "dropoff" ? transaction.dropoff_id : transaction.collection_id;
 
@@ -223,7 +221,6 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
           .from("transactions")
           .update({
             [bookingColumn]: existingBookingId,
-            status: nextTransactionStatus,
           })
           .eq("id", transaction.id);
 
@@ -245,7 +242,6 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
           .from("transactions")
           .update({
             [bookingColumn]: bookingId,
-            status: nextTransactionStatus,
           })
           .eq("id", transaction.id);
 

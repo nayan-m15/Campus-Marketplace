@@ -777,31 +777,36 @@ export default function MessagesPage({
       const buyerId = updatedOffer.sender_id === sellerId ? updatedOffer.receiver_id : updatedOffer.sender_id;
 
       const { data: existingTransactions } = await supabase
-        .from("transactions")
-        .select("id, status, dropoff_id")
-        .eq("seller_id", sellerId)
-        .eq("buyer_id", buyerId)
-        .eq("item", listingTitle)
-        .order("created_at", { ascending: false });
+      .from("transactions")
+      .select("id, status, dropoff_id")
+      .eq("seller_id", sellerId)
+      .eq("buyer_id", buyerId)
+      .eq("item", listingTitle)
+      .order("created_at", { ascending: false });
 
       const activeTransaction = (existingTransactions || []).find(
-        (transaction) => !["item_released", "completed", "cancelled"].includes(transaction.status)
+        (t) => !["item_released", "completed", "cancelled"].includes(t.status)
       );
 
-      const transactionPayload = {
-        item: listingTitle,
+      // On UPDATE — only change the fields that the offer renegotiation owns.
+      // Never touch `status`; the trade workflow manages it separately.
+      const updatePayload = {
+        item:      listingTitle,
         seller_id: sellerId,
-        buyer_id: buyerId,
-        price: updatedOffer.amount,
-        status: activeTransaction?.dropoff_id ? activeTransaction.status : "awaiting_dropoff",
+        buyer_id:  buyerId,
+        price:     updatedOffer.amount,
       };
 
-      const transactionRequest = activeTransaction
-        ? supabase.from("transactions").update(transactionPayload).eq("id", activeTransaction.id)
-        : supabase.from("transactions").insert({
-            id: buildTradeTransactionId(),
-            ...transactionPayload,
-          });
+      // On INSERT — new transaction always starts at the beginning of the lifecycle.
+      const insertPayload = {
+        ...updatePayload,
+        id:     buildTradeTransactionId(),
+        status: "awaiting_dropoff",
+      };
+
+    const transactionRequest = activeTransaction
+      ? supabase.from("transactions").update(updatePayload).eq("id", activeTransaction.id)
+      : supabase.from("transactions").insert(insertPayload);
 
       const listingRequest = supabase
         .from("listings")
@@ -815,7 +820,8 @@ export default function MessagesPage({
         .eq("status", "pending");
 
       const otherUserId = updatedOffer.sender_id === user.id ? updatedOffer.receiver_id : updatedOffer.sender_id;
-      const systemNote = `${listingTitle} now has an accepted offer for R${Number(updatedOffer.amount).toLocaleString("en-ZA")}. The seller can book a drop-off slot from My Bookings.`;
+      //const systemNote = `${listingTitle} now has an accepted offer for R${Number(updatedOffer.amount).toLocaleString("en-ZA")}. The seller can book a drop-off slot from My Bookings.`;
+      const systemNote = `The offer for ${listingTitle} with amount of R${Number(updatedOffer.amount).toLocaleString("en-ZA")} has been accepted. Please book a drop-off/collection slot from My Bookings.`;
       const messageRequest = otherUserId
         ? insertMessage({
             sender_id: user.id,
