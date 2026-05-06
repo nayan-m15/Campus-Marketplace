@@ -4,97 +4,133 @@ import { insertMessage } from "../utils/messageDelivery";
 import { deriveBookingStatus } from "../utils/tradeWorkflow";
 import "../styles/TradeFacilityDashboard.css";
 
+// ---------------------------------------------------------------------------
+// Constants & meta
+// ---------------------------------------------------------------------------
+
 const STATUS_META = {
-  awaiting_dropoff: { label: "Awaiting Drop-off", cls: "status--awaiting-dropoff", icon: "⏳" },
-  item_received: { label: "Item Received", cls: "status--item-received", icon: "📦" },
-  collection_pending_approval: { label: "Collection Pending Approval", cls: "status--awaiting-collection", icon: "📝" },
-  awaiting_collection: { label: "Awaiting Collection", cls: "status--awaiting-collection", icon: "🔔" },
-  item_released: { label: "Item Released", cls: "status--completed", icon: "🏁" },
-  completed: { label: "Completed", cls: "status--completed", icon: "🏁" },
-  cancelled: { label: "Cancelled", cls: "status--cancelled", icon: "✕" },
+  awaiting_dropoff:            { label: "Awaiting Drop-off",          cls: "status--awaiting-dropoff",   icon: "⏳" },
+  item_received:               { label: "Item Received",              cls: "status--item-received",       icon: "📦" },
+  collection_pending_approval: { label: "Collection Pending Approval",cls: "status--awaiting-collection", icon: "📝" },
+  awaiting_collection:         { label: "Awaiting Collection",        cls: "status--awaiting-collection", icon: "🔔" },
+  item_released:               { label: "Item Released",              cls: "status--completed",           icon: "🏁" },
+  completed:                   { label: "Completed",                  cls: "status--completed",           icon: "🏁" },
+  cancelled:                   { label: "Cancelled",                  cls: "status--cancelled",           icon: "✕"  },
 };
 
 const BOOKING_STATUS_META = {
-  scheduled: { label: "Scheduled", cls: "bstatus--scheduled" },
-  pending_approval: { label: "Pending Approval", cls: "bstatus--scheduled" },
-  completed: { label: "Completed", cls: "bstatus--completed" },
-  cancelled: { label: "Cancelled", cls: "bstatus--no-show" },
+  scheduled:        { label: "Scheduled",        cls: "bstatus--scheduled"  },
+  pending_approval: { label: "Pending Approval", cls: "bstatus--scheduled"  },
+  completed:        { label: "Completed",        cls: "bstatus--completed"  },
+  cancelled:        { label: "Cancelled",        cls: "bstatus--no-show"    },
 };
 
-const TRANSACTION_STATUS_OPTIONS = [
-  "awaiting_dropoff",
-  "item_received",
-  "awaiting_collection",
-  "item_released",
+// Active transaction lifecycle states shown in Manage Bookings
+const MANAGED_STATUSES = ["awaiting_dropoff", "item_received", "awaiting_collection", "item_released"];
+
+// ---------------------------------------------------------------------------
+// Navigation — includes new "Manage Bookings" tab
+// ---------------------------------------------------------------------------
+
+const NAV_ITEMS = [
+  { key: "overview",    label: "Overview",          icon: "🏠" },
+  { key: "dropoffs",    label: "Drop-off Bookings", icon: "📥" },
+  { key: "collections", label: "Collection Bookings",icon: "📤" },
+  { key: "manage",      label: "Manage Bookings",   icon: "⚙️"  },
+  { key: "transactions",label: "All Transactions",  icon: "📋" },
 ];
 
-const BOOKING_STATUS_OPTIONS = [
-  "pending_approval",
-  "scheduled",
-  "completed",
-  "cancelled",
-];
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function mapBookingStatusToTransactionStatus(bookingType, bookingStatus, currentStatus) {
   if (bookingType === "dropoff") {
     if (bookingStatus === "completed") return "item_received";
-    if (["scheduled", "pending_approval", "cancelled"].includes(bookingStatus)) {
-      return "awaiting_dropoff";
-    }
+    if (["scheduled", "pending_approval", "cancelled"].includes(bookingStatus)) return "awaiting_dropoff";
   }
-
   if (bookingType === "collection") {
     if (bookingStatus === "pending_approval" || bookingStatus === "cancelled") return "item_received";
-    if (bookingStatus === "scheduled") return "awaiting_collection";
-    if (bookingStatus === "completed") return "item_released";
+    if (bookingStatus === "scheduled")  return "awaiting_collection";
+    if (bookingStatus === "completed")  return "item_released";
   }
-
   return currentStatus;
 }
-
-const NAV_ITEMS = [
-  { key: "overview", label: "Overview", icon: "🏠" },
-  { key: "dropoffs", label: "Drop-off Bookings", icon: "📥" },
-  { key: "collections", label: "Collection Bookings", icon: "📤" },
-  { key: "transactions", label: "All Transactions", icon: "📋" },
-];
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-ZA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
+    day: "numeric", month: "short", year: "numeric",
   });
 }
 
 function formatDateTime(timestamp) {
-  if (!timestamp) {
-    return { date: "-", time: "-" };
-  }
-
+  if (!timestamp) return { date: "-", time: "-" };
   const date = new Date(timestamp);
   return {
-    date: date.toLocaleDateString("en-ZA", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }),
-    time: date.toLocaleTimeString("en-ZA", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    date: date.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" }),
+    time: date.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" }),
   };
 }
 
 function initials(name) {
-  return (name || "?")
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  return (name || "?").split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
 }
+
+function buildBookings(transactions, profilesById, bookingsById) {
+  const output = [];
+
+  for (const transaction of transactions) {
+    const sellerProfile = profilesById[transaction.seller_id] || {};
+    const buyerProfile  = profilesById[transaction.buyer_id]  || {};
+
+    if (transaction.dropoff_id && bookingsById[transaction.dropoff_id]) {
+      const booking = bookingsById[transaction.dropoff_id];
+      const when    = formatDateTime(booking.scheduled_time);
+      output.push({
+        id:             booking.id,
+        type:           "dropoff",
+        transactionId:  transaction.id,
+        personName:     sellerProfile.display_name || sellerProfile.name || transaction.seller_id,
+        studentId:      sellerProfile.email || transaction.seller_id,
+        role:           "seller",
+        scheduledDate:  booking.scheduled_time?.slice(0, 10) || "",
+        scheduledTime:  booking.scheduled_time?.slice(11, 16) || when.time,
+        status:         booking.status || deriveBookingStatus("dropoff", transaction.status),
+        itemName:       transaction.item,
+        location:       booking.location,
+      });
+    }
+
+    if (transaction.collection_id && bookingsById[transaction.collection_id]) {
+      const booking = bookingsById[transaction.collection_id];
+      const when    = formatDateTime(booking.scheduled_time);
+      output.push({
+        id:             booking.id,
+        type:           "collection",
+        transactionId:  transaction.id,
+        personName:     buyerProfile.display_name || buyerProfile.name || transaction.buyer_id,
+        studentId:      buyerProfile.email || transaction.buyer_id,
+        role:           "buyer",
+        scheduledDate:  booking.scheduled_time?.slice(0, 10) || "",
+        scheduledTime:  booking.scheduled_time?.slice(11, 16) || when.time,
+        status:         booking.status || deriveBookingStatus("collection", transaction.status),
+        itemName:       transaction.item,
+        location:       booking.location,
+      });
+    }
+  }
+
+  return output.sort((a, b) => {
+    const aTime = new Date(`${a.scheduledDate}T${a.scheduledTime || "00:00"}`);
+    const bTime = new Date(`${b.scheduledDate}T${b.scheduledTime || "00:00"}`);
+    return aTime - bTime;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Shared UI atoms
+// ---------------------------------------------------------------------------
 
 function StatusBadge({ status }) {
   const meta = STATUS_META[status] || { label: status, cls: "", icon: "•" };
@@ -133,9 +169,7 @@ function StatCard({ icon, iconColor, value, label, subLabel }) {
   return (
     <article className="stat-card">
       <header className="stat-card__top">
-        <span className={`stat-card__icon stat-card__icon--${iconColor}`} aria-hidden="true">
-          {icon}
-        </span>
+        <span className={`stat-card__icon stat-card__icon--${iconColor}`} aria-hidden="true">{icon}</span>
       </header>
       <p className="stat-card__value">{value}</p>
       <footer className="stat-card__footer">
@@ -146,74 +180,16 @@ function StatCard({ icon, iconColor, value, label, subLabel }) {
   );
 }
 
-function buildBookings(transactions, profilesById, bookingsById) {
-  const output = [];
+// ---------------------------------------------------------------------------
+// BookingCard — used in Drop-off & Collection tabs (pending_approval only)
+// ---------------------------------------------------------------------------
 
-  for (const transaction of transactions) {
-    const sellerProfile = profilesById[transaction.seller_id] || {};
-    const buyerProfile = profilesById[transaction.buyer_id] || {};
-
-    if (transaction.dropoff_id && bookingsById[transaction.dropoff_id]) {
-      const booking = bookingsById[transaction.dropoff_id];
-      const when = formatDateTime(booking.scheduled_time);
-      output.push({
-        id: booking.id,
-        type: "dropoff",
-        transactionId: transaction.id,
-        personName: sellerProfile.display_name || sellerProfile.name || transaction.seller_id,
-        studentId: sellerProfile.email || transaction.seller_id,
-        role: "seller",
-        scheduledDate: booking.scheduled_time?.slice(0, 10) || "",
-        scheduledTime: booking.scheduled_time?.slice(11, 16) || when.time,
-        status: booking.status || deriveBookingStatus("dropoff", transaction.status),
-        itemName: transaction.item,
-        location: booking.location,
-      });
-    }
-
-    if (transaction.collection_id && bookingsById[transaction.collection_id]) {
-      const booking = bookingsById[transaction.collection_id];
-      const when = formatDateTime(booking.scheduled_time);
-      output.push({
-        id: booking.id,
-        type: "collection",
-        transactionId: transaction.id,
-        personName: buyerProfile.display_name || buyerProfile.name || transaction.buyer_id,
-        studentId: buyerProfile.email || transaction.buyer_id,
-        role: "buyer",
-        scheduledDate: booking.scheduled_time?.slice(0, 10) || "",
-        scheduledTime: booking.scheduled_time?.slice(11, 16) || when.time,
-        status: booking.status || deriveBookingStatus("collection", transaction.status),
-        itemName: transaction.item,
-        location: booking.location,
-      });
-    }
-  }
-
-  return output.sort((left, right) => {
-    const leftTime = new Date(`${left.scheduledDate}T${left.scheduledTime || "00:00"}`);
-    const rightTime = new Date(`${right.scheduledDate}T${right.scheduledTime || "00:00"}`);
-    return leftTime - rightTime;
-  });
-}
-
-function BookingCard({
-  booking,
-  transaction,
-  onConfirmReceipt,
-  onApproveCollection,
-  onDeclineCollection,
-  onConfirmRelease,
-  onStatusChange,
-  statusSaving,
-}) {
+/**
+ * In the request tabs (Drop-off / Collection) a booking is always
+ * `pending_approval`.  Staff can only Accept or Decline — no status dropdown.
+ */
+function BookingCard({ booking, transaction, onAccept, onDecline, saving }) {
   const isDropoff = booking.type === "dropoff";
-  const isCollection = booking.type === "collection";
-  const isPendingApproval = booking.status === "pending_approval";
-  const canConfirmReceipt = isDropoff && booking.status === "scheduled" && transaction?.status === "awaiting_dropoff";
-  const canApproveCollection = isPendingApproval;
-  const canDeclineCollection = isPendingApproval;
-  const canConfirmRelease = isCollection && booking.status === "scheduled" && transaction?.status === "awaiting_collection";
 
   return (
     <article className="booking-card">
@@ -222,7 +198,9 @@ function BookingCard({
           <Avatar name={booking.personName} />
           <section className="booking-card__person-info">
             <p className="booking-card__person-name">{booking.personName}</p>
-            <p className="booking-card__person-meta">{booking.studentId} · {booking.role === "seller" ? "Seller" : "Buyer"}</p>
+            <p className="booking-card__person-meta">
+              {booking.studentId} · {booking.role === "seller" ? "Seller" : "Buyer"}
+            </p>
           </section>
         </section>
         <section className="booking-card__header-right">
@@ -245,7 +223,9 @@ function BookingCard({
           </li>
           <li className="booking-card__detail">
             <span className="booking-card__detail-label">Scheduled</span>
-            <span className="booking-card__detail-value">{formatDate(booking.scheduledDate)} at {booking.scheduledTime}</span>
+            <span className="booking-card__detail-value">
+              {formatDate(booking.scheduledDate)} at {booking.scheduledTime}
+            </span>
           </li>
           <li className="booking-card__detail">
             <span className="booking-card__detail-label">Transaction</span>
@@ -257,58 +237,166 @@ function BookingCard({
               <StatusBadge status={transaction.status} />
             </li>
           ) : null}
-          <li className="booking-card__detail booking-card__detail--status-control">
-            <span className="booking-card__detail-label">Set Status</span>
-            <label className="status-select-wrap">
-              <span className="sr-only">Update booking status</span>
-              <select
-                className="status-select"
-                value={booking.status}
-                onChange={(event) => onStatusChange(booking, transaction, event.target.value)}
-                disabled={statusSaving}
-              >
-                {BOOKING_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {BOOKING_STATUS_META[status]?.label || status}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </li>
         </ul>
       </section>
 
-      {(canConfirmReceipt || canApproveCollection || canDeclineCollection || canConfirmRelease) ? (
+      <footer className="booking-card__footer">
+        <menu className="booking-card__actions" role="list">
+          <li>
+            <button
+              className="btn-action btn-action--receipt"
+              onClick={() => onAccept(booking, transaction)}
+              disabled={saving}
+            >
+              <span aria-hidden="true">✓</span> Accept Booking
+            </button>
+          </li>
+          <li>
+            <button
+              className="btn-action btn-action--noshow"
+              onClick={() => onDecline(booking, transaction)}
+              disabled={saving}
+            >
+              Decline Booking
+            </button>
+          </li>
+        </menu>
+      </footer>
+    </article>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ManagedTransactionCard — used in the Manage Bookings tab
+// Shows guided action buttons based on transaction lifecycle state.
+// ---------------------------------------------------------------------------
+
+function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
+  const { status } = transaction;
+
+  const dropoffBooking   = bookings.find((b) => b.id === transaction.dropoffId);
+  const collectionBooking = bookings.find((b) => b.id === transaction.collectionId);
+
+  // Derive the contextual next action
+  const getAction = () => {
+    switch (status) {
+      case "awaiting_dropoff":
+        return {
+          label:  "Mark Item Received",
+          icon:   "📦",
+          cls:    "btn-action--receipt",
+          next:   "item_received",
+          hint:   "Confirm the seller has handed the item over.",
+        };
+      case "item_received":
+        // No manual button — collection booking approval drives the next step.
+        return null;
+      case "awaiting_collection":
+        return {
+          label: "Confirm Collection",
+          icon:  "↑",
+          cls:   "btn-action--release",
+          next:  "item_released",
+          hint:  "Confirm the buyer has collected the item.",
+        };
+      case "item_released":
+        return {
+          label: "Mark Transaction Complete",
+          icon:  "🏁",
+          cls:   "btn-action--receipt",
+          next:  "completed",
+          hint:  "Close the transaction and archive it.",
+        };
+      default:
+        return null;
+    }
+  };
+
+  const action = getAction();
+
+ 
+  return (
+    <article className="booking-card managed-card">
+      {/* Header */}
+      <header className="booking-card__header">
+        <section className="booking-card__header-left">
+          <section className="booking-card__person-info">
+            <p className="booking-card__person-name">{transaction.item}</p>
+            <p className="booking-card__person-meta booking-card__txn-id">{transaction.id}</p>
+          </section>
+        </section>
+        <section className="booking-card__header-right">
+          <StatusBadge status={status} />
+        </section>
+      </header>
+
+      
+
+      {/* Detail grid */}
+      <section className="booking-card__body">
+        <ul className="booking-card__details" role="list">
+          <li className="booking-card__detail">
+            <span className="booking-card__detail-label">Seller</span>
+            <span className="booking-card__detail-value">{transaction.seller.name}</span>
+          </li>
+          <li className="booking-card__detail">
+            <span className="booking-card__detail-label">Buyer</span>
+            <span className="booking-card__detail-value">{transaction.buyer.name}</span>
+          </li>
+          <li className="booking-card__detail">
+            <span className="booking-card__detail-label">Value</span>
+            <span className="booking-card__detail-value">
+              R {Number(transaction.price || 0).toLocaleString("en-ZA")}
+            </span>
+          </li>
+          {dropoffBooking ? (
+            <li className="booking-card__detail">
+              <span className="booking-card__detail-label">Drop-off</span>
+              <span className="booking-card__detail-value">
+                {formatDate(dropoffBooking.scheduledDate)} {dropoffBooking.scheduledTime}
+                <BookingStatusBadge status={dropoffBooking.status} />
+              </span>
+            </li>
+          ) : null}
+          {collectionBooking ? (
+            <li className="booking-card__detail">
+              <span className="booking-card__detail-label">Collection</span>
+              <span className="booking-card__detail-value">
+                {formatDate(collectionBooking.scheduledDate)} {collectionBooking.scheduledTime}
+                <BookingStatusBadge status={collectionBooking.status} />
+              </span>
+            </li>
+          ) : null}
+          {/* item_received: show that we're awaiting a collection booking */}
+          {status === "item_received" ? (
+            <li className="booking-card__detail">
+              <span className="booking-card__detail-label">Next step</span>
+              <span className="booking-card__detail-value managed-card__hint">
+                ⏳ Waiting for buyer to submit a collection booking request.
+              </span>
+            </li>
+          ) : null}
+          {action?.hint ? (
+            <li className="booking-card__detail">
+              <span className="booking-card__detail-label">Action</span>
+              <span className="booking-card__detail-value managed-card__hint">{action.hint}</span>
+            </li>
+          ) : null}
+        </ul>
+      </section>
+
+      {action ? (
         <footer className="booking-card__footer">
           <menu className="booking-card__actions" role="list">
-            {canConfirmReceipt ? (
-              <li>
-                <button className="btn-action btn-action--receipt" onClick={() => onConfirmReceipt(booking, transaction)}>
-                  <span aria-hidden="true">✓</span> Confirm Receipt
-                </button>
-              </li>
-            ) : null}
-            {canApproveCollection ? (
-              <li>
-                <button className="btn-action btn-action--receipt" onClick={() => onApproveCollection(booking, transaction)}>
-                  <span aria-hidden="true">✓</span> Approve Booking
-                </button>
-              </li>
-            ) : null}
-            {canDeclineCollection ? (
-              <li>
-                <button className="btn-action btn-action--noshow" onClick={() => onDeclineCollection(booking, transaction)}>
-                  Decline Booking
-                </button>
-              </li>
-            ) : null}
-            {canConfirmRelease ? (
-              <li>
-                <button className="btn-action btn-action--release" onClick={() => onConfirmRelease(booking, transaction)}>
-                  <span aria-hidden="true">↑</span> Confirm Release
-                </button>
-              </li>
-            ) : null}
+            <li>
+              <button
+                className={`btn-action ${action.cls}`}
+                onClick={() => onAction(transaction, action.next)}
+                disabled={saving}
+              >
+                <span aria-hidden="true">{action.icon}</span> {action.label}
+              </button>
+            </li>
           </menu>
         </footer>
       ) : null}
@@ -316,80 +404,92 @@ function BookingCard({
   );
 }
 
+// ---------------------------------------------------------------------------
+// ConfirmDialog
+// ---------------------------------------------------------------------------
+
 function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
   const ref = useRef(null);
 
   useEffect(() => {
-    if (ref.current && !ref.current.open) {
-      ref.current.showModal();
-    }
+    if (ref.current && !ref.current.open) ref.current.showModal();
   }, []);
 
   if (!dialog) return null;
 
-  const isReceipt = dialog.actionType === "receipt";
-  const isApprove = dialog.actionType === "approve_collection";
-  const isDecline = dialog.actionType === "decline_collection";
+  const isAccept  = dialog.actionType === "accept_booking";
+  const isDecline = dialog.actionType === "decline_booking";
+  const isManaged = dialog.actionType === "managed_action";
+
+  const titles = {
+    accept_booking:  "Accept Booking Request",
+    decline_booking: "Decline Booking Request",
+    managed_action:  `Confirm: ${STATUS_META[dialog.nextStatus]?.label || dialog.nextStatus}`,
+  };
+
+  const subtitles = {
+    accept_booking:  "This will schedule the booking and move it to Manage Bookings.",
+    decline_booking: "This will cancel and remove the booking request.",
+    managed_action:  `Update the transaction to "${STATUS_META[dialog.nextStatus]?.label || dialog.nextStatus}".`,
+  };
 
   return (
     <dialog ref={ref} className="confirm-dialog" onClose={onCancel}>
       <header className="confirm-dialog__header">
         <span className="confirm-dialog__icon" aria-hidden="true">
-          {isReceipt ? "📦" : isApprove ? "📝" : isDecline ? "⚠️" : "📤"}
+          {isAccept ? "✓" : isDecline ? "⚠️" : "⚙️"}
         </span>
-        <h2 className="confirm-dialog__title">
-          {isReceipt ? "Confirm Item Receipt" : isApprove ? "Approve Collection Booking" : isDecline ? "Decline Collection Booking" : "Confirm Item Release"}
-        </h2>
-        <p className="confirm-dialog__subtitle">
-          {isReceipt
-            ? "This will mark the seller drop-off as received and notify the buyer."
-            : isApprove
-              ? "This will approve the buyer's requested slot so the item can be collected."
-              : isDecline
-                ? "This will remove the requested collection slot and ask the buyer to book again."
-                : "This will complete the collection and close the transaction."}
-        </p>
+        <h2 className="confirm-dialog__title">{titles[dialog.actionType]}</h2>
+        <p className="confirm-dialog__subtitle">{subtitles[dialog.actionType]}</p>
       </header>
 
       <section className="confirm-dialog__body">
         <ul className="confirm-dialog__info" role="list">
-          <li className="confirm-dialog__info-row">
-            <span className="confirm-dialog__info-label">Item</span>
-            <span className="confirm-dialog__info-value">{dialog.booking.itemName}</span>
-          </li>
-          <li className="confirm-dialog__info-row">
-            <span className="confirm-dialog__info-label">{isReceipt ? "Received from" : "Released to"}</span>
-            <span className="confirm-dialog__info-value">{dialog.booking.personName}</span>
-          </li>
-          <li className="confirm-dialog__info-row">
-            <span className="confirm-dialog__info-label">Facility</span>
-            <span className="confirm-dialog__info-value">{dialog.booking.location || "-"}</span>
-          </li>
-          <li className="confirm-dialog__info-row">
-            <span className="confirm-dialog__info-label">Transaction</span>
-            <span className="confirm-dialog__info-value">{dialog.transaction.id}</span>
-          </li>
+          {dialog.booking ? (
+            <>
+              <li className="confirm-dialog__info-row">
+                <span className="confirm-dialog__info-label">Item</span>
+                <span className="confirm-dialog__info-value">{dialog.booking.itemName}</span>
+              </li>
+              <li className="confirm-dialog__info-row">
+                <span className="confirm-dialog__info-label">Person</span>
+                <span className="confirm-dialog__info-value">{dialog.booking.personName}</span>
+              </li>
+              <li className="confirm-dialog__info-row">
+                <span className="confirm-dialog__info-label">Facility</span>
+                <span className="confirm-dialog__info-value">{dialog.booking.location || "-"}</span>
+              </li>
+            </>
+          ) : null}
+          {dialog.transaction ? (
+            <li className="confirm-dialog__info-row">
+              <span className="confirm-dialog__info-label">Transaction</span>
+              <span className="confirm-dialog__info-value">{dialog.transaction.id}</span>
+            </li>
+          ) : null}
         </ul>
       </section>
 
       <footer className="confirm-dialog__footer">
         <button className="btn-export" onClick={onCancel} disabled={saving}>Cancel</button>
         <button className="btn-primary" onClick={onConfirm} disabled={saving}>
-          {saving ? "Saving..." : isReceipt ? "Confirm Receipt" : "Confirm Release"}
+          {saving ? "Saving…" : isAccept ? "Accept" : isDecline ? "Decline" : "Confirm"}
         </button>
       </footer>
     </dialog>
   );
 }
 
+// ---------------------------------------------------------------------------
+// OverviewSection
+// ---------------------------------------------------------------------------
+
 function OverviewSection({ transactions, bookings }) {
-  const active = transactions.filter((transaction) => !["item_released", "completed", "cancelled"].includes(transaction.status)).length;
-  const awaitingDropoff = transactions.filter((transaction) => transaction.status === "awaiting_dropoff").length;
-  const awaitingCollection = transactions.filter((transaction) => transaction.status === "awaiting_collection").length;
-  const pendingCollectionApprovals = bookings.filter(
-    (booking) => booking.type === "collection" && booking.status === "pending_approval"
-  ).length;
-  const completedToday = bookings.filter((booking) => booking.status === "completed").length;
+  const pendingRequests   = bookings.filter((b) => b.status === "pending_approval").length;
+  const managed           = transactions.filter((t) => MANAGED_STATUSES.includes(t.status)).length;
+  const awaitingDropoff   = transactions.filter((t) => t.status === "awaiting_dropoff").length;
+  const awaitingCollection= transactions.filter((t) => t.status === "awaiting_collection").length;
+  const completedAll      = transactions.filter((t) => t.status === "completed").length;
 
   return (
     <section className="view-section">
@@ -400,65 +500,60 @@ function OverviewSection({ transactions, bookings }) {
             <p className="panel__subtitle">Live trade handover progress from bookings and transactions.</p>
           </section>
         </header>
-
         <ul className="stats-grid" role="list">
-          <li><StatCard icon="📋" iconColor="green" value={active} label="Open Transactions" subLabel="Need action from staff or students" /></li>
-          <li><StatCard icon="📥" iconColor="amber" value={awaitingDropoff} label="Awaiting Drop-off" subLabel="Seller still needs to arrive" /></li>
-          <li><StatCard icon="📝" iconColor="blue" value={pendingCollectionApprovals} label="Pending Collection Approval" subLabel="Buyer requests waiting for staff decision" /></li>
-          <li><StatCard icon="🔔" iconColor="blue" value={awaitingCollection} label="Ready for Collection" subLabel="Approved buyers can now arrive" /></li>
-          <li><StatCard icon="✅" iconColor="green" value={completedToday} label="Completed Bookings" subLabel="Drop-offs or collections already confirmed" /></li>
+          <li><StatCard icon="📝" iconColor="amber"  value={pendingRequests}    label="Pending Requests"       subLabel="Bookings awaiting staff approval" /></li>
+          <li><StatCard icon="⚙️"  iconColor="blue"   value={managed}            label="Active in Manage"       subLabel="Transactions in progress" /></li>
+          <li><StatCard icon="📥" iconColor="amber"  value={awaitingDropoff}    label="Awaiting Drop-off"      subLabel="Seller still needs to arrive" /></li>
+          <li><StatCard icon="🔔" iconColor="blue"   value={awaitingCollection} label="Ready for Collection"   subLabel="Approved buyers can now arrive" /></li>
+          <li><StatCard icon="✅" iconColor="green"  value={completedAll}       label="Completed Transactions" subLabel="Fully closed trades" /></li>
         </ul>
       </article>
     </section>
   );
 }
 
+// ---------------------------------------------------------------------------
+// BookingsSection — Drop-off & Collection request tabs (pending_approval only)
+// ---------------------------------------------------------------------------
+
 function BookingsSection({
   type,
   bookings,
   transactions,
-  onConfirmReceipt,
-  onApproveCollection,
-  onDeclineCollection,
-  onConfirmRelease,
-  onStatusChange,
-  statusSavingIds,
+  onAccept,
+  onDecline,
+  savingIds,
 }) {
   const [search, setSearch] = useState("");
   const label = type === "dropoff" ? "Drop-off" : "Collection";
 
-  const filtered = bookings.filter((booking) => {
-    if (booking.type !== type) return false;
+  // Only show pending_approval bookings of the right type
+  const filtered = bookings.filter((b) => {
+    if (b.type !== type) return false;
+    if (b.status !== "pending_approval") return false;
     if (!search.trim()) return true;
-
-    const haystack = [
-      booking.personName,
-      booking.itemName,
-      booking.studentId,
-      booking.transactionId,
-      booking.location,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    return haystack.includes(search.toLowerCase());
+    const hay = [b.personName, b.itemName, b.studentId, b.transactionId, b.location]
+      .filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(search.toLowerCase());
   });
 
   return (
     <section className="view-section" aria-labelledby={`${type}-heading`}>
-      <h2 id={`${type}-heading`} className="sr-only">{label} Bookings</h2>
+      <h2 id={`${type}-heading`} className="sr-only">{label} Booking Requests</h2>
 
       <article className="panel">
         <header className="panel__header">
           <section>
-            <h3 className="panel__title">{label} Bookings</h3>
+            <h3 className="panel__title">{label} Requests</h3>
             <p className="panel__subtitle">
               {type === "dropoff"
-                ? "Confirm when sellers hand items over to the facility."
-                : "Confirm when buyers collect their items from the facility."}
+                ? "Review and approve seller drop-off requests before scheduling."
+                : "Review and approve buyer collection requests before scheduling."}
             </p>
           </section>
+          {filtered.length > 0 ? (
+            <p className="panel__count">{filtered.length} pending</p>
+          ) : null}
         </header>
 
         <section className="bookings-controls">
@@ -467,33 +562,30 @@ function BookingsSection({
             id={`${type}-search`}
             type="search"
             className="bookings-search"
-            placeholder="Search by name, item, booking or transaction..."
+            placeholder="Search by name, item, or transaction ID…"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </section>
 
         {filtered.length === 0 ? (
           <EmptyState
             icon="📭"
-            title="No bookings found"
-            description="Bookings will appear here once students schedule them."
+            title="No pending requests"
+            description="New booking requests will appear here once students submit them."
           />
         ) : (
           <ul className="booking-list" role="list">
             {filtered.map((booking) => {
-              const transaction = transactions.find((entry) => entry.id === booking.transactionId);
+              const transaction = transactions.find((t) => t.id === booking.transactionId);
               return (
                 <li key={booking.id}>
                   <BookingCard
                     booking={booking}
                     transaction={transaction}
-                    onConfirmReceipt={onConfirmReceipt}
-                    onApproveCollection={onApproveCollection}
-                    onDeclineCollection={onDeclineCollection}
-                    onConfirmRelease={onConfirmRelease}
-                    onStatusChange={onStatusChange}
-                    statusSaving={Boolean(statusSavingIds[booking.id])}
+                    onAccept={onAccept}
+                    onDecline={onDecline}
+                    saving={Boolean(savingIds[booking.id])}
                   />
                 </li>
               );
@@ -505,23 +597,122 @@ function BookingsSection({
   );
 }
 
+// ---------------------------------------------------------------------------
+// ManageBookingsSection — accepted bookings / active transactions
+// ---------------------------------------------------------------------------
+
+function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Only show transactions in the active lifecycle
+  const managed = useMemo(() =>
+    transactions.filter((t) => MANAGED_STATUSES.includes(t.status)),
+    [transactions]
+  );
+
+  const filtered = useMemo(() => managed.filter((t) => {
+    if (statusFilter !== "all" && t.status !== statusFilter) return false;
+    if (!search.trim()) return true;
+    const hay = [t.id, t.item, t.seller?.name, t.buyer?.name]
+      .filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(search.toLowerCase());
+  }), [managed, search, statusFilter]);
+
+  const STATUS_FILTER_OPTIONS = [
+    { value: "all",                 label: "All Active"           },
+    { value: "awaiting_dropoff",    label: "Awaiting Drop-off"    },
+    { value: "item_received",       label: "Item Received"        },
+    { value: "awaiting_collection", label: "Awaiting Collection"  },
+    { value: "item_released",       label: "Item Released"        },
+  ];
+
+  return (
+    <section className="view-section" aria-labelledby="manage-heading">
+      <h2 id="manage-heading" className="sr-only">Manage Bookings</h2>
+
+      <article className="panel">
+        <header className="panel__header">
+          <section>
+            <h3 className="panel__title">Manage Bookings</h3>
+            <p className="panel__subtitle">
+              Move accepted transactions through the handover lifecycle — from drop-off to collection to completion.
+            </p>
+          </section>
+          <p className="panel__count">{filtered.length} of {managed.length} active</p>
+        </header>
+
+        <section className="bookings-controls bookings-controls--row">
+          <label htmlFor="manage-search" className="sr-only">Search transactions</label>
+          <input
+            id="manage-search"
+            type="search"
+            className="bookings-search"
+            placeholder="Search by item, buyer, seller, or transaction ID…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <label className="status-select-wrap" htmlFor="manage-filter">
+            <span className="sr-only">Filter by status</span>
+            <select
+              id="manage-filter"
+              className="status-select"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              {STATUS_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+        </section>
+
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon="⚙️"
+            title="No active transactions"
+            description="Accepted bookings will appear here, ready to move through the handover lifecycle."
+          />
+        ) : (
+          <ul className="booking-list" role="list">
+            {filtered.map((transaction) => (
+              <li key={transaction.id}>
+                <ManagedTransactionCard
+                  transaction={transaction}
+                  bookings={bookings}
+                  onAction={onAction}
+                  saving={Boolean(savingIds[transaction.id])}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TransactionsSection — archive / full ledger
+// ---------------------------------------------------------------------------
+
 function TransactionsSection({ transactions, bookings, onTransactionStatusChange, statusSavingIds }) {
   const [search, setSearch] = useState("");
 
-  const filtered = useMemo(() => transactions.filter((transaction) => {
+  const TRANSACTION_STATUS_OPTIONS = [
+    "awaiting_dropoff",
+    "item_received",
+    "awaiting_collection",
+    "item_released",
+    "completed",
+    "cancelled",
+  ];
+
+  const filtered = useMemo(() => transactions.filter((t) => {
     if (!search.trim()) return true;
-
-    const haystack = [
-      transaction.id,
-      transaction.item,
-      transaction.seller.name,
-      transaction.buyer.name,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    return haystack.includes(search.toLowerCase());
+    const hay = [t.id, t.item, t.seller.name, t.buyer.name]
+      .filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(search.toLowerCase());
   }), [search, transactions]);
 
   return (
@@ -532,7 +723,7 @@ function TransactionsSection({ transactions, bookings, onTransactionStatusChange
         <header className="panel__header">
           <section>
             <h3 className="panel__title">All Transactions</h3>
-            <p className="panel__subtitle">Track accepted offers through drop-off, custody, and collection.</p>
+            <p className="panel__subtitle">Full ledger of all accepted offers across every lifecycle stage.</p>
           </section>
           <p className="panel__count">{filtered.length} of {transactions.length} transactions</p>
         </header>
@@ -543,9 +734,9 @@ function TransactionsSection({ transactions, bookings, onTransactionStatusChange
             id="txn-search"
             type="search"
             className="bookings-search"
-            placeholder="Search by transaction ID, item, buyer or seller..."
+            placeholder="Search by transaction ID, item, buyer or seller…"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </section>
 
@@ -568,9 +759,8 @@ function TransactionsSection({ transactions, bookings, onTransactionStatusChange
               </thead>
               <tbody>
                 {filtered.map((transaction) => {
-                  const dropoff = bookings.find((booking) => booking.id === transaction.dropoffId);
-                  const collection = bookings.find((booking) => booking.id === transaction.collectionId);
-
+                  const dropoff    = bookings.find((b) => b.id === transaction.dropoffId);
+                  const collection = bookings.find((b) => b.id === transaction.collectionId);
                   return (
                     <tr key={transaction.id}>
                       <td>
@@ -605,13 +795,11 @@ function TransactionsSection({ transactions, bookings, onTransactionStatusChange
                             <select
                               className="status-select status-select--compact"
                               value={transaction.status}
-                              onChange={(event) => onTransactionStatusChange(transaction.id, event.target.value)}
+                              onChange={(e) => onTransactionStatusChange(transaction.id, e.target.value)}
                               disabled={Boolean(statusSavingIds[transaction.id])}
                             >
-                              {TRANSACTION_STATUS_OPTIONS.map((status) => (
-                                <option key={status} value={status}>
-                                  {STATUS_META[status]?.label || status}
-                                </option>
+                              {TRANSACTION_STATUS_OPTIONS.map((s) => (
+                                <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
                               ))}
                             </select>
                           </label>
@@ -647,43 +835,49 @@ function TransactionsSection({ transactions, bookings, onTransactionStatusChange
   );
 }
 
-export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
-  const [activeView, setActiveView] = useState("overview");
-  const [transactions, setTransactions] = useState([]);
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [dialog, setDialog] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [statusSavingIds, setStatusSavingIds] = useState({});
-  const [toast, setToast] = useState({ msg: "", visible: false });
-  const toastTimer = useRef(null);
+// ---------------------------------------------------------------------------
+// Root component
+// ---------------------------------------------------------------------------
 
+export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
+  const [activeView, setActiveView]       = useState("overview");
+  const [transactions, setTransactions]   = useState([]);
+  const [bookings, setBookings]           = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState("");
+  const [dialog, setDialog]               = useState(null);
+  const [saving, setSaving]               = useState(false);
+  const [savingIds, setSavingIds]         = useState({});
+  const [toast, setToast]                 = useState({ msg: "", visible: false });
+  const toastTimer                        = useRef(null);
+
+  // ── Toast helper ──────────────────────────────────────────────────────────
   const showToast = useCallback((msg) => {
     setToast({ msg, visible: true });
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast({ msg: "", visible: false }), 3200);
   }, []);
 
+  // ── Data loading ──────────────────────────────────────────────────────────
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     setError("");
-
     try {
-      const { data: transactionRows, error: transactionsError } = await supabase
+      const { data: txRows, error: txErr } = await supabase
         .from("transactions")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (transactionsError) {
-        throw transactionsError;
-      }
+      if (txErr) throw txErr;
 
-      const rows = transactionRows || [];
-      const bookingIds = [...new Set(rows.flatMap((row) => [row.dropoff_id, row.collection_id]).filter(Boolean))];
-      const profileIds = [...new Set(rows.flatMap((row) => [row.seller_id, row.buyer_id]).filter(Boolean))];
+      const rows       = txRows || [];
+      const bookingIds = [...new Set(rows.flatMap((r) => [r.dropoff_id, r.collection_id]).filter(Boolean))];
+      const profileIds = [...new Set(rows.flatMap((r) => [r.seller_id,  r.buyer_id]).filter(Boolean))];
 
-      const [{ data: bookingRows, error: bookingsError }, { data: profileRows, error: profilesError }] = await Promise.all([
+      const [
+        { data: bookingRows, error: bErr },
+        { data: profileRows, error: pErr },
+      ] = await Promise.all([
         bookingIds.length
           ? supabase.from("bookings").select("*").in("id", bookingIds)
           : Promise.resolve({ data: [], error: null }),
@@ -692,29 +886,24 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
           : Promise.resolve({ data: [], error: null }),
       ]);
 
-      if (bookingsError) {
-        throw bookingsError;
-      }
+      if (bErr) throw bErr;
+      if (pErr) throw pErr;
 
-      if (profilesError) {
-        throw profilesError;
-      }
+      const profilesById = Object.fromEntries((profileRows || []).map((p) => [p.id, p]));
+      const bookingsById = Object.fromEntries((bookingRows || []).map((b) => [b.id, b]));
 
-      const profilesById = Object.fromEntries((profileRows || []).map((profile) => [profile.id, profile]));
-      const bookingsById = Object.fromEntries((bookingRows || []).map((booking) => [booking.id, booking]));
-
-      const mappedTransactions = rows.map((transaction) => ({
-        ...transaction,
-        dropoffId: transaction.dropoff_id,
-        collectionId: transaction.collection_id,
-        createdAt: transaction.created_at,
+      const mappedTransactions = rows.map((t) => ({
+        ...t,
+        dropoffId:    t.dropoff_id,
+        collectionId: t.collection_id,
+        createdAt:    t.created_at,
         seller: {
-          name: profilesById[transaction.seller_id]?.display_name || profilesById[transaction.seller_id]?.name || transaction.seller_id,
-          studentId: profilesById[transaction.seller_id]?.email || transaction.seller_id,
+          name:      profilesById[t.seller_id]?.display_name || profilesById[t.seller_id]?.name || t.seller_id,
+          studentId: profilesById[t.seller_id]?.email || t.seller_id,
         },
         buyer: {
-          name: profilesById[transaction.buyer_id]?.display_name || profilesById[transaction.buyer_id]?.name || transaction.buyer_id,
-          studentId: profilesById[transaction.buyer_id]?.email || transaction.buyer_id,
+          name:      profilesById[t.buyer_id]?.display_name || profilesById[t.buyer_id]?.name || t.buyer_id,
+          studentId: profilesById[t.buyer_id]?.email || t.buyer_id,
         },
       }));
 
@@ -727,9 +916,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     }
   }, []);
 
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+  useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
   useEffect(() => {
     const channel = supabase
@@ -737,200 +924,175 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, loadDashboard)
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, loadDashboard)
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [loadDashboard]);
 
-  const handleConfirmReceipt = useCallback((booking, transaction) => {
-    setDialog({ actionType: "receipt", booking, transaction });
+  // ── Accept / Decline booking (Drop-off & Collection tabs) ────────────────
+  const handleAccept = useCallback((booking, transaction) => {
+    setDialog({ actionType: "accept_booking", booking, transaction });
   }, []);
 
-  const handleConfirmRelease = useCallback((booking, transaction) => {
-    setDialog({ actionType: "release", booking, transaction });
+  const handleDecline = useCallback((booking, transaction) => {
+    setDialog({ actionType: "decline_booking", booking, transaction });
   }, []);
 
-  const handleApproveCollection = useCallback((booking, transaction) => {
-    setDialog({ actionType: "approve_collection", booking, transaction });
+  // ── Managed lifecycle action (Manage Bookings tab) ───────────────────────
+  const handleManagedAction = useCallback((transaction, nextStatus) => {
+    setDialog({ actionType: "managed_action", transaction, nextStatus });
   }, []);
 
-  const handleDeclineCollection = useCallback((booking, transaction) => {
-    setDialog({ actionType: "decline_collection", booking, transaction });
-  }, []);
-
-  const handleDialogCancel = useCallback(() => {
-    if (!saving) {
-      setDialog(null);
-    }
-  }, [saving]);
-
-  const updateTransactionStatus = useCallback(async (transactionId, nextStatus) => {
-    setStatusSavingIds((prev) => ({ ...prev, [transactionId]: true }));
+  // ── Manual status change (All Transactions table) ────────────────────────
+  const handleTransactionStatusChange = useCallback(async (transactionId, nextStatus) => {
+    setSavingIds((prev) => ({ ...prev, [transactionId]: true }));
     try {
-      const { error: updateError } = await supabase
+      const { error: err } = await supabase
         .from("transactions")
         .update({ status: nextStatus })
         .eq("id", transactionId);
-
-      if (updateError) throw updateError;
-      showToast(`Transaction status updated to ${STATUS_META[nextStatus]?.label || nextStatus}.`);
+      if (err) throw err;
+      showToast(`Transaction updated to "${STATUS_META[nextStatus]?.label || nextStatus}".`);
       await loadDashboard();
     } catch (err) {
-      showToast(err.message || "Unable to update the transaction status.");
+      showToast(err.message || "Unable to update transaction status.");
     } finally {
-      setStatusSavingIds((prev) => {
-        const next = { ...prev };
-        delete next[transactionId];
-        return next;
-      });
+      setSavingIds((prev) => { const n = { ...prev }; delete n[transactionId]; return n; });
     }
   }, [loadDashboard, showToast]);
 
-  const updateBookingStatus = useCallback(async (booking, transaction, nextStatus) => {
-    setStatusSavingIds((prev) => ({ ...prev, [booking.id]: true }));
-    try {
-      const updates = [];
-      updates.push(
-        supabase
-          .from("bookings")
-          .update({ status: nextStatus })
-          .eq("id", booking.id)
-      );
+  const handleDialogCancel = useCallback(() => {
+    if (!saving) setDialog(null);
+  }, [saving]);
 
-      if (transaction?.id) {
-        updates.push(
-          supabase
-            .from("transactions")
-            .update({
-              status: mapBookingStatusToTransactionStatus(booking.type, nextStatus, transaction.status),
-            })
-            .eq("id", transaction.id)
-        );
-      }
-
-      const results = await Promise.all(updates);
-      const failed = results.find((result) => result.error);
-      if (failed?.error) throw failed.error;
-
-      showToast(`Booking status updated to ${BOOKING_STATUS_META[nextStatus]?.label || nextStatus}.`);
-      await loadDashboard();
-    } catch (err) {
-      showToast(err.message || "Unable to update the booking status.");
-    } finally {
-      setStatusSavingIds((prev) => {
-        const next = { ...prev };
-        delete next[booking.id];
-        return next;
-      });
-    }
-  }, [loadDashboard, showToast]);
-
+  // ── Central confirm handler ───────────────────────────────────────────────
   const handleDialogConfirm = useCallback(async () => {
     if (!dialog) return;
-
-    const { actionType, booking, transaction } = dialog;
+    const { actionType, booking, transaction, nextStatus } = dialog;
     setSaving(true);
 
     try {
-      if (actionType === "receipt") {
-        const [{ error: bookingError }, { error: updateError }] = await Promise.all([
-          supabase.from("bookings").update({ status: "completed" }).eq("id", booking.id),
-          supabase.from("transactions").update({ status: "item_received" }).eq("id", transaction.id),
-        ]);
+      // ── Accept a pending booking request ──────────────────────────────────
+      if (actionType === "accept_booking") {
+        const nextTxnStatus = mapBookingStatusToTransactionStatus(
+          booking.type, "scheduled", transaction?.status
+        );
 
-        if (bookingError) throw bookingError;
-        if (updateError) throw updateError;
-
-        if (staffProfile?.id) {
-          await insertMessage({
-            sender_id: staffProfile.id,
-            receiver_id: transaction.buyer_id,
-            content: `Your item "${transaction.item}" has been checked in at ${booking.location || "the trade facility"}. You can now book your collection slot in My Bookings.`,
-          });
-        }
-
-        showToast(`Item received from ${booking.personName}. Buyer notified to book collection.`);
-      } else if (actionType === "approve_collection") {
-        const [{ error: bookingError }, { error: updateError }] = await Promise.all([
+        const [{ error: bErr }, { error: tErr }] = await Promise.all([
           supabase.from("bookings").update({ status: "scheduled" }).eq("id", booking.id),
-          supabase.from("transactions").update({ status: "awaiting_collection" }).eq("id", transaction.id),
+          supabase.from("transactions").update({ status: nextTxnStatus }).eq("id", transaction.id),
         ]);
+        if (bErr) throw bErr;
+        if (tErr) throw tErr;
 
-        if (bookingError) throw bookingError;
-        if (updateError) throw updateError;
-
+        // Notify the student
         if (staffProfile?.id) {
+          const receiver = booking.type === "dropoff" ? transaction.seller_id : transaction.buyer_id;
           await insertMessage({
-            sender_id: staffProfile.id,
-            receiver_id: transaction.buyer_id,
-            content: `Your collection booking for "${transaction.item}" at ${booking.location || "the trade facility"} on ${formatDate(booking.scheduledDate)} at ${booking.scheduledTime} has been approved.`,
+            sender_id:   staffProfile.id,
+            receiver_id: receiver,
+            content:     `Your ${booking.type === "dropoff" ? "drop-off" : "collection"} booking for "${booking.itemName}" at ${booking.location || "the trade facility"} on ${formatDate(booking.scheduledDate)} at ${booking.scheduledTime} has been approved.`,
           });
         }
 
-        showToast(`Collection booking approved for ${booking.personName}.`);
-      } else if (actionType === "decline_collection") {
-        const [{ error: deleteBookingError }, { error: updateError }] = await Promise.all([
+        showToast(`Booking accepted and scheduled for ${booking.personName}.`);
+
+      // ── Decline a pending booking request ────────────────────────────────
+      } else if (actionType === "decline_booking") {
+        const [{ error: bErr }, { error: tErr }] = await Promise.all([
           supabase.from("bookings").delete().eq("id", booking.id),
-          supabase.from("transactions").update({ status: "item_received", collection_id: null }).eq("id", transaction.id),
+          booking.type === "collection"
+            ? supabase.from("transactions")
+                .update({ status: "item_received", collection_id: null })
+                .eq("id", transaction.id)
+            : Promise.resolve({ error: null }),
         ]);
-
-        if (deleteBookingError) {
-          throw deleteBookingError;
-        }
-
-        if (updateError) {
-          throw updateError;
-        }
+        if (bErr) throw bErr;
+        if (tErr) throw tErr;
 
         if (staffProfile?.id) {
+          const receiver = booking.type === "dropoff" ? transaction.seller_id : transaction.buyer_id;
           await insertMessage({
-            sender_id: staffProfile.id,
-            receiver_id: transaction.buyer_id,
-            content: `Your collection booking for "${transaction.item}" was declined. Please choose a different slot in My Bookings.`,
+            sender_id:   staffProfile.id,
+            receiver_id: receiver,
+            content:     `Your ${booking.type === "dropoff" ? "drop-off" : "collection"} booking for "${booking.itemName}" was declined. Please choose a different slot in My Bookings.`,
           });
         }
 
-        showToast(`Collection booking declined for ${booking.personName}.`);
-      } else {
-        const [{ error: bookingError }, { error: updateError }] = await Promise.all([
-          supabase.from("bookings").update({ status: "completed" }).eq("id", booking.id),
-          supabase.from("transactions").update({ status: "item_released" }).eq("id", transaction.id),
-        ]);
+        showToast(`Booking declined for ${booking.personName}.`);
 
-        if (bookingError) throw bookingError;
-        if (updateError) throw updateError;
+      // ── Move a transaction through its lifecycle (Manage tab) ─────────────
+      } else if (actionType === "managed_action") {
+        const { error: tErr } = await supabase
+          .from("transactions")
+          .update({ status: nextStatus })
+          .eq("id", transaction.id);
+        if (tErr) throw tErr;
 
-        showToast(`Item released to ${booking.personName}. Transaction marked as released.`);
+        // If completing the transaction, also close any collection booking
+        if (nextStatus === "completed" && transaction.collectionId) {
+          await supabase
+            .from("bookings")
+            .update({ status: "completed" })
+            .eq("id", transaction.collectionId);
+        }
+
+        // Notify relevant party
+        if (staffProfile?.id) {
+          const messages = {
+            item_received:       { to: transaction.buyer_id,  text: `Your item "${transaction.item}" has been checked in. You can now book your collection slot in My Bookings.` },
+            awaiting_collection: { to: transaction.buyer_id,  text: `Your item "${transaction.item}" is ready for collection at the trade facility.` },
+            item_released:       { to: transaction.seller_id, text: `Your item "${transaction.item}" has been collected by the buyer. The transaction is almost complete.` },
+            completed:           { to: transaction.seller_id, text: `Transaction for "${transaction.item}" is now fully completed. Thank you for using CampusXChange!` },
+          };
+
+          const msg = messages[nextStatus];
+          if (msg) {
+            await insertMessage({
+              sender_id:   staffProfile.id,
+              receiver_id: msg.to,
+              content:     msg.text,
+            });
+          }
+        }
+
+        showToast(`Transaction moved to "${STATUS_META[nextStatus]?.label || nextStatus}".`);
       }
 
       setDialog(null);
       await loadDashboard();
     } catch (err) {
-      showToast(err.message || "Unable to update the transaction.");
+      showToast(err.message || "Unable to complete the action.");
     } finally {
       setSaving(false);
     }
   }, [dialog, loadDashboard, showToast, staffProfile?.id]);
 
-  const pendingDropoffs = bookings.filter((booking) => booking.type === "dropoff" && booking.status === "scheduled").length;
-  const pendingCollections = bookings.filter((booking) => booking.type === "collection" && booking.status === "scheduled").length;
+  // ── Sidebar badges ────────────────────────────────────────────────────────
+  const pendingDropoffs    = bookings.filter((b) => b.type === "dropoff"    && b.status === "pending_approval").length;
+  const pendingCollections = bookings.filter((b) => b.type === "collection" && b.status === "pending_approval").length;
+  const managedCount       = transactions.filter((t) => MANAGED_STATUSES.includes(t.status)).length;
+
+  const badgeFor = (key) => {
+    if (key === "dropoffs")    return pendingDropoffs;
+    if (key === "collections") return pendingCollections;
+    if (key === "manage")      return managedCount;
+    return 0;
+  };
+
   const dateLabel = new Date().toLocaleDateString("en-ZA", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
   const viewTitles = {
-    overview: "Dashboard Overview",
-    dropoffs: "Drop-off Bookings",
-    collections: "Collection Bookings",
+    overview:     "Dashboard Overview",
+    dropoffs:     "Drop-off Requests",
+    collections:  "Collection Requests",
+    manage:       "Manage Bookings",
     transactions: "All Transactions",
   };
 
   return (
     <section className="staff-dashboard-wrapper">
+      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
       <aside className="sidebar">
         <header className="sidebar__brand">
           <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="sidebar__logo" />
@@ -943,7 +1105,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         <nav aria-label="Dashboard navigation">
           <ul className="sidebar__nav" role="list">
             {NAV_ITEMS.map((item) => {
-              const badge = item.key === "dropoffs" ? pendingDropoffs : item.key === "collections" ? pendingCollections : 0;
+              const badge = badgeFor(item.key);
               return (
                 <li key={item.key}>
                   <button
@@ -953,7 +1115,9 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
                   >
                     <span className="sidebar__nav-icon" aria-hidden="true">{item.icon}</span>
                     {item.label}
-                    {badge > 0 ? <span className="sidebar__nav-badge" aria-label={`${badge} pending`}>{badge}</span> : null}
+                    {badge > 0 ? (
+                      <span className="sidebar__nav-badge" aria-label={`${badge} pending`}>{badge}</span>
+                    ) : null}
                   </button>
                 </li>
               );
@@ -962,7 +1126,9 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         </nav>
 
         <footer className="sidebar__footer">
-          <span className="staff-avatar" aria-hidden="true">{initials(staffProfile?.display_name || staffProfile?.name || "Staff")}</span>
+          <span className="staff-avatar" aria-hidden="true">
+            {initials(staffProfile?.display_name || staffProfile?.name || "Staff")}
+          </span>
           <section className="staff-info">
             <p className="staff-name">{staffProfile?.display_name || staffProfile?.name || "Staff"}</p>
             <p className="staff-email">{staffProfile?.email || "staff@campusxchange"}</p>
@@ -975,6 +1141,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         </footer>
       </aside>
 
+      {/* ── Main content ─────────────────────────────────────────────────── */}
       <main className="dashboard-main" id="main-content">
         <header className="dashboard-topbar">
           <section className="topbar-left">
@@ -989,45 +1156,55 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
           </section>
         </header>
 
-        {loading ? <div className="panel">Loading facility activity...</div> : null}
+        {loading ? <div className="panel">Loading facility activity…</div> : null}
         {!loading && error ? <div className="panel">{error}</div> : null}
-        {!loading && !error && activeView === "overview" ? <OverviewSection transactions={transactions} bookings={bookings} /> : null}
+
+        {!loading && !error && activeView === "overview" ? (
+          <OverviewSection transactions={transactions} bookings={bookings} />
+        ) : null}
+
         {!loading && !error && activeView === "dropoffs" ? (
           <BookingsSection
             type="dropoff"
             bookings={bookings}
             transactions={transactions}
-            onConfirmReceipt={handleConfirmReceipt}
-            onApproveCollection={handleApproveCollection}
-            onDeclineCollection={handleDeclineCollection}
-            onConfirmRelease={handleConfirmRelease}
-            onStatusChange={updateBookingStatus}
-            statusSavingIds={statusSavingIds}
+            onAccept={handleAccept}
+            onDecline={handleDecline}
+            savingIds={savingIds}
           />
         ) : null}
+
         {!loading && !error && activeView === "collections" ? (
           <BookingsSection
             type="collection"
             bookings={bookings}
             transactions={transactions}
-            onConfirmReceipt={handleConfirmReceipt}
-            onApproveCollection={handleApproveCollection}
-            onDeclineCollection={handleDeclineCollection}
-            onConfirmRelease={handleConfirmRelease}
-            onStatusChange={updateBookingStatus}
-            statusSavingIds={statusSavingIds}
+            onAccept={handleAccept}
+            onDecline={handleDecline}
+            savingIds={savingIds}
           />
         ) : null}
+
+        {!loading && !error && activeView === "manage" ? (
+          <ManageBookingsSection
+            transactions={transactions}
+            bookings={bookings}
+            onAction={handleManagedAction}
+            savingIds={savingIds}
+          />
+        ) : null}
+
         {!loading && !error && activeView === "transactions" ? (
           <TransactionsSection
             transactions={transactions}
             bookings={bookings}
-            onTransactionStatusChange={updateTransactionStatus}
-            statusSavingIds={statusSavingIds}
+            onTransactionStatusChange={handleTransactionStatusChange}
+            statusSavingIds={savingIds}
           />
         ) : null}
       </main>
 
+      {/* ── Confirm dialog ───────────────────────────────────────────────── */}
       {dialog ? (
         <ConfirmDialog
           dialog={dialog}
@@ -1037,6 +1214,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         />
       ) : null}
 
+      {/* ── Toast ────────────────────────────────────────────────────────── */}
       <aside
         className={`save-toast ${toast.visible ? "save-toast--visible" : ""}`}
         aria-live="polite"
