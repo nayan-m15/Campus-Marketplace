@@ -761,7 +761,8 @@ export default function MessagesPage({
         .eq("status", "pending");
 
       const otherUserId = updatedOffer.sender_id === user.id ? updatedOffer.receiver_id : updatedOffer.sender_id;
-      const systemNote = `${listingTitle} now has an accepted offer for R${Number(updatedOffer.amount).toLocaleString("en-ZA")}. The seller can book a drop-off slot from My Bookings.`;
+      //const systemNote = `${listingTitle} now has an accepted offer for R${Number(updatedOffer.amount).toLocaleString("en-ZA")}. The seller can book a drop-off slot from My Bookings.`;
+      const systemNote = `The offer for ${listingTitle} with amount of R${Number(updatedOffer.amount).toLocaleString("en-ZA")} has been accepted. Please book a drop-off/collection slot from My Bookings.`;
       const messageRequest = otherUserId
         ? insertMessage({
             sender_id: user.id,
