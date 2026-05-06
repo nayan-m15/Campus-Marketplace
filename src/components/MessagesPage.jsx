@@ -140,6 +140,7 @@ export default function MessagesPage({
   onBack,
   onViewProfile,
   onUnreadChange,   // ← callback(count) so parent can update navbar badge
+  onGoToBookings,   // ← callback to navigate to bookings page
 }) {
   const { user } = useAuth();
 
@@ -173,6 +174,7 @@ export default function MessagesPage({
   const [offers, setOffers] = useState([]); // offers for this conversation
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
+  const [acceptedOfferBanner, setAcceptedOfferBanner] = useState(null); // { amount, listingTitle } shown after acceptance
   const [offerSending, setOfferSending] = useState(false);
   const [offerError, setOfferError] = useState("");
   const [sendDraftBeforeOffer, setSendDraftBeforeOffer] = useState(false);
@@ -394,6 +396,7 @@ export default function MessagesPage({
     setOfferAmount("");
     setOfferError("");
     setSendDraftBeforeOffer(false);
+    setAcceptedOfferBanner(null);
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -859,6 +862,12 @@ export default function MessagesPage({
         offerCleanupRequest,
         messageRequest,
       ]);
+
+      // Show the in-chat accepted offer banner (replaces the old alert/toast)
+      setAcceptedOfferBanner({
+        amount: updatedOffer.amount,
+        listingTitle,
+      });
     }
   };
 
@@ -1218,7 +1227,19 @@ export default function MessagesPage({
                                 </div>
                               )}
                               {isAccepted && (
-                                <p className="msg-offer-card__status msg-offer-card__status--accepted">✓ Offer accepted</p>
+                                <div className="msg-offer-card__accepted-block">
+                                  <p className="msg-offer-card__status msg-offer-card__status--accepted" style={{ margin: 0 }}>✓ Offer accepted</p>
+                                  <p className="msg-offer-card__accepted-note">
+                                    Book a drop-off or collection slot to complete this transaction.
+                                  </p>
+                                  <button
+                                    className="msg-offer-card__bookings-btn"
+                                    onClick={() => onGoToBookings?.()}
+                                    type="button"
+                                  >
+                                    Go to My Bookings →
+                                  </button>
+                                </div>
                               )}
                               {isDeclined && (
                                 <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer declined</p>
@@ -1259,6 +1280,43 @@ export default function MessagesPage({
               })()}
               <div ref={bottomRef} />
             </div>
+
+            {/* ── Accepted Offer Confirmation Banner ───────────── */}
+            {acceptedOfferBanner && (
+              <div className="msg-offer-card-wrap msg-offer-card-wrap--theirs msg-accepted-banner-wrap">
+                <div className="msg-offer-card msg-offer-card--theirs msg-offer-card--accepted msg-accepted-banner">
+                  <div className="msg-offer-card__header">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span className="msg-offer-card__label" style={{ color: "var(--green)" }}>Offer Accepted!</span>
+                  </div>
+                  <div className="msg-offer-card__amount">
+                    R{Number(acceptedOfferBanner.amount).toLocaleString("en-ZA")}
+                  </div>
+                  <p className="msg-offer-card__note" style={{ color: "rgba(255,255,255,0.6)" }}>
+                    You accepted the offer for <strong style={{ color: "#fff" }}>{acceptedOfferBanner.listingTitle}</strong>. Book a drop-off or collection slot to complete the transaction.
+                  </p>
+                  <div className="msg-offer-card__actions">
+                    <button
+                      className="msg-offer-card__accept msg-accepted-banner__bookings-btn"
+                      onClick={() => onGoToBookings?.()}
+                      type="button"
+                    >
+                      Go to My Bookings →
+                    </button>
+                    <button
+                      className="msg-offer-card__decline"
+                      onClick={() => setAcceptedOfferBanner(null)}
+                      type="button"
+                      style={{ flex: "0 0 auto", padding: "9px 14px" }}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <footer className="msg-composer">
               {showSellerQuickReplies && (

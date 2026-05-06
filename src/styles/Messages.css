@@ -757,7 +757,35 @@
   border-color: rgba(239, 68, 68, 0.5);
 }
 
-/* ── Send Offer button variant ──────────────────────────── */
+/* ── Accepted Offer Confirmation Banner ─────────────────── */
+.msg-accepted-banner-wrap {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  padding: 12px 16px;
+  background: linear-gradient(to top, var(--navy) 70%, transparent);
+  margin: 0 !important;
+}
+
+.msg-accepted-banner {
+  max-width: 100% !important;
+  border-color: rgba(31, 107, 82, 0.55) !important;
+  background: rgba(31, 107, 82, 0.1) !important;
+  box-shadow: 0 4px 24px rgba(31, 107, 82, 0.22) !important;
+  animation: msg-banner-in 0.25s ease;
+}
+
+.msg-accepted-banner__bookings-btn {
+  flex: 1;
+  font-size: 14px !important;
+  letter-spacing: 0.01em;
+}
+
+@keyframes msg-banner-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .msg-buyer-banner__btn--offer {
   background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
   border-color: transparent;
@@ -905,3 +933,35 @@
   cursor: not-allowed;
 }
 
+.msg-offer-card__accepted-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msg-offer-card__accepted-note {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.45;
+}
+
+.msg-offer-card__bookings-btn {
+  width: 100%;
+  padding: 10px 0;
+  border-radius: 9px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(31, 107, 82, 0.35);
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.msg-offer-card__bookings-btn:hover {
+  filter: brightness(1.08);
+  transform: scale(1.02);
+}

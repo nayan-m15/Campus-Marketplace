@@ -1220,6 +1220,7 @@ function AppInner() {
             setPage("publicProfile");
           }}
           onUnreadChange={setUnreadCount}
+          onGoToBookings={() => setPage("bookings")}
         />
       </>
     );
