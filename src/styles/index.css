@@ -357,6 +357,177 @@ html.dark .filter-bar__fieldset {
   background: #111827;
   border-color: rgba(148, 163, 184, 0.18);
 }
+/* ── Messages Page Dark Mode ── */
+html.dark .msg-page {
+  background: #111827;
+}
+html.dark .msg-sidebar {
+  background: #1f2937;
+  border-right-color: #374151;
+}
+html.dark .msg-sidebar__header,
+html.dark .msg-search-wrap {
+  border-bottom-color: #374151;
+}
+html.dark .msg-sidebar__title {
+  color: #f9fafb;
+}
+html.dark .msg-search {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #374151;
+  color: #f9fafb;
+}
+html.dark .msg-search::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+html.dark .msg-conv-item {
+  color: #f9fafb;
+}
+html.dark .msg-conv-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+html.dark .msg-conv-item--active {
+  background: rgba(52, 211, 153, 0.12);
+}
+html.dark .msg-conv-item__name {
+  color: #f9fafb;
+}
+html.dark .msg-conv-item__time,
+html.dark .msg-conv-item__preview {
+  color: #9ca3af;
+}
+html.dark .msg-chat {
+  background: #111827;
+}
+html.dark .msg-chat__header {
+  background: #1f2937;
+  border-bottom-color: #374151;
+}
+html.dark .msg-chat__header-name {
+  color: #f9fafb;
+}
+html.dark .msg-chat__header-sub,
+html.dark .msg-chat__empty h3 {
+  color: #cbd5e1;
+}
+html.dark .msg-chat__empty {
+  color: #9ca3af;
+}
+html.dark .msg-chat__body {
+  background: #111827;
+}
+html.dark .msg-date-divider::before,
+html.dark .msg-date-divider::after {
+  background: rgba(255, 255, 255, 0.1);
+}
+html.dark .msg-date-divider span {
+  color: #9ca3af;
+  background: rgba(255, 255, 255, 0.06);
+}
+html.dark .msg-bubble--theirs {
+  background: #374151;
+  color: #f9fafb;
+}
+html.dark .msg-bubble--theirs .msg-bubble__time {
+  color: #9ca3af;
+}
+html.dark .msg-composer {
+  background: #1f2937;
+  border-top-color: #374151;
+}
+html.dark .msg-composer__quick-reply {
+  background: #374151;
+  color: #f9fafb;
+  border-color: #4b5563;
+}
+html.dark .msg-conv-empty__text,
+html.dark .msg-conv-empty__icon {
+  color: #cbd5e1;
+}
+html.dark .msg-conv-empty__sub {
+  color: #9ca3af;
+}
+html.dark .msg-composer__input {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+html.dark .msg-composer__input::placeholder {
+  color: #9ca3af;
+}
+html.dark .msg-buyer-banner {
+  background: #1f2937;
+  border-bottom-color: #374151;
+}
+html.dark .msg-buyer-banner__card {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #374151;
+}
+html.dark .msg-buyer-banner__card-name {
+  color: #f9fafb;
+}
+html.dark .msg-buyer-banner__card-sub {
+  color: #9ca3af;
+}
+html.dark .msg-buyer-banner__btn {
+  background: #374151;
+  border-color: #4b5563;
+  color: #cbd5e1;
+}
+html.dark .msg-buyer-banner__btn:hover {
+  background: rgba(52, 211, 153, 0.12);
+  border-color: var(--green);
+  color: var(--green);
+}
+html.dark .msg-offer-card {
+  background: #374151;
+  border-color: #4b5563;
+}
+html.dark .msg-offer-card--accepted {
+  border-color: rgba(52, 211, 153, 0.5);
+  background: rgba(52, 211, 153, 0.08);
+}
+html.dark .msg-back-btn {
+  color: #9ca3af;
+}
+html.dark .msg-back-btn:hover {
+  color: var(--green);
+}
+html.dark .msg-offer-modal {
+  background: #1f2937;
+  border-color: #374151;
+}
+html.dark .msg-offer-modal__input-wrap {
+  background: transparent;
+  border-color: transparent;
+}
+html.dark .msg-offer-modal__input-wrap:focus-within {
+  border-color: var(--green);
+  background: transparent;
+}
+html.dark .msg-offer-modal__input {
+  color: #f9fafb;
+}
+html.dark .msg-offer-modal__title {
+  color: #f9fafb;
+}
+html.dark .msg-offer-modal__sub {
+  color: #9ca3af;
+}
+html.dark .msg-offer-modal__sub strong {
+  color: #cbd5e1;
+}
+html.dark .msg-offer-modal__currency {
+  color: #cbd5e1;
+}
+html.dark .msg-offer-modal__cancel {
+  background: #374151;
+  border-color: #4b5563;
+  color: #cbd5e1;
+}
+html.dark .msg-offer-modal__cancel:hover {
+  background: #4b5563;
+}
 /* ── Page wrappers ── */
 html.dark > body > div#root > div,
 html.dark [style*="min-height: 100vh"],
