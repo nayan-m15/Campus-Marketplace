@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { insertMessage } from "../utils/messageDelivery";
 import { deriveBookingStatus } from "../utils/tradeWorkflow";
+import ReceiptModal from "./ReceiptModal";
+import { generateTransactionReceiptPdf } from "../utils/receiptPdf";
 import "../styles/TradeFacilityDashboard.css";
 
 // ---------------------------------------------------------------------------
@@ -75,6 +77,10 @@ function formatDateTime(timestamp) {
 
 function initials(name) {
   return (name || "?").split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
+}
+
+function buildListingMatchKey(userId, itemName) {
+  return `${userId || ""}::${String(itemName || "").trim().toLowerCase()}`;
 }
 
 function buildBookings(transactions, profilesById, bookingsById) {
@@ -419,7 +425,6 @@ function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
 
   const isAccept  = dialog.actionType === "accept_booking";
   const isDecline = dialog.actionType === "decline_booking";
-  const isManaged = dialog.actionType === "managed_action";
 
   const titles = {
     accept_booking:  "Accept Booking Request",
@@ -558,7 +563,7 @@ function BookingsSection({
 
         <section className="bookings-controls">
           <label htmlFor={`${type}-search`} className="sr-only">Search bookings</label>
-          <input
+            <input
             id={`${type}-search`}
             type="search"
             className="bookings-search"
@@ -644,7 +649,7 @@ function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) 
 
         <section className="bookings-controls bookings-controls--row">
           <label htmlFor="manage-search" className="sr-only">Search transactions</label>
-          <input
+            <input
             id="manage-search"
             type="search"
             className="bookings-search"
@@ -696,7 +701,13 @@ function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) 
 // TransactionsSection — archive / full ledger
 // ---------------------------------------------------------------------------
 
-function TransactionsSection({ transactions, bookings, onTransactionStatusChange, statusSavingIds }) {
+function TransactionsSection({
+  transactions,
+  bookings,
+  onTransactionStatusChange,
+  statusSavingIds,
+  onOpenReceiptModal,
+}) {
   const [search, setSearch] = useState("");
 
   const TRANSACTION_STATUS_OPTIONS = [
@@ -728,8 +739,9 @@ function TransactionsSection({ transactions, bookings, onTransactionStatusChange
           <p className="panel__count">{filtered.length} of {transactions.length} transactions</p>
         </header>
 
-        <section className="bookings-controls">
-          <label htmlFor="txn-search" className="sr-only">Search transactions</label>
+        <section className="bookings-controls transactions-toolbar">
+          <div className="transactions-toolbar__search">
+            <label htmlFor="txn-search" className="sr-only">Search transactions</label>
           <input
             id="txn-search"
             type="search"
@@ -737,7 +749,12 @@ function TransactionsSection({ transactions, bookings, onTransactionStatusChange
             placeholder="Search by transaction ID, item, buyer or seller…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-          />
+            />
+          </div>
+          <button type="button" className="btn-primary" onClick={onOpenReceiptModal}>
+            <span aria-hidden="true">Receipt</span>
+            Generate Receipt
+          </button>
         </section>
 
         {filtered.length === 0 ? (
@@ -848,6 +865,8 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   const [dialog, setDialog]               = useState(null);
   const [saving, setSaving]               = useState(false);
   const [savingIds, setSavingIds]         = useState({});
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptGeneratingId, setReceiptGeneratingId] = useState("");
   const [toast, setToast]                 = useState({ msg: "", visible: false });
   const toastTimer                        = useRef(null);
 
@@ -873,10 +892,12 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
       const rows       = txRows || [];
       const bookingIds = [...new Set(rows.flatMap((r) => [r.dropoff_id, r.collection_id]).filter(Boolean))];
       const profileIds = [...new Set(rows.flatMap((r) => [r.seller_id,  r.buyer_id]).filter(Boolean))];
+      const sellerIds  = [...new Set(rows.map((r) => r.seller_id).filter(Boolean))];
 
       const [
         { data: bookingRows, error: bErr },
         { data: profileRows, error: pErr },
+        { data: listingRows, error: lErr },
       ] = await Promise.all([
         bookingIds.length
           ? supabase.from("bookings").select("*").in("id", bookingIds)
@@ -884,28 +905,54 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         profileIds.length
           ? supabase.from("profiles").select("id, name, display_name, email").in("id", profileIds)
           : Promise.resolve({ data: [], error: null }),
+        sellerIds.length
+          ? supabase
+              .from("listings")
+              .select("id, title, description, image_url, image_urls, user_id, sold_price, created_at")
+              .order("created_at", { ascending: false })
+              .in("user_id", sellerIds)
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (bErr) throw bErr;
       if (pErr) throw pErr;
+      if (lErr) throw lErr;
 
       const profilesById = Object.fromEntries((profileRows || []).map((p) => [p.id, p]));
       const bookingsById = Object.fromEntries((bookingRows || []).map((b) => [b.id, b]));
+      const listingMatches = new Map();
 
-      const mappedTransactions = rows.map((t) => ({
-        ...t,
-        dropoffId:    t.dropoff_id,
-        collectionId: t.collection_id,
-        createdAt:    t.created_at,
-        seller: {
-          name:      profilesById[t.seller_id]?.display_name || profilesById[t.seller_id]?.name || t.seller_id,
-          studentId: profilesById[t.seller_id]?.email || t.seller_id,
-        },
-        buyer: {
-          name:      profilesById[t.buyer_id]?.display_name || profilesById[t.buyer_id]?.name || t.buyer_id,
-          studentId: profilesById[t.buyer_id]?.email || t.buyer_id,
-        },
-      }));
+      for (const listing of listingRows || []) {
+        const key = buildListingMatchKey(listing.user_id, listing.title);
+        if (!listingMatches.has(key)) {
+          listingMatches.set(key, listing);
+        }
+      }
+
+      const mappedTransactions = rows.map((t) => {
+        const matchedListing = listingMatches.get(buildListingMatchKey(t.seller_id, t.item)) || null;
+
+        return {
+          ...t,
+          dropoffId:    t.dropoff_id,
+          collectionId: t.collection_id,
+          createdAt:    t.created_at,
+          matchedListing,
+          itemDescription: matchedListing?.description || "",
+          itemImageUrl: matchedListing?.image_url || matchedListing?.image_urls?.find(Boolean) || "",
+          quantity: Number(t.quantity || 1),
+          totalAmount: Number(t.total_amount ?? t.price ?? 0),
+          paymentMethod: t.payment_method || "",
+          seller: {
+            name:      profilesById[t.seller_id]?.display_name || profilesById[t.seller_id]?.name || t.seller_id,
+            studentId: profilesById[t.seller_id]?.email || t.seller_id,
+          },
+          buyer: {
+            name:      profilesById[t.buyer_id]?.display_name || profilesById[t.buyer_id]?.name || t.buyer_id,
+            studentId: profilesById[t.buyer_id]?.email || t.buyer_id,
+          },
+        };
+      });
 
       setTransactions(mappedTransactions);
       setBookings(buildBookings(rows, profilesById, bookingsById));
@@ -962,6 +1009,24 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   const handleDialogCancel = useCallback(() => {
     if (!saving) setDialog(null);
   }, [saving]);
+
+  const handleGenerateReceipt = useCallback(async (transaction) => {
+    if (!transaction?.id) {
+      showToast("Please select a transaction before generating a receipt.");
+      return;
+    }
+
+    setReceiptGeneratingId(transaction.id);
+    try {
+      await generateTransactionReceiptPdf(transaction);
+      setReceiptModalOpen(false);
+      showToast(`Receipt downloaded for ${transaction.id}.`);
+    } catch (err) {
+      showToast(err.message || "Unable to generate the receipt.");
+    } finally {
+      setReceiptGeneratingId("");
+    }
+  }, [showToast]);
 
   // ── Central confirm handler ───────────────────────────────────────────────
   const handleDialogConfirm = useCallback(async () => {
@@ -1200,6 +1265,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
             bookings={bookings}
             onTransactionStatusChange={handleTransactionStatusChange}
             statusSavingIds={savingIds}
+            onOpenReceiptModal={() => setReceiptModalOpen(true)}
           />
         ) : null}
       </main>
@@ -1215,6 +1281,17 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
       ) : null}
 
       {/* ── Toast ────────────────────────────────────────────────────────── */}
+      {receiptModalOpen ? (
+        <ReceiptModal
+          transactions={transactions}
+          generatingId={receiptGeneratingId}
+          onGenerate={handleGenerateReceipt}
+          onClose={() => {
+            if (!receiptGeneratingId) setReceiptModalOpen(false);
+          }}
+        />
+      ) : null}
+
       <aside
         className={`save-toast ${toast.visible ? "save-toast--visible" : ""}`}
         aria-live="polite"
