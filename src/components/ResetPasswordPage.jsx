@@ -37,8 +37,18 @@ export default function ResetPasswordPage({ onComplete }) {
       return;
     }
 
+    // Clear the recovery state and sign out the recovery session
     clearPasswordRecovery();
+    await supabase.auth.signOut();
     setSuccess("Your password has been reset successfully.");
+    
+    // Clear the recovery URL parameters so user can't accidentally re-trigger recovery
+    window.history.replaceState({}, "", window.location.pathname);
+    
+    // After a brief delay, redirect to login
+    setTimeout(() => {
+      onComplete();
+    }, 1500);
   }
 
   return (
@@ -65,9 +75,9 @@ export default function ResetPasswordPage({ onComplete }) {
         {success ? (
           <>
             <p className="auth-success-message">{success}</p>
-            <button type="button" className="btn-primary auth-submit" onClick={onComplete}>
-              Continue to marketplace
-            </button>
+            <p style={{ textAlign: "center", color: "var(--gray-500)", fontSize: "14px" }}>
+              Redirecting to login...
+            </p>
           </>
         ) : (
           <form onSubmit={handleSubmit} className="auth-form" noValidate>

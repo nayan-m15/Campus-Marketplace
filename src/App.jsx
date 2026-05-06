@@ -1076,14 +1076,14 @@ function AppInner() {
   }
 
   useEffect(() => {
-    if (loading || !user || (page !== "login" && page !== "signup")) return;
+    if (loading || !user || (page !== "login" && page !== "signup") || isPasswordRecovery) return;
 
     skipHistoryPushRef.current = true;
     setPage("home");
     window.history.replaceState({ ...(window.history.state || {}), page: "home" }, "");
-  }, [loading, user, page]);
+  }, [loading, user, page, isPasswordRecovery]);
 
-  if (loading || (user && !profileChecked)) {
+  if (loading || (user && !profileChecked && !isPasswordRecovery)) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font)", color: "var(--gray-600)" }}>
         Loading…

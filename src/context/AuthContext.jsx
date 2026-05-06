@@ -16,6 +16,16 @@ function getRecoveryTypeFromUrl() {
   return searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery";
 }
 
+async function isRecoverySession() {
+  const { data } = await supabase.auth.getSession();
+  if (!data?.session) return false;
+  
+  // Check if this is a recovery session by looking at the session's user metadata
+  // Recovery sessions have a specific structure, or we can check for the recovery token
+  const hasRecoveryType = getRecoveryTypeFromUrl();
+  return hasRecoveryType;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -23,28 +33,24 @@ export function AuthProvider({ children }) {
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
-    const initAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data?.session?.user ?? null);
-      setIsPasswordRecovery(getRecoveryTypeFromUrl());
-
-      setLoading(false);
-    };
-
-    initAuth();
-
+    // Set up the auth state listener FIRST, before any async operations
+    // This ensures PASSWORD_RECOVERY events are caught immediately
     const { data: { subscription } } =
       supabase.auth.onAuthStateChange((event, session) => {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
+        // PASSWORD_RECOVERY is the event that fires when recovery link is clicked
         if (event === "PASSWORD_RECOVERY") {
           setIsPasswordRecovery(true);
         } else if (event === "SIGNED_OUT") {
           setIsPasswordRecovery(false);
-        }
+        } else if (event === "SIGNED_IN" && currentUser) {
+          // For regular sign-in, check URL as fallback
+          const isRecovery = getRecoveryTypeFromUrl();
+          setIsPasswordRecovery(isRecovery);
 
-        if (event === "SIGNED_IN" && currentUser) {
+          // Profile upsert
           supabase
             .from("profiles")
             .upsert(
@@ -59,6 +65,23 @@ export function AuthProvider({ children }) {
             });
         }
       });
+
+    // Now initialize the session
+    const initAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      const currentUser = data?.session?.user ?? null;
+      setUser(currentUser);
+      
+      // Check URL for recovery as a fallback (in case event wasn't caught)
+      const isRecovery = getRecoveryTypeFromUrl();
+      if (isRecovery) {
+        setIsPasswordRecovery(true);
+      }
+
+      setLoading(false);
+    };
+
+    initAuth();
 
     return () => subscription.unsubscribe();
   }, []);
