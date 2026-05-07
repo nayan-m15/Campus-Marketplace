@@ -8,6 +8,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import AdminModerateListingsPanel from "./AdminModerateListingsPanel";
 import FacilitiesManagementPanel from "./FacilitiesManagementPanel";
+import StaffManagementPanel from "./StaffManagementPanel";
 
 // ── Constants ───────────────────────────────────────────────────
 const MARKETPLACE_REPORT_TYPES = [
@@ -546,6 +547,7 @@ export default function AdminDashboard({
   const NAV_ITEMS = [
     { id: "facilities", icon: "🏛️", label: "Facilities" },
     { id: "reports", icon: "📊", label: "Reports" },
+    { id: "staff", icon: "👥", label: "Manage Staff" },
     { id: "moderate", icon: "🛡️", label: "Moderate Listings" },
   ];
 
@@ -554,7 +556,9 @@ export default function AdminDashboard({
       ? "🏛️ Facilities Management"
       : activeTab === "reports"
         ? "📊 Marketplace Reports"
-        : "🛡️ Moderate Listings";
+        : activeTab === "staff"
+          ? "👥 Manage Staff"
+          : "🛡️ Moderate Listings";
 
   const adminName =
     adminProfile?.display_name?.trim() ||
@@ -636,6 +640,7 @@ export default function AdminDashboard({
 
         {activeTab === "facilities" && <FacilitiesManagementPanel />}
         {activeTab === "reports" && <ReportsPanel />}
+        {activeTab === "staff" && <StaffManagementPanel />}
         {activeTab === "moderate" && (
           <AdminModerateListingsPanel
             listings={listings}
