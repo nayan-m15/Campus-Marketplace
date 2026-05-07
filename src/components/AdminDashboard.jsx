@@ -7,6 +7,7 @@ import { supabase } from "../supabaseClient";
 import { DAYS, normalizeFacilityDay } from "../utils/bookingScheduling";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import AdminModerateListingsPanel from "./AdminModerateListingsPanel";
 
 // ── Constants ───────────────────────────────────────────────────
 const MARKETPLACE_REPORT_TYPES = [
@@ -684,7 +685,15 @@ function ReportsPanel() {
 }
 
 // ── Main AdminDashboard Component ───────────────────────────────
-export default function AdminDashboard({ onSignOut, onBackToMarketplace }) {
+export default function AdminDashboard({
+  onSignOut,
+  onBackToMarketplace,
+  listings = [],
+  listingsLoading = false,
+  listingsError = "",
+  onModerateListing,
+  adminProfile = null,
+}) {
   const [activeTab, setActiveTab] = useState("facilities");
   const [facilities, setFacilities] = useState([]);
   const [toastVisible, setToastVisible] = useState(false);
@@ -838,7 +847,21 @@ export default function AdminDashboard({ onSignOut, onBackToMarketplace }) {
   const NAV_ITEMS = [
     { id: "facilities", icon: "🏛️", label: "Facility Hours" },
     { id: "reports", icon: "📊", label: "Reports" },
+    { id: "moderate", icon: "🛡️", label: "Moderate Listings" },
   ];
+
+  const topbarTitle =
+    activeTab === "facilities"
+      ? "🏛️ Facility Configuration"
+      : activeTab === "reports"
+        ? "📊 Marketplace Reports"
+        : "🛡️ Moderate Listings";
+
+  const adminName =
+    adminProfile?.display_name?.trim() ||
+    adminProfile?.name?.trim() ||
+    "Admin User";
+  const adminEmail = adminProfile?.email || "admin@un.com";
 
   return (
     <section className="admin-dashboard-wrapper">
@@ -883,8 +906,8 @@ export default function AdminDashboard({ onSignOut, onBackToMarketplace }) {
         <footer className="sidebar__footer">
           <figure className="admin-avatar" aria-hidden="true">A</figure>
           <hgroup className="admin-info">
-            <p className="admin-name">Admin User</p>
-            <p className="admin-email">admin@un.com</p>
+            <p className="admin-name">{adminName}</p>
+            <p className="admin-email">{adminEmail}</p>
           </hgroup>
           {onSignOut && (
             <button
@@ -904,7 +927,7 @@ export default function AdminDashboard({ onSignOut, onBackToMarketplace }) {
         <header className="dashboard-topbar">
           <hgroup>
             <h2 className="topbar-title">
-              {activeTab === "facilities" ? "🏛️ Facility Configuration" : "📊 Marketplace Reports"}
+              {topbarTitle}
             </h2>
             <p className="topbar-date">
               {new Date().toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
@@ -922,6 +945,14 @@ export default function AdminDashboard({ onSignOut, onBackToMarketplace }) {
           />
         )}
         {activeTab === "reports" && <ReportsPanel />}
+        {activeTab === "moderate" && (
+          <AdminModerateListingsPanel
+            listings={listings}
+            loading={listingsLoading}
+            error={listingsError}
+            onModerateListing={onModerateListing}
+          />
+        )}
       </main>
     </section>
   );
