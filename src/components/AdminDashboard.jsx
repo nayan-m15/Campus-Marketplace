@@ -878,6 +878,7 @@ export default function AdminDashboard({
         </header>
 
         <ul className="sidebar__nav" role="list">
+          {/*
           {onBackToMarketplace && (
             <li>
               <button
@@ -889,6 +890,7 @@ export default function AdminDashboard({
               </button>
             </li>
           )}
+          */}          
           {NAV_ITEMS.map((item) => (
             <li key={item.id}>
               <button
