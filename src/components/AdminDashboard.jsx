@@ -3,11 +3,13 @@
 
 import { useState, useEffect } from "react";
 import "../styles/AdminDashboard.css";
+import "../styles/analytics.css";
 import { supabase } from "../supabaseClient";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import AdminModerateListingsPanel from "./AdminModerateListingsPanel";
 import FacilitiesManagementPanel from "./FacilitiesManagementPanel";
+import ModernReportsDashboard from "./analytics/ModernReportsDashboard";
 
 // ── Constants ───────────────────────────────────────────────────
 const MARKETPLACE_REPORT_TYPES = [
@@ -545,7 +547,7 @@ export default function AdminDashboard({
 
   const NAV_ITEMS = [
     { id: "facilities", icon: "🏛️", label: "Facilities" },
-    { id: "reports", icon: "📊", label: "Reports" },
+    { id: "reports", icon: "📊", label: "Analytics" },
     { id: "moderate", icon: "🛡️", label: "Moderate Listings" },
   ];
 
@@ -553,7 +555,7 @@ export default function AdminDashboard({
     activeTab === "facilities"
       ? "🏛️ Facilities Management"
       : activeTab === "reports"
-        ? "📊 Marketplace Reports"
+        ? "📊 Analytics Dashboard"
         : "🛡️ Moderate Listings";
 
   const adminName =
@@ -635,7 +637,7 @@ export default function AdminDashboard({
         </header>
 
         {activeTab === "facilities" && <FacilitiesManagementPanel />}
-        {activeTab === "reports" && <ReportsPanel />}
+        {activeTab === "reports" && <ModernReportsDashboard />}
         {activeTab === "moderate" && (
           <AdminModerateListingsPanel
             listings={listings}
