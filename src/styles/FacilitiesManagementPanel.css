@@ -140,30 +140,30 @@
 }
 
 .btn-success {
-  background: #22c55e;
+  background: var(--green);
   color: white;
 }
 
 .btn-success:hover:not(:disabled) {
-  background: #16a34a;
+  background: var(--green-dark);
 }
 
 .btn-warning {
-  background: #f59e0b;
+  background: var(--amber);
   color: white;
 }
 
 .btn-warning:hover:not(:disabled) {
-  background: #d97706;
+  background: var(--amber-light);
 }
 
 .btn-danger {
-  background: #ef4444;
+  background: var(--danger);
   color: white;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #dc2626;
+  background: #c75b4a;
 }
 
 .btn:disabled {
@@ -562,13 +562,13 @@
 .form-input--error,
 .form-textarea--error,
 .form-select--error {
-  border-color: #ef4444;
+  border-color: var(--danger);
 }
 
 .form-input--error:focus,
 .form-textarea--error:focus,
 .form-select--error:focus {
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.10);
+  box-shadow: 0 0 0 2px rgba(199, 91, 74, 0.10);
 }
 
 .form-textarea {

@@ -576,17 +576,20 @@ export default function FacilitiesManagementPanel() {
         // Update facility hours
         for (const day of DAYS) {
           const dayHours = facilityData.hours[day];
-          const { error: hoursError } = await supabase
-            .from("facility_hours")
-            .upsert({
-              facility_id: editingFacility.id,
-              day,
-              open: dayHours.open,
-              start_time: dayHours.start,
-              end_time: dayHours.end,
-            }, { onConflict: "facility_id,day" });
+          // Only update if the day has valid data
+          if (dayHours && dayHours.open !== undefined) {
+            const { error: hoursError } = await supabase
+              .from("facility_hours")
+              .upsert({
+                facility_id: editingFacility.id,
+                day,
+                open: dayHours.open,
+                start_time: dayHours.start || "09:00",
+                end_time: dayHours.end || "17:00",
+              }, { onConflict: "facility_id,day" });
 
-          if (hoursError) throw hoursError;
+            if (hoursError) throw hoursError;
+          }
         }
 
         showToast("Facility updated successfully!");
