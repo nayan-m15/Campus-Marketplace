@@ -965,3 +965,9 @@
   filter: brightness(1.08);
   transform: scale(1.02);
 }
+
+.msg-buyer-banner__btn--offer:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}

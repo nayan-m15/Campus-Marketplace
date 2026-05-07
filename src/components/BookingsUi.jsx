@@ -150,6 +150,14 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
     [selectedFacility],
   );
 
+  const closedDayIndices = useMemo(() => {
+    return DAYS
+      .map((day, index) => ({ index, hours: hoursByDay.get(day) }))
+      .filter(({ hours }) => !hours?.open)
+      .map(({ index }) => index)
+      .join(",");
+  }, [hoursByDay]);
+
   useEffect(() => {
     if (!selectedFacility || !selectedDate) {
       setSlotUsage({});
@@ -182,12 +190,25 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   }, [selectedDate, facilityId]);
 
   const today = toDateInputValue();
+  const now = new Date();
   const dayHours = selectedDate ? hoursByDay.get(getDateDayName(selectedDate)) : null;
-  const isDateOpen = Boolean(dayHours?.open);
+
   const availableSlots = useMemo(() => {
     if (!dayHours?.open) return [];
-    return generateTimeSlots(dayHours.start_time, dayHours.end_time);
-  }, [dayHours]);
+    const slots = generateTimeSlots(dayHours.start_time, dayHours.end_time);
+    if (!selectedDate) return slots;
+
+    const isToday = selectedDate === today;
+    if (!isToday) return slots;
+    return slots.filter((slot) => {
+      const [hours, minutes] = slot.split(":").map(Number);
+      const slotTime = new Date(now);
+      slotTime.setHours(hours, minutes, 0, 0);
+      return slotTime > now;
+    });
+  }, [dayHours, selectedDate, today]);
+
+  const isDateOpen = Boolean(dayHours?.open) && availableSlots.length > 0;
 
   const canProceedToStep2 = Boolean(selectedFacility && selectedDate && isDateOpen);
 
@@ -314,20 +335,28 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
                 {selectedFacility && (
                   <div className="brm-field">
                     <label className="brm-label" htmlFor="booking-date">Date</label>
-                    <input
-                      id="booking-date"
-                      type="date"
-                      className="brm-input"
-                      min={today}
-                      value={selectedDate}
-                      onChange={(event) => setSelectedDate(event.target.value)}
-                    />
-                    {selectedDate && !isDateOpen && (
-                      <p className="brm-hint brm-hint--warn">This facility is closed on that date.</p>
-                    )}
-                    {selectedDate && isDateOpen && (
-                      <p className="brm-hint brm-hint--ok">Facility is open and slots can be booked.</p>
-                    )}
+                <input
+                  id="booking-date"
+                  type="date"
+                  className="brm-input"
+                  min={today}
+                  value={selectedDate}
+                  onChange={(event) => {
+                    const date = event.target.value;
+                    const dayIndex = new Date(`${date}T00:00:00`).getDay();
+                    const closedIndices = DAYS
+                      .map((day, i) => ({ i, hours: hoursByDay.get(day) }))
+                      .filter(({ hours }) => !hours?.open)
+                      .map(({ i }) => i);
+                    if (closedIndices.includes(dayIndex)) return; // silently block closed days
+                    setSelectedDate(date);
+                  }}
+                />
+                {selectedDate && dayHours?.open && availableSlots.length === 0 && (
+                  <p className="brm-hint brm-hint--warn">
+                    No more slots available today — all slots have passed.
+                  </p>
+                )}
                   </div>
                 )}
 
@@ -371,21 +400,19 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
                     <p className="brm-hint brm-hint--warn">No bookable slots for the selected day.</p>
                   ) : (
                     <div className="brm-slots" role="group" aria-label="Available time slots">
-                      {availableSlots.map((slot) => {
+                      {availableSlots.filter((slot) => (slotUsage[slot] || 0) < (selectedFacility?.capacity || 1)).map((slot) => {
                         const capacity = selectedFacility?.capacity || 1;
                         const usage = slotUsage[slot] || 0;
-                        const isFull = usage >= capacity;
                         return (
                           <button
                             key={slot}
-                            className={`brm-slot ${selectedTime === slot ? "brm-slot--selected" : ""} ${isFull ? "brm-slot--taken" : ""}`}
-                            onClick={() => !isFull && setSelectedTime(slot)}
-                            disabled={isFull}
+                            className={`brm-slot ${selectedTime === slot ? "brm-slot--selected" : ""}`}
+                            onClick={() => setSelectedTime(slot)}
                             aria-pressed={selectedTime === slot}
                           >
                             <span className="brm-slot-time">{slot}</span>
                             <span className="brm-slot-range">{formatSlotLabel(slot)}</span>
-                            <span className="brm-slot-capacity">{isFull ? "Full" : `${capacity - usage} left`}</span>
+                            <span className="brm-slot-capacity">{capacity - usage} left</span>
                           </button>
                         );
                       })}
