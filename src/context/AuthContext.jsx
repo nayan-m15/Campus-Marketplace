@@ -6,6 +6,7 @@ import { supabase } from "../supabaseClient";
 import { getAppBaseUrl } from "../utils/appUrl";
 
 const AuthContext = createContext(null);
+const DEBUG_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEBUG_AUTH === "true";
 
 function getRecoveryTypeFromUrl() {
   if (typeof window === "undefined") return false;
@@ -21,46 +22,85 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [lastAuthEvent, setLastAuthEvent] = useState(null);
 
   useEffect(() => {
-    const initAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data?.session?.user ?? null);
-      setIsPasswordRecovery(getRecoveryTypeFromUrl());
+    let isMounted = true;
 
-      setLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+
+      const currentUser = session?.user ?? null;
+
+      if (DEBUG_AUTH) {
+        console.debug("[Auth] onAuthStateChange", {
+          event,
+          userId: currentUser?.id ?? null,
+          hasSession: Boolean(session),
+        });
+      }
+
+      setLastAuthEvent(event);
+      setUser(currentUser);
+
+      if (event === "PASSWORD_RECOVERY") {
+        setIsPasswordRecovery(true);
+      } else if (event === "SIGNED_OUT") {
+        setIsPasswordRecovery(false);
+      }
+
+      if (event === "SIGNED_IN" && currentUser) {
+        supabase
+          .from("profiles")
+          .upsert(
+            {
+              id: currentUser.id,
+              email: currentUser.email,
+            },
+            { onConflict: "id" }
+          )
+          .then(({ error }) => {
+            if (error) console.error("Profile upsert error:", error.message);
+          });
+      }
+    });
+
+    const initAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("Session bootstrap error:", error.message);
+        }
+
+        if (!isMounted) return;
+
+        const currentUser = data?.session?.user ?? null;
+
+        if (DEBUG_AUTH) {
+          console.debug("[Auth] getSession resolved", {
+            userId: currentUser?.id ?? null,
+            hasSession: Boolean(data?.session),
+          });
+        }
+
+        setUser(currentUser);
+        setIsPasswordRecovery(getRecoveryTypeFromUrl());
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
 
     initAuth();
 
-    const { data: { subscription } } =
-      supabase.auth.onAuthStateChange((event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-
-        if (event === "PASSWORD_RECOVERY") {
-          setIsPasswordRecovery(true);
-        } else if (event === "SIGNED_OUT") {
-          setIsPasswordRecovery(false);
-        }
-
-        if (event === "SIGNED_IN" && currentUser) {
-          supabase
-            .from("profiles")
-            .upsert(
-              {
-                id: currentUser.id,
-                email: currentUser.email,
-              },
-              { onConflict: "id" }
-            )
-            .then(({ error }) => {
-              if (error) console.error("Profile upsert error:", error.message);
-            });
-        }
-      });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -128,6 +168,7 @@ export function AuthProvider({ children }) {
         user,
         profile,
         loading,
+        lastAuthEvent,
         signUp,
         signIn,
         signInWithGoogle,
