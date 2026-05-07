@@ -150,6 +150,14 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
     [selectedFacility],
   );
 
+  const closedDayIndices = useMemo(() => {
+    return DAYS
+      .map((day, index) => ({ index, hours: hoursByDay.get(day) }))
+      .filter(({ hours }) => !hours?.open)
+      .map(({ index }) => index)
+      .join(",");
+  }, [hoursByDay]);
+
   useEffect(() => {
     if (!selectedFacility || !selectedDate) {
       setSlotUsage({});
@@ -327,25 +335,28 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
                 {selectedFacility && (
                   <div className="brm-field">
                     <label className="brm-label" htmlFor="booking-date">Date</label>
-                    <input
-                      id="booking-date"
-                      type="date"
-                      className="brm-input"
-                      min={today}
-                      value={selectedDate}
-                      onChange={(event) => setSelectedDate(event.target.value)}
-                    />
-                    {selectedDate && !dayHours?.open && (
-                      <p className="brm-hint brm-hint--warn">This facility is closed on that day.</p>
-                    )}
-                    {selectedDate && dayHours?.open && availableSlots.length === 0 && (
-                      <p className="brm-hint brm-hint--warn">
-                        No more slots available today — the facility is currently closed for new bookings.
-                      </p>
-                    )}
-                    {selectedDate && isDateOpen && (
-                      <p className="brm-hint brm-hint--ok">Facility is open and slots can be booked.</p>
-                    )}
+                <input
+                  id="booking-date"
+                  type="date"
+                  className="brm-input"
+                  min={today}
+                  value={selectedDate}
+                  onChange={(event) => {
+                    const date = event.target.value;
+                    const dayIndex = new Date(`${date}T00:00:00`).getDay();
+                    const closedIndices = DAYS
+                      .map((day, i) => ({ i, hours: hoursByDay.get(day) }))
+                      .filter(({ hours }) => !hours?.open)
+                      .map(({ i }) => i);
+                    if (closedIndices.includes(dayIndex)) return; // silently block closed days
+                    setSelectedDate(date);
+                  }}
+                />
+                {selectedDate && dayHours?.open && availableSlots.length === 0 && (
+                  <p className="brm-hint brm-hint--warn">
+                    No more slots available today — all slots have passed.
+                  </p>
+                )}
                   </div>
                 )}
 
