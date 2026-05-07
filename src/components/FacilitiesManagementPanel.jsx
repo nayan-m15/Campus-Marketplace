@@ -45,6 +45,24 @@ function FacilityFormModal({
   // Initialize form data when facility changes
   useEffect(() => {
     if (facility) {
+      console.log("Initializing form with facility data:", facility);
+      
+      // Ensure proper time formatting for existing facility hours
+      const formattedHours = facility.hours || emptyHours();
+      const normalizedHours = {};
+      
+      Object.keys(formattedHours).forEach(day => {
+        const dayData = formattedHours[day];
+        normalizedHours[day] = {
+          ...dayData,
+          start: dayData.start || "09:00",
+          end: dayData.end || "17:00"
+        };
+        
+        // Debug log to see what we're working with
+        console.log(`Day ${day}: start="${normalizedHours[day].start}", end="${normalizedHours[day].end}"`);
+      });
+      
       setFormData({
         name: facility.name || "",
         description: facility.description || "",
@@ -53,9 +71,10 @@ function FacilityFormModal({
         capacity: facility.capacity || 1,
         session_duration_minutes: facility.session_duration_minutes || DEFAULT_SESSION_DURATION,
         status: facility.status || "active",
-        hours: facility.hours || emptyHours(),
+        hours: normalizedHours,
       });
     } else {
+      console.log("Initializing empty form");
       setFormData({
         name: "",
         description: "",
@@ -92,8 +111,21 @@ function FacilityFormModal({
     } else {
       openDays.forEach(day => {
         const { start, end } = formData.hours[day];
-        if (start >= end) {
+        
+        // Validate time format (HH:MM)
+        const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        
+        // Debug logging to see what values we're getting
+        console.log(`Validating time for ${day}: start="${start}", end="${end}"`);
+        
+        if (!start || !timeRegex.test(start)) {
+          newErrors[`hours_${day}`] = "Invalid opening time format. Use HH:MM (e.g., 09:00)";
+        } else if (!end || !timeRegex.test(end)) {
+          newErrors[`hours_${day}`] = "Invalid closing time format. Use HH:MM (e.g., 17:00)";
+        } else if (start >= end) {
           newErrors[`hours_${day}`] = "Closing time must be after opening time";
+        } else if (start === end) {
+          newErrors[`hours_${day}`] = "Opening and closing times cannot be the same";
         }
       });
     }
@@ -117,13 +149,27 @@ function FacilityFormModal({
   }, [errors]);
 
   const updateHours = useCallback((day, field, value) => {
+    console.log(`Updating hours for ${day}.${field} = "${value}"`);
+    
+    // Ensure the value is in proper HH:MM format
+    let formattedValue = value;
+    if (value && typeof value === 'string') {
+      // HTML time inputs should already be in HH:MM format, but let's ensure it
+      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(value)) {
+        console.warn(`Invalid time format received: ${value}`);
+        // Try to fix common format issues
+        formattedValue = value.replace(/^(\d):/, '0$1:'); // Add leading zero to hour
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
       hours: {
         ...prev.hours,
         [day]: {
           ...prev.hours[day],
-          [field]: value
+          [field]: formattedValue
         }
       }
     }));
@@ -556,9 +602,16 @@ export default function FacilitiesManagementPanel() {
     setSaving(true);
     
     try {
+      // Validate facility data structure
+      if (!facilityData || !facilityData.hours) {
+        throw new Error("Invalid facility data structure");
+      }
+
       if (editingFacility) {
+        console.log("Updating facility:", editingFacility.id, facilityData);
+        
         // Update existing facility
-        const { error: facilityError } = await supabase
+        const { data: updatedFacility, error: facilityError } = await supabase
           .from("facilities")
           .update({
             name: facilityData.name,
@@ -569,31 +622,65 @@ export default function FacilitiesManagementPanel() {
             session_duration_minutes: facilityData.session_duration_minutes,
             status: facilityData.status,
           })
-          .eq("id", editingFacility.id);
+          .eq("id", editingFacility.id)
+          .select()
+          .single();
 
-        if (facilityError) throw facilityError;
+        if (facilityError) {
+          console.error("Facility update error:", facilityError);
+          throw new Error(`Failed to update facility: ${facilityError.message}`);
+        }
 
-        // Update facility hours
+        console.log("Facility updated successfully:", updatedFacility);
+
+        // Update facility hours with proper error handling
+        const hoursUpdates = [];
         for (const day of DAYS) {
           const dayHours = facilityData.hours[day];
-          // Only update if the day has valid data
-          if (dayHours && dayHours.open !== undefined) {
-            const { error: hoursError } = await supabase
-              .from("facility_hours")
-              .upsert({
-                facility_id: editingFacility.id,
-                day,
-                open: dayHours.open,
-                start_time: dayHours.start || "09:00",
-                end_time: dayHours.end || "17:00",
-              }, { onConflict: "facility_id,day" });
-
-            if (hoursError) throw hoursError;
+          // Only update if the day has valid data structure
+          if (dayHours && typeof dayHours === 'object') {
+            const normalizedDay = normalizeFacilityDay(day);
+            
+            // Validate time format
+            const startTime = dayHours.start || "09:00";
+            const endTime = dayHours.end || "17:00";
+            
+            // Basic time validation
+            if (!startTime.match(/^\d{2}:\d{2}$/) || !endTime.match(/^\d{2}:\d{2}$/)) {
+              throw new Error(`Invalid time format for ${day}: ${startTime} - ${endTime}`);
+            }
+            
+            const hoursUpdate = {
+              facility_id: editingFacility.id,
+              day: normalizedDay,
+              open: Boolean(dayHours.open),
+              start_time: startTime,
+              end_time: endTime,
+            };
+            
+            console.log(`Updating hours for ${day} (${normalizedDay}):`, hoursUpdate);
+            hoursUpdates.push(hoursUpdate);
           }
+        }
+
+        // Batch update facility hours
+        if (hoursUpdates.length > 0) {
+          const { error: hoursError } = await supabase
+            .from("facility_hours")
+            .upsert(hoursUpdates, { onConflict: "facility_id,day" });
+
+          if (hoursError) {
+            console.error("Facility hours update error:", hoursError);
+            throw new Error(`Failed to update facility hours: ${hoursError.message}`);
+          }
+          
+          console.log("Facility hours updated successfully:", hoursUpdates.length, "days");
         }
 
         showToast("Facility updated successfully!");
       } else {
+        console.log("Creating new facility:", facilityData);
+        
         // Create new facility
         const { data: newFacility, error: facilityError } = await supabase
           .from("facilities")
@@ -609,22 +696,51 @@ export default function FacilitiesManagementPanel() {
           .select()
           .single();
 
-        if (facilityError) throw facilityError;
+        if (facilityError) {
+          console.error("Facility creation error:", facilityError);
+          throw new Error(`Failed to create facility: ${facilityError.message}`);
+        }
 
-        // Create facility hours
-        const hoursData = DAYS.map(day => ({
-          facility_id: newFacility.id,
-          day,
-          open: facilityData.hours[day].open,
-          start_time: facilityData.hours[day].start,
-          end_time: facilityData.hours[day].end,
-        }));
+        console.log("Facility created successfully:", newFacility);
 
-        const { error: hoursError } = await supabase
-          .from("facility_hours")
-          .insert(hoursData);
+        // Create facility hours with proper validation
+        const hoursData = [];
+        for (const day of DAYS) {
+          const dayHours = facilityData.hours[day];
+          if (dayHours && typeof dayHours === 'object') {
+            const normalizedDay = normalizeFacilityDay(day);
+            
+            // Validate time format
+            const startTime = dayHours.start || "09:00";
+            const endTime = dayHours.end || "17:00";
+            
+            // Basic time validation
+            if (!startTime.match(/^\d{2}:\d{2}$/) || !endTime.match(/^\d{2}:\d{2}$/)) {
+              throw new Error(`Invalid time format for ${day}: ${startTime} - ${endTime}`);
+            }
+            
+            hoursData.push({
+              facility_id: newFacility.id,
+              day: normalizedDay,
+              open: Boolean(dayHours.open),
+              start_time: startTime,
+              end_time: endTime,
+            });
+          }
+        }
 
-        if (hoursError) throw hoursError;
+        if (hoursData.length > 0) {
+          const { error: hoursError } = await supabase
+            .from("facility_hours")
+            .insert(hoursData);
+
+          if (hoursError) {
+            console.error("Facility hours creation error:", hoursError);
+            throw new Error(`Failed to create facility hours: ${hoursError.message}`);
+          }
+          
+          console.log("Facility hours created successfully:", hoursData.length, "days");
+        }
 
         showToast("Facility created successfully!");
       }
@@ -634,7 +750,33 @@ export default function FacilitiesManagementPanel() {
       await fetchFacilities();
     } catch (err) {
       console.error("Error saving facility:", err);
-      showToast("Failed to save facility. Please try again.", "error");
+      
+      // Provide specific error messages based on the error type
+      let errorMessage = "Failed to save facility. Please try again.";
+      
+      if (err.message) {
+        if (err.message.includes("Invalid time format")) {
+          errorMessage = "Invalid time format. Please use HH:MM format (e.g., 09:00).";
+        } else if (err.message.includes("Failed to update facility")) {
+          errorMessage = "Failed to update facility information. Please check your data and try again.";
+        } else if (err.message.includes("Failed to create facility")) {
+          errorMessage = "Failed to create facility. Please check your data and try again.";
+        } else if (err.message.includes("Failed to update facility hours")) {
+          errorMessage = "Failed to update operating hours. Please check your time values and try again.";
+        } else if (err.message.includes("Failed to create facility hours")) {
+          errorMessage = "Failed to save operating hours. Please check your time values and try again.";
+        } else if (err.message.includes("duplicate key") || err.message.includes("UNIQUE")) {
+          errorMessage = "A facility with this name already exists. Please use a different name.";
+        } else if (err.message.includes("foreign key") || err.message.includes("violates foreign key")) {
+          errorMessage = "Invalid facility reference. Please refresh and try again.";
+        } else if (err.message.includes("check constraint") || err.message.includes("violates check constraint")) {
+          errorMessage = "Invalid data provided. Please check all fields and try again.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      showToast(errorMessage, "error");
     } finally {
       setSaving(false);
     }
