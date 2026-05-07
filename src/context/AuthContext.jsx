@@ -87,6 +87,15 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    const handleHashChange = () => {
+      setIsPasswordRecovery(getRecoveryTypeFromUrl());
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
     const fetchProfile = async () => {
       if (!user?.id) {
         setProfile(null);
