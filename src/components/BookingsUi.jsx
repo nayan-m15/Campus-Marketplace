@@ -182,12 +182,25 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   }, [selectedDate, facilityId]);
 
   const today = toDateInputValue();
+  const now = new Date();
   const dayHours = selectedDate ? hoursByDay.get(getDateDayName(selectedDate)) : null;
-  const isDateOpen = Boolean(dayHours?.open);
+
   const availableSlots = useMemo(() => {
     if (!dayHours?.open) return [];
-    return generateTimeSlots(dayHours.start_time, dayHours.end_time);
-  }, [dayHours]);
+    const slots = generateTimeSlots(dayHours.start_time, dayHours.end_time);
+    if (!selectedDate) return slots;
+
+    const isToday = selectedDate === today;
+    if (!isToday) return slots;
+    return slots.filter((slot) => {
+      const [hours, minutes] = slot.split(":").map(Number);
+      const slotTime = new Date(now);
+      slotTime.setHours(hours, minutes, 0, 0);
+      return slotTime > now;
+    });
+  }, [dayHours, selectedDate, today]);
+
+  const isDateOpen = Boolean(dayHours?.open) && availableSlots.length > 0;
 
   const canProceedToStep2 = Boolean(selectedFacility && selectedDate && isDateOpen);
 
@@ -322,8 +335,13 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
                       value={selectedDate}
                       onChange={(event) => setSelectedDate(event.target.value)}
                     />
-                    {selectedDate && !isDateOpen && (
-                      <p className="brm-hint brm-hint--warn">This facility is closed on that date.</p>
+                    {selectedDate && !dayHours?.open && (
+                      <p className="brm-hint brm-hint--warn">This facility is closed on that day.</p>
+                    )}
+                    {selectedDate && dayHours?.open && availableSlots.length === 0 && (
+                      <p className="brm-hint brm-hint--warn">
+                        No more slots available today — the facility is currently closed for new bookings.
+                      </p>
                     )}
                     {selectedDate && isDateOpen && (
                       <p className="brm-hint brm-hint--ok">Facility is open and slots can be booked.</p>
