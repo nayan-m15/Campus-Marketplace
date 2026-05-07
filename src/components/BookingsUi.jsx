@@ -400,21 +400,19 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
                     <p className="brm-hint brm-hint--warn">No bookable slots for the selected day.</p>
                   ) : (
                     <div className="brm-slots" role="group" aria-label="Available time slots">
-                      {availableSlots.map((slot) => {
+                      {availableSlots.filter((slot) => (slotUsage[slot] || 0) < (selectedFacility?.capacity || 1)).map((slot) => {
                         const capacity = selectedFacility?.capacity || 1;
                         const usage = slotUsage[slot] || 0;
-                        const isFull = usage >= capacity;
                         return (
                           <button
                             key={slot}
-                            className={`brm-slot ${selectedTime === slot ? "brm-slot--selected" : ""} ${isFull ? "brm-slot--taken" : ""}`}
-                            onClick={() => !isFull && setSelectedTime(slot)}
-                            disabled={isFull}
+                            className={`brm-slot ${selectedTime === slot ? "brm-slot--selected" : ""}`}
+                            onClick={() => setSelectedTime(slot)}
                             aria-pressed={selectedTime === slot}
                           >
                             <span className="brm-slot-time">{slot}</span>
                             <span className="brm-slot-range">{formatSlotLabel(slot)}</span>
-                            <span className="brm-slot-capacity">{isFull ? "Full" : `${capacity - usage} left`}</span>
+                            <span className="brm-slot-capacity">{capacity - usage} left</span>
                           </button>
                         );
                       })}

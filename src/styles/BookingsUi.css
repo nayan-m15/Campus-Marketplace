@@ -358,11 +358,7 @@
   background: #eff6ff;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
-.brm-slot--taken {
-  opacity: 0.45;
-  cursor: not-allowed;
-  background: #f3f4f6;
-}
+
 
 .brm-slot-time {
   font-size: 14px;
@@ -381,17 +377,6 @@
 .brm-slot-capacity {
   font-size: 10px;
   color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.brm-slot-taken-badge {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  font-size: 9px;
-  font-weight: 700;
-  color: #9ca3af;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
