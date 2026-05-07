@@ -744,12 +744,14 @@ function AppInner() {
   }, [page]);
 
   useEffect(() => {
-    if (loading) return;
-    fetchListings(user?.id)
+    if (loading || (user && !profileChecked)) return;
+    setListingsLoading(true);
+    setListingsError(null);
+    fetchListings(isAdmin ? null : user?.id)
       .then(setAllListings)
       .catch((err) => setListingsError(err.message))
       .finally(() => setListingsLoading(false));
-  }, [user?.id, loading]);
+  }, [user?.id, isAdmin, profileChecked, loading]);
 
   useEffect(() => {
     if (!user) {
@@ -953,7 +955,7 @@ function AppInner() {
   // State updates and follow-up UI actions are triggered here.
   function handleSetupComplete() {
     setNeedsSetup(false);
-    setPage("home");
+    setPage(isAdmin ? "admin" : "home");
   }
 
   // Supporting logic for the go home flow is kept here.
@@ -997,7 +999,7 @@ function AppInner() {
   }
 
   async function refreshListings() {
-    const listings = await fetchListings(user?.id);
+    const listings = await fetchListings(isAdmin ? null : user?.id);
     setAllListings(listings);
   }
 
@@ -1076,12 +1078,13 @@ function AppInner() {
   }
 
   useEffect(() => {
-    if (loading || !user || (page !== "login" && page !== "signup")) return;
+    if (loading || !user || !profileChecked || (page !== "login" && page !== "signup")) return;
 
+    const destination = isAdmin ? "admin" : "home";
     skipHistoryPushRef.current = true;
-    setPage("home");
-    window.history.replaceState({ ...(window.history.state || {}), page: "home" }, "");
-  }, [loading, user, page]);
+    setPage(destination);
+    window.history.replaceState({ ...(window.history.state || {}), page: destination }, "");
+  }, [loading, user, profileChecked, isAdmin, page]);
 
   if (loading || (user && !profileChecked)) {
     return (
@@ -1101,7 +1104,28 @@ function AppInner() {
   if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
   if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} staffProfile={currentProfile} />;
   if (user && isAdmin && page === "admin") {
-    return <AdminDashboard onSignOut={signOut} onBackToMarketplace={goHome} />;
+    return (
+      <>
+        <AdminDashboard
+          onSignOut={signOut}
+          onBackToMarketplace={goHome}
+          listings={allListings}
+          listingsLoading={listingsLoading}
+          listingsError={listingsError}
+          onModerateListing={handleOpenModeration}
+          adminProfile={currentProfile}
+        />
+        <ModerationModal
+          item={moderationListing}
+          actionState={moderationState}
+          moderationReason={moderationReason}
+          onReasonChange={setModerationReason}
+          onClose={() => setModerationListing(null)}
+          onFlagListing={handleFlagListing}
+          onRemoveListing={handleRemoveListing}
+        />
+      </>
+    );
   }
 
 

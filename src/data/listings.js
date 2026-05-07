@@ -23,7 +23,7 @@ export const CONDITION_COLORS = {
 export const CONDITIONS = ["All Conditions", ...Object.keys(CONDITION_COLORS)];
 
 const LISTING_SELECT =
-  "id, title, description, price, condition, user_id, image_url, image_urls, category, status, listing_type, flag_reason";
+  "id, title, description, price, condition, user_id, image_url, image_urls, category, status, listing_type, flag_reason, created_at";
 
 const MOCK_LISTINGS = [
   {
@@ -117,6 +117,7 @@ export function normaliseListing(listing, profile) {
     listing_type: listing.listing_type ?? "sale",
     status: listing.status ?? "active",
     flag_reason: listing.flag_reason ?? "",
+    created_at: listing.created_at ?? null,
   };
 }
 
