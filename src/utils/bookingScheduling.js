@@ -1,3 +1,5 @@
+import { normalizeTime, isValidTimeFormat } from "./time";
+
 export const DAYS = [
   "Sunday",
   "Monday",
@@ -81,8 +83,8 @@ export function formatSlotLabel(slot) {
 export function generateTimeSlots(startTime, endTime) {
   if (!startTime || !endTime) return [];
 
-  const normalizedStart = normalizeTimeValue(startTime);
-  const normalizedEnd = normalizeTimeValue(endTime);
+  const normalizedStart = normalizeTime(startTime);
+  const normalizedEnd = normalizeTime(endTime);
 
   const [startHour, startMinute] = normalizedStart.split(":").map(Number);
   const [endHour, endMinute] = normalizedEnd.split(":").map(Number);
@@ -157,47 +159,4 @@ export function isTransactionParty(transaction, userId) {
  * "(09:00:00 AM)" -> "09:00"
  * "17:00:00" -> "17:00"
  */
-export function normalizeTimeValue(time) {
-  if (!time) return "";
-
-  let clean = String(time)
-    .replace(/[()]/g, "")
-    .trim();
-
-  // Match 12-hour format with AM/PM
-  const amPmMatch = clean.match(
-    /^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i
-  );
-
-  if (amPmMatch) {
-    let [, hour, minute, modifier] = amPmMatch;
-
-    hour = parseInt(hour, 10);
-
-    if (modifier.toUpperCase() === "PM" && hour !== 12) {
-      hour += 12;
-    }
-
-    if (modifier.toUpperCase() === "AM" && hour === 12) {
-      hour = 0;
-    }
-
-    return `${String(hour).padStart(2, "0")}:${minute}`;
-  }
-
-  // Match 24-hour format with optional seconds
-  const militaryMatch = clean.match(/^(\d{2}):(\d{2})(?::\d{2})?$/);
-
-  if (militaryMatch) {
-    return `${militaryMatch[1]}:${militaryMatch[2]}`;
-  }
-
-  return clean;
-}
-
-/**
- * NEW: Validate HH:mm format
- */
-export function isValidTimeFormat(time) {
-  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(time);
-}
+export const normalizeTimeValue = normalizeTime;
