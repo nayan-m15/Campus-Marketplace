@@ -879,6 +879,7 @@ export default function MessagesPage({
   );
   const listingOwnerLabel = iAmTheLister ? "Your listing" : `${peerName(activePeer)}'s listing`;
   const profileActionLabel = iAmTheLister ? "View buyer" : "View seller";
+  const hasAcceptedOffer = offers.some((o) => o.status === "accepted");
 
   // A focused piece of component behavior is handled here.
   // Keeping it separate makes the main flow less crowded.
@@ -1037,10 +1038,12 @@ export default function MessagesPage({
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     <button
                       className="msg-buyer-banner__btn msg-buyer-banner__btn--offer"
-                      onClick={() => { setShowOfferModal(true); setOfferError(""); setOfferAmount(""); }}
+                      onClick={() => { if (!hasAcceptedOffer) { setShowOfferModal(true); setOfferError(""); setOfferAmount(""); } }}
+                      disabled={hasAcceptedOffer}
+                      title={hasAcceptedOffer ? "An offer has already been accepted" : undefined}
                       type="button"
                     >
-                      Send Offer
+                    {hasAcceptedOffer ? "Send Offer" : "Send Offer"}
                     </button>
                     <button
                       className="msg-buyer-banner__btn"
