@@ -21,6 +21,44 @@ const emptyHours = () =>
     return acc;
   }, {});
 
+const normalizeTime = (timeValue) => {
+  if (!timeValue) return "09:00";
+
+  let clean = String(timeValue)
+    .replace(/[()]/g, "")
+    .trim();
+
+  // Handle AM/PM format
+  const amPmMatch = clean.match(
+    /^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i
+  );
+
+  if (amPmMatch) {
+    let [, hour, minute, modifier] = amPmMatch;
+
+    hour = parseInt(hour, 10);
+
+    if (modifier.toUpperCase() === "PM" && hour !== 12) {
+      hour += 12;
+    }
+
+    if (modifier.toUpperCase() === "AM" && hour === 12) {
+      hour = 0;
+    }
+
+    return `${String(hour).padStart(2, "0")}:${minute}`;
+  }
+
+  // Handle HH:mm:ss
+  const standardMatch = clean.match(/^(\d{2}):(\d{2})(?::\d{2})?$/);
+
+  if (standardMatch) {
+    return `${standardMatch[1]}:${standardMatch[2]}`;
+  }
+
+  return clean;
+};  
+
 // ── Facility Form Modal Component ───────────────────────────────
 function FacilityFormModal({ 
   facility = null, 
@@ -555,8 +593,8 @@ export default function FacilitiesManagementPanel() {
           if (!hours[normalizedDay]) return;
           hours[normalizedDay] = {
             open: h.open,
-            start: h.start_time,
-            end: h.end_time,
+            start: normalizeTime(h.start_time),
+            end: normalizeTime(h.end_time),
           };
         });
         return {
@@ -642,8 +680,8 @@ export default function FacilitiesManagementPanel() {
             const normalizedDay = normalizeFacilityDay(day);
             
             // Validate time format
-            const startTime = dayHours.start || "09:00";
-            const endTime = dayHours.end || "17:00";
+            const startTime = normalizeTime(dayHours.start || "09:00");
+            const endTime = normalizeTime(dayHours.end || "17:00");
             
             // Basic time validation
             if (!startTime.match(/^\d{2}:\d{2}$/) || !endTime.match(/^\d{2}:\d{2}$/)) {
