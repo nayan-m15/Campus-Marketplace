@@ -443,12 +443,13 @@ export default function ListingForm({ onCancel, onSuccess }) {
 
         <section className="lf__section">
           <label className="lf__label">Listing type</label>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
               type="button"
               onClick={() => setListingType("sale")}
               style={{
                 flex: 1,
+                minWidth: 120,
                 padding: "10px",
                 borderRadius: 10,
                 fontSize: 14,
@@ -468,6 +469,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
               onClick={() => setListingType("trade")}
               style={{
                 flex: 1,
+                minWidth: 120,
                 padding: "10px",
                 borderRadius: 10,
                 fontSize: 14,
@@ -481,6 +483,26 @@ export default function ListingForm({ onCancel, onSuccess }) {
               }}
             >
               For Trade
+            </button>
+            <button
+              type="button"
+              onClick={() => setListingType("sale_and_trade")}
+              style={{
+                flex: 1,
+                minWidth: 150,
+                padding: "10px",
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "var(--font)",
+                transition: "all 0.15s",
+                border: listingType === "sale_and_trade" ? "2px solid #2563eb" : "1.5px solid var(--gray-200)",
+                background: listingType === "sale_and_trade" ? "#eff6ff" : "#fff",
+                color: listingType === "sale_and_trade" ? "#2563eb" : "var(--gray-600)",
+              }}
+            >
+              For Sale & Trade
             </button>
           </div>
         </section>

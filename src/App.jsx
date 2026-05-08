@@ -354,7 +354,19 @@ function ListingDetailsModal({
   const wishlisted = isWishlisted?.(item.id) ?? false;
   const joinedLabel =
     item.joined_label || (item.joined_year ? String(item.joined_year) : "Not provided");
-  const isTradeListing = item.listing_type === "trade" || item.status === "for_trade";
+  const listingType = String(item.listing_type || "sale").toLowerCase();
+  const isSaleAndTrade =
+    item.status === "for_trade" ||
+    ["sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
+  const tradeBadgeLabel = isSaleAndTrade
+    ? "For Trade"
+    : listingType === "trade" || listingType === "trade_only"
+      ? "For Trade Only"
+      : "";
+  const tradeBadgeClassName =
+    tradeBadgeLabel === "For Trade Only"
+      ? "item-modal-trade-badge item-modal-trade-badge--only"
+      : "item-modal-trade-badge";
 
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.
@@ -468,8 +480,8 @@ function ListingDetailsModal({
                             {item.price || "Price not available"}
                           </p>
                           <span className="item-modal-condition">{item.condition || "Good"}</span>
-                          {isTradeListing && (
-                            <span className="item-modal-trade-badge">For Trade</span>
+                          {tradeBadgeLabel && (
+                            <span className={tradeBadgeClassName}>{tradeBadgeLabel}</span>
                           )}
                         </div>
 

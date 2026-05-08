@@ -60,7 +60,7 @@
   top: 10px;
   left: 10px;
   z-index: 2;
-  background: #3b82f6;
+  background: #2563eb;
   color: #fff;
   border-radius: 8px;
   padding: 4px 10px;
@@ -68,6 +68,10 @@
   font-weight: 700;
   letter-spacing: 0.2px;
   pointer-events: none;
+}
+
+.listing-card__trade-badge--only {
+  background: #1e40af;
 }
 
 .listing-card__trade-badge--stacked {
@@ -777,10 +781,14 @@
   font-size: 12px;
   font-weight: 700;
   color: #fff;
-  background: #3b82f6;
+  background: #2563eb;
   border-radius: 999px;
   padding: 6px 12px;
   white-space: nowrap;
+}
+
+.item-modal-trade-badge--only {
+  background: #1e40af;
 }
 
 .item-modal-price {

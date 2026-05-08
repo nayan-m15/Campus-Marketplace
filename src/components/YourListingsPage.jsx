@@ -303,17 +303,23 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     onListingChanged?.();
   }
 
-  async function handleMarkTrade(id, currentType) {
-    const newType = currentType === "trade" ? "sale" : "trade";
+  async function handleMarkTrade(item) {
+    const isListedForTrade =
+      item.listing_type === "trade" ||
+      item.listing_type === "sale_and_trade" ||
+      item.status === "for_trade";
+    const updatePayload = isListedForTrade
+      ? { listing_type: "sale", status: "active" }
+      : { listing_type: "trade", status: "active" };
     const { error } = await supabase
       .from("listings")
-      .update({ listing_type: newType })
-      .eq("id", id);
+      .update(updatePayload)
+      .eq("id", item.id);
     if (error) { setError(error.message); return; }
     setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, listing_type: newType } : l))
+      prev.map((l) => (l.id === item.id ? { ...l, ...updatePayload } : l))
     );
-    showSuccess(newType === "trade" ? "Listed for trade!" : "Relisted as sale!");
+    showSuccess(updatePayload.listing_type === "trade" ? "Listed for trade!" : "Relisted as sale!");
     onListingChanged?.();
   }
 
@@ -456,6 +462,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
         {listings.map((item) => {
           const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
           const isSold = item.status === "sold";
+          const isTradeOnly = item.listing_type === "trade";
           // Prefer the saved cover, but still render listings that only have the
           // multi-image array populated.
           const coverImage = getListingCover(item);
@@ -464,14 +471,14 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
             <article key={item.id} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", border: "1px solid var(--gray-200)", opacity: isSold ? 0.7 : 1, position: "relative" }}>
 
               {/* Status badge */}
-              {(item.status === "sold" || item.listing_type === "trade") && (
+              {(item.status === "sold" || item.status === "for_trade" || item.listing_type === "trade" || item.listing_type === "sale_and_trade") && (
                 <div style={{
                   position: "absolute", top: 12, left: 12, zIndex: 1,
-                  background: item.status === "sold" ? "#111" : "#3b82f6",
+                  background: item.status === "sold" ? "#111" : isTradeOnly ? "#1e40af" : "#2563eb",
                   color: "#fff", borderRadius: 8, padding: "4px 10px",
                   fontSize: 12, fontWeight: 700
                 }}>
-                  {item.status === "sold" ? "SOLD" : "FOR TRADE"}
+                  {item.status === "sold" ? "SOLD" : isTradeOnly ? "FOR TRADE ONLY" : "FOR TRADE"}
                 </div>
               )}
 
@@ -528,10 +535,10 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   </button>
                   <button
                     className="your-listings-btn"
-                    onClick={() => handleMarkTrade(item.id, item.listing_type)}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.listing_type === "trade" ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.listing_type === "trade" ? "#3b82f6" : "var(--gray-800)" }}
+                    onClick={() => handleMarkTrade(item)}
+                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: (item.listing_type === "trade" || item.listing_type === "sale_and_trade" || item.status === "for_trade") ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: (item.listing_type === "trade" || item.listing_type === "sale_and_trade" || item.status === "for_trade") ? "#2563eb" : "var(--gray-800)" }}
                   >
-                    {item.listing_type === "trade" ? "Unlist Trade" : "For Trade"}
+                    {(item.listing_type === "trade" || item.listing_type === "sale_and_trade" || item.status === "for_trade") ? "Unlist Trade" : "For Trade"}
                   </button>
                   <button
                     className="your-listings-btn"

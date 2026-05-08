@@ -19,6 +19,16 @@ export default function ListingCard({
   user,
 }) {
   const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
+  const listingType = String(item.listing_type || "sale").toLowerCase();
+  const isSaleAndTrade =
+    item.status === "for_trade" ||
+    ["sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
+  const tradeBadgeLabel = isSaleAndTrade
+    ? "For Trade"
+    : listingType === "trade" || listingType === "trade_only"
+      ? "For Trade Only"
+      : "";
+  const tradeBadgeVariant = tradeBadgeLabel === "For Trade Only" ? " listing-card__trade-badge--only" : "";
 
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
@@ -63,11 +73,11 @@ export default function ListingCard({
           </figure>
         )}
 
-        {item.listing_type === "trade" && (
+        {tradeBadgeLabel && (
           <span
-            className={`listing-card__trade-badge${item.status === "flagged" ? " listing-card__trade-badge--stacked" : ""}${isAdmin ? " listing-card__trade-badge--admin-offset" : ""}`}
+            className={`listing-card__trade-badge${tradeBadgeVariant}${item.status === "flagged" ? " listing-card__trade-badge--stacked" : ""}${isAdmin ? " listing-card__trade-badge--admin-offset" : ""}`}
           >
-            For Trade
+            {tradeBadgeLabel}
           </span>
         )}
 
