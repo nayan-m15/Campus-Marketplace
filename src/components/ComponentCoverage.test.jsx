@@ -585,7 +585,7 @@ test("ListingForm validates required fields and publishes a completed listing", 
   fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Furniture" } });
   expect(screen.getByLabelText(/asking price/i)).toHaveValue("250.75");
   fireEvent.click(screen.getByRole("radio", { name: /good/i }));
-  fireEvent.click(screen.getByRole("button", { name: /for sale & trade/i }));
+  fireEvent.click(screen.getByRole("radio", { name: /for sale & trade/i }));
   fireEvent.click(screen.getByRole("button", { name: /publish listing/i }));
 
   await waitFor(() => expect(insert).toHaveBeenCalledWith(expect.objectContaining({
