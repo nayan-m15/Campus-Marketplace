@@ -15,6 +15,7 @@ const MAX_IMAGES = 5;
 // The edit modal should offer real listing categories, excluding the filter-only
 // "All Items" option used by the browsing UI.
 const EDITABLE_CATEGORIES = CATEGORIES.filter((category) => category.label !== "All Items");
+const editPriceSuggestionCache = new Map();
 
 // A focused piece of component behavior is handled here.
 // Keeping it separate makes the main flow less crowded.
@@ -112,6 +113,80 @@ function formatEditPrice(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).replace(/,/g, " ")}`;
+}
+
+function getPriceSuggestionErrorMessage(error) {
+  const message = error?.message || "";
+
+  if (message.toLowerCase().includes("failed to send a request to the edge function")) {
+    return "Price suggestion is unavailable right now.";
+  }
+
+  if (message.toLowerCase().includes("not found")) {
+    return "Not enough comparable Google Shopping results found.";
+  }
+
+  return message || "Price suggestion is unavailable right now.";
+}
+
+function EditPriceSuggestion({ suggestion, loading, error, hasEnoughDetail }) {
+  if (!hasEnoughDetail) {
+    return (
+      <div style={{ border: "1px solid var(--gray-200)", borderRadius: 10, padding: 12, background: "var(--surface-soft)", color: "var(--gray-600)" }}>
+        <strong style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Suggested price will appear here</strong>
+        <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45 }}>Add enough title, description, condition, and category detail first.</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div style={{ border: "1px solid var(--gray-200)", borderRadius: 10, padding: 12, background: "var(--surface-soft)", color: "var(--gray-600)" }}>
+        <strong style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Checking price...</strong>
+        <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45 }}>Comparing South African Google Shopping results.</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ border: "1px solid rgba(229, 157, 58, 0.55)", borderRadius: 10, padding: 12, background: "rgba(229, 157, 58, 0.12)", color: "var(--gray-600)" }}>
+        <strong style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Price suggestion unavailable</strong>
+        <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45 }}>{error}</p>
+      </div>
+    );
+  }
+
+  if (!suggestion) return null;
+
+  return (
+    <div style={{ border: "1px solid rgba(31, 107, 82, 0.22)", borderRadius: 10, padding: 12, background: "rgba(227, 239, 230, 0.7)", color: "var(--gray-600)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+        <strong style={{ fontSize: 13, color: "var(--gray-900)" }}>Suggested price</strong>
+        <span style={{ fontSize: 10, fontWeight: 800, color: "var(--green)", textTransform: "uppercase" }}>
+          {suggestion.confidence?.level || "Low"} confidence
+        </span>
+      </div>
+      <p style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 800, color: "var(--green-dark)" }}>
+        {suggestion.suggestedPriceFormatted}
+      </p>
+      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45 }}>
+        Based on Google Shopping SA, adjusted for condition.
+      </p>
+    </div>
+  );
+}
+
+function getEditPriceSuggestionCacheKey(item) {
+  if (!item?.id) return "";
+
+  return JSON.stringify({
+    id: String(item.id),
+    title: String(item.title || "").trim().toLowerCase(),
+    description: String(item.description || "").trim().toLowerCase(),
+    category: String(item.category || "").trim().toLowerCase(),
+    condition: String(item.condition || "").trim().toLowerCase(),
+  });
 }
 
 // Photo editor used inside the listing edit modal. Existing URLs and newly
@@ -257,6 +332,86 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [successMsg, setSuccessMsg] = useState("");
+  const [editPriceSuggestion, setEditPriceSuggestion] = useState(null);
+  const [editPriceSuggestionLoading, setEditPriceSuggestionLoading] = useState(false);
+  const [editPriceSuggestionError, setEditPriceSuggestionError] = useState("");
+
+  const editHasEnoughPriceSuggestionDetail =
+    Boolean(editingItem?.title?.trim()) &&
+    Boolean(editingItem?.condition) &&
+    Boolean(editingItem?.category) &&
+    (
+      (editingItem?.description || "").trim().length >= 8 ||
+      editingItem.title.trim().split(/\s+/).length >= 2
+    );
+  const editPriceSuggestionCacheKey = getEditPriceSuggestionCacheKey(editingItem);
+
+  useEffect(() => {
+    if (!editingItem || !editHasEnoughPriceSuggestionDetail) {
+      setEditPriceSuggestion(null);
+      setEditPriceSuggestionError("");
+      setEditPriceSuggestionLoading(false);
+      return;
+    }
+
+    if (editPriceSuggestionCache.has(editPriceSuggestionCacheKey)) {
+      setEditPriceSuggestion(editPriceSuggestionCache.get(editPriceSuggestionCacheKey));
+      setEditPriceSuggestionError("");
+      setEditPriceSuggestionLoading(false);
+      return;
+    }
+
+    let ignore = false;
+
+    if (!supabase.functions?.invoke) {
+      setEditPriceSuggestion(null);
+      setEditPriceSuggestionError("Price suggestion is unavailable right now.");
+      setEditPriceSuggestionLoading(false);
+      return;
+    }
+
+    setEditPriceSuggestionLoading(true);
+    setEditPriceSuggestionError("");
+
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("price-suggestion", {
+          body: {
+            listingId: editingItem.id,
+            query: editingItem.title,
+            description: editingItem.description || "",
+            category: editingItem.category,
+            condition: editingItem.condition,
+          },
+        });
+
+        if (ignore) return;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        editPriceSuggestionCache.set(editPriceSuggestionCacheKey, data);
+        setEditPriceSuggestion(data);
+      } catch (error) {
+        if (ignore) return;
+        setEditPriceSuggestion(null);
+        setEditPriceSuggestionError(getPriceSuggestionErrorMessage(error));
+      } finally {
+        if (!ignore) setEditPriceSuggestionLoading(false);
+      }
+    }, 700);
+
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, [
+    editingItem?.title,
+    editingItem?.description,
+    editingItem?.category,
+    editingItem?.condition,
+    editingItem?.id,
+    editPriceSuggestionCacheKey,
+    editHasEnoughPriceSuggestionDetail,
+  ]);
 
   // Memoized so the effect can fetch the owner's listings without tripping the
   // hook dependency rule when the signed-in user changes.
@@ -387,6 +542,27 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
       .update(updatePayload)
       .eq("id", id);
     if (error) { setError(error.message); return; }
+
+    if (supabase.functions?.invoke) {
+      void supabase.functions.invoke("price-suggestion", {
+        body: {
+          listingId: id,
+          query: title,
+          description: description || "",
+          category,
+          condition,
+        },
+      }).then(({ data, error }) => {
+        if (error || data?.error) throw error || new Error(data.error);
+        editPriceSuggestionCache.set(
+          getEditPriceSuggestionCacheKey({ id, title, description, category, condition }),
+          data
+        );
+      }).catch((cacheError) => {
+        console.error("Failed to refresh listing price suggestion cache:", cacheError.message);
+      });
+    }
+
     setListings((prev) =>
       prev.map((l) => (
         l.id === id
@@ -615,32 +791,32 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
               </label>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
-                Price
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="[0-9\\s,\\.R]*"
-                  placeholder="R0.00"
-                  value={isEditingPrice ? editingItem.price : formatEditPrice(editingItem.price)}
+                Description
+                <textarea
+                  value={editingItem.description || ""}
                   onChange={(e) => {
                     setError(null);
-                    setEditingItem({ ...editingItem, price: clampPriceInput(e.target.value) });
+                    setEditingItem({
+                      ...editingItem,
+                      description: clampLength(e.target.value, LISTING_DESCRIPTION_MAX),
+                    });
                   }}
-                  onFocus={() => setIsEditingPrice(true)}
-                  onBlur={() => setIsEditingPrice(false)}
+                  rows={6}
                   style={{
-                    width: "100%",
-                    padding: "10px 14px",
+                    minHeight: 160,
+                    padding: "12px 14px",
                     borderRadius: 9,
                     border: "1.5px solid var(--gray-200)",
                     fontSize: 14,
                     fontFamily: "var(--font)",
                     outline: "none",
+                    resize: "vertical",
+                    lineHeight: 1.5,
                   }}
-                  required
+                  maxLength={LISTING_DESCRIPTION_MAX}
                 />
                 <span style={{ fontSize: 12, fontWeight: 500, color: "var(--gray-500)" }}>
-                  Currency format. Maximum 8 digits before the decimal and 2 cents digits, up to R 99 999 999.99.
+                  {(editingItem.description || "").length}/{LISTING_DESCRIPTION_MAX} characters
                 </span>
               </label>
 
@@ -676,32 +852,38 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
               </label>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
-                Description
-                <textarea
-                  value={editingItem.description || ""}
+                Price
+                <EditPriceSuggestion
+                  suggestion={editPriceSuggestion}
+                  loading={editPriceSuggestionLoading}
+                  error={editPriceSuggestionError}
+                  hasEnoughDetail={editHasEnoughPriceSuggestionDetail}
+                />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9\\s,\\.R]*"
+                  placeholder="R0.00"
+                  value={isEditingPrice ? editingItem.price : formatEditPrice(editingItem.price)}
                   onChange={(e) => {
                     setError(null);
-                    setEditingItem({
-                      ...editingItem,
-                      description: clampLength(e.target.value, LISTING_DESCRIPTION_MAX),
-                    });
+                    setEditingItem({ ...editingItem, price: clampPriceInput(e.target.value) });
                   }}
-                  rows={6}
+                  onFocus={() => setIsEditingPrice(true)}
+                  onBlur={() => setIsEditingPrice(false)}
                   style={{
-                    minHeight: 160,
-                    padding: "12px 14px",
+                    width: "100%",
+                    padding: "10px 14px",
                     borderRadius: 9,
                     border: "1.5px solid var(--gray-200)",
                     fontSize: 14,
                     fontFamily: "var(--font)",
                     outline: "none",
-                    resize: "vertical",
-                    lineHeight: 1.5,
                   }}
-                  maxLength={LISTING_DESCRIPTION_MAX}
+                  required
                 />
                 <span style={{ fontSize: 12, fontWeight: 500, color: "var(--gray-500)" }}>
-                  {(editingItem.description || "").length}/{LISTING_DESCRIPTION_MAX} characters
+                  Currency format. Maximum 8 digits before the decimal and 2 cents digits, up to R 99 999 999.99.
                 </span>
               </label>
 
