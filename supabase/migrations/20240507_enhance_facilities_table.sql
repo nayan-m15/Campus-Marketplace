@@ -26,6 +26,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_facilities_updated_at ON facilities;
 CREATE TRIGGER update_facilities_updated_at 
     BEFORE UPDATE ON facilities 
     FOR EACH ROW 
@@ -51,7 +52,17 @@ SET
 WHERE description IS NULL OR session_duration_minutes IS NULL OR status IS NULL OR created_at IS NULL OR updated_at IS NULL;
 
 -- Add a unique constraint on facility names to prevent duplicates
-ALTER TABLE facilities ADD CONSTRAINT facilities_name_unique UNIQUE (name);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'facilities_name_unique'
+          AND conrelid = 'public.facilities'::regclass
+    ) THEN
+        ALTER TABLE facilities ADD CONSTRAINT facilities_name_unique UNIQUE (name);
+    END IF;
+END $$;
 
 -- Create a view for facility management that includes all related data
 CREATE OR REPLACE VIEW facility_management_view AS

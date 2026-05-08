@@ -30,6 +30,15 @@ COMMENT ON COLUMN facility_hours.start_time IS 'Opening time for this day';
 COMMENT ON COLUMN facility_hours.end_time IS 'Closing time for this day';
 
 -- Create trigger to automatically update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+DROP TRIGGER IF EXISTS update_facility_hours_updated_at ON facility_hours;
 CREATE TRIGGER update_facility_hours_updated_at 
     BEFORE UPDATE ON facility_hours 
     FOR EACH ROW 
