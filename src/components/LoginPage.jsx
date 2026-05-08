@@ -17,6 +17,7 @@ export default function LoginPage({ onNavigate }) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -132,15 +133,40 @@ export default function LoginPage({ onNavigate }) {
             <>
               <div className="auth-field">
                 <label htmlFor="login-password">Password</label>
-                <input
-                  id="login-password"
-                  type="password"
-                  placeholder="........"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                />
+                <div className="auth-password-control">
+                  <input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="........"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className="auth-password-toggle"
+                    onClick={() => setShowPassword((current) => !current)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                  >
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                      <circle cx="12" cy="12" r="3" />
+                      {showPassword && <path d="M4 20 20 4" />}
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               <button

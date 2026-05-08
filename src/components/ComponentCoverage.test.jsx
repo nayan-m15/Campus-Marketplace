@@ -409,7 +409,16 @@ test("LoginPage submits credentials and shows provider errors", async () => {
   fireEvent.change(screen.getByLabelText(/email address/i), {
     target: { value: "student@example.com" },
   });
-  fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "secret123" } });
+  const passwordInput = screen.getByLabelText(/^password$/i);
+  expect(passwordInput).toHaveAttribute("type", "password");
+
+  fireEvent.change(passwordInput, { target: { value: "secret123" } });
+  fireEvent.click(screen.getByRole("button", { name: /show password/i }));
+  expect(passwordInput).toHaveAttribute("type", "text");
+
+  fireEvent.click(screen.getByRole("button", { name: /hide password/i }));
+  expect(passwordInput).toHaveAttribute("type", "password");
+
   fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Bad credentials");
@@ -441,17 +450,32 @@ test("SignupPage validates passwords and shows success after signup", async () =
   fireEvent.change(screen.getByLabelText(/email address/i), {
     target: { value: "student@example.com" },
   });
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "123" } });
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "123" } });
+  const signupPasswordInput = screen.getByLabelText(/^password$/i);
+  const confirmPasswordInput = screen.getByLabelText(/^confirm password$/i);
+
+  expect(signupPasswordInput).toHaveAttribute("type", "password");
+  fireEvent.click(screen.getByRole("button", { name: /^show password$/i }));
+  expect(signupPasswordInput).toHaveAttribute("type", "text");
+  fireEvent.click(screen.getByRole("button", { name: /^hide password$/i }));
+  expect(signupPasswordInput).toHaveAttribute("type", "password");
+
+  expect(confirmPasswordInput).toHaveAttribute("type", "password");
+  fireEvent.click(screen.getByRole("button", { name: /show confirm password/i }));
+  expect(confirmPasswordInput).toHaveAttribute("type", "text");
+  fireEvent.click(screen.getByRole("button", { name: /hide confirm password/i }));
+  expect(confirmPasswordInput).toHaveAttribute("type", "password");
+
+  fireEvent.change(signupPasswordInput, { target: { value: "123" } });
+  fireEvent.change(confirmPasswordInput, { target: { value: "123" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/at least 6/i);
 
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "Secret123" } });
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "different" } });
+  fireEvent.change(signupPasswordInput, { target: { value: "Secret123" } });
+  fireEvent.change(confirmPasswordInput, { target: { value: "different" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/do not match/i);
 
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "Secret123" } });
+  fireEvent.change(confirmPasswordInput, { target: { value: "Secret123" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
   expect(await screen.findByRole("heading", { name: /check your email/i })).toBeInTheDocument();
@@ -471,7 +495,7 @@ test("SignupPage reports when an email is already registered", async () => {
     target: { value: "student@example.com" },
   });
   fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "Secret123" } });
-  fireEvent.change(screen.getByLabelText(/confirm password/i), {
+  fireEvent.change(screen.getByLabelText(/^confirm password$/i), {
     target: { value: "Secret123" },
   });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
