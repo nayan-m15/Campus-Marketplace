@@ -688,6 +688,29 @@ test("MessagesPage opens a conversation and sends a message", async () => {
   expect(onUnreadChange).toHaveBeenCalled();
 });
 
+test("MessagesPage deletes the active chat after confirmation", async () => {
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingTitle="Textbook"
+      initialListingId="listing-2"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect(await screen.findByText(/seller's listing/i)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /delete chat/i }));
+  expect(await screen.findByRole("heading", { name: /delete this chat/i })).toBeInTheDocument();
+
+  fireEvent.click(screen.getAllByRole("button", { name: /delete chat/i })[1]);
+
+  await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("messages"));
+  expect(mocks.delete).toHaveBeenCalledWith("offers");
+  expect(await screen.findByRole("heading", { name: /your messages/i })).toBeInTheDocument();
+});
+
 test("MessagesPage creates separate threads for different listings from the same seller", async () => {
   messages.splice(
     0,
