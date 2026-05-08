@@ -820,6 +820,7 @@ export default function MessagesPage({
         seller_id: sellerId,
         buyer_id:  buyerId,
         price:     updatedOffer.amount,
+        listing_id: updatedOffer.listing_id,
       };
 
       // On INSERT — new transaction always starts at the beginning of the lifecycle.
