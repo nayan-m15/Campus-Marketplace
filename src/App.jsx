@@ -54,6 +54,7 @@ const PROTECTED_PAGES = new Set([
   "wishlist",
   "settings",
 ]);
+const priceSuggestionCache = new Map();
 
 function normalizeBasePath(basePath = import.meta.env.BASE_URL || "/") {
   if (!basePath) return "/";
@@ -235,6 +236,7 @@ function ListingPriceCheck({ item }) {
   const [priceCheckError, setPriceCheckError] = useState("");
 
   const listingPrice = parseListingPriceValue(item?.price);
+  const cacheKey = item?.id ? String(item.id) : "";
   const hasEnoughDetail =
     Boolean(item?.title?.trim()) &&
     Boolean(item?.condition) &&
@@ -248,11 +250,21 @@ function ListingPriceCheck({ item }) {
       return;
     }
 
+    if (priceSuggestionCache.has(cacheKey)) {
+      const cached = priceSuggestionCache.get(cacheKey);
+      setPriceCheck(cached.data || null);
+      setPriceCheckError(cached.error || "");
+      setPriceCheckLoading(false);
+      return;
+    }
+
     let ignore = false;
 
     if (!supabase.functions?.invoke) {
-      setPriceCheck(null);
-      setPriceCheckError("Price check is unavailable right now.");
+      const cached = { data: null, error: "Price check is unavailable right now." };
+      priceSuggestionCache.set(cacheKey, cached);
+      setPriceCheck(cached.data);
+      setPriceCheckError(cached.error);
       setPriceCheckLoading(false);
       return;
     }
@@ -262,6 +274,7 @@ function ListingPriceCheck({ item }) {
 
     supabase.functions.invoke("price-suggestion", {
       body: {
+        listingId: item.id,
         query: item.title,
         description: item.description || "",
         category: item.category,
@@ -271,11 +284,14 @@ function ListingPriceCheck({ item }) {
       if (ignore) return;
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      priceSuggestionCache.set(cacheKey, { data, error: "" });
       setPriceCheck(data);
     }).catch((error) => {
       if (ignore) return;
+      const errorMessage = getPriceSuggestionErrorMessage(error);
+      priceSuggestionCache.set(cacheKey, { data: null, error: errorMessage });
       setPriceCheck(null);
-      setPriceCheckError(getPriceSuggestionErrorMessage(error));
+      setPriceCheckError(errorMessage);
     }).finally(() => {
       if (!ignore) setPriceCheckLoading(false);
     });
@@ -283,7 +299,7 @@ function ListingPriceCheck({ item }) {
     return () => {
       ignore = true;
     };
-  }, [item?.id, item?.title, item?.description, item?.category, item?.condition, hasEnoughDetail, listingPrice]);
+  }, [item?.id, item?.title, item?.description, item?.category, item?.condition, cacheKey, hasEnoughDetail, listingPrice]);
 
   if (!listingPrice) return null;
 
