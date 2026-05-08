@@ -28,6 +28,7 @@ import SettingsPage from "./components/SettingsPage";
 import { getAppBaseUrl } from "./utils/appUrl";
 import { insertMessage } from "./utils/messageDelivery";
 import { StudentBookingsPage } from "./components/BookingsUi";
+import RatingPromptModal from "./components/RatingPromptModal";
 
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 
@@ -671,6 +672,8 @@ function AppInner() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
   const [currentProfile, setCurrentProfile] = useState(null);
+  const [pendingRatings, setPendingRatings] = useState([]);
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   // ── Unread message count for navbar badge ─────────────────
   const handleIncomingMessage = useCallback((notice) => {
@@ -786,6 +789,92 @@ function AppInner() {
       .catch(() => setProfileChecked(true));
   }, [user]);
 
+// ── Rating prompt ──────────────────────────────────────────────────────────
+const checkPendingRatings = useCallback(async () => {
+  if (!user) return;
+
+  const { data: transactions } = await supabase
+    .from("transactions")
+    .select("id, item, listing_id, seller_id, buyer_id, buyer_rating_pending, seller_rating_pending")
+    .eq("status", "completed")
+    .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`);
+
+  if (!transactions?.length) {
+    setPendingRatings([]);
+    setShowRatingModal(false);
+    return;
+  }
+
+  const dismissedKey = `dismissed_ratings_${user.id}`;
+  const dismissed = new Set(JSON.parse(localStorage.getItem(dismissedKey) || "[]"));
+
+  const pending = transactions.filter((txn) =>
+    !dismissed.has(txn.id) && (
+      (txn.buyer_id === user.id && txn.buyer_rating_pending) ||
+      (txn.seller_id === user.id && txn.seller_rating_pending)
+    )
+  );
+
+  if (!pending.length) {
+    setPendingRatings([]);
+    setShowRatingModal(false);
+    return;
+  }
+
+  const otherUserIds = pending.map((txn) =>
+    txn.buyer_id === user.id ? txn.seller_id : txn.buyer_id
+  );
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, display_name, name")
+    .in("id", [...new Set(otherUserIds)]);
+
+  const profileMap = Object.fromEntries(
+    (profiles || []).map((p) => [p.id, p.display_name || p.name || "Unknown"])
+  );
+
+  const mapped = pending.map((txn) => {
+    const isBuyer = txn.buyer_id === user.id;
+    const otherUserId = isBuyer ? txn.seller_id : txn.buyer_id;
+    return {
+      ...txn,
+      otherUserId,
+      otherUserName: profileMap[otherUserId] || "Unknown",
+      role: isBuyer ? "buyer" : "seller",
+    };
+  });
+
+  setPendingRatings(mapped);
+  setShowRatingModal(true);
+}, [user]);
+
+// Run on login
+useEffect(() => {
+  if (!user || !profileChecked) return;
+  checkPendingRatings();
+}, [user, profileChecked, checkPendingRatings]);
+
+// Run in realtime when a transaction is updated
+useEffect(() => {
+  if (!user) return;
+  const channel = supabase
+    .channel("rating-prompts")
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "transactions" },
+      (payload) => {
+        const txn = payload.new;
+        const involved = txn.buyer_id === user.id || txn.seller_id === user.id;
+        const shouldPrompt =
+          (txn.buyer_id === user.id && txn.buyer_rating_pending) ||
+          (txn.seller_id === user.id && txn.seller_rating_pending);
+        if (involved && shouldPrompt) checkPendingRatings();
+      }
+    )
+    .subscribe();
+  return () => supabase.removeChannel(channel);
+}, [user, checkPendingRatings]);
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.
   function numericPrice(item) {
@@ -982,6 +1071,18 @@ function AppInner() {
     window.location.assign(getAppBaseUrl());
   }
 
+  function dismissRating(txnId) {
+    if (txnId && user?.id) {
+      const key = `dismissed_ratings_${user.id}`;
+      const existing = JSON.parse(localStorage.getItem(key) || "[]");
+      if (!existing.includes(txnId)) {
+        localStorage.setItem(key, JSON.stringify([...existing, txnId]));
+      }
+    }
+    setPendingRatings([]);
+    setShowRatingModal(false);
+  }
+
   function handlePasswordResetComplete() {
     clearPasswordRecovery();
     setPage("home");
@@ -1102,7 +1203,20 @@ function AppInner() {
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
 
   if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
-  if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} staffProfile={currentProfile} />;
+  if (user && isStaff) {
+    return (
+      <>
+        <TradeFacilityDashboard onSignOut={signOut} staffProfile={currentProfile} />
+        {showRatingModal && pendingRatings.length > 0 && (
+          <RatingPromptModal
+            pendingRatings={pendingRatings}
+            currentUserId={user.id}
+            onDone={(txnId) => dismissRating(txnId)}
+          />
+        )}
+      </>
+    );
+  }
   if (user && isAdmin && page === "admin") {
     return (
       <>
@@ -1185,6 +1299,13 @@ function AppInner() {
   if (page === "profile") {
     return (
       <>
+        {showRatingModal && pendingRatings.length > 0 && (
+          <RatingPromptModal
+            pendingRatings={pendingRatings}
+            currentUserId={user.id}
+            onDone={(txnId) => dismissRating(txnId)}
+          />
+        )}
         <header><Navbar {...navbarProps} /></header>
         {messageNoticeToast}
         <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} onNameChange={setProfileName} />
@@ -1195,6 +1316,13 @@ function AppInner() {
   if (page === "publicProfile" && publicProfileId) {
     return (
       <>
+          {showRatingModal && pendingRatings.length > 0 && (
+          <RatingPromptModal
+            pendingRatings={pendingRatings}
+            currentUserId={user.id}
+            onDone={(txnId) => dismissRating(txnId)}
+          />
+        )}
         <header><Navbar {...navbarProps} /></header>
         {messageNoticeToast}
         <PublicProfilePage
@@ -1220,6 +1348,13 @@ function AppInner() {
   if (page === "messages") {
     return (
       <>
+        {showRatingModal && pendingRatings.length > 0 && (
+          <RatingPromptModal
+            pendingRatings={pendingRatings}
+            currentUserId={user.id}
+            onDone={(txnId) => dismissRating(txnId)}
+          />
+        )}
         <header><Navbar {...navbarProps} /></header>
         {messageNoticeToast}
         <MessagesPage
@@ -1253,6 +1388,13 @@ function AppInner() {
   if (page === "yourlistings") {
     return (
       <>
+        {showRatingModal && pendingRatings.length > 0 && (
+          <RatingPromptModal
+            pendingRatings={pendingRatings}
+            currentUserId={user.id}
+            onDone={(txnId) => dismissRating(txnId)}
+          />
+        )}
         <header><Navbar {...navbarProps} /></header>
         {messageNoticeToast}
         <YourListingsPage
@@ -1270,6 +1412,13 @@ function AppInner() {
   if (page === "bookings") {
     return (
       <>
+        {showRatingModal && pendingRatings.length > 0 && (
+          <RatingPromptModal
+            pendingRatings={pendingRatings}
+            currentUserId={user.id}
+            onDone={(txnId) => dismissRating(txnId)}
+          />
+        )}
         <header><Navbar {...navbarProps} /></header>
         {messageNoticeToast}
         <StudentBookingsPage user={user} onBack={goHome} />
@@ -1281,6 +1430,13 @@ function AppInner() {
   if (page === "wishlist") {
     return (
       <>
+        {showRatingModal && pendingRatings.length > 0 && (
+          <RatingPromptModal
+            pendingRatings={pendingRatings}
+            currentUserId={user.id}
+            onDone={(txnId) => dismissRating(txnId)}
+          />
+        )}
         <header><Navbar {...navbarProps} /></header>
         {messageNoticeToast}
         <WishlistPage
@@ -1336,6 +1492,13 @@ function AppInner() {
   if (page === "settings") {
   return (
     <>
+      {showRatingModal && pendingRatings.length > 0 && (
+        <RatingPromptModal
+          pendingRatings={pendingRatings}
+          currentUserId={user.id}
+          onDone={(txnId) => dismissRating(txnId)}
+        />
+      )}
       <header><Navbar {...navbarProps} /></header>
       {messageNoticeToast}
       <SettingsPage onBack={goHome} onSignOut={signOut} onAccountDeleted={handleAccountDeleted} />
@@ -1345,6 +1508,13 @@ function AppInner() {
 
   return (
     <>
+      {showRatingModal && pendingRatings.length > 0 && (
+        <RatingPromptModal
+          pendingRatings={pendingRatings}
+          currentUserId={user.id}
+          onDone={(txnId) => dismissRating(txnId)}
+        />
+      )}
       <header>
         <Navbar {...navbarProps} />
 

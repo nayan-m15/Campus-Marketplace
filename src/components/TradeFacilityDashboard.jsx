@@ -934,6 +934,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
         return {
           ...t,
+          listing_id: matchedListing?.id || null,
           dropoffId:    t.dropoff_id,
           collectionId: t.collection_id,
           createdAt:    t.created_at,
@@ -992,9 +993,15 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   const handleTransactionStatusChange = useCallback(async (transactionId, nextStatus) => {
     setSavingIds((prev) => ({ ...prev, [transactionId]: true }));
     try {
+      const updatePayload = { status: nextStatus };
+      if (nextStatus === "completed") {
+        updatePayload.buyer_rating_pending = true;
+        updatePayload.seller_rating_pending = true;
+      }
+
       const { error: err } = await supabase
         .from("transactions")
-        .update({ status: nextStatus })
+        .update(updatePayload)
         .eq("id", transactionId);
       if (err) throw err;
       showToast(`Transaction updated to "${STATUS_META[nextStatus]?.label || nextStatus}".`);
@@ -1086,13 +1093,18 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
       // ── Move a transaction through its lifecycle (Manage tab) ─────────────
       } else if (actionType === "managed_action") {
+        const updatePayload = { status: nextStatus };
+          if (nextStatus === "completed") {
+            updatePayload.buyer_rating_pending = true;
+            updatePayload.seller_rating_pending = true;
+          }
+
         const { error: tErr } = await supabase
           .from("transactions")
-          .update({ status: nextStatus })
+          .update(updatePayload)
           .eq("id", transaction.id);
-        if (tErr) throw tErr;
+          if (tErr) throw tErr;
 
-        // If completing the transaction, also close any collection booking
         if (nextStatus === "completed" && transaction.collectionId) {
           await supabase
             .from("bookings")
@@ -1100,6 +1112,15 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
             .eq("id", transaction.collectionId);
         }
 
+        if (nextStatus === "completed") {
+          await supabase
+          .from("transactions")
+          .update({
+            buyer_rating_pending: true,
+            seller_rating_pending: true,
+          })
+          .eq("id", transaction.id);
+        }
         // Notify relevant party
         if (staffProfile?.id) {
           const messages = {
