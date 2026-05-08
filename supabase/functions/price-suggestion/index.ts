@@ -57,26 +57,22 @@ async function hashText(value: string) {
     .join("");
 }
 
-async function buildCacheKey({
-  listingId,
+async function buildRequestFingerprint({
   searchQuery,
   condition,
   location,
 }: {
-  listingId: string;
   searchQuery: string;
   condition: string;
   location: string;
 }) {
-  if (listingId) return `listing:${listingId}`;
-
   const fingerprint = JSON.stringify({
     searchQuery: searchQuery.toLowerCase(),
     condition: condition.toLowerCase(),
     location: location.toLowerCase(),
   });
 
-  return `search:${await hashText(fingerprint)}`;
+  return hashText(fingerprint);
 }
 
 function dedupeWords(text: string) {
@@ -227,6 +223,38 @@ function withCacheMeta(response: Record<string, unknown>, hit: boolean, cacheKey
   };
 }
 
+async function upsertCache(
+  adminClient: ReturnType<typeof createClient>,
+  {
+    cacheKey,
+    listingId,
+    request,
+    response,
+  }: {
+    cacheKey: string;
+    listingId: string | null;
+    request: Record<string, unknown>;
+    response: Record<string, unknown>;
+  },
+) {
+  const { error } = await adminClient
+    .from("price_suggestion_cache")
+    .upsert(
+      {
+        cache_key: cacheKey,
+        listing_id: listingId,
+        request,
+        response,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "cache_key" },
+    );
+
+  if (error) {
+    console.error("Failed to write price suggestion cache:", error.message);
+  }
+}
+
 function getConfidence({
   query,
   description,
@@ -373,7 +401,19 @@ Deno.serve(async (req) => {
 
   const conditionFactor = conditionFactors[condition] ?? conditionFactors[DEFAULT_CONDITION];
   const searchQuery = buildSearchQuery(query, category, description);
-  const cacheKey = await buildCacheKey({ listingId, searchQuery, condition, location });
+  const requestFingerprint = await buildRequestFingerprint({ searchQuery, condition, location });
+  const searchCacheKey = `search:${requestFingerprint}`;
+  const cacheKey = listingId ? `listing:${listingId}` : searchCacheKey;
+  const cacheRequest = {
+    fingerprint: requestFingerprint,
+    listingId: listingId || null,
+    query,
+    description,
+    category,
+    condition,
+    location,
+    searchQuery,
+  };
   const listingText = `${query} ${category} ${description}`;
   const modelSignals = findModelSignals(listingText);
   const brandSignals = findBrandSignals(listingText);
@@ -391,7 +431,7 @@ Deno.serve(async (req) => {
   try {
     const { data: cachedSuggestion, error: cacheReadError } = await adminClient
       .from("price_suggestion_cache")
-      .select("response")
+      .select("request, response")
       .eq("cache_key", cacheKey)
       .maybeSingle();
 
@@ -399,8 +439,37 @@ Deno.serve(async (req) => {
       console.error("Failed to read price suggestion cache:", cacheReadError.message);
     }
 
-    if (cachedSuggestion?.response) {
+    if (
+      cachedSuggestion?.response &&
+      (!listingId || cachedSuggestion.request?.fingerprint === requestFingerprint)
+    ) {
       return jsonResponse(withCacheMeta(cachedSuggestion.response, true, cacheKey));
+    }
+
+    if (listingId) {
+      const { data: cachedSearchSuggestion, error: searchCacheReadError } = await adminClient
+        .from("price_suggestion_cache")
+        .select("request, response")
+        .eq("cache_key", searchCacheKey)
+        .maybeSingle();
+
+      if (searchCacheReadError) {
+        console.error("Failed to read search price suggestion cache:", searchCacheReadError.message);
+      }
+
+      if (
+        cachedSearchSuggestion?.response &&
+        cachedSearchSuggestion.request?.fingerprint === requestFingerprint
+      ) {
+        await upsertCache(adminClient, {
+          cacheKey,
+          listingId,
+          request: cacheRequest,
+          response: cachedSearchSuggestion.response,
+        });
+
+        return jsonResponse(withCacheMeta(cachedSearchSuggestion.response, true, cacheKey));
+      }
     }
 
     const serpResponse = await fetch(`${SERPAPI_URL}?${params.toString()}`);
@@ -504,15 +573,7 @@ Deno.serve(async (req) => {
         {
           cache_key: cacheKey,
           listing_id: listingId || null,
-          request: {
-            listingId: listingId || null,
-            query,
-            description,
-            category,
-            condition,
-            location,
-            searchQuery,
-          },
+          request: cacheRequest,
           response: responseBody,
           updated_at: new Date().toISOString(),
         },
