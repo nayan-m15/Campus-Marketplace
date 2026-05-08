@@ -1,7 +1,7 @@
 // Main structure for the listing form feature lives here.
 // Shared UI pieces and page-level behavior are tied together in this file.
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { CONDITION_COLORS } from "../data/listings";
 import { supabase } from "../supabaseClient";
 import "../styles/ListingForm.css";
@@ -247,6 +247,100 @@ function ConditionSelector({ value, onChange }) {
   );
 }
 
+function getPriceSuggestionErrorMessage(error) {
+  const message = error?.message || "";
+
+  if (message.toLowerCase().includes("failed to send a request to the edge function")) {
+    return "The price suggestion service is not connected right now. You can still enter your own price, and the Google Shopping suggestion will appear once the backend function is deployed.";
+  }
+
+  if (message.toLowerCase().includes("not found")) {
+    return "We could not find enough comparable Google Shopping prices for this item. Try adding a brand, model number, edition, or product code.";
+  }
+
+  return message || "We could not compare Google Shopping prices for this item yet. You can still enter your own price.";
+}
+
+function PriceSuggestionPanel({ suggestion, loading, error, hasEnoughDetail }) {
+  if (!hasEnoughDetail) {
+    return (
+      <div className="lf__suggestion-panel lf__suggestion-panel--muted">
+        <strong>Suggested price will appear here</strong>
+        <p>
+          Add the item name, description, condition, and category first. More specific details
+          like a model number or brand help make the estimate more accurate.
+        </p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="lf__suggestion-panel">
+        <strong>Checking Google Shopping prices...</strong>
+        <p>We are comparing similar South African shopping results before you enter your price.</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="lf__suggestion-panel lf__suggestion-panel--warning">
+        <strong>Price suggestion unavailable</strong>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
+  if (!suggestion) return null;
+
+  const confidenceLevel = suggestion.confidence?.level || "Low";
+  const confidenceClass = confidenceLevel.toLowerCase();
+  const warnings = suggestion.confidence?.warnings || [];
+  const reasons = suggestion.confidence?.reasons || [];
+
+  return (
+    <div className="lf__suggestion-panel">
+      <div className="lf__suggestion-header">
+        <span>
+          Suggested price based on Google Shopping
+        </span>
+        <span className={`lf__confidence lf__confidence--${confidenceClass}`}>
+          {confidenceLevel} confidence
+        </span>
+      </div>
+
+      <div className="lf__suggestion-price">
+        {suggestion.suggestedPriceFormatted}
+      </div>
+
+      <p>
+        This uses current South African Google Shopping results as a retail baseline, then
+        adjusts the price for the selected item condition. It is only a guide; you still choose
+        the final asking price.
+      </p>
+
+      {suggestion.suggestedRange && (
+        <p>
+          Suggested range: {suggestion.suggestedRange.minFormatted} -{" "}
+          {suggestion.suggestedRange.maxFormatted}. Retail baseline:{" "}
+          {suggestion.retailPrice?.medianFormatted || "not available"} from{" "}
+          {suggestion.retailPrice?.sampleSize || 0} comparable result
+          {suggestion.retailPrice?.sampleSize === 1 ? "" : "s"}.
+        </p>
+      )}
+
+      {(warnings.length > 0 || reasons.length > 0) && (
+        <ul className="lf__suggestion-notes">
+          {[...warnings, ...reasons].slice(0, 3).map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function ListingForm({ onCancel, onSuccess }) {
   const [images, setImages] = useState([]);
   const [name, setName] = useState("");
@@ -258,6 +352,63 @@ export default function ListingForm({ onCancel, onSuccess }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [listingType, setListingType] = useState("sale");
+  const [priceSuggestion, setPriceSuggestion] = useState(null);
+  const [priceSuggestionLoading, setPriceSuggestionLoading] = useState(false);
+  const [priceSuggestionError, setPriceSuggestionError] = useState("");
+
+  const hasEnoughPriceSuggestionDetail =
+    name.trim().length >= 2 &&
+    condition &&
+    category &&
+    (description.trim().length >= 8 || name.trim().split(/\s+/).length >= 2);
+
+  useEffect(() => {
+    if (!hasEnoughPriceSuggestionDetail) {
+      setPriceSuggestion(null);
+      setPriceSuggestionError("");
+      setPriceSuggestionLoading(false);
+      return;
+    }
+
+    let ignore = false;
+
+    setPriceSuggestionLoading(true);
+    setPriceSuggestionError("");
+
+    const timer = setTimeout(async () => {
+      try {
+        if (!supabase.functions?.invoke) {
+          throw new Error("Price suggestions are not available in this environment.");
+        }
+
+        const { data, error } = await supabase.functions.invoke("price-suggestion", {
+          body: {
+            query: name,
+            description,
+            category,
+            condition,
+          },
+        });
+
+        if (ignore) return;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        setPriceSuggestion(data);
+      } catch (error) {
+        if (ignore) return;
+        setPriceSuggestion(null);
+        setPriceSuggestionError(getPriceSuggestionErrorMessage(error));
+      } finally {
+        if (!ignore) setPriceSuggestionLoading(false);
+      }
+    }, 700);
+
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, [name, description, category, condition, hasEnoughPriceSuggestionDetail]);
 
   function validate() {
     const next = {};
@@ -361,6 +512,50 @@ export default function ListingForm({ onCancel, onSuccess }) {
         </header>
 
         <section className="lf__section">
+          <label className="lf__label">Listing type</label>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setListingType("sale")}
+              style={{
+                flex: 1,
+                padding: "10px",
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "var(--font)",
+                transition: "all 0.15s",
+                border: listingType === "sale" ? "2px solid var(--green)" : "1.5px solid var(--gray-200)",
+                background: listingType === "sale" ? "#f0fdf4" : "#fff",
+                color: listingType === "sale" ? "var(--green)" : "var(--gray-600)",
+              }}
+            >
+              For Sale
+            </button>
+            <button
+              type="button"
+              onClick={() => setListingType("trade")}
+              style={{
+                flex: 1,
+                padding: "10px",
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "var(--font)",
+                transition: "all 0.15s",
+                border: listingType === "trade" ? "2px solid #3b82f6" : "1.5px solid var(--gray-200)",
+                background: listingType === "trade" ? "#eff6ff" : "#fff",
+                color: listingType === "trade" ? "#3b82f6" : "var(--gray-600)",
+              }}
+            >
+              For Trade
+            </button>
+          </div>
+        </section>
+
+        <section className="lf__section">
           <label className="lf__label">Photos</label>
           <ImageScrollStrip images={images} onChange={setImages} />
           {errors.image && (
@@ -417,75 +612,6 @@ export default function ListingForm({ onCancel, onSuccess }) {
         </section>
 
         <section className="lf__section">
-          <label className="lf__label" htmlFor="lf-price">Asking price</label>
-          <div className="lf__price-wrap">
-            <span className="lf__currency" aria-hidden="true">R</span>
-            <input
-              id="lf-price"
-              type="text"
-              inputMode="decimal"
-              className={`lf__input lf__input--price ${errors.price ? "lf__input--error" : ""}`}
-              placeholder="0.00"
-              value={price}
-              onChange={(e) => {
-                setPrice(clampPriceInput(e.target.value));
-                setErrors((prev) => ({ ...prev, price: undefined }));
-              }}
-              maxLength={LISTING_PRICE_MAX_CHARS}
-              aria-invalid={Boolean(errors.price)}
-            />
-          </div>
-          <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
-            Maximum 8 digits before the decimal and 2 cents digits.
-          </p>
-          {errors.price && <p className="lf__error" role="alert">{errors.price}</p>}
-        </section>
-
-        <section className="lf__section">
-          <label className="lf__label">Listing type</label>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => setListingType("sale")}
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "var(--font)",
-                transition: "all 0.15s",
-                border: listingType === "sale" ? "2px solid var(--green)" : "1.5px solid var(--gray-200)",
-                background: listingType === "sale" ? "#f0fdf4" : "#fff",
-                color: listingType === "sale" ? "var(--green)" : "var(--gray-600)",
-              }}
-            >
-              For Sale
-            </button>
-            <button
-              type="button"
-              onClick={() => setListingType("trade")}
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "var(--font)",
-                transition: "all 0.15s",
-                border: listingType === "trade" ? "2px solid #3b82f6" : "1.5px solid var(--gray-200)",
-                background: listingType === "trade" ? "#eff6ff" : "#fff",
-                color: listingType === "trade" ? "#3b82f6" : "var(--gray-600)",
-              }}
-            >
-              For Trade
-            </button>
-          </div>
-        </section>
-
-        <section className="lf__section">
           <label className="lf__label">Condition</label>
           <ConditionSelector
             value={condition}
@@ -533,6 +659,37 @@ export default function ListingForm({ onCancel, onSuccess }) {
             </span>
           </div>
           {errors.category && <p className="lf__error" role="alert">{errors.category}</p>}
+        </section>
+
+        <section className="lf__section">
+          <label className="lf__label" htmlFor="lf-price">Asking price</label>
+          <PriceSuggestionPanel
+            suggestion={priceSuggestion}
+            loading={priceSuggestionLoading}
+            error={priceSuggestionError}
+            hasEnoughDetail={hasEnoughPriceSuggestionDetail}
+          />
+          <div className="lf__price-wrap">
+            <span className="lf__currency" aria-hidden="true">R</span>
+            <input
+              id="lf-price"
+              type="text"
+              inputMode="decimal"
+              className={`lf__input lf__input--price ${errors.price ? "lf__input--error" : ""}`}
+              placeholder="0.00"
+              value={price}
+              onChange={(e) => {
+                setPrice(clampPriceInput(e.target.value));
+                setErrors((prev) => ({ ...prev, price: undefined }));
+              }}
+              maxLength={LISTING_PRICE_MAX_CHARS}
+              aria-invalid={Boolean(errors.price)}
+            />
+          </div>
+          <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
+            Maximum 8 digits before the decimal and 2 cents digits.
+          </p>
+          {errors.price && <p className="lf__error" role="alert">{errors.price}</p>}
         </section>
 
         {submitError && (

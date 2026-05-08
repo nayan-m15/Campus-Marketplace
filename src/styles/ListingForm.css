@@ -228,6 +228,135 @@
   padding-left: 28px;
 }
 
+/* Price Suggestion */
+.lf__suggestion-panel {
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  background: #fff;
+  padding: 12px;
+  margin-bottom: 10px;
+  color: var(--gray-700);
+}
+
+.lf__suggestion-panel--muted {
+  background: var(--surface-soft);
+  color: var(--gray-600);
+}
+
+.lf__suggestion-panel--warning {
+  border-color: #f2c94c;
+  background: #fff9e8;
+}
+
+.lf__suggestion-panel strong,
+.lf__suggestion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.lf__suggestion-panel p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--gray-600);
+}
+
+.lf__suggestion-price {
+  margin-top: 8px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--green-dark);
+  line-height: 1.1;
+}
+
+.lf__confidence {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.lf__confidence--high {
+  background: #e8f5ee;
+  color: var(--green-dark);
+}
+
+.lf__confidence--medium {
+  background: #fff4df;
+  color: #9a6400;
+}
+
+.lf__confidence--low {
+  background: #feecec;
+  color: #b42318;
+}
+
+.lf__suggestion-notes {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--gray-600);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.lf__suggestion-notes li + li {
+  margin-top: 3px;
+}
+
+html.dark .lf__suggestion-panel {
+  background: #111827 !important;
+  border-color: #374151;
+  color: #d1d5db;
+}
+
+html.dark .lf__suggestion-panel--muted {
+  background: #182132 !important;
+  border-color: #374151;
+  color: #cbd5e1;
+}
+
+html.dark .lf__suggestion-panel--warning {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
+html.dark .lf__suggestion-panel strong,
+html.dark .lf__suggestion-header {
+  color: #f9fafb !important;
+}
+
+html.dark .lf__suggestion-panel p,
+html.dark .lf__suggestion-notes {
+  color: #cbd5e1 !important;
+}
+
+html.dark .lf__suggestion-price {
+  color: #86efac !important;
+}
+
+html.dark .lf__confidence--high {
+  background: rgba(52, 211, 153, 0.16);
+  color: #86efac !important;
+}
+
+html.dark .lf__confidence--medium {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d !important;
+}
+
+html.dark .lf__confidence--low {
+  background: rgba(248, 113, 113, 0.18);
+  color: #fca5a5 !important;
+}
+
 /* ── Error Message ───────────────────────────────────────────── */
 .lf__error {
   margin: 6px 0 0;
