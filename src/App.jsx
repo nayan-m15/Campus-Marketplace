@@ -30,6 +30,96 @@ import { insertMessage } from "./utils/messageDelivery";
 import { StudentBookingsPage } from "./components/BookingsUi";
 
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
+const DEBUG_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEBUG_AUTH === "true";
+const POST_LOGIN_REDIRECT_KEY = "campusxchange:post-login-redirect";
+const PAGE_PATHS = {
+  home: "/",
+  login: "/login",
+  signup: "/signup",
+  profile: "/profile",
+  publicProfile: "/profiles",
+  messages: "/messages",
+  admin: "/admin",
+  yourlistings: "/your-listings",
+  bookings: "/bookings",
+  wishlist: "/wishlist",
+  settings: "/settings",
+};
+const PROTECTED_PAGES = new Set([
+  "profile",
+  "messages",
+  "admin",
+  "yourlistings",
+  "bookings",
+  "wishlist",
+  "settings",
+]);
+
+function normalizeBasePath(basePath = import.meta.env.BASE_URL || "/") {
+  if (!basePath) return "/";
+  const normalized = basePath.startsWith("/") ? basePath : `/${basePath}`;
+  return normalized.endsWith("/") ? normalized : `${normalized}/`;
+}
+
+function stripBasePath(pathname, basePath = normalizeBasePath()) {
+  if (!pathname) return "/";
+  const normalizedBase = normalizeBasePath(basePath);
+
+  if (normalizedBase !== "/" && pathname.startsWith(normalizedBase)) {
+    const stripped = pathname.slice(normalizedBase.length - 1);
+    return stripped || "/";
+  }
+
+  return pathname || "/";
+}
+
+function buildAppPath(appPath, basePath = normalizeBasePath()) {
+  const normalizedBase = normalizeBasePath(basePath);
+  const normalizedPath = appPath === "/" ? "/" : appPath.replace(/\/+$/, "");
+
+  if (normalizedBase === "/") {
+    return normalizedPath;
+  }
+
+  const baseWithoutTrailingSlash = normalizedBase.replace(/\/$/, "");
+  return normalizedPath === "/"
+    ? `${baseWithoutTrailingSlash}/`
+    : `${baseWithoutTrailingSlash}${normalizedPath}`;
+}
+
+function getPageForPath(pathname) {
+  const appPath = stripBasePath(pathname);
+  const matchedRoute = Object.entries(PAGE_PATHS).find(([, path]) => path === appPath);
+  return matchedRoute?.[0] ?? "home";
+}
+
+function getPageForAppPath(appPath) {
+  const matchedRoute = Object.entries(PAGE_PATHS).find(([, path]) => path === appPath);
+  return matchedRoute?.[0] ?? "home";
+}
+
+function getPathForPage(page) {
+  return PAGE_PATHS[page] || PAGE_PATHS.home;
+}
+
+function isProtectedPage(page) {
+  return PROTECTED_PAGES.has(page);
+}
+
+function persistPostLoginRedirect(path) {
+  if (typeof window === "undefined" || !path || path === PAGE_PATHS.login) return;
+  window.sessionStorage.setItem(POST_LOGIN_REDIRECT_KEY, path);
+}
+
+function readPostLoginRedirect() {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
+}
+
+function clearPostLoginRedirect() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+}
 
 // Quick guard logic sits here for this decision point.
 // The check keeps the rest of the flow cleaner to read.
@@ -630,10 +720,18 @@ function FlaggedListingWarningToast({ item, onClose, onContinue }) {
 // Component entry point for this part of the interface.
 // Rendering and feature-specific behavior are coordinated here.
 function AppInner() {
-  const { user, loading, signOut, isPasswordRecovery, clearPasswordRecovery } = useAuth();
+  const {
+    user,
+    loading,
+    signOut,
+    isPasswordRecovery,
+    clearPasswordRecovery,
+    lastAuthEvent,
+  } = useAuth();
 
-  const [page, setPage] = useState("home");
-  const skipHistoryPushRef = useRef(false);
+  const [page, setPage] = useState(() =>
+    typeof window === "undefined" ? "home" : getPageForPath(window.location.pathname)
+  );
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [activeCondition, setActiveCondition] = useState("All Conditions");
   const [priceSort, setPriceSort] = useState("");
@@ -713,33 +811,61 @@ function AppInner() {
   const [publicProfileId, setPublicProfileId] = useState(null);
   const [prevPage, setPrevPage] = useState("home");
 
-  useEffect(() => {
-    const currentState = window.history.state || {};
-    if (currentState.page !== "home") {
-      window.history.replaceState({ ...currentState, page: "home" }, "");
+  const navigateToPage = useCallback((nextPage, options = {}) => {
+    if (typeof window === "undefined") {
+      setPage(nextPage);
+      return;
     }
 
-    // User-driven changes pass through this handler first.
-    // State updates and follow-up UI actions are triggered here.
-    function handlePopState(event) {
-      skipHistoryPushRef.current = true;
-      setPage(event.state?.page || "home");
+    const { replace = false, preserveSearch = false, preserveHash = false } = options;
+    const nextPath = buildAppPath(getPathForPage(nextPage));
+    const nextUrl = `${nextPath}${preserveSearch ? window.location.search : ""}${preserveHash ? window.location.hash : ""}`;
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+    if (currentPath !== nextUrl) {
+      window.history[replace ? "replaceState" : "pushState"]({ page: nextPage }, "", nextUrl);
+    } else if (replace) {
+      window.history.replaceState({ page: nextPage }, "", nextUrl);
+    }
+
+    setPage((currentPage) => (currentPage === nextPage ? currentPage : nextPage));
+  }, []);
+
+  const redirectToLogin = useCallback((requestedPage = page) => {
+    const requestedPath = getPathForPage(requestedPage);
+
+    if (isProtectedPage(requestedPage)) {
+      persistPostLoginRedirect(requestedPath);
+    }
+
+    if (DEBUG_AUTH) {
+      console.debug("[AuthGuard] redirecting to login", {
+        requestedPage,
+        requestedPath,
+      });
+    }
+
+    navigateToPage("login", { replace: true });
+  }, [navigateToPage, page]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const normalizedPath = buildAppPath(getPathForPage(page));
+    if (window.location.pathname !== normalizedPath) {
+      const nextUrl = `${normalizedPath}${window.location.search}${window.location.hash}`;
+      window.history.replaceState({ page }, "", nextUrl);
+    } else if (window.history.state?.page !== page) {
+      const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.history.replaceState({ ...(window.history.state || {}), page }, "", currentUrl);
+    }
+
+    function handlePopState() {
+      setPage(getPageForPath(window.location.pathname));
     }
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    const currentState = window.history.state || {};
-
-    if (skipHistoryPushRef.current) {
-      skipHistoryPushRef.current = false;
-      return;
-    }
-
-    if (currentState.page === page) return;
-    window.history.pushState({ ...currentState, page }, "");
   }, [page]);
 
   useEffect(() => {
@@ -757,11 +883,20 @@ function AppInner() {
       setProfileChecked(false);
       setNeedsSetup(false);
       setAvatarUrl(null);
+      setProfileName(null);
       setIsAdmin(false);
       setIsStaff(false);
       setCurrentProfile(null);
       return;
     }
+
+    let isActive = true;
+
+    setProfileChecked(false);
+    setNeedsSetup(false);
+    setIsAdmin(false);
+    setIsStaff(false);
+    setCurrentProfile(null);
 
     supabase
       .from("profiles")
@@ -769,6 +904,8 @@ function AppInner() {
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
+        if (!isActive) return;
+
         if (data) {
           setAvatarUrl(data.avatar_url || null);
           setProfileName(data.display_name || data.name || null);
@@ -782,8 +919,47 @@ function AppInner() {
         }
         setProfileChecked(true);
       })
-      .catch(() => setProfileChecked(true));
+      .catch(() => {
+        if (!isActive) return;
+        setAvatarUrl(null);
+        setProfileName(null);
+        setIsAdmin(false);
+        setIsStaff(false);
+        setNeedsSetup(true);
+        setCurrentProfile(null);
+        setProfileChecked(true);
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [user]);
+
+  useEffect(() => {
+    if (loading || (user && !profileChecked)) return;
+
+    if (!user) {
+      if (isProtectedPage(page)) {
+        redirectToLogin(page);
+      }
+      return;
+    }
+
+    if (page === "admin" && !isAdmin) {
+      navigateToPage("home", { replace: true });
+      return;
+    }
+
+    if (DEBUG_AUTH) {
+      console.debug("[AuthGuard] access granted", {
+        page,
+        userId: user.id,
+        isAdmin,
+        isStaff,
+        needsSetup,
+      });
+    }
+  }, [loading, user, profileChecked, page, isAdmin, isStaff, needsSetup, redirectToLogin, navigateToPage]);
 
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.
@@ -849,7 +1025,10 @@ function AppInner() {
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
   function handleAuthNavigate(target) {
-    setPage(target === "home" ? "home" : target);
+    if (target === "home" || target === "signup" || target === "login") {
+      clearPostLoginRedirect();
+    }
+    navigateToPage(target === "home" ? "home" : target);
   }
 
   // User-driven changes pass through this handler first.
@@ -876,7 +1055,7 @@ function AppInner() {
     }
 
     if (!user) {
-      setPage("login");
+      redirectToLogin("messages");
       return;
     }
     setMsgRecipientId(item.user_id || null);
@@ -884,7 +1063,7 @@ function AppInner() {
     setMsgListingId(item.id || null);
     setMsgInitialDraft(initialDraft);
     setMsgInitialAction(initialAction);
-    setPage("messages");
+    navigateToPage("messages");
   }
 
   async function resolveListingForMessaging(item) {
@@ -922,7 +1101,7 @@ function AppInner() {
 
   async function handleSendOffer(item) {
     if (!user) {
-      setPage("login");
+      redirectToLogin("messages");
       return;
     }
 
@@ -942,32 +1121,32 @@ function AppInner() {
   // State updates and follow-up UI actions are triggered here.
   function handleSellerClick(sellerId) {
     if (user && sellerId === user.id) {
-      setPage("profile");
+      navigateToPage("profile");
       return;
     }
     setPrevPage("home");
     setPublicProfileId(sellerId);
-    setPage("publicProfile");
+    navigateToPage("publicProfile");
   }
 
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
   function handleSetupComplete() {
     setNeedsSetup(false);
-    setPage(isAdmin ? "admin" : "home");
+    navigateToPage(isAdmin ? "admin" : "home", { replace: true });
   }
 
   // Supporting logic for the go home flow is kept here.
   // Breaking it out makes the file easier to scan and maintain.
   function goHome() {
-    setPage("home");
+    navigateToPage("home");
     setSearchQuery("");
   }
 
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
   function handleAccountDeleted() {
-    setPage("home");
+    navigateToPage("home", { replace: true });
     setSearchQuery("");
     setSelectedListing(null);
     setShowForm(false);
@@ -983,12 +1162,7 @@ function AppInner() {
 
   function handlePasswordResetComplete() {
     clearPasswordRecovery();
-    setPage("home");
-    window.history.replaceState(
-      { ...(window.history.state || {}), page: "home" },
-      "",
-      window.location.pathname
-    );
+    navigateToPage("home", { replace: true });
   }
 
   function handleOpenModeration(item) {
@@ -1079,11 +1253,33 @@ function AppInner() {
   useEffect(() => {
     if (loading || !user || !profileChecked || (page !== "login" && page !== "signup")) return;
 
-    const destination = isAdmin ? "admin" : "home";
-    skipHistoryPushRef.current = true;
-    setPage(destination);
-    window.history.replaceState({ ...(window.history.state || {}), page: destination }, "");
-  }, [loading, user, profileChecked, isAdmin, page]);
+    const pendingPath = readPostLoginRedirect();
+    const pendingPage = pendingPath ? getPageForAppPath(pendingPath) : null;
+
+    if (DEBUG_AUTH) {
+      console.debug("[AuthGuard] resolving post-login destination", {
+        pendingPath,
+        pendingPage,
+        isAdmin,
+        needsSetup,
+        lastAuthEvent,
+      });
+    }
+
+    clearPostLoginRedirect();
+
+    if (pendingPage === "admin" && isAdmin) {
+      navigateToPage("admin", { replace: true });
+      return;
+    }
+
+    if (pendingPage && pendingPage !== "login" && pendingPage !== "signup" && pendingPage !== "home") {
+      navigateToPage(pendingPage, { replace: true });
+      return;
+    }
+
+    navigateToPage(isAdmin ? "admin" : "home", { replace: true });
+  }, [loading, user, profileChecked, isAdmin, needsSetup, page, lastAuthEvent, navigateToPage]);
 
   if (loading || (user && !profileChecked)) {
     return (
@@ -1137,28 +1333,34 @@ function AppInner() {
     profile: {
       display_name: profileName,
     },
-    onLogin: () => setPage("login"),
-    onSignup: () => setPage("signup"),
+    onLogin: () => {
+      clearPostLoginRedirect();
+      navigateToPage("login");
+    },
+    onSignup: () => {
+      clearPostLoginRedirect();
+      navigateToPage("signup");
+    },
     onShowListingForm: () => { goHome(); setShowForm(true); },
-    onProfile: () => setPage("profile"),
+    onProfile: () => navigateToPage("profile"),
     onMessages: () => {
       setMsgRecipientId(null);
       setMsgListingTitle(null);
       setMsgListingId(null);
       setMsgInitialDraft(null);
       setMsgInitialAction(null);
-      setPage("messages");
+      navigateToPage("messages");
     },
     onSignOut: signOut,
     onHome: goHome,
-    onYourListings: () => setPage("yourlistings"),
-    onBookings: () => setPage("bookings"),
-    onWishlist: () => setPage("wishlist"),
+    onYourListings: () => navigateToPage("yourlistings"),
+    onBookings: () => navigateToPage("bookings"),
+    onWishlist: () => navigateToPage("wishlist"),
     wishlistCount: wishlistItems.length,
-    onSettings: () => setPage("settings"),
+    onSettings: () => navigateToPage("settings"),
     unreadCount,
     isAdmin,
-    onAdminDashboard: () => setPage("admin"),
+    onAdminDashboard: () => navigateToPage("admin"),
   };
 
   const messageNoticeToast = messageNotice && (
@@ -1171,7 +1373,7 @@ function AppInner() {
         setMsgListingId(null);
         setMsgInitialDraft(null);
         setMsgInitialAction(null);
-        setPage("messages");
+        navigateToPage("messages");
       }}
       style={{ position: "fixed", top: 20, right: 20, maxWidth: 320, textAlign: "left", background: "var(--gray-900)", color: "#fff", padding: "12px 16px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", cursor: "pointer", fontFamily: "var(--font)" }}
       aria-label="Open new message notification"
@@ -1198,7 +1400,7 @@ function AppInner() {
         {messageNoticeToast}
         <PublicProfilePage
           userId={publicProfileId}
-          onBack={() => setPage(prevPage)}
+          onBack={() => navigateToPage(prevPage)}
           onMessageSeller={
             user
               ? () => {
@@ -1207,7 +1409,7 @@ function AppInner() {
                   setMsgListingId(null);
                   setMsgInitialDraft(null);
                   setMsgInitialAction(null);
-                  setPage("messages");
+                  navigateToPage("messages");
                 }
               : null
           }
@@ -1240,10 +1442,10 @@ function AppInner() {
           onViewProfile={(sellerId) => {
             setPrevPage("messages");
             setPublicProfileId(sellerId);
-            setPage("publicProfile");
+            navigateToPage("publicProfile");
           }}
           onUnreadChange={setUnreadCount}
-          onGoToBookings={() => setPage("bookings")}
+          onGoToBookings={() => navigateToPage("bookings")}
         />
       </>
     );
@@ -1410,8 +1612,8 @@ function AppInner() {
           <Hero
             onListingClick={setSelectedListing}
             onBrowseClick={handleScrollToListings}
-            onSignupClick={() => setPage("signup")}
-            onLoginClick={() => setPage("login")}
+            onSignupClick={() => navigateToPage("signup")}
+            onLoginClick={() => navigateToPage("login")}
             user={user}
           />
         </section>

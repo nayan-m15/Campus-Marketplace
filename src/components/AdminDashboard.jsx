@@ -4,10 +4,11 @@
 import { useState, useEffect } from "react";
 import "../styles/AdminDashboard.css";
 import { supabase } from "../supabaseClient";
-import { DAYS, normalizeFacilityDay } from "../utils/bookingScheduling";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import AdminModerateListingsPanel from "./AdminModerateListingsPanel";
+import FacilitiesManagementPanel from "./FacilitiesManagementPanel";
+import StaffManagementPanel from "./StaffManagementPanel";
 
 // ── Constants ───────────────────────────────────────────────────
 const MARKETPLACE_REPORT_TYPES = [
@@ -18,159 +19,6 @@ const MARKETPLACE_REPORT_TYPES = [
   { value: "trend", label: "Listings Trend" },
 ];
 
-// Helper: create empty hours object for all days
-const emptyHours = () =>
-  DAYS.reduce((acc, day) => {
-    acc[day] = { open: false, start: "09:00", end: "17:00" };
-    return acc;
-  }, {});
-
-// ── Save Toast Component ────────────────────────────────────────
-function SaveToast({ visible }) {
-  return (
-    <aside
-      className={`save-toast ${visible ? "save-toast--visible" : ""}`}
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-    >
-      <span className="save-toast__icon" aria-hidden="true">✓</span>
-      Changes saved successfully
-    </aside>
-  );
-}
-
-// ── Facility Card Component ─────────────────────────────────────
-function FacilityCard({ facility, onToggleDay, onTimeChange, onCapacityChange }) {
-  const [expanded, setExpanded] = useState(false);
-  const openDays = DAYS.filter((d) => facility.hours[d].open).length;
-  const shortDayLabel = (day) => day.slice(0, 3);
-
-  return (
-    <article className={`facility-card ${expanded ? "facility-card--open" : ""}`}>
-      <header className="facility-card__header" onClick={() => setExpanded(!expanded)}>
-        <span className="facility-card__icon" aria-hidden="true">
-          {facility.icon || "🏢"}
-        </span>
-        <hgroup className="facility-card__title-group">
-          <h3 className="facility-card__name">{facility.name}</h3>
-          <p className="facility-card__meta">
-            {openDays} day{openDays !== 1 ? "s" : ""} open · {facility.capacity} slots/session
-          </p>
-        </hgroup>
-        <span className="facility-card__chevron" aria-hidden="true">
-          {expanded ? "▲" : "▼"}
-        </span>
-      </header>
-
-      {expanded && (
-        <section className="facility-card__body">
-          {/* Slot capacity */}
-          <fieldset className="capacity-fieldset">
-            <legend className="fieldset-legend">Slot Capacity per Session</legend>
-            <label className="capacity-label" htmlFor={`cap-${facility.id}`}>
-              Max participants
-            </label>
-            <input
-              id={`cap-${facility.id}`}
-              type="number"
-              min="1"
-              max="500"
-              value={facility.capacity}
-              onChange={(e) => onCapacityChange(facility.id, e.target.value)}
-              className="capacity-input"
-            />
-          </fieldset>
-
-          {/* Operating hours */}
-          <fieldset className="hours-fieldset">
-            <legend className="fieldset-legend">Operating Hours</legend>
-            <ul className="hours-list" role="list">
-              {DAYS.map((day) => {
-                const slot = facility.hours[day];
-                return (
-                  <li key={day} className={`hours-row ${!slot.open ? "hours-row--closed" : ""}`}>
-                    <label className="toggle-label">
-                      <input
-                        type="checkbox"
-                        className="toggle-checkbox"
-                        checked={slot.open}
-                        onChange={() => onToggleDay(facility.id, day)}
-                        aria-label={`${day} open`}
-                      />
-                      <span className="toggle-track" aria-hidden="true">
-                        <span className="toggle-thumb" />
-                      </span>
-                      <span className="day-name">{shortDayLabel(day)}</span>
-                    </label>
-
-                    {slot.open ? (
-                      <span className="time-inputs">
-                        <label className="sr-only" htmlFor={`${facility.id}-${day}-start`}>
-                          Open time
-                        </label>
-                        <input
-                          id={`${facility.id}-${day}-start`}
-                          type="time"
-                          value={slot.start}
-                          onChange={(e) => onTimeChange(facility.id, day, "start", e.target.value)}
-                          className="time-input"
-                        />
-                        <span className="time-separator" aria-hidden="true">–</span>
-                        <label className="sr-only" htmlFor={`${facility.id}-${day}-end`}>
-                          Close time
-                        </label>
-                        <input
-                          id={`${facility.id}-${day}-end`}
-                          type="time"
-                          value={slot.end}
-                          onChange={(e) => onTimeChange(facility.id, day, "end", e.target.value)}
-                          className="time-input"
-                        />
-                      </span>
-                    ) : (
-                      <span className="closed-badge">Closed</span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </fieldset>
-        </section>
-      )}
-    </article>
-  );
-}
-
-// ── Facility Panel Component ────────────────────────────────────
-function FacilityPanel({ facilities, onToggleDay, onTimeChange, onCapacityChange, onSave }) {
-  return (
-    <section className="panel" aria-labelledby="facility-heading">
-      <header className="panel__header">
-        <hgroup>
-          <h2 id="facility-heading" className="panel__title">Facility Configuration</h2>
-          <p className="panel__subtitle">Set operating hours and slot capacity for each campus facility.</p>
-        </hgroup>
-        <button className="btn-primary" onClick={onSave}>
-          <span aria-hidden="true">💾</span> Save Changes
-        </button>
-      </header>
-
-      <ul className="facility-list" role="list">
-        {facilities.map((f) => (
-          <li key={f.id}>
-            <FacilityCard
-              facility={f}
-              onToggleDay={onToggleDay}
-              onTimeChange={onTimeChange}
-              onCapacityChange={onCapacityChange}
-            />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
 
 // ── Reports Panel Component ─────────────────────────────────────
 function ReportsPanel() {
@@ -695,167 +543,22 @@ export default function AdminDashboard({
   adminProfile = null,
 }) {
   const [activeTab, setActiveTab] = useState("facilities");
-  const [facilities, setFacilities] = useState([]);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Load facilities from Supabase
-  const fetchFacilities = async () => {
-    const { data, error } = await supabase
-      .from("facilities")
-      .select(`
-        id,
-        name,
-        capacity,
-        facility_hours (
-          day,
-          open,
-          start_time,
-          end_time
-        )
-      `);
-    if (error) {
-      console.error("Error fetching facilities:", error);
-      return;
-    }
-
-    const formatted = data.map((f) => {
-      const hours = emptyHours(); // start with all days closed
-      f.facility_hours.forEach((h) => {
-        const normalizedDay = normalizeFacilityDay(h.day);
-        if (!hours[normalizedDay]) return;
-        hours[normalizedDay] = {
-          open: h.open,
-          start: h.start_time,
-          end: h.end_time,
-        };
-      });
-      return {
-        id: f.id,
-        name: f.name,
-        capacity: f.capacity,
-        hours,
-        icon: "🏢", // default icon
-      };
-    });
-    setFacilities(formatted);
-  };
-
-  // Initial load
-  useEffect(() => {
-    fetchFacilities();
-  }, []);
-
-  // ── Local state update helpers (optimistic UI) ────────────────
-  const updateLocalFacility = (id, changes) => {
-    setFacilities((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, ...changes } : f))
-    );
-  };
-
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
-  const handleToggleDay = (id, day) => {
-    setFacilities((prev) =>
-      prev.map((f) => {
-        if (f.id !== id) return f;
-        const newHours = {
-          ...f.hours,
-          [day]: { ...f.hours[day], open: !f.hours[day].open },
-        };
-        return { ...f, hours: newHours };
-      })
-    );
-  };
-
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
-  const handleTimeChange = (id, day, field, value) => {
-    setFacilities((prev) =>
-      prev.map((f) => {
-        if (f.id !== id) return f;
-        const newHours = {
-          ...f.hours,
-          [day]: { ...f.hours[day], [field]: value },
-        };
-        return { ...f, hours: newHours };
-      })
-    );
-  };
-
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
-  const handleCapacityChange = (id, rawValue) => {
-    const parsed = parseInt(rawValue, 10);
-    if (!isNaN(parsed) && parsed > 0) {
-      updateLocalFacility(id, { capacity: parsed });
-    }
-  };
-
-  // ── Persist changes to Supabase (batch save) ─────────────────
-  const persistFacility = async (facility) => {
-    // Update capacity if changed
-    const original = facilities.find(f => f.id === facility.id);
-    if (original && original.capacity !== facility.capacity) {
-      const { error } = await supabase
-        .from("facilities")
-        .update({ capacity: facility.capacity })
-        .eq("id", facility.id);
-      if (error) console.error(`Error updating capacity for ${facility.id}:`, error);
-    }
-
-    // Update each day's hours
-    for (const day of DAYS) {
-      const newSlot = facility.hours[day];
-      const oldSlot = original?.hours[day];
-      if (!oldSlot || newSlot.open !== oldSlot.open || newSlot.start !== oldSlot.start || newSlot.end !== oldSlot.end) {
-        const { error } = await supabase
-          .from("facility_hours")
-          .upsert({
-            facility_id: facility.id,
-            day,
-            open: newSlot.open,
-            start_time: newSlot.start,
-            end_time: newSlot.end,
-          }, { onConflict: "facility_id,day" });
-        if (error) console.error(`Error upserting hours for ${facility.id} on ${day}:`, error);
-      }
-    }
-  };
-
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
-  const handleSaveAll = async () => {
-    setIsSaving(true);
-    try {
-      // Persist each facility's changes
-      for (const facility of facilities) {
-        await persistFacility(facility);
-      }
-      setToastVisible(true);
-      setTimeout(() => setToastVisible(false), 3000);
-      // Refresh data from DB to ensure consistency
-      await fetchFacilities();
-    } catch (err) {
-      console.error("Save failed:", err);
-      alert("Failed to save changes. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const NAV_ITEMS = [
-    { id: "facilities", icon: "🏛️", label: "Facility Hours" },
+    { id: "facilities", icon: "🏛️", label: "Facilities" },
     { id: "reports", icon: "📊", label: "Reports" },
+    { id: "staff", icon: "👥", label: "Manage Staff" },
     { id: "moderate", icon: "🛡️", label: "Moderate Listings" },
   ];
 
   const topbarTitle =
     activeTab === "facilities"
-      ? "🏛️ Facility Configuration"
+      ? "🏛️ Facilities Management"
       : activeTab === "reports"
         ? "📊 Marketplace Reports"
-        : "🛡️ Moderate Listings";
+        : activeTab === "staff"
+          ? "👥 Manage Staff"
+          : "🛡️ Moderate Listings";
 
   const adminName =
     adminProfile?.display_name?.trim() ||
@@ -865,8 +568,6 @@ export default function AdminDashboard({
 
   return (
     <section className="admin-dashboard-wrapper">
-      <SaveToast visible={toastVisible} />
-
       {/* Sidebar navigation */}
       <nav className="sidebar" aria-label="Admin navigation">
         <header className="sidebar__brand">
@@ -937,16 +638,9 @@ export default function AdminDashboard({
           </hgroup>
         </header>
 
-        {activeTab === "facilities" && (
-          <FacilityPanel
-            facilities={facilities}
-            onToggleDay={handleToggleDay}
-            onTimeChange={handleTimeChange}
-            onCapacityChange={handleCapacityChange}
-            onSave={handleSaveAll}
-          />
-        )}
+        {activeTab === "facilities" && <FacilitiesManagementPanel />}
         {activeTab === "reports" && <ReportsPanel />}
+        {activeTab === "staff" && <StaffManagementPanel />}
         {activeTab === "moderate" && (
           <AdminModerateListingsPanel
             listings={listings}

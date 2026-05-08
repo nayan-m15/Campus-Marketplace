@@ -10,6 +10,7 @@ const mockOnAuthStateChange = vi.fn(() => ({
   data: { subscription: { unsubscribe: vi.fn() } },
 }));
 const mockInsertMessage = vi.fn(() => Promise.resolve({ error: null }));
+let mockProfileRole = "student";
 
 vi.mock("./supabaseClient", () => ({
   supabase: {
@@ -34,7 +35,7 @@ vi.mock("./supabaseClient", () => ({
                 name: "Test Student",
                 display_name: "Test Student",
                 avatar_url: "",
-                role: "student",
+                role: mockProfileRole,
                 sex: "Female",
                 birthdate: "2001-01-01",
                 province: "Gauteng",
@@ -134,6 +135,15 @@ vi.mock("./components/Hero", () => ({
   ),
 }));
 
+vi.mock("./components/AdminDashboard.jsx", () => ({
+  default: ({ onBackToMarketplace }) => (
+    <section aria-label="Admin dashboard">
+      <h1>Admin Dashboard</h1>
+      <button onClick={onBackToMarketplace}>Back to Marketplace</button>
+    </section>
+  ),
+}));
+
 vi.mock("./data/listings", () => ({
   fetchListings: () =>
     Promise.resolve([
@@ -207,6 +217,7 @@ function renderApp() {
 }
 
 beforeEach(() => {
+  mockProfileRole = "student";
   mockGetSession.mockReset();
   mockGetSession.mockResolvedValue({ data: { session: null } });
   mockOnAuthStateChange.mockReset();
@@ -688,4 +699,32 @@ test("shows the reset password page when the recovery link uses query params", a
 
   expect(await screen.findByRole("heading", { name: /reset your password/i })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /log in/i })).not.toBeInTheDocument();
+});
+
+test("keeps an authenticated admin on the admin page after refresh", async () => {
+  mockProfileRole = "admin";
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "admin@example.com" },
+      },
+    },
+  });
+  window.history.replaceState({}, "", "/admin");
+
+  renderApp();
+
+  expect(await screen.findByRole("heading", { name: /admin dashboard/i })).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/admin");
+  expect(screen.queryByRole("heading", { name: /welcome back/i })).not.toBeInTheDocument();
+});
+
+test("redirects an unauthenticated admin refresh to login", async () => {
+  mockGetSession.mockResolvedValue({ data: { session: null } });
+  window.history.replaceState({}, "", "/admin");
+
+  renderApp();
+
+  expect(await screen.findByRole("heading", { name: /welcome back/i })).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/login");
 });
