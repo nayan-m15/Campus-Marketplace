@@ -905,7 +905,11 @@ export default function FacilitiesManagementPanel() {
     <section className="facilities-management-panel">
       {/* Toast Notification */}
       {toast.visible && (
-        <div className={`toast toast--${toast.type} toast--visible`}>
+        <div
+          className={`toast toast--${toast.type} toast--visible`}
+          role="status"
+          aria-live={toast.type === "error" ? "assertive" : "polite"}
+        >
           <span className="toast-message">{toast.message}</span>
         </div>
       )}

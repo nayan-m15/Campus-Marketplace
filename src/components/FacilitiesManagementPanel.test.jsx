@@ -21,12 +21,13 @@ vi.mock('../utils/bookingScheduling', () => ({
 }));
 
 describe('FacilitiesManagementPanel', () => {
-  it('renders the facilities management panel', () => {
+  it('renders the facilities management panel', async () => {
     render(<FacilitiesManagementPanel />);
     
     expect(screen.getByText('Facilities Management')).toBeInTheDocument();
     expect(screen.getByText('Manage campus facilities, operating hours, and capacity settings')).toBeInTheDocument();
-    expect(screen.getByText('Add Facility')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add facility/i })).toBeInTheDocument();
+    expect(await screen.findByText('No facilities found')).toBeInTheDocument();
   });
 
   it('shows search and filter controls', () => {
@@ -39,8 +40,7 @@ describe('FacilitiesManagementPanel', () => {
   it('displays empty state when no facilities', async () => {
     render(<FacilitiesManagementPanel />);
     
-    // Should show empty state message
-    expect(screen.getByText('No facilities found')).toBeInTheDocument();
+    expect(await screen.findByText('No facilities found')).toBeInTheDocument();
     expect(screen.getByText('Get started by adding your first facility.')).toBeInTheDocument();
   });
 });

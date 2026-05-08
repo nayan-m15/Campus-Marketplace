@@ -294,11 +294,11 @@ function makeQuery(table, mode = "list", filters = {}) {
     },
     insert: (payload) => {
       mocks.insert(table, payload);
-      return Promise.resolve({ data: null, error: null });
+      return query;
     },
     upsert: (payload, options) => {
       mocks.upsert(table, payload, options);
-      return Promise.resolve({ data: null, error: null });
+      return query;
     },
     then: (resolve) => Promise.resolve(resultFor(table, mode, filters)).then(resolve),
   };
@@ -893,10 +893,9 @@ test("AdminDashboard loads facilities, saves changes, and generates a report", a
   render(<AdminDashboard onSignOut={onSignOut} />);
 
   expect(await screen.findByText(/main trade desk/i)).toBeInTheDocument();
-  fireEvent.click(screen.getByText(/main trade desk/i));
-
-  fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
-  expect(await screen.findByRole("status")).toHaveTextContent(/changes saved/i);
+  fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+  fireEvent.click(screen.getByRole("button", { name: /update facility/i }));
+  expect(await screen.findByRole("status")).toHaveTextContent(/facility updated successfully/i);
 
   fireEvent.click(screen.getByRole("button", { name: /reports/i }));
   fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
