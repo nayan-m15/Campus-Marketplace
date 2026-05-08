@@ -54,6 +54,7 @@ const PROTECTED_PAGES = new Set([
   "wishlist",
   "settings",
 ]);
+const priceSuggestionCache = new Map();
 
 function normalizeBasePath(basePath = import.meta.env.BASE_URL || "/") {
   if (!basePath) return "/";
@@ -157,6 +158,196 @@ function warningToastStyle(top = 20) {
     boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
     fontFamily: "var(--font)",
   };
+}
+
+function parseListingPriceValue(price) {
+  if (typeof price === "number") return Number.isFinite(price) ? price : null;
+  const numericText = String(price ?? "")
+    .replace(/\s/g, "")
+    .replace(/[^0-9.,]/g, "")
+    .replace(/,(?=\d{3}(\D|$))/g, "")
+    .replace(",", ".");
+  const value = Number(numericText);
+
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function getPriceSuggestionErrorMessage(error) {
+  const message = error?.message || "";
+
+  if (message.toLowerCase().includes("failed to send a request to the edge function")) {
+    return "Price check is unavailable right now.";
+  }
+
+  if (message.toLowerCase().includes("not found")) {
+    return "Not enough comparable Google Shopping results found.";
+  }
+
+  return message || "Price check is unavailable right now.";
+}
+
+function getPriceFairness(listingPrice, suggestion) {
+  const suggestedPrice = Number(suggestion?.suggestedPrice || 0);
+  const rangeMin = Number(suggestion?.suggestedRange?.min || suggestedPrice * 0.9);
+  const rangeMax = Number(suggestion?.suggestedRange?.max || suggestedPrice * 1.1);
+
+  if (!listingPrice || !suggestedPrice) {
+    return {
+      label: "Price check",
+      tone: "neutral",
+      message: "No comparison available.",
+    };
+  }
+
+  if (listingPrice < rangeMin * 0.8) {
+    return {
+      label: "Very good price",
+      tone: "good",
+      message: "This is below the suggested second-hand range.",
+    };
+  }
+
+  if (listingPrice <= rangeMax) {
+    return {
+      label: "Good price",
+      tone: "good",
+      message: "This is within the suggested second-hand range.",
+    };
+  }
+
+  if (listingPrice <= rangeMax * 1.25) {
+    return {
+      label: "Fair price",
+      tone: "fair",
+      message: "This is slightly above the suggested range.",
+    };
+  }
+
+  return {
+    label: "High price",
+    tone: "high",
+    message: "This is above the suggested second-hand range.",
+  };
+}
+
+function ListingPriceCheck({ item }) {
+  const [priceCheck, setPriceCheck] = useState(null);
+  const [priceCheckLoading, setPriceCheckLoading] = useState(false);
+  const [priceCheckError, setPriceCheckError] = useState("");
+
+  const listingPrice = parseListingPriceValue(item?.price);
+  const cacheKey = item?.id ? String(item.id) : "";
+  const hasEnoughDetail =
+    Boolean(item?.title?.trim()) &&
+    Boolean(item?.condition) &&
+    Boolean(item?.category);
+
+  useEffect(() => {
+    if (!item?.id || !hasEnoughDetail || !listingPrice) {
+      setPriceCheck(null);
+      setPriceCheckError("");
+      setPriceCheckLoading(false);
+      return;
+    }
+
+    if (priceSuggestionCache.has(cacheKey)) {
+      const cached = priceSuggestionCache.get(cacheKey);
+      setPriceCheck(cached.data || null);
+      setPriceCheckError(cached.error || "");
+      setPriceCheckLoading(false);
+      return;
+    }
+
+    let ignore = false;
+
+    if (!supabase.functions?.invoke) {
+      const cached = { data: null, error: "Price check is unavailable right now." };
+      priceSuggestionCache.set(cacheKey, cached);
+      setPriceCheck(cached.data);
+      setPriceCheckError(cached.error);
+      setPriceCheckLoading(false);
+      return;
+    }
+
+    setPriceCheckLoading(true);
+    setPriceCheckError("");
+
+    supabase.functions.invoke("price-suggestion", {
+      body: {
+        listingId: item.id,
+        query: item.title,
+        description: item.description || "",
+        category: item.category,
+        condition: item.condition,
+      },
+    }).then(({ data, error }) => {
+      if (ignore) return;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      priceSuggestionCache.set(cacheKey, { data, error: "" });
+      setPriceCheck(data);
+    }).catch((error) => {
+      if (ignore) return;
+      const errorMessage = getPriceSuggestionErrorMessage(error);
+      priceSuggestionCache.set(cacheKey, { data: null, error: errorMessage });
+      setPriceCheck(null);
+      setPriceCheckError(errorMessage);
+    }).finally(() => {
+      if (!ignore) setPriceCheckLoading(false);
+    });
+
+    return () => {
+      ignore = true;
+    };
+  }, [item?.id, item?.title, item?.description, item?.category, item?.condition, cacheKey, hasEnoughDetail, listingPrice]);
+
+  if (!listingPrice) return null;
+
+  if (!hasEnoughDetail) {
+    return (
+      <section className="item-modal-price-check item-modal-price-check--neutral">
+        <strong>Price check unavailable</strong>
+        <p>More listing detail is needed to compare this price.</p>
+      </section>
+    );
+  }
+
+  if (priceCheckLoading) {
+    return (
+      <section className="item-modal-price-check item-modal-price-check--neutral">
+        <strong>Checking price...</strong>
+        <p>Comparing similar South African Google Shopping results.</p>
+      </section>
+    );
+  }
+
+  if (priceCheckError) {
+    return (
+      <section className="item-modal-price-check item-modal-price-check--neutral">
+        <strong>Price check unavailable</strong>
+        <p>{priceCheckError}</p>
+      </section>
+    );
+  }
+
+  if (!priceCheck) return null;
+
+  const fairness = getPriceFairness(listingPrice, priceCheck);
+  const confidenceLevel = priceCheck.confidence?.level || "Low";
+
+  return (
+    <section className={`item-modal-price-check item-modal-price-check--${fairness.tone}`}>
+      <div className="item-modal-price-check__top">
+        <strong>{fairness.label}</strong>
+        <span>{confidenceLevel} confidence</span>
+      </div>
+      <p>{fairness.message}</p>
+      <p>
+        Based on Google Shopping SA prices, adjusted for condition. Suggested range:{" "}
+        {priceCheck.suggestedRange?.minFormatted} - {priceCheck.suggestedRange?.maxFormatted}.
+      </p>
+    </section>
+  );
 }
 
 async function buildIncomingMessageNotice(message) {
@@ -501,6 +692,7 @@ function ListingDetailsModal({
                       <div className="item-modal-description-card">
                         <h3>Description</h3>
                         <p>{item.description?.trim() || "No description provided."}</p>
+                        <ListingPriceCheck item={item} />
                       </div>
                     </div>
                   </div>

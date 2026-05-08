@@ -19,6 +19,7 @@ const conditionFactors: Record<string, number> = {
 };
 
 type PriceSuggestionRequest = {
+  listingId?: string | number;
   query?: string;
   description?: string;
   category?: string;
@@ -45,6 +46,37 @@ function jsonResponse(body: unknown, status = 200) {
 
 function normaliseText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+async function hashText(value: string) {
+  const data = new TextEncoder().encode(value);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function buildCacheKey({
+  listingId,
+  searchQuery,
+  condition,
+  location,
+}: {
+  listingId: string;
+  searchQuery: string;
+  condition: string;
+  location: string;
+}) {
+  if (listingId) return `listing:${listingId}`;
+
+  const fingerprint = JSON.stringify({
+    searchQuery: searchQuery.toLowerCase(),
+    condition: condition.toLowerCase(),
+    location: location.toLowerCase(),
+  });
+
+  return `search:${await hashText(fingerprint)}`;
 }
 
 function dedupeWords(text: string) {
@@ -185,6 +217,16 @@ function formatZar(value: number) {
   })}`;
 }
 
+function withCacheMeta(response: Record<string, unknown>, hit: boolean, cacheKey: string) {
+  return {
+    ...response,
+    cache: {
+      hit,
+      key: cacheKey,
+    },
+  };
+}
+
 function getConfidence({
   query,
   description,
@@ -272,10 +314,11 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const serpApiKey = Deno.env.get("SERPAPI_API_KEY");
   const authHeader = req.headers.get("Authorization");
 
-  if (!supabaseUrl || !supabaseAnonKey || !serpApiKey) {
+  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey || !serpApiKey) {
     return jsonResponse({ error: "Missing required backend environment variables." }, 500);
   }
 
@@ -288,6 +331,13 @@ Deno.serve(async (req) => {
       headers: {
         Authorization: authHeader,
       },
+    },
+  });
+
+  const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
     },
   });
 
@@ -308,6 +358,9 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Request body must be valid JSON." }, 400);
   }
 
+  const listingId = body.listingId === undefined || body.listingId === null
+    ? ""
+    : String(body.listingId).trim();
   const query = normaliseText(body.query);
   const description = normaliseText(body.description);
   const category = normaliseText(body.category);
@@ -320,6 +373,7 @@ Deno.serve(async (req) => {
 
   const conditionFactor = conditionFactors[condition] ?? conditionFactors[DEFAULT_CONDITION];
   const searchQuery = buildSearchQuery(query, category, description);
+  const cacheKey = await buildCacheKey({ listingId, searchQuery, condition, location });
   const listingText = `${query} ${category} ${description}`;
   const modelSignals = findModelSignals(listingText);
   const brandSignals = findBrandSignals(listingText);
@@ -335,6 +389,20 @@ Deno.serve(async (req) => {
   });
 
   try {
+    const { data: cachedSuggestion, error: cacheReadError } = await adminClient
+      .from("price_suggestion_cache")
+      .select("response")
+      .eq("cache_key", cacheKey)
+      .maybeSingle();
+
+    if (cacheReadError) {
+      console.error("Failed to read price suggestion cache:", cacheReadError.message);
+    }
+
+    if (cachedSuggestion?.response) {
+      return jsonResponse(withCacheMeta(cachedSuggestion.response, true, cacheKey));
+    }
+
     const serpResponse = await fetch(`${SERPAPI_URL}?${params.toString()}`);
     const serpData = await serpResponse.json();
 
@@ -389,7 +457,7 @@ Deno.serve(async (req) => {
       max: roundToNearestFive(suggestedPrice * 1.1),
     };
 
-    return jsonResponse({
+    const responseBody = {
       query,
       searchQuery,
       condition,
@@ -428,7 +496,34 @@ Deno.serve(async (req) => {
         thumbnail: result.thumbnail || "",
       })),
       generatedAt: new Date().toISOString(),
-    });
+    };
+
+    const { error: cacheWriteError } = await adminClient
+      .from("price_suggestion_cache")
+      .upsert(
+        {
+          cache_key: cacheKey,
+          listing_id: listingId || null,
+          request: {
+            listingId: listingId || null,
+            query,
+            description,
+            category,
+            condition,
+            location,
+            searchQuery,
+          },
+          response: responseBody,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "cache_key" },
+      );
+
+    if (cacheWriteError) {
+      console.error("Failed to write price suggestion cache:", cacheWriteError.message);
+    }
+
+    return jsonResponse(withCacheMeta(responseBody, false, cacheKey));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to generate price suggestion.";
     return jsonResponse({ error: message }, 500);
