@@ -250,6 +250,34 @@ test("ListingCard supports keyboard open, seller navigation, messaging, and wish
   expect(onModerate).toHaveBeenCalledWith(listing);
 });
 
+test("ListingCard labels trade availability without labeling sale-only items", () => {
+  const { rerender } = render(
+    <ListingCard
+      item={{ ...listing, listing_type: "sale", status: "active" }}
+    />
+  );
+
+  expect(screen.queryByText(/^for trade$/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/for trade only/i)).not.toBeInTheDocument();
+
+  rerender(
+    <ListingCard
+      item={{ ...listing, listing_type: "sale_and_trade", status: "active" }}
+    />
+  );
+
+  expect(screen.getByText(/^for trade$/i)).toBeInTheDocument();
+
+  rerender(
+    <ListingCard
+      item={{ ...listing, listing_type: "trade", status: "active" }}
+    />
+  );
+
+  expect(screen.getByText(/for trade only/i)).toBeInTheDocument();
+  expect(screen.queryByText(/^for trade$/i)).not.toBeInTheDocument();
+});
+
 test("ListingsGrid renders empty state and forwards listing clicks", () => {
   const onListingClick = vi.fn();
   const { rerender } = render(<ListingsGrid listings={[]} searchQuery="lamp" />);
@@ -533,14 +561,14 @@ test("ListingForm validates required fields and publishes a completed listing", 
   fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Furniture" } });
   expect(screen.getByLabelText(/asking price/i)).toHaveValue("250.75");
   fireEvent.click(screen.getByRole("radio", { name: /good/i }));
-  fireEvent.click(screen.getByRole("button", { name: /for trade/i }));
+  fireEvent.click(screen.getByRole("button", { name: /for sale & trade/i }));
   fireEvent.click(screen.getByRole("button", { name: /publish listing/i }));
 
   await waitFor(() => expect(insert).toHaveBeenCalledWith(expect.objectContaining({
     title: "Lamp",
     price: 250.75,
     condition: "Good",
-    listing_type: "trade",
+    listing_type: "sale_and_trade",
     status: "active",
   })));
   expect(onSuccess).toHaveBeenCalled();

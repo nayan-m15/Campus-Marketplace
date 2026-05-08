@@ -612,6 +612,97 @@ export default function ListingForm({ onCancel, onSuccess }) {
         </section>
 
         <section className="lf__section">
+          <label className="lf__label" htmlFor="lf-price">Asking price</label>
+          <div className="lf__price-wrap">
+            <span className="lf__currency" aria-hidden="true">R</span>
+            <input
+              id="lf-price"
+              type="text"
+              inputMode="decimal"
+              className={`lf__input lf__input--price ${errors.price ? "lf__input--error" : ""}`}
+              placeholder="0.00"
+              value={price}
+              onChange={(e) => {
+                setPrice(clampPriceInput(e.target.value));
+                setErrors((prev) => ({ ...prev, price: undefined }));
+              }}
+              maxLength={LISTING_PRICE_MAX_CHARS}
+              aria-invalid={Boolean(errors.price)}
+            />
+          </div>
+          <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
+            Maximum 8 digits before the decimal and 2 cents digits.
+          </p>
+          {errors.price && <p className="lf__error" role="alert">{errors.price}</p>}
+        </section>
+
+        <section className="lf__section">
+          <label className="lf__label">Listing type</label>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => setListingType("sale")}
+              style={{
+                flex: 1,
+                minWidth: 120,
+                padding: "10px",
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "var(--font)",
+                transition: "all 0.15s",
+                border: listingType === "sale" ? "2px solid var(--green)" : "1.5px solid var(--gray-200)",
+                background: listingType === "sale" ? "#f0fdf4" : "#fff",
+                color: listingType === "sale" ? "var(--green)" : "var(--gray-600)",
+              }}
+            >
+              For Sale
+            </button>
+            <button
+              type="button"
+              onClick={() => setListingType("trade")}
+              style={{
+                flex: 1,
+                minWidth: 120,
+                padding: "10px",
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "var(--font)",
+                transition: "all 0.15s",
+                border: listingType === "trade" ? "2px solid #3b82f6" : "1.5px solid var(--gray-200)",
+                background: listingType === "trade" ? "#eff6ff" : "#fff",
+                color: listingType === "trade" ? "#3b82f6" : "var(--gray-600)",
+              }}
+            >
+              For Trade
+            </button>
+            <button
+              type="button"
+              onClick={() => setListingType("sale_and_trade")}
+              style={{
+                flex: 1,
+                minWidth: 150,
+                padding: "10px",
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "var(--font)",
+                transition: "all 0.15s",
+                border: listingType === "sale_and_trade" ? "2px solid #2563eb" : "1.5px solid var(--gray-200)",
+                background: listingType === "sale_and_trade" ? "#eff6ff" : "#fff",
+                color: listingType === "sale_and_trade" ? "#2563eb" : "var(--gray-600)",
+              }}
+            >
+              For Sale & Trade
+            </button>
+          </div>
+        </section>
+
+        <section className="lf__section">
           <label className="lf__label">Condition</label>
           <ConditionSelector
             value={condition}
