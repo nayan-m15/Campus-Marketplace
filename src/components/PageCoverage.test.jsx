@@ -990,7 +990,7 @@ test("StudentBookingsPage lets a seller complete a drop-off booking flow", async
 
   fireEvent.click(await screen.findByRole("button", { name: /book drop-off/i }));
   fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
-  fireEvent.change(screen.getByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
   fireEvent.click(screen.getByRole("button", { name: /next/i }));
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
@@ -1032,7 +1032,7 @@ test("StudentBookingsPage lets a buyer complete a collection booking flow", asyn
 
   fireEvent.click(await screen.findByRole("button", { name: /book collection/i }));
   fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
-  fireEvent.change(screen.getByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
   fireEvent.click(screen.getByRole("button", { name: /next/i }));
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
