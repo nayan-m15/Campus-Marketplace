@@ -1015,6 +1015,21 @@ function AppInner() {
   const [publicProfileId, setPublicProfileId] = useState(null);
   const [prevPage, setPrevPage] = useState("home");
 
+  useEffect(() => {
+    if (!showForm || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [showForm]);
+
   const navigateToPage = useCallback((nextPage, options = {}) => {
     if (typeof window === "undefined") {
       setPage(nextPage);
@@ -1762,12 +1777,18 @@ function AppInner() {
         {messageNoticeToast}
 
         {showForm && (
-          <dialog className="modal-overlay" open onClick={() => setShowForm(false)}>
-            <article className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="listing-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="listing-form-title"
+            onClick={() => setShowForm(false)}
+          >
+            <article className="listing-modal-content" onClick={(e) => e.stopPropagation()}>
               <button className="modal-close" onClick={() => setShowForm(false)} aria-label="Close modal" type="button">×</button>
               <ListingForm onCancel={() => setShowForm(false)} onSuccess={handleListingSuccess} />
             </article>
-          </dialog>
+          </div>
         )}
 
         <ListingDetailsModal

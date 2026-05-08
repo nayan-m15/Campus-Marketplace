@@ -341,6 +341,57 @@ function PriceSuggestionPanel({ suggestion, loading, error, hasEnoughDetail }) {
   );
 }
 
+function ListingTypeSelector({ value, onChange }) {
+  const options = [
+    {
+      value: "sale",
+      label: "For Sale",
+      color: "var(--green)",
+      background: "#f0fdf4",
+    },
+    {
+      value: "trade",
+      label: "For Trade",
+      color: "#3b82f6",
+      background: "#eff6ff",
+    },
+    {
+      value: "sale_and_trade",
+      label: "For Sale & Trade",
+      color: "#2563eb",
+      background: "#eff6ff",
+    },
+  ];
+
+  return (
+    <div className="lf__listing-type-row" role="radiogroup" aria-label="Listing type">
+      {options.map((option) => {
+        const selected = value === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            className="lf__listing-type-btn"
+            onClick={() => onChange(option.value)}
+            style={{
+              "--listing-type-color": option.color,
+              "--listing-type-background": option.background,
+              borderColor: selected ? option.color : "var(--gray-200)",
+              borderWidth: selected ? 2 : 1.5,
+              background: selected ? option.background : "#fff",
+              color: selected ? option.color : "var(--gray-600)",
+            }}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ListingForm({ onCancel, onSuccess }) {
   const [images, setImages] = useState([]);
   const [name, setName] = useState("");
@@ -507,52 +558,13 @@ export default function ListingForm({ onCancel, onSuccess }) {
     <main className="lf__wrapper">
       <article className="lf__card">
         <header className="lf__header">
-          <h2 className="lf__title">List an Item</h2>
+          <h2 className="lf__title" id="listing-form-title">List an Item</h2>
           <p className="lf__subtitle">Fill in the details and publish your listing.</p>
         </header>
 
         <section className="lf__section">
           <label className="lf__label">Listing type</label>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => setListingType("sale")}
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "var(--font)",
-                transition: "all 0.15s",
-                border: listingType === "sale" ? "2px solid var(--green)" : "1.5px solid var(--gray-200)",
-                background: listingType === "sale" ? "#f0fdf4" : "#fff",
-                color: listingType === "sale" ? "var(--green)" : "var(--gray-600)",
-              }}
-            >
-              For Sale
-            </button>
-            <button
-              type="button"
-              onClick={() => setListingType("trade")}
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "var(--font)",
-                transition: "all 0.15s",
-                border: listingType === "trade" ? "2px solid #3b82f6" : "1.5px solid var(--gray-200)",
-                background: listingType === "trade" ? "#eff6ff" : "#fff",
-                color: listingType === "trade" ? "#3b82f6" : "var(--gray-600)",
-              }}
-            >
-              For Trade
-            </button>
-          </div>
+          <ListingTypeSelector value={listingType} onChange={setListingType} />
         </section>
 
         <section className="lf__section">
@@ -609,97 +621,6 @@ export default function ListingForm({ onCancel, onSuccess }) {
           <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
             {description.length}/{LISTING_DESCRIPTION_MAX} characters
           </p>
-        </section>
-
-        <section className="lf__section">
-          <label className="lf__label" htmlFor="lf-price">Asking price</label>
-          <div className="lf__price-wrap">
-            <span className="lf__currency" aria-hidden="true">R</span>
-            <input
-              id="lf-price"
-              type="text"
-              inputMode="decimal"
-              className={`lf__input lf__input--price ${errors.price ? "lf__input--error" : ""}`}
-              placeholder="0.00"
-              value={price}
-              onChange={(e) => {
-                setPrice(clampPriceInput(e.target.value));
-                setErrors((prev) => ({ ...prev, price: undefined }));
-              }}
-              maxLength={LISTING_PRICE_MAX_CHARS}
-              aria-invalid={Boolean(errors.price)}
-            />
-          </div>
-          <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
-            Maximum 8 digits before the decimal and 2 cents digits.
-          </p>
-          {errors.price && <p className="lf__error" role="alert">{errors.price}</p>}
-        </section>
-
-        <section className="lf__section">
-          <label className="lf__label">Listing type</label>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={() => setListingType("sale")}
-              style={{
-                flex: 1,
-                minWidth: 120,
-                padding: "10px",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "var(--font)",
-                transition: "all 0.15s",
-                border: listingType === "sale" ? "2px solid var(--green)" : "1.5px solid var(--gray-200)",
-                background: listingType === "sale" ? "#f0fdf4" : "#fff",
-                color: listingType === "sale" ? "var(--green)" : "var(--gray-600)",
-              }}
-            >
-              For Sale
-            </button>
-            <button
-              type="button"
-              onClick={() => setListingType("trade")}
-              style={{
-                flex: 1,
-                minWidth: 120,
-                padding: "10px",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "var(--font)",
-                transition: "all 0.15s",
-                border: listingType === "trade" ? "2px solid #3b82f6" : "1.5px solid var(--gray-200)",
-                background: listingType === "trade" ? "#eff6ff" : "#fff",
-                color: listingType === "trade" ? "#3b82f6" : "var(--gray-600)",
-              }}
-            >
-              For Trade
-            </button>
-            <button
-              type="button"
-              onClick={() => setListingType("sale_and_trade")}
-              style={{
-                flex: 1,
-                minWidth: 150,
-                padding: "10px",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "var(--font)",
-                transition: "all 0.15s",
-                border: listingType === "sale_and_trade" ? "2px solid #2563eb" : "1.5px solid var(--gray-200)",
-                background: listingType === "sale_and_trade" ? "#eff6ff" : "#fff",
-                color: listingType === "sale_and_trade" ? "#2563eb" : "var(--gray-600)",
-              }}
-            >
-              For Sale & Trade
-            </button>
-          </div>
         </section>
 
         <section className="lf__section">
