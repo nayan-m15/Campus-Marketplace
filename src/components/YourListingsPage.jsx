@@ -442,6 +442,11 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
             description: editingItem.description || "",
             category: editingItem.category,
             condition: editingItem.condition,
+            imageUrl:
+              editingItem.image_url ||
+              editingItem.image_urls?.find(Boolean) ||
+              editingItem.editImages?.find((image) => image.url)?.url ||
+              "",
           },
         });
 
@@ -598,6 +603,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
           description: description || "",
           category,
           condition,
+          imageUrl: savedImageUrls[0] || editingItem.image_url || "",
         },
       }).then(({ data, error }) => {
         if (error || data?.error) throw error || new Error(data.error);

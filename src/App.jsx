@@ -288,7 +288,17 @@ function ListingPriceCheck({ item }) {
   const [priceCheckError, setPriceCheckError] = useState("");
 
   const listingPrice = parseListingPriceValue(item?.price);
-  const cacheKey = item?.id ? String(item.id) : "";
+  const imageUrl = item?.image_url || item?.image_urls?.find(Boolean) || "";
+  const cacheKey = item?.id
+    ? JSON.stringify({
+        id: String(item.id),
+        title: String(item.title || "").trim().toLowerCase(),
+        description: String(item.description || "").trim().toLowerCase(),
+        category: String(item.category || "").trim().toLowerCase(),
+        condition: String(item.condition || "").trim().toLowerCase(),
+        imageUrl,
+      })
+    : "";
   const isFlagged = item?.status === "flagged";
   const hasEnoughDetail =
     Boolean(item?.title?.trim()) &&
@@ -332,6 +342,7 @@ function ListingPriceCheck({ item }) {
         description: item.description || "",
         category: item.category,
         condition: item.condition,
+        imageUrl,
       },
     }).then(({ data, error }) => {
       if (ignore) return;
@@ -352,7 +363,7 @@ function ListingPriceCheck({ item }) {
     return () => {
       ignore = true;
     };
-  }, [item?.id, item?.title, item?.description, item?.category, item?.condition, item?.status, cacheKey, hasEnoughDetail, isFlagged, listingPrice]);
+  }, [item?.id, item?.title, item?.description, item?.category, item?.condition, item?.status, imageUrl, cacheKey, hasEnoughDetail, isFlagged, listingPrice]);
 
   if (!listingPrice) return null;
 

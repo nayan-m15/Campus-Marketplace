@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const SERPAPI_URL = "https://serpapi.com/search.json";
 const DEFAULT_LOCATION = "Johannesburg, South Africa";
 const DEFAULT_CONDITION = "Good";
+const CACHE_VERSION = "v3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +26,8 @@ type PriceSuggestionRequest = {
   category?: string;
   condition?: string;
   location?: string;
+  imageUrl?: string;
+  imageUrls?: string[];
 };
 
 type ShoppingResult = {
@@ -37,6 +40,11 @@ type ShoppingResult = {
   thumbnail?: string;
 };
 
+type LensResult = {
+  title?: string;
+  source?: string;
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -46,6 +54,18 @@ function jsonResponse(body: unknown, status = 200) {
 
 function normaliseText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normaliseImageUrl(value: unknown) {
+  const imageUrl = normaliseText(value);
+  if (!imageUrl) return "";
+
+  try {
+    const url = new URL(imageUrl);
+    return ["http:", "https:"].includes(url.protocol) ? url.toString() : "";
+  } catch {
+    return "";
+  }
 }
 
 async function hashText(value: string) {
@@ -61,15 +81,19 @@ async function buildRequestFingerprint({
   searchQuery,
   condition,
   location,
+  imageUrl,
 }: {
   searchQuery: string;
   condition: string;
   location: string;
+  imageUrl: string;
 }) {
   const fingerprint = JSON.stringify({
+    version: CACHE_VERSION,
     searchQuery: searchQuery.toLowerCase(),
     condition: condition.toLowerCase(),
     location: location.toLowerCase(),
+    imageUrl,
   });
 
   return hashText(fingerprint);
@@ -173,6 +197,88 @@ function getMeaningfulTokens(text: string) {
         .filter((word) => word.length >= 4 && !stopWords.has(word)),
     ),
   ].slice(0, 10);
+}
+
+function extractLensTerms(lensData: Record<string, unknown>, originalTokens: string[]) {
+  const resultGroups = [
+    lensData.visual_matches,
+    lensData.shopping_results,
+    lensData.exact_matches,
+  ].filter(Array.isArray) as LensResult[][];
+  const tokenCounts = new Map<string, number>();
+  const sourceTitles: string[] = [];
+  const existingTokens = new Set(originalTokens.map((token) => token.toLowerCase()));
+
+  for (const result of resultGroups.flat().slice(0, 12)) {
+    const title = normaliseText(result.title);
+    if (!title) continue;
+    sourceTitles.push(title);
+
+    for (const token of getMeaningfulTokens(`${title} ${result.source || ""}`)) {
+      if (existingTokens.has(token)) continue;
+      tokenCounts.set(token, (tokenCounts.get(token) || 0) + 1);
+    }
+  }
+
+  return {
+    terms: [...tokenCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([token]) => token)
+      .slice(0, 4),
+    sourceTitles: sourceTitles.slice(0, 5),
+  };
+}
+
+async function getImageSearchContext({
+  serpApiKey,
+  imageUrl,
+  searchQuery,
+  originalTokens,
+}: {
+  serpApiKey: string;
+  imageUrl: string;
+  searchQuery: string;
+  originalTokens: string[];
+}) {
+  if (!imageUrl) {
+    return {
+      used: false,
+      terms: [] as string[],
+      sourceTitles: [] as string[],
+    };
+  }
+
+  const params = new URLSearchParams({
+    engine: "google_lens",
+    api_key: serpApiKey,
+    url: imageUrl,
+    type: "products",
+    country: "za",
+    hl: "en",
+    q: searchQuery,
+    safe: "active",
+  });
+
+  const lensResponse = await fetch(`${SERPAPI_URL}?${params.toString()}`);
+  const lensData = await lensResponse.json();
+
+  if (!lensResponse.ok || lensData.error) {
+    console.error("Google Lens image search failed:", lensData.error || lensResponse.statusText);
+    return {
+      used: true,
+      terms: [] as string[],
+      sourceTitles: [] as string[],
+      error: lensData.error || "Image search failed.",
+    };
+  }
+
+  const { terms, sourceTitles } = extractLensTerms(lensData, originalTokens);
+
+  return {
+    used: true,
+    terms,
+    sourceTitles,
+  };
 }
 
 function resultMatchesListing(result: ShoppingResult, tokens: string[]) {
@@ -447,17 +553,39 @@ Deno.serve(async (req) => {
   const category = normaliseText(body.category);
   const condition = normaliseText(body.condition) || DEFAULT_CONDITION;
   const location = normaliseText(body.location) || DEFAULT_LOCATION;
+  const imageUrl =
+    normaliseImageUrl(body.imageUrl) ||
+    normaliseImageUrl(Array.isArray(body.imageUrls) ? body.imageUrls.find(Boolean) : "");
 
   if (query.length < 2) {
     return jsonResponse({ error: "Provide an item name or search query." }, 400);
   }
 
   const conditionFactor = conditionFactors[condition] ?? conditionFactors[DEFAULT_CONDITION];
-  const searchQuery = buildSearchQuery(query, category, description);
-  const requestFingerprint = await buildRequestFingerprint({ searchQuery, condition, location });
-  const searchCacheKey = `search:${requestFingerprint}`;
-  const cacheKey = listingId ? `listing:${listingId}` : searchCacheKey;
+  const baseSearchQuery = buildSearchQuery(query, category, description);
+  const baseMeaningfulTokens = getMeaningfulTokens(`${query} ${description}`);
+  const listingText = `${query} ${category} ${description}`;
+  const modelSignals = findModelSignals(listingText);
+  const brandSignals = findBrandSignals(listingText);
+  const shouldUseImageSearch =
+    imageUrl &&
+    (modelSignals.length === 0 || brandSignals.length === 0 || baseMeaningfulTokens.length < 3);
+  const imageSearch = shouldUseImageSearch
+    ? await getImageSearchContext({
+        serpApiKey,
+        imageUrl,
+        searchQuery: baseSearchQuery,
+        originalTokens: baseMeaningfulTokens,
+      })
+    : { used: false, terms: [] as string[], sourceTitles: [] as string[] };
+  const searchQuery = dedupeWords(
+    [baseSearchQuery, ...imageSearch.terms].filter(Boolean).join(" "),
+  );
+  const requestFingerprint = await buildRequestFingerprint({ searchQuery, condition, location, imageUrl });
+  const searchCacheKey = `search:${CACHE_VERSION}:${requestFingerprint}`;
+  const cacheKey = listingId ? `listing:${CACHE_VERSION}:${listingId}` : searchCacheKey;
   const cacheRequest = {
+    version: CACHE_VERSION,
     fingerprint: requestFingerprint,
     listingId: listingId || null,
     query,
@@ -465,11 +593,11 @@ Deno.serve(async (req) => {
     category,
     condition,
     location,
+    imageUrl: imageUrl || null,
     searchQuery,
+    baseSearchQuery,
+    imageSearch,
   };
-  const listingText = `${query} ${category} ${description}`;
-  const modelSignals = findModelSignals(listingText);
-  const brandSignals = findBrandSignals(listingText);
   const params = new URLSearchParams({
     engine: "google_shopping",
     q: searchQuery,
@@ -607,6 +735,7 @@ Deno.serve(async (req) => {
       market: "South Africa",
       currency: "ZAR",
       confidence,
+      imageSearch,
       detectedSignals: {
         models: modelSignals,
         brands: brandSignals,
