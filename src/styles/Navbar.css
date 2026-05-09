@@ -82,6 +82,10 @@
   display: block;
 }
 
+.navbar__search--logged-out-mobile {
+  display: none;
+}
+
 .navbar__actions {
   /* Right-side wrapper for mobile quick actions, desktop links, and the menu trigger. */
   display: flex;
@@ -509,7 +513,7 @@ html.dark .navbar__hamburger span {
     border-radius: 9px;
   }
 
-  .navbar--logged-out .navbar__search--desktop {
+  .navbar--logged-out .navbar__search--logged-out-mobile {
     display: block;
     flex: 1 1 auto;
     min-width: 0;
