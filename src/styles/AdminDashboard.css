@@ -1,123 +1,71 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
-
-:root {
-  --admin-font: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
-  --admin-bg: #f8f9fb;
-  --admin-surface: #ffffff;
-  --admin-surface-elevated: #ffffff;
-  --admin-surface-soft: #f3f6fb;
-  --admin-sidebar: rgba(255, 255, 255, 0.94);
-  --admin-border: #eaecef;
-  --admin-border-strong: #d9e0ea;
-  --admin-text: #111827;
-  --admin-text-muted: #6b7280;
-  --admin-text-soft: #94a3b8;
-  --admin-accent: #4f7cff;
-  --admin-accent-soft: rgba(79, 124, 255, 0.12);
-  --admin-accent-strong: #2f5cff;
-  --admin-success: #0f9f6e;
-  --admin-success-soft: rgba(15, 159, 110, 0.12);
-  --admin-warn: #d97706;
-  --admin-warn-soft: rgba(217, 119, 6, 0.14);
-  --admin-danger: #dc2626;
-  --admin-danger-soft: rgba(220, 38, 38, 0.12);
-  --admin-shadow-sm: 0 10px 30px rgba(15, 23, 42, 0.04);
-  --admin-shadow-lg: 0 28px 80px rgba(15, 23, 42, 0.08);
-  --admin-radius-sm: 14px;
-  --admin-radius-md: 18px;
-  --admin-radius-lg: 24px;
-}
-
-html.dark {
-  --admin-bg: #0f1115;
-  --admin-surface: #171a21;
-  --admin-surface-elevated: #1e222b;
-  --admin-surface-soft: #121720;
-  --admin-sidebar: rgba(23, 26, 33, 0.92);
-  --admin-border: #2b313c;
-  --admin-border-strong: #3a4454;
-  --admin-text: #f3f4f6;
-  --admin-text-muted: #9ca3af;
-  --admin-text-soft: #667085;
-  --admin-accent: #78a6ff;
-  --admin-accent-soft: rgba(120, 166, 255, 0.18);
-  --admin-accent-strong: #98bbff;
-  --admin-success: #34d399;
-  --admin-success-soft: rgba(52, 211, 153, 0.16);
-  --admin-warn: #f59e0b;
-  --admin-warn-soft: rgba(245, 158, 11, 0.18);
-  --admin-danger: #f87171;
-  --admin-danger-soft: rgba(248, 113, 113, 0.16);
-  --admin-shadow-sm: 0 18px 40px rgba(0, 0, 0, 0.24);
-  --admin-shadow-lg: 0 34px 96px rgba(0, 0, 0, 0.36);
-}
-
-html.dark .admin-shell {
-  background:
-    radial-gradient(circle at top left, rgba(120, 166, 255, 0.09), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 32%),
-    var(--admin-bg) !important;
-}
-
-html.dark .admin-shell .admin-main,
-html.dark .admin-shell .admin-sidebar,
-html.dark .admin-shell .admin-utility,
-html.dark .admin-shell .panel,
-html.dark .admin-shell .facilities-management-panel,
-html.dark .admin-shell .utility-card,
-html.dark .admin-shell .admin-kpi-card,
-html.dark .admin-shell .facility-management-card,
-html.dark .admin-shell .staff-card,
-html.dark .admin-shell .moderation-card,
-html.dark .admin-shell .modal,
-html.dark .admin-shell .modal-content,
-html.dark .admin-shell .report-summary-card,
-html.dark .admin-shell .moderation-stat-card,
-html.dark .admin-shell .hours-summary-item,
-html.dark .admin-shell .hours-row,
-html.dark .admin-shell .utility-list__stacked-item,
-html.dark .admin-shell .staff-stat,
-html.dark .admin-shell .report-table tbody tr {
-  background: var(--admin-surface) !important;
-  border-color: var(--admin-border) !important;
-}
-
-html.dark .admin-shell .admin-sidebar__nav-icon,
-html.dark .admin-shell .admin-sidebar__nav-btn:hover,
-html.dark .admin-shell .admin-signal,
-html.dark .admin-shell .admin-user-card,
-html.dark .admin-shell .utility-calendar__day,
-html.dark .admin-shell .utility-list__stacked-item,
-html.dark .admin-shell .form-section,
-html.dark .admin-shell .capacity-fieldset,
-html.dark .admin-shell .hours-fieldset,
-html.dark .admin-shell .staff-toggle,
-html.dark .admin-shell .staff-delete,
-html.dark .admin-shell .btn-export,
-html.dark .admin-shell .btn-secondary,
-html.dark .admin-shell .btn-outline,
-html.dark .admin-shell .report-table thead th {
-  background: var(--admin-surface-soft) !important;
-  border-color: var(--admin-border) !important;
-}
-
 .admin-shell,
 .admin-shell * {
   box-sizing: border-box;
 }
 
+:root {
+  --admin-shell-max: 1680px;
+  --admin-gap: clamp(16px, 1.8vw, 28px);
+  --admin-panel-pad: clamp(18px, 2vw, 28px);
+  --admin-panel-pad-tight: clamp(14px, 1.4vw, 20px);
+  --admin-hero-radius: 22px;
+  --admin-panel-radius: 18px;
+  --admin-card-radius: 16px;
+  --admin-pill-radius: 999px;
+  --admin-bg: var(--surface-muted);
+  --admin-surface: #fffdfa;
+  --admin-surface-soft: var(--gray-50);
+  --admin-surface-muted: rgba(255, 253, 248, 0.82);
+  --admin-border: rgba(31, 36, 31, 0.10);
+  --admin-border-strong: rgba(31, 36, 31, 0.16);
+  --admin-text: var(--gray-900);
+  --admin-text-muted: var(--gray-600);
+  --admin-text-soft: var(--gray-500);
+  --admin-accent: var(--green);
+  --admin-accent-strong: var(--green-dark);
+  --admin-accent-soft: rgba(31, 107, 82, 0.10);
+  --admin-warning: var(--amber);
+  --admin-warning-soft: rgba(229, 157, 58, 0.14);
+  --admin-danger: var(--danger);
+  --admin-danger-soft: rgba(199, 91, 74, 0.12);
+  --admin-shadow-sm: 0 8px 24px rgba(31, 36, 31, 0.06);
+  --admin-shadow-md: 0 18px 48px rgba(31, 36, 31, 0.08);
+  --admin-shadow-lg: 0 24px 64px rgba(31, 36, 31, 0.12);
+}
+
+html.dark {
+  --admin-bg: #111827;
+  --admin-surface: #1f2937;
+  --admin-surface-soft: #243041;
+  --admin-surface-muted: rgba(31, 41, 55, 0.92);
+  --admin-border: rgba(255, 255, 255, 0.10);
+  --admin-border-strong: rgba(255, 255, 255, 0.18);
+  --admin-text: #f9fafb;
+  --admin-text-muted: #cbd5e1;
+  --admin-text-soft: #9ca3af;
+  --admin-accent: #53d769;
+  --admin-accent-strong: #34c759;
+  --admin-accent-soft: rgba(83, 215, 105, 0.16);
+  --admin-warning: #f1c57a;
+  --admin-warning-soft: rgba(241, 197, 122, 0.16);
+  --admin-danger: #f28b82;
+  --admin-danger-soft: rgba(242, 139, 130, 0.18);
+  --admin-shadow-sm: 0 12px 30px rgba(0, 0, 0, 0.22);
+  --admin-shadow-md: 0 20px 56px rgba(0, 0, 0, 0.28);
+  --admin-shadow-lg: 0 26px 76px rgba(0, 0, 0, 0.36);
+}
+
 .admin-shell {
+  width: min(var(--admin-shell-max), 100%);
+  margin: 0 auto;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(240px, 272px) minmax(0, 1fr) minmax(280px, 320px);
-  gap: 24px;
-  padding: 24px;
-  background:
-    radial-gradient(circle at top left, rgba(79, 124, 255, 0.08), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 35%),
-    var(--admin-bg);
+  grid-template-columns: minmax(240px, 268px) minmax(0, 1fr) minmax(264px, 320px);
+  gap: var(--admin-gap);
+  padding: clamp(14px, 2vw, 24px);
+  background: var(--admin-bg) !important;
   color: var(--admin-text);
-  font-family: var(--admin-font);
+  font-family: var(--font);
 }
 
 .admin-mobile-toggle,
@@ -136,17 +84,15 @@ html.dark .admin-shell .report-table thead th {
 .facilities-management-panel,
 .utility-card,
 .admin-kpi-card,
-.panel__header,
-.report-summary-card,
-.report-table,
 .staff-card,
 .moderation-card,
-.moderation-stat-card,
 .facility-management-card,
+.report-summary-card,
+.moderation-stat-card,
 .modal,
 .modal-content {
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-border);
+  background: var(--admin-surface) !important;
+  border: 1px solid var(--admin-border) !important;
   box-shadow: var(--admin-shadow-sm);
 }
 
@@ -158,68 +104,110 @@ html.dark .admin-shell .report-table thead th {
 
 .admin-sidebar {
   position: sticky;
-  top: 24px;
-  height: calc(100vh - 48px);
-  padding: 18px;
-  border-radius: 28px;
-  background: var(--admin-sidebar);
-  backdrop-filter: blur(22px);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  top: clamp(14px, 2vw, 24px);
+  align-self: start;
+  max-height: calc(100vh - clamp(28px, 4vw, 48px));
+  padding: clamp(14px, 1.6vw, 18px);
+  border-radius: var(--admin-hero-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 18%),
+    var(--admin-surface-muted) !important;
+  backdrop-filter: blur(12px);
+  overflow: auto;
+  display: grid;
+  gap: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 107, 82, 0.28) transparent;
 }
 
-.admin-sidebar__header,
-.admin-sidebar__footer,
-.admin-sidebar__section {
-  min-width: 0;
+.admin-sidebar::-webkit-scrollbar,
+.admin-main__content::-webkit-scrollbar,
+.table-figure::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb,
+.admin-main__content::-webkit-scrollbar-thumb,
+.table-figure::-webkit-scrollbar-thumb {
+  background: rgba(31, 107, 82, 0.20);
+  border-radius: 999px;
+}
+
+.admin-sidebar::-webkit-scrollbar-track,
+.admin-main__content::-webkit-scrollbar-track,
+.table-figure::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .admin-brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .admin-brand__mark {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--admin-accent), #89a7ff);
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
   color: #fff;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.03em;
+  box-shadow: 0 8px 18px rgba(31, 107, 82, 0.18);
 }
 
 .admin-brand__eyebrow,
 .panel__eyebrow,
 .admin-hero__eyebrow,
-.admin-sidebar__section-title {
+.admin-sidebar__section-title,
+.admin-kpi-card__label,
+.field-label,
+.moderation-field__label,
+.form-label,
+.capacity-label,
+.moderation-stat-card__label,
+.fieldset-legend,
+.form-legend,
+.meta-label,
+.report-preview__meta {
   margin: 0;
-  font-size: 0.72rem;
-  line-height: 1.2;
+  font-size: 0.73rem;
+  line-height: 1.3;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--admin-text-soft);
+  font-weight: 700;
+}
+
+.admin-brand__title,
+.utility-card__title,
+.panel__title,
+.panel-title,
+.facility-name,
+.staff-name,
+.report-preview__title,
+.modal__title,
+.modal-title,
+.moderation-empty__title {
+  color: var(--admin-text);
 }
 
 .admin-brand__title {
   margin: 4px 0 0;
-  font-size: 1.05rem;
+  font-size: 1rem;
   line-height: 1.25;
-  color: var(--admin-text);
 }
 
 .admin-sidebar__section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: grid;
+  gap: 12px;
 }
 
 .admin-sidebar__section--compact {
-  padding-top: 4px;
+  margin-top: 4px;
 }
 
 .admin-sidebar__nav,
@@ -237,48 +225,48 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .admin-sidebar__nav {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  gap: 6px;
 }
 
 .admin-sidebar__nav-btn {
   width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 13px 14px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px 12px 12px 10px;
   border: 1px solid transparent;
-  border-radius: 18px;
+  border-radius: 14px;
   background: transparent;
   color: var(--admin-text);
   text-align: left;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
 }
 
 .admin-sidebar__nav-btn:hover,
 .admin-sidebar__nav-btn:focus-visible {
-  background: var(--admin-surface-soft);
-  border-color: var(--admin-border);
-  transform: translateY(-1px);
+  background: rgba(31, 107, 82, 0.06) !important;
+  border-color: rgba(31, 107, 82, 0.12);
   outline: none;
 }
 
 .admin-sidebar__nav-btn--active {
-  background: linear-gradient(180deg, var(--admin-accent-soft), rgba(255, 255, 255, 0));
-  border-color: rgba(79, 124, 255, 0.24);
+  background:
+    linear-gradient(90deg, rgba(31, 107, 82, 0.10), transparent 82%),
+    var(--admin-surface-soft) !important;
+  border-color: rgba(31, 107, 82, 0.16);
 }
 
 .admin-sidebar__nav-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  background: var(--admin-surface-soft);
+  border-radius: 10px;
+  background: var(--admin-surface-soft) !important;
   color: var(--admin-accent);
-  flex-shrink: 0;
 }
 
 .admin-sidebar__icon,
@@ -286,25 +274,42 @@ html.dark .admin-shell .report-table thead th {
 .utility-card__icon,
 .admin-mobile-toggle__icon,
 .admin-sidebar__close-icon {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
 }
 
 .admin-sidebar__nav-copy {
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .admin-sidebar__nav-label {
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   font-weight: 700;
-  color: var(--admin-text);
+}
+
+.admin-sidebar__nav-subtitle,
+.panel__subtitle,
+.admin-hero__subtitle,
+.admin-hero__date,
+.admin-user-card__email,
+.utility-card__subtitle,
+.utility-list__meta,
+.facility-description,
+.facility-location,
+.staff-email,
+.staff-phone,
+.report-insight-pill,
+.moderation-empty__subtitle,
+.moderation-card__reason p,
+.time-range,
+.closed-label {
+  color: var(--admin-text-muted);
 }
 
 .admin-sidebar__nav-subtitle {
-  font-size: 0.78rem;
+  font-size: 0.77rem;
   line-height: 1.45;
-  color: var(--admin-text-muted);
 }
 
 .admin-sidebar__signals {
@@ -315,147 +320,126 @@ html.dark .admin-shell .report-table thead th {
 .admin-signal {
   display: grid;
   gap: 4px;
-  padding: 14px;
-  border-radius: 18px;
-  border: 1px solid var(--admin-border);
-  background: var(--admin-surface-soft);
+  padding: 12px 13px;
+  border-radius: 14px;
+  border: 1px solid var(--admin-border) !important;
+  background: var(--admin-surface-soft) !important;
 }
 
 .admin-signal--warn {
-  border-color: rgba(217, 119, 6, 0.18);
-  background: linear-gradient(180deg, var(--admin-warn-soft), transparent);
+  border-left: 3px solid var(--admin-warning);
 }
 
 .admin-signal--positive {
-  border-color: rgba(15, 159, 110, 0.16);
-  background: linear-gradient(180deg, var(--admin-success-soft), transparent);
+  border-left: 3px solid var(--admin-accent);
+}
+
+.admin-signal--info {
+  border-left: 3px solid var(--gray-500);
 }
 
 .admin-signal__title {
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 700;
-  color: var(--admin-text);
 }
 
 .admin-signal__detail {
-  font-size: 0.76rem;
+  font-size: 0.77rem;
   color: var(--admin-text-muted);
+  line-height: 1.45;
 }
 
 .admin-sidebar__footer {
   margin-top: auto;
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .admin-user-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
   align-items: center;
-  gap: 14px;
-  padding: 14px;
-  border-radius: 20px;
-  background: var(--admin-surface-soft);
-  border: 1px solid var(--admin-border);
+  padding: 12px;
+  border-radius: 15px;
+  background: var(--admin-surface-soft) !important;
 }
 
 .admin-user-card__avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--admin-text), var(--admin-text-muted));
-  color: var(--admin-surface);
+  background: linear-gradient(135deg, var(--navy) 0%, var(--green) 100%);
+  color: #fff;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
+  font-size: 0.86rem;
 }
 
 .admin-user-card__name {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  color: var(--admin-text);
 }
 
 .admin-user-card__email {
-  margin: 4px 0 0;
+  margin: 3px 0 0;
   font-size: 0.76rem;
-  color: var(--admin-text-muted);
 }
 
 .admin-signout-btn {
   width: 100%;
+  min-height: 42px;
   display: inline-flex;
-  justify-content: center;
   align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  border-radius: 16px;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-radius: 14px;
   border: 1px solid var(--admin-border);
   background: transparent;
   color: var(--admin-text);
-  cursor: pointer;
   font: inherit;
+  font-size: 0.88rem;
   font-weight: 700;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease;
 }
 
 .admin-signout-btn:hover,
 .admin-signout-btn:focus-visible {
-  background: var(--admin-surface-soft);
+  background: var(--admin-surface-soft) !important;
   border-color: var(--admin-border-strong);
   outline: none;
 }
 
 .admin-main {
   min-width: 0;
-  padding: 24px;
-  border-radius: 32px;
+  padding: clamp(18px, 2vw, 28px);
+  border-radius: var(--admin-hero-radius);
 }
 
 .admin-hero {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  align-items: flex-start;
-  padding: 6px 0 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(16px, 2vw, 28px);
+  align-items: start;
+  padding: 0 0 clamp(16px, 2vw, 24px);
 }
 
 .admin-hero__title {
-  margin: 8px 0 0;
-  font-size: clamp(1.9rem, 3vw, 2.5rem);
-  line-height: 1.05;
-  letter-spacing: -0.04em;
+  margin: 6px 0 0;
+  font-size: clamp(1.8rem, 2.3vw, 2.65rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
   color: var(--admin-text);
-}
-
-.admin-hero__subtitle,
-.panel__subtitle,
-.utility-card__subtitle,
-.report-preview__meta,
-.field-hint,
-.staff-stat,
-.moderation-empty__subtitle,
-.moderation-feedback,
-.facility-description,
-.facility-location,
-.report-insight-pill,
-.utility-list__meta,
-.staff-email,
-.staff-phone,
-.staff-date,
-.meta-label,
-.time-range,
-.closed-label,
-.admin-hero__date {
-  color: var(--admin-text-muted);
 }
 
 .admin-hero__subtitle {
   margin: 10px 0 0;
-  font-size: 0.98rem;
-  max-width: 46rem;
+  max-width: 44rem;
+  font-size: clamp(0.92rem, 1vw, 1rem);
   line-height: 1.65;
 }
 
@@ -463,7 +447,7 @@ html.dark .admin-shell .report-table thead th {
   display: grid;
   justify-items: end;
   gap: 10px;
-  flex-shrink: 0;
+  align-self: center;
 }
 
 .admin-hero__badge,
@@ -475,90 +459,96 @@ html.dark .admin-shell .report-table thead th {
 .moderation-status,
 .moderation-pill,
 .closed-badge,
-.admin-kpi-card__trend {
+.admin-kpi-card__trend,
+.staff-date {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   min-height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
+  padding: 0 11px;
+  border-radius: var(--admin-pill-radius);
   font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  border: 1px solid var(--admin-border);
 }
 
 .admin-hero__badge,
 .format-chip,
 .moderation-pill,
 .staff-date {
-  background: var(--admin-surface-soft);
-  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-soft) !important;
   color: var(--admin-text-muted);
 }
 
 .admin-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: 1.35fr repeat(2, minmax(0, 0.82fr)) minmax(0, 1fr);
+  gap: clamp(12px, 1.4vw, 18px);
+  margin-bottom: clamp(18px, 2vw, 28px);
 }
 
 .admin-kpi-card {
-  padding: 20px;
-  border-radius: var(--admin-radius-md);
   display: grid;
-  gap: 14px;
+  align-content: start;
+  gap: 10px;
+  min-height: 132px;
+  padding: clamp(15px, 1.6vw, 20px);
+  border-radius: var(--admin-card-radius);
 }
 
-.admin-kpi-card__label,
-.field-label,
-.moderation-field__label,
-.form-label,
-.capacity-label,
-.report-preview__meta,
-.moderation-stat-card__label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--admin-text-soft);
+.admin-kpi-card--featured {
+  grid-column: span 2;
+  grid-template-columns: minmax(0, 1fr);
+  background:
+    linear-gradient(145deg, rgba(31, 107, 82, 0.08), transparent 55%),
+    var(--admin-surface) !important;
 }
 
-.admin-kpi-card__value,
-.moderation-stat-card__value {
-  font-size: clamp(1.55rem, 2vw, 2rem);
+.admin-kpi-card__value {
+  font-size: clamp(1.5rem, 2vw, 2.2rem);
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
   color: var(--admin-text);
+}
+
+.admin-kpi-card__trend {
+  justify-self: start;
 }
 
 .admin-kpi-card__trend--positive,
 .staff-status.active,
-.moderation-status--active {
-  background: var(--admin-success-soft);
-  color: var(--admin-success);
-  border: 1px solid rgba(15, 159, 110, 0.16);
+.moderation-status--active,
+.status-badge {
+  background: var(--admin-accent-soft) !important;
+  color: var(--admin-accent-strong);
+  border-color: rgba(31, 107, 82, 0.12);
 }
 
 .admin-kpi-card__trend--warn,
 .moderation-status--flagged {
-  background: var(--admin-warn-soft);
-  color: var(--admin-warn);
-  border: 1px solid rgba(217, 119, 6, 0.18);
+  background: var(--admin-warning-soft) !important;
+  color: #a56115;
+  border-color: rgba(229, 157, 58, 0.20);
+}
+
+html.dark .admin-kpi-card__trend--warn,
+html.dark .moderation-status--flagged {
+  color: #f8d38f;
 }
 
 .admin-kpi-card__trend--info {
-  background: var(--admin-accent-soft);
-  color: var(--admin-accent-strong);
-  border: 1px solid rgba(79, 124, 255, 0.18);
+  background: rgba(127, 143, 134, 0.12) !important;
+  color: var(--gray-600);
+}
+
+html.dark .admin-kpi-card__trend--info {
+  color: #d1d5db;
 }
 
 .admin-kpi-card__trend--neutral,
-.staff-role,
-.status-badge {
-  background: var(--admin-surface-soft);
+.staff-role {
+  background: var(--admin-surface-soft) !important;
   color: var(--admin-text-muted);
-  border: 1px solid var(--admin-border);
 }
 
 .admin-main__content {
@@ -567,15 +557,15 @@ html.dark .admin-shell .report-table thead th {
 
 .admin-utility {
   position: sticky;
-  top: 24px;
-  height: fit-content;
+  top: clamp(14px, 2vw, 24px);
+  align-self: start;
   display: grid;
-  gap: 16px;
+  gap: clamp(12px, 1.6vw, 18px);
 }
 
 .utility-card {
-  padding: 18px;
-  border-radius: 24px;
+  padding: clamp(15px, 1.5vw, 18px);
+  border-radius: var(--admin-card-radius);
 }
 
 .utility-card__header,
@@ -593,46 +583,44 @@ html.dark .admin-shell .report-table thead th {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
 }
 
 .utility-card__title-group {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 11px;
 }
 
 .utility-card__icon {
-  width: 18px;
-  height: 18px;
   color: var(--admin-accent);
 }
 
 .utility-card__title {
   margin: 0;
-  font-size: 0.96rem;
-  color: var(--admin-text);
+  font-size: 0.95rem;
+  line-height: 1.25;
 }
 
 .utility-card__subtitle {
-  margin: 4px 0 0;
-  font-size: 0.78rem;
+  margin: 3px 0 0;
+  font-size: 0.77rem;
 }
 
 .utility-calendar {
-  margin-top: 16px;
+  margin-top: 14px;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
+  gap: 7px;
 }
 
 .utility-calendar__weekday,
 .utility-calendar__day {
-  min-height: 34px;
+  min-height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
-  font-size: 0.76rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
 }
 
 .utility-calendar__weekday {
@@ -640,72 +628,69 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .utility-calendar__day {
+  background: var(--admin-surface-soft) !important;
   color: var(--admin-text);
-  background: var(--admin-surface-soft);
-  border: 1px solid transparent;
 }
 
 .utility-calendar__day--muted {
-  opacity: 0.38;
+  opacity: 0.34;
 }
 
 .utility-calendar__day--today {
-  background: var(--admin-accent-soft);
-  border-color: rgba(79, 124, 255, 0.26);
+  background: rgba(31, 107, 82, 0.16) !important;
   color: var(--admin-accent-strong);
   font-weight: 700;
 }
 
 .utility-list {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   margin-top: 14px;
 }
 
 .utility-list__item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
 }
 
 .utility-list__dot {
-  width: 10px;
-  height: 10px;
-  margin-top: 6px;
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
   border-radius: 999px;
-  background: var(--admin-text-soft);
-  flex-shrink: 0;
+  background: var(--gray-400);
 }
 
 .utility-list__dot--warn {
-  background: var(--admin-warn);
+  background: var(--admin-warning);
 }
 
 .utility-list__dot--positive {
-  background: var(--admin-success);
+  background: var(--admin-accent);
 }
 
 .utility-list__dot--info {
-  background: var(--admin-accent);
+  background: var(--info);
 }
 
 .utility-list__title {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   font-weight: 700;
-  color: var(--admin-text);
 }
 
 .utility-list__meta {
   margin: 4px 0 0;
   font-size: 0.78rem;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .utility-list--stacked .utility-list__stacked-item {
-  padding: 14px;
-  border-radius: 18px;
-  background: var(--admin-surface-soft);
+  padding: 12px 13px;
+  border-radius: 14px;
+  background: var(--admin-surface-soft) !important;
   border: 1px solid var(--admin-border);
 }
 
@@ -723,13 +708,13 @@ html.dark .admin-shell .report-table thead th {
 
 .panel,
 .facilities-management-panel {
-  border-radius: 26px;
+  border-radius: var(--admin-panel-radius);
   overflow: hidden;
 }
 
 .panel__header,
 .panel-header {
-  padding: 24px 28px 18px;
+  padding: var(--admin-panel-pad) var(--admin-panel-pad) 16px;
   border-bottom: 1px solid var(--admin-border);
 }
 
@@ -742,10 +727,16 @@ html.dark .admin-shell .report-table thead th {
 .moderation-empty__title,
 .report-preview__title {
   margin: 6px 0 0;
-  font-size: 1.2rem;
+  font-size: clamp(1.05rem, 1.4vw, 1.22rem);
   line-height: 1.2;
   letter-spacing: -0.03em;
-  color: var(--admin-text);
+}
+
+.panel__subtitle {
+  margin-top: 6px;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  max-width: 44rem;
 }
 
 .btn,
@@ -757,94 +748,88 @@ html.dark .admin-shell .report-table thead th {
 .btn-warning,
 .btn-danger {
   appearance: none;
-  border: 1px solid transparent;
-  border-radius: 16px;
-  min-height: 44px;
+  min-height: 42px;
   padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  transition: filter 0.16s ease, background 0.16s ease, border-color 0.16s ease, transform 0.10s ease;
 }
 
 .btn-primary,
 .btn-success {
-  background: linear-gradient(135deg, var(--admin-accent), #5d86ff);
+  background: var(--grad-green);
   color: #fff;
+  box-shadow: 0 6px 18px rgba(31, 107, 82, 0.18);
 }
 
 .btn-primary:hover,
 .btn-success:hover,
 .btn-warning:hover,
-.btn-danger:hover,
-.btn-export:hover,
-.btn-secondary:hover,
-.btn-outline:hover {
+.btn-danger:hover {
+  filter: brightness(1.06);
   transform: translateY(-1px);
 }
 
 .btn-export,
 .btn-secondary,
 .btn-outline {
-  background: var(--admin-surface);
+  background: var(--admin-surface) !important;
   border-color: var(--admin-border);
   color: var(--admin-text);
 }
 
+.btn-export:hover,
+.btn-secondary:hover,
+.btn-outline:hover {
+  background: var(--admin-surface-soft) !important;
+}
+
 .btn-warning {
-  background: var(--admin-warn);
+  background: linear-gradient(135deg, var(--amber) 0%, #d98a25 100%);
   color: #fff;
 }
 
 .btn-danger {
-  background: var(--admin-danger);
+  background: linear-gradient(135deg, var(--danger) 0%, #b64638 100%);
   color: #fff;
 }
 
 .btn-primary:disabled,
 .btn-export:disabled,
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.62;
   cursor: not-allowed;
   transform: none;
 }
 
 .report-form,
 .staff-form {
-  padding: 24px 28px 28px;
+  padding: var(--admin-panel-pad-tight) var(--admin-panel-pad) var(--admin-panel-pad);
 }
 
 .report-fieldset {
   border: 0;
-  margin: 0 0 24px;
-}
-
-.fieldset-legend,
-.form-legend {
-  padding: 0;
-  margin: 0;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--admin-text-soft);
+  margin: 0 0 22px;
 }
 
 .report-fields {
-  margin-top: 18px;
+  margin-top: 16px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 14px 16px;
 }
 
 .report-fields--summary {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
 }
 
 .report-field,
@@ -854,8 +839,9 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .report-summary-card {
-  padding: 18px;
-  border-radius: 18px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--admin-surface-soft) !important;
 }
 
 .field-input,
@@ -868,11 +854,11 @@ html.dark .admin-shell .report-table thead th {
 .capacity-input,
 .time-input {
   width: 100%;
-  min-height: 46px;
+  min-height: 44px;
   padding: 0 14px;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--admin-border);
-  background: var(--admin-surface);
+  background: var(--admin-surface) !important;
   color: var(--admin-text);
   font: inherit;
   font-size: 0.9rem;
@@ -880,8 +866,8 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .form-textarea {
-  min-height: 100px;
-  padding: 14px;
+  min-height: 96px;
+  padding: 12px 14px;
   resize: vertical;
 }
 
@@ -895,8 +881,8 @@ html.dark .admin-shell .report-table thead th {
 .capacity-input:focus,
 .time-input:focus {
   outline: none;
-  border-color: rgba(79, 124, 255, 0.45);
-  box-shadow: 0 0 0 4px rgba(79, 124, 255, 0.12);
+  border-color: rgba(31, 107, 82, 0.35);
+  box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.10);
 }
 
 .field-input::placeholder,
@@ -908,7 +894,7 @@ html.dark .admin-shell .report-table thead th {
 
 .field-input--error,
 .form-input--error {
-  border-color: rgba(220, 38, 38, 0.45);
+  border-color: rgba(199, 91, 74, 0.38);
 }
 
 .field-error,
@@ -921,20 +907,21 @@ html.dark .admin-shell .report-table thead th {
 .format-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .format-chip {
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 36px;
+  padding: 0 12px;
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+  background: var(--admin-surface-soft) !important;
+  color: var(--admin-text-muted);
 }
 
 .format-chip--active {
-  background: var(--admin-accent-soft);
+  background: rgba(31, 107, 82, 0.11) !important;
+  border-color: rgba(31, 107, 82, 0.18);
   color: var(--admin-accent-strong);
-  border-color: rgba(79, 124, 255, 0.24);
 }
 
 .report-actions {
@@ -945,17 +932,17 @@ html.dark .admin-shell .report-table thead th {
 .btn-spinner,
 .loading-spinner {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.30);
   border-top-color: currentColor;
-  animation: spin 0.65s linear infinite;
+  animation: spin 0.7s linear infinite;
 }
 
 .btn-spinner,
 .loading-spinner {
-  border-color: rgba(79, 124, 255, 0.18);
+  border-color: rgba(31, 107, 82, 0.16);
   border-top-color: var(--admin-accent);
 }
 
@@ -966,20 +953,20 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .report-loading {
-  margin: 0 28px 28px;
-  height: 6px;
+  margin: 0 var(--admin-panel-pad) var(--admin-panel-pad);
+  height: 5px;
   border-radius: 999px;
-  background: var(--admin-surface-soft);
+  background: var(--admin-surface-soft) !important;
   overflow: hidden;
 }
 
 .report-loading__bar {
   display: block;
-  width: 32%;
+  width: 34%;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--admin-accent), #8db2ff);
-  animation: loadingMove 1.2s ease-in-out infinite;
+  background: linear-gradient(90deg, var(--green), var(--green-light));
+  animation: loadingMove 1.15s ease-in-out infinite;
 }
 
 @keyframes loadingMove {
@@ -987,36 +974,36 @@ html.dark .admin-shell .report-table thead th {
     transform: translateX(-100%);
   }
   100% {
-    transform: translateX(320%);
+    transform: translateX(315%);
   }
 }
 
 .report-preview {
-  margin: 0 28px 28px;
-  padding-top: 24px;
+  margin: 0 var(--admin-panel-pad) var(--admin-panel-pad);
+  padding-top: 22px;
   border-top: 1px solid var(--admin-border);
 }
 
 .report-preview__header {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .report-preview__title {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
 .report-preview__badge {
-  background: var(--admin-accent-soft);
-  border: 1px solid rgba(79, 124, 255, 0.24);
+  background: rgba(31, 107, 82, 0.10) !important;
+  border-color: rgba(31, 107, 82, 0.16);
   color: var(--admin-accent-strong);
 }
 
 .table-figure {
   overflow-x: auto;
-  border-radius: 20px;
+  border-radius: 14px;
   border: 1px solid var(--admin-border);
 }
 
@@ -1030,25 +1017,25 @@ html.dark .admin-shell .report-table thead th {
 
 .report-table th,
 .report-table td {
-  padding: 16px 18px;
+  padding: 14px 16px;
   text-align: left;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   white-space: nowrap;
 }
 
 .report-table thead th {
   position: sticky;
   top: 0;
-  background: var(--admin-surface-soft);
+  background: var(--admin-surface-soft) !important;
   color: var(--admin-text-soft);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   z-index: 1;
 }
 
 .report-table tbody tr {
-  background: var(--admin-surface);
+  background: var(--admin-surface) !important;
 }
 
 .report-table tbody tr + tr td {
@@ -1056,38 +1043,39 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .report-table tbody tr:hover {
-  background: var(--admin-surface-soft);
+  background: rgba(31, 107, 82, 0.04) !important;
 }
 
 .report-insights {
-  margin-top: 18px;
+  margin-top: 16px;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .report-insight-pill {
   margin: 0;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: var(--admin-surface-soft);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--admin-surface-soft) !important;
   border: 1px solid var(--admin-border);
+  font-size: 0.8rem;
 }
 
 .facilities-management-panel {
-  background: var(--admin-surface);
+  background: var(--admin-surface) !important;
 }
 
 .panel-filters,
 .staff-toolbar,
 .moderation-toolbar__filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 14px 16px;
 }
 
 .panel-content {
-  padding: 28px;
+  padding: var(--admin-panel-pad);
 }
 
 .loading-state,
@@ -1095,11 +1083,11 @@ html.dark .admin-shell .report-table thead th {
 .empty-state,
 .moderation-empty {
   margin: 0;
-  padding: 52px 24px;
-  border-radius: 22px;
+  padding: clamp(28px, 4vw, 48px) clamp(16px, 3vw, 24px);
+  border-radius: 16px;
   text-align: center;
   border: 1px dashed var(--admin-border-strong);
-  background: linear-gradient(180deg, var(--admin-surface-soft), transparent);
+  background: linear-gradient(180deg, rgba(31, 107, 82, 0.04), transparent 70%) !important;
 }
 
 .error-icon,
@@ -1107,41 +1095,42 @@ html.dark .admin-shell .report-table thead th {
 .moderation-empty__icon {
   display: inline-grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 16px;
-  border-radius: 18px;
-  background: var(--admin-surface);
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 14px;
+  background: var(--admin-surface) !important;
   border: 1px solid var(--admin-border);
   color: var(--admin-accent);
-  font-size: 1.4rem;
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 .facilities-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: clamp(14px, 1.6vw, 20px);
 }
 
 .facility-management-card,
 .staff-card,
 .moderation-card {
-  border-radius: 22px;
+  border-radius: 16px;
   overflow: hidden;
 }
 
 .facility-card-header,
 .staff-card__header {
-  padding: 20px;
+  padding: clamp(16px, 1.8vw, 20px);
 }
 
 .facility-image,
 .facility-image-placeholder {
-  width: 82px;
-  height: 82px;
-  border-radius: 20px;
+  width: 78px;
+  height: 78px;
+  border-radius: 16px;
   object-fit: cover;
-  background: var(--admin-surface-soft);
+  background: var(--admin-surface-soft) !important;
 }
 
 .facility-image-placeholder {
@@ -1151,7 +1140,9 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .facility-icon {
-  font-size: 1.8rem;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
 }
 
 .facility-info,
@@ -1163,21 +1154,21 @@ html.dark .admin-shell .report-table thead th {
 .facility-description {
   margin: 10px 0 0;
   font-size: 0.86rem;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .facility-meta,
 .staff-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   margin-top: 14px;
 }
 
 .meta-item {
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: var(--admin-surface-soft);
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: var(--admin-surface-soft) !important;
   border: 1px solid var(--admin-border);
 }
 
@@ -1192,53 +1183,52 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .status-badge {
-  background: var(--admin-success-soft);
-  color: var(--admin-success);
-  border: 1px solid rgba(15, 159, 110, 0.16);
+  background: var(--admin-accent-soft) !important;
+  color: var(--admin-accent-strong);
+  border-color: rgba(31, 107, 82, 0.12);
 }
 
 .facility-hours-summary {
-  padding: 0 20px 20px;
+  padding: 0 clamp(16px, 1.8vw, 20px) clamp(16px, 1.8vw, 20px);
 }
 
 .facility-hours-summary h4 {
   margin: 0 0 12px;
   font-size: 0.9rem;
-  color: var(--admin-text);
 }
 
 .hours-summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px;
 }
 
 .hours-summary-item {
   padding: 10px 8px;
-  border-radius: 16px;
+  border-radius: 12px;
   text-align: center;
-  background: var(--admin-surface-soft);
+  background: var(--admin-surface-soft) !important;
   border: 1px solid var(--admin-border);
 }
 
 .hours-summary-item.closed {
-  opacity: 0.65;
+  opacity: 0.68;
 }
 
 .day-name,
 .day-label {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--admin-text);
 }
 
 .facility-actions {
-  padding: 0 20px 20px;
+  padding: 0 clamp(16px, 1.8vw, 20px) clamp(16px, 1.8vw, 20px);
   flex-wrap: wrap;
 }
 
 .facility-actions .btn {
-  flex: 1 1 140px;
+  flex: 1 1 132px;
 }
 
 .modal-overlay {
@@ -1248,51 +1238,51 @@ html.dark .admin-shell .report-table thead th {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(8px);
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.50);
+  backdrop-filter: blur(6px);
 }
 
 .modal-content,
 .modal {
   width: min(100%, 820px);
-  max-height: calc(100vh - 48px);
+  max-height: calc(100vh - 40px);
   overflow: auto;
-  border-radius: 28px;
+  border-radius: 20px;
 }
 
 .modal-header,
 .modal__header {
-  padding: 24px 28px 18px;
+  padding: var(--admin-panel-pad) var(--admin-panel-pad) 16px;
   border-bottom: 1px solid var(--admin-border);
 }
 
 .modal-close,
 .modal__close {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--admin-text-muted);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   cursor: pointer;
 }
 
 .modal-close:hover,
 .modal__close:hover {
-  background: var(--admin-surface-soft);
+  background: var(--admin-surface-soft) !important;
   border-color: var(--admin-border);
 }
 
 .facility-form {
-  padding: 0 28px;
+  padding: 0 var(--admin-panel-pad);
 }
 
 .form-grid {
   display: grid;
-  gap: 24px;
-  padding: 24px 0;
+  gap: 20px;
+  padding: 22px 0;
 }
 
 .form-section,
@@ -1300,37 +1290,37 @@ html.dark .admin-shell .report-table thead th {
 .hours-fieldset,
 .report-summary-card,
 .moderation-stat-card {
-  border-radius: 20px;
+  border-radius: 14px;
   border: 1px solid var(--admin-border);
-  background: var(--admin-surface-soft);
+  background: var(--admin-surface-soft) !important;
 }
 
 .form-section,
 .capacity-fieldset,
 .hours-fieldset {
-  padding: 20px;
+  padding: clamp(16px, 1.8vw, 20px);
 }
 
 .form-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: 14px 16px;
 }
 
 .hours-grid,
 .hours-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .hours-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px;
-  border-radius: 18px;
+  padding: 12px;
+  border-radius: 12px;
   border: 1px solid var(--admin-border);
-  background: var(--admin-surface);
+  background: var(--admin-surface) !important;
 }
 
 .hours-toggle,
@@ -1352,10 +1342,10 @@ html.dark .admin-shell .report-table thead th {
 .toggle-slider,
 .toggle-track {
   position: relative;
-  width: 44px;
+  width: 42px;
   height: 24px;
   border-radius: 999px;
-  background: var(--admin-border-strong);
+  background: var(--gray-300);
   transition: background 0.18s ease;
 }
 
@@ -1369,7 +1359,7 @@ html.dark .admin-shell .report-table thead th {
   height: 18px;
   border-radius: 999px;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 1px 3px rgba(31, 36, 31, 0.18);
   transition: transform 0.18s ease;
 }
 
@@ -1380,7 +1370,7 @@ html.dark .admin-shell .report-table thead th {
 
 .hours-toggle input[type="checkbox"]:checked + .toggle-slider::before,
 .toggle-checkbox:checked + .toggle-track .toggle-thumb {
-  transform: translateX(20px);
+  transform: translateX(18px);
 }
 
 .time-inputs {
@@ -1391,7 +1381,7 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .time-input {
-  min-height: 40px;
+  min-height: 38px;
 }
 
 .time-separator {
@@ -1401,16 +1391,16 @@ html.dark .admin-shell .report-table thead th {
 .toast,
 .save-toast {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  right: 20px;
+  bottom: 20px;
   z-index: 1300;
-  padding: 14px 18px;
-  border-radius: 18px;
-  background: var(--admin-text);
-  color: var(--admin-surface);
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: var(--navy);
+  color: #fff;
   box-shadow: var(--admin-shadow-lg);
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(14px);
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -1422,8 +1412,7 @@ html.dark .admin-shell .report-table thead th {
 
 .toast--error,
 .save-toast--error {
-  background: var(--admin-danger);
-  color: #fff;
+  background: var(--danger);
 }
 
 .toast-message,
@@ -1433,42 +1422,42 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .moderation-toolbar {
-  padding: 24px 28px 0;
+  padding: var(--admin-panel-pad-tight) var(--admin-panel-pad) 0;
 }
 
 .moderation-toolbar__stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  grid-template-columns: 1.1fr repeat(2, minmax(0, 0.9fr));
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .moderation-stat-card {
-  padding: 18px;
+  padding: 16px;
 }
 
 .moderation-toolbar__filters {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .moderation-feedback {
-  margin: 16px 28px 0;
+  margin: 16px var(--admin-panel-pad) 0;
   padding: 14px 16px;
-  border-radius: 16px;
-  border: 1px solid var(--admin-danger-soft);
-  background: rgba(220, 38, 38, 0.08);
+  border-radius: 14px;
+  border: 1px solid rgba(199, 91, 74, 0.16);
+  background: var(--admin-danger-soft) !important;
   color: var(--admin-danger);
 }
 
 .moderation-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-  padding: 24px 28px 28px;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: clamp(14px, 1.6vw, 20px);
+  padding: clamp(16px, 1.8vw, 24px) var(--admin-panel-pad) var(--admin-panel-pad);
 }
 
 .moderation-card__details {
-  padding: 18px;
+  padding: 16px;
   border-top: 1px solid var(--admin-border);
 }
 
@@ -1482,7 +1471,7 @@ html.dark .admin-shell .report-table thead th {
 .moderation-card__meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px 14px;
 }
 
 .moderation-card__meta dt {
@@ -1495,15 +1484,15 @@ html.dark .admin-shell .report-table thead th {
 
 .moderation-card__meta dd {
   margin: 4px 0 0;
-  font-size: 0.88rem;
+  font-size: 0.87rem;
   color: var(--admin-text);
 }
 
 .moderation-card__reason {
-  margin-top: 18px;
-  padding: 14px;
-  border-radius: 18px;
-  background: var(--admin-surface-soft);
+  margin-top: 16px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: var(--admin-surface-soft) !important;
   border: 1px solid var(--admin-border);
 }
 
@@ -1519,17 +1508,16 @@ html.dark .admin-shell .report-table thead th {
 
 .moderation-card__reason p {
   margin: 0;
-  font-size: 0.86rem;
-  line-height: 1.6;
-  color: var(--admin-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
 }
 
 .moderation-card__action {
-  margin-top: 16px;
+  margin-top: 15px;
 }
 
 .staff-toolbar {
-  padding: 20px 28px 0;
+  padding: var(--admin-panel-pad-tight) var(--admin-panel-pad) 0;
 }
 
 .staff-search {
@@ -1538,30 +1526,31 @@ html.dark .admin-shell .report-table thead th {
 
 .staff-stats {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .staff-stat {
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--admin-border);
-  background: var(--admin-surface-soft);
+  background: var(--admin-surface-soft) !important;
+  font-size: 0.84rem;
 }
 
 .staff-list {
   display: grid;
-  gap: 16px;
-  padding: 20px 28px 28px;
+  gap: 14px;
+  padding: 18px var(--admin-panel-pad) var(--admin-panel-pad);
 }
 
 .staff-avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 18px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--admin-accent), #89a7ff);
+  background: linear-gradient(135deg, var(--navy) 0%, var(--green) 100%);
   color: #fff;
   font-weight: 800;
   flex-shrink: 0;
@@ -1576,9 +1565,9 @@ html.dark .admin-shell .report-table thead th {
 .staff-delete {
   width: 40px;
   height: 40px;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--admin-border);
-  background: var(--admin-surface-soft);
+  background: var(--admin-surface-soft) !important;
   cursor: pointer;
 }
 
@@ -1588,21 +1577,21 @@ html.dark .admin-shell .report-table thead th {
 }
 
 .staff-delete:hover {
-  background: var(--admin-danger-soft);
+  background: var(--admin-danger-soft) !important;
 }
 
 .staff-details {
-  padding: 0 20px 20px;
+  padding: 0 20px 18px;
 }
 
 .staff-status.inactive {
-  background: var(--admin-danger-soft);
+  background: var(--admin-danger-soft) !important;
   color: var(--admin-danger);
-  border: 1px solid rgba(220, 38, 38, 0.16);
+  border-color: rgba(199, 91, 74, 0.16);
 }
 
 .modal__body {
-  padding: 20px 24px;
+  padding: 18px 24px;
 }
 
 .modal__actions,
@@ -1612,7 +1601,7 @@ html.dark .admin-shell .report-table thead th {
   justify-content: flex-end;
 }
 
-@media (max-width: 1279px) {
+@media (max-width: 1360px) {
   .admin-shell {
     grid-template-columns: minmax(232px, 260px) minmax(0, 1fr);
   }
@@ -1622,26 +1611,33 @@ html.dark .admin-shell .report-table thead th {
     position: static;
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .admin-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-kpi-card--featured {
+    grid-column: span 2;
+  }
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1080px) {
   .admin-shell {
     grid-template-columns: 1fr;
-    padding: 16px;
   }
 
   .admin-mobile-toggle {
     display: inline-grid;
     place-items: center;
     position: fixed;
-    top: 16px;
-    left: 16px;
+    top: 14px;
+    left: 14px;
     z-index: 1250;
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
     border: 1px solid var(--admin-border);
-    border-radius: 16px;
-    background: var(--admin-surface);
+    border-radius: 14px;
+    background: var(--admin-surface) !important;
     color: var(--admin-text);
     box-shadow: var(--admin-shadow-sm);
   }
@@ -1650,11 +1646,11 @@ html.dark .admin-shell .report-table thead th {
     position: fixed;
     inset: 0;
     z-index: 1190;
-    background: rgba(15, 23, 42, 0.45);
+    display: block;
+    background: rgba(17, 24, 39, 0.42);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.18s ease;
-    display: block;
   }
 
   .admin-shell__backdrop--visible {
@@ -1664,13 +1660,13 @@ html.dark .admin-shell .report-table thead th {
 
   .admin-sidebar {
     position: fixed;
-    top: 16px;
-    left: 16px;
-    bottom: 16px;
+    top: 14px;
+    left: 14px;
+    bottom: 14px;
     z-index: 1200;
     width: min(86vw, 320px);
-    height: auto;
-    transform: translateX(calc(-100% - 24px));
+    max-height: none;
+    transform: translateX(calc(-100% - 20px));
     transition: transform 0.22s ease;
   }
 
@@ -1681,28 +1677,59 @@ html.dark .admin-shell .report-table thead th {
   .admin-sidebar__close {
     display: inline-grid;
     place-items: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     border: 1px solid var(--admin-border);
     background: transparent;
     color: var(--admin-text);
   }
 
   .admin-main {
-    padding: 64px 20px 20px;
+    padding-top: 58px;
+  }
+
+  .admin-utility {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .moderation-toolbar__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .admin-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-hero__meta {
+    justify-items: start;
   }
 
   .admin-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-kpi-card--featured {
+    grid-column: span 2;
+  }
+
   .admin-utility {
+    grid-template-columns: 1fr;
+  }
+
+  .moderation-toolbar__stats {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 640px) {
+  .admin-shell {
+    padding: 12px;
+    gap: 12px;
+  }
+
   .admin-main,
   .panel-content,
   .report-form,
@@ -1711,8 +1738,12 @@ html.dark .admin-shell .report-table thead th {
   .staff-toolbar,
   .panel__header,
   .panel-header {
-    padding-left: 18px;
-    padding-right: 18px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .admin-main {
+    padding-top: 56px;
   }
 
   .admin-hero,
@@ -1725,10 +1756,6 @@ html.dark .admin-shell .report-table thead th {
     flex-direction: column;
   }
 
-  .admin-hero__meta {
-    justify-items: start;
-  }
-
   .admin-kpi-grid,
   .report-fields,
   .moderation-toolbar__filters,
@@ -1739,6 +1766,10 @@ html.dark .admin-shell .report-table thead th {
   .facilities-grid,
   .moderation-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-kpi-card--featured {
+    grid-column: auto;
   }
 
   .facility-actions,
@@ -1759,8 +1790,8 @@ html.dark .admin-shell .report-table thead th {
     width: 100%;
   }
 
-  .hours-row,
-  .staff-card__header {
+  .hours-row {
+    flex-direction: column;
     align-items: stretch;
   }
 
@@ -1783,8 +1814,8 @@ html.dark .admin-shell .report-table thead th {
   .moderation-feedback,
   .staff-list,
   .moderation-grid {
-    margin-left: 18px;
-    margin-right: 18px;
+    margin-left: 16px;
+    margin-right: 16px;
     padding-left: 0;
     padding-right: 0;
   }
