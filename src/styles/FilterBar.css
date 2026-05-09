@@ -153,6 +153,12 @@ html.dark .filter-bar__range-input:hover {
   box-shadow: 0 0 0 4px rgba(31, 107, 82, 0.12);
 }
 
+.filter-bar__range-input--invalid,
+.filter-bar__range-input--invalid:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px rgba(199, 91, 74, 0.12);
+}
+
 .filter-bar__range-fieldset {
   /* The custom price range reveals itself only when that sort mode is active. */
   border: 1px solid rgba(31, 36, 31, 0.08);
@@ -190,6 +196,18 @@ html.dark .filter-bar__range-input:hover {
 .filter-bar__range-input {
   padding: 12px 14px;
   -moz-appearance: textfield;
+}
+
+.filter-bar__range-error {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.filter-bar__range-error--full {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
 .filter-bar__range-input::-webkit-outer-spin-button,

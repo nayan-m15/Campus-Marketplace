@@ -2,6 +2,11 @@
 // Shared UI pieces and page-level behavior are tied together in this file.
 
 import ListingCard from "./ListingCard";
+import {
+  PRICE_INPUT_LENGTH_LIMIT,
+  limitPriceInput,
+  validatePriceRange,
+} from "../utils/priceRangeValidation";
 import "../styles/ListingCard.css";
 
 // Component entry point for this part of the interface.
@@ -26,6 +31,7 @@ export default function ListingsGrid({
   const heading = searchQuery.trim()
     ? `Results for "${searchQuery.trim()}"`
     : activeCategory;
+  const priceRangeErrors = validatePriceRange(priceRange);
 
   return (
     <section className="listings-section">
@@ -69,33 +75,67 @@ export default function ListingsGrid({
                 <span className="listings-section__range-text">Min</span>
                 <input
                   id="listings-price-min"
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
+                  maxLength={PRICE_INPUT_LENGTH_LIMIT}
                   placeholder="0"
                   value={priceRange.min}
                   onChange={(e) =>
-                    onPriceRangeChange?.({ ...priceRange, min: e.target.value })
+                    onPriceRangeChange?.({ ...priceRange, min: limitPriceInput(e.target.value) })
                   }
-                  className="listings-section__range-input"
+                  className={`listings-section__range-input${priceRangeErrors.min || priceRangeErrors.range ? " listings-section__range-input--invalid" : ""}`}
                   aria-label="Minimum price in Rand"
+                  aria-invalid={priceRangeErrors.min || priceRangeErrors.range ? "true" : undefined}
+                  aria-describedby={
+                    priceRangeErrors.min
+                      ? "listings-price-min-error"
+                      : priceRangeErrors.range
+                        ? "listings-price-range-error"
+                        : undefined
+                  }
                 />
+                {priceRangeErrors.min && (
+                  <span id="listings-price-min-error" className="listings-section__range-error" role="alert">
+                    {priceRangeErrors.min}
+                  </span>
+                )}
               </label>
 
               <label className="listings-section__range-label" htmlFor="listings-price-max">
                 <span className="listings-section__range-text">Max</span>
                 <input
                   id="listings-price-max"
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
+                  maxLength={PRICE_INPUT_LENGTH_LIMIT}
                   placeholder="Any"
                   value={priceRange.max}
                   onChange={(e) =>
-                    onPriceRangeChange?.({ ...priceRange, max: e.target.value })
+                    onPriceRangeChange?.({ ...priceRange, max: limitPriceInput(e.target.value) })
                   }
-                  className="listings-section__range-input"
+                  className={`listings-section__range-input${priceRangeErrors.max || priceRangeErrors.range ? " listings-section__range-input--invalid" : ""}`}
                   aria-label="Maximum price in Rand"
+                  aria-invalid={priceRangeErrors.max || priceRangeErrors.range ? "true" : undefined}
+                  aria-describedby={
+                    priceRangeErrors.max
+                      ? "listings-price-max-error"
+                      : priceRangeErrors.range
+                        ? "listings-price-range-error"
+                        : undefined
+                  }
                 />
+                {priceRangeErrors.max && (
+                  <span id="listings-price-max-error" className="listings-section__range-error" role="alert">
+                    {priceRangeErrors.max}
+                  </span>
+                )}
               </label>
+
+              {priceRangeErrors.range && (
+                <p id="listings-price-range-error" className="listings-section__range-error listings-section__range-error--full" role="alert">
+                  {priceRangeErrors.range}
+                </p>
+              )}
             </fieldset>
           )}
         </div>
