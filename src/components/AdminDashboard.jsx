@@ -742,7 +742,8 @@ export default function AdminDashboard({
       <nav className={`admin-sidebar ${mobileNavOpen ? "admin-sidebar--open" : ""}`} aria-label="Admin navigation">
         <header className="admin-sidebar__header">
           <div className="admin-brand">
-            <div className="admin-brand__mark" aria-hidden="true">CX</div>
+           
+            <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="sidebar__logo" />
             <hgroup className="admin-brand__text">
               <p className="admin-brand__eyebrow">CampusXchange</p>
               <h1 className="admin-brand__title">Admin Portal</h1>
