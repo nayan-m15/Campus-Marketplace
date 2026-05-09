@@ -515,7 +515,7 @@ function FacilityCard({ facility, onEdit, onDelete, onToggleStatus }) {
           />
         ) : (
           <div className="facility-image-placeholder">
-            <span className="facility-icon">🏢</span>
+            <span className="facility-icon">FC</span>
           </div>
         )}
         
@@ -577,20 +577,23 @@ function FacilityCard({ facility, onEdit, onDelete, onToggleStatus }) {
         <button 
           onClick={() => onEdit(facility)}
           className="btn btn-outline"
+          type="button"
         >
-          ✏️ Edit
+          Edit
         </button>
         <button 
           onClick={() => onToggleStatus(facility)}
           className={`btn ${facility.status === 'active' ? 'btn-warning' : 'btn-success'}`}
+          type="button"
         >
-          {facility.status === 'active' ? '⏸️ Deactivate' : '▶️ Activate'}
+          {facility.status === 'active' ? 'Deactivate' : 'Activate'}
         </button>
         <button 
           onClick={() => onDelete(facility)}
           className="btn btn-danger"
+          type="button"
         >
-          🗑️ Delete
+          Delete
         </button>
       </div>
     </article>
@@ -924,8 +927,9 @@ export default function FacilitiesManagementPanel() {
           <button 
             onClick={handleAddFacility}
             className="btn btn-primary"
+            type="button"
           >
-            ➕ Add Facility
+            Add Facility
           </button>
         </div>
 
@@ -967,15 +971,15 @@ export default function FacilitiesManagementPanel() {
           </div>
         ) : error ? (
           <div className="error-state">
-            <span className="error-icon">⚠️</span>
+            <span className="error-icon">!</span>
             <p>{error}</p>
-            <button onClick={fetchFacilities} className="btn btn-primary">
-              🔄 Retry
+            <button onClick={fetchFacilities} className="btn btn-primary" type="button">
+              Retry
             </button>
           </div>
         ) : filteredFacilities.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-icon">🏢</span>
+            <span className="empty-icon">FC</span>
             <h3>No facilities found</h3>
             <p>
               {searchTerm || statusFilter !== "all" 
@@ -983,8 +987,8 @@ export default function FacilitiesManagementPanel() {
                 : "Get started by adding your first facility."}
             </p>
             {!searchTerm && statusFilter === "all" && (
-              <button onClick={handleAddFacility} className="btn btn-primary">
-                ➕ Add First Facility
+              <button onClick={handleAddFacility} className="btn btn-primary" type="button">
+                Add First Facility
               </button>
             )}
           </div>

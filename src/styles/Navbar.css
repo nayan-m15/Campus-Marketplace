@@ -497,6 +497,74 @@ html.dark .navbar__hamburger span {
     background: #f9fafb;
   }
 
+  .navbar--logged-out {
+    /* Logged-out mobile keeps one simple row: logo, real search field, auth actions. */
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+  .navbar--logged-out .navbar__logo-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+
+  .navbar--logged-out .navbar__search--desktop {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .navbar--logged-out .navbar__search-icon {
+    left: 12px;
+  }
+
+  .navbar--logged-out .navbar__search input {
+    height: 38px;
+    padding: 9px 12px 9px 36px;
+    font-size: 14px;
+  }
+
+  .navbar--logged-out .navbar__actions {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .navbar--logged-out .navbar__mobile-actions,
+  .navbar--logged-out .navbar__hamburger-wrap {
+    display: none;
+  }
+
+  .navbar--logged-out .navbar__links {
+    display: flex;
+    gap: 4px;
+  }
+
+  .navbar--logged-out .navbar__link {
+    height: 38px;
+    padding: 0 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .navbar--logged-out .navbar__list-btn {
+    height: 38px;
+    margin-left: 0;
+    padding: 0 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .navbar--logged-out .navbar__list-btn {
+    font-size: 0;
+  }
+
+  .navbar--logged-out .navbar__list-btn::after {
+    content: "Sign Up";
+    font-size: 13px;
+  }
+
   .navbar__menu {
     /* Keep the dropdown inside the viewport on small screens. */
     top: calc(100% + 10px);
@@ -507,6 +575,53 @@ html.dark .navbar__hamburger span {
   .navbar--mobile-search-open {
     /* Search-open mode stretches the overlay row across the full navbar width. */
     justify-content: stretch;
+  }
+}
+
+@media (max-width: 430px) {
+  .navbar--logged-out {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+
+  .navbar--logged-out .navbar__logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .navbar--logged-out .navbar__search input {
+    height: 36px;
+    padding-right: 10px;
+    font-size: 13px;
+  }
+
+  .navbar--logged-out .navbar__link,
+  .navbar--logged-out .navbar__list-btn {
+    height: 36px;
+    padding-inline: 8px;
+  }
+
+  .navbar--logged-out .navbar__link {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 360px) {
+  .navbar--logged-out .navbar__search input::placeholder {
+    color: transparent;
+  }
+
+  .navbar--logged-out .navbar__link,
+  .navbar--logged-out .navbar__list-btn {
+    padding-inline: 7px;
+  }
+
+  .navbar--logged-out .navbar__link {
+    font-size: 12px;
+  }
+
+  .navbar--logged-out .navbar__list-btn::after {
+    font-size: 12px;
   }
 }
 

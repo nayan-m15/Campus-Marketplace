@@ -711,7 +711,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
             )}
 
               {/* Image */}
-              <div style={{ position: "relative", width: "100%", paddingTop: "75%", background: "#e5e7eb", overflow: "hidden" }}>
+              <div style={{ position: "relative", width: "100%", height: 220, background: "#e5e7eb", overflow: "hidden" }}>
                 {coverImage ? (
                   <img
                     src={coverImage}
@@ -721,7 +721,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                       inset: 0,
                       width: "100%",
                       height: "100%",
-                      objectFit: "cover",
+                      objectFit: "contain",
                       objectPosition: "center",
                       display: "block",
                     }}
