@@ -16,6 +16,11 @@ const MAX_IMAGES = 5;
 // "All Items" option used by the browsing UI.
 const EDITABLE_CATEGORIES = CATEGORIES.filter((category) => category.label !== "All Items");
 const editPriceSuggestionCache = new Map();
+const LISTING_TYPE_OPTIONS = [
+  { value: "sale", label: "For Sale", color: "var(--green)", background: "#f0fdf4" },
+  { value: "trade", label: "For Trade", color: "#3b82f6", background: "#eff6ff" },
+  { value: "sale_and_trade", label: "For Sale & Trade", color: "#2563eb", background: "#eff6ff" },
+];
 
 // A focused piece of component behavior is handled here.
 // Keeping it separate makes the main flow less crowded.
@@ -79,6 +84,13 @@ function getListingImages(item) {
 // Cards and edit state both treat image_url as the preferred cover fallback.
 function getListingCover(item) {
   return item?.image_url || (Array.isArray(item?.image_urls) ? item.image_urls.find(Boolean) : "");
+}
+
+function getEditableListingType(item) {
+  const listingType = String(item?.listing_type || "sale").toLowerCase();
+  if (listingType === "trade") return "trade";
+  if (listingType === "sale_and_trade" || item?.status === "for_trade") return "sale_and_trade";
+  return "sale";
 }
 
 // Reorders thumbnails without mutating React state in place.
@@ -321,6 +333,43 @@ function EditImageStrip({ images, onChange }) {
     </div>
   );
 }
+
+function EditListingTypeSelector({ value, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 8, width: "100%" }} role="radiogroup" aria-label="Listing type">
+      {LISTING_TYPE_OPTIONS.map((option) => {
+        const selected = value === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(option.value)}
+            style={{
+              boxSizing: "border-box",
+              flex: "1 1 0",
+              minWidth: 0,
+              minHeight: 42,
+              borderRadius: 9,
+              border: `${selected ? 2 : 1.5}px solid ${selected ? option.color : "var(--gray-200)"}`,
+              background: selected ? option.background : "#fff",
+              color: selected ? option.color : "var(--gray-600)",
+              fontFamily: "var(--font)",
+              fontSize: 12.5,
+              fontWeight: 700,
+              lineHeight: 1.2,
+              cursor: "pointer",
+              padding: "9px 7px",
+            }}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 // Component entry point for this part of the interface.
 // Rendering and feature-specific behavior are coordinated here.
 export default function YourListingsPage({ onBack, onListingChanged }) {
@@ -462,32 +511,13 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     onListingChanged?.();
   }
 
-  async function handleMarkTrade(item) {
-    const isListedForTrade =
-      item.listing_type === "trade" ||
-      item.listing_type === "sale_and_trade" ||
-      item.status === "for_trade";
-    const isFlagged = item.status === "flagged";
-    const updatePayload = isListedForTrade
-      ? { listing_type: "sale", status: isFlagged ? "flagged" : "active" }
-      : { listing_type: "trade", status: isFlagged ? "flagged" : "active" };
-    const { error } = await supabase
-      .from("listings")
-      .update(updatePayload)
-      .eq("id", item.id);
-    if (error) { setError(error.message); return; }
-    setListings((prev) =>
-      prev.map((l) => (l.id === item.id ? { ...l, ...updatePayload } : l))
-    );
-    showSuccess(updatePayload.listing_type === "trade" ? "Listed for trade!" : "Relisted as sale!");
-    onListingChanged?.();
-  }
-
   async function handleEditSave(e) {
     e?.preventDefault?.();
     const { id, title, price, condition, description, category } = editingItem;
     const normalizedPrice = clampPriceInput(price);
     const numericPrice = Number(normalizedPrice);
+    const listingType = getEditableListingType(editingItem);
+    const nextStatus = editingItem.status === "flagged" ? "flagged" : "active";
 
     if (!normalizedPrice || Number.isNaN(numericPrice) || numericPrice <= 0) {
       setError("Please enter a valid price greater than zero.");
@@ -540,6 +570,8 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
       category,
       image_url: savedImageUrls[0] || null,
       image_urls: savedImageUrls,
+      listing_type: listingType,
+      status: nextStatus,
     };
 
     const { error } = await supabase
@@ -578,6 +610,8 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
               description: clampLength(description, LISTING_DESCRIPTION_MAX),
               image_url: savedImageUrls[0] || "",
               image_urls: savedImageUrls,
+              listing_type: listingType,
+              status: nextStatus,
             }
           : l
       ))
@@ -734,6 +768,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                         title: clampLength(item.title, LISTING_TITLE_MAX),
                         description: clampLength(item.description, LISTING_DESCRIPTION_MAX),
                         price: clampPriceInput(item.price),
+                        listing_type: getEditableListingType(item),
                         editImages: getListingImages(item),
                       });
                       setIsEditingPrice(false);
@@ -749,14 +784,6 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                     style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "sold" ? "#f0fdf4" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "sold" ? "var(--green)" : "var(--gray-800)" }}
                   >
                     {item.status === "sold" ? "Relist" : " Mark Sold"}
-                  </button>
-                  <button
-                    className="your-listings-btn"
-                    onClick={() => { if (!isSold) handleMarkTrade(item); }}
-                    disabled={isSold}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: (item.listing_type === "trade" || item.listing_type === "sale_and_trade" || item.status === "for_trade") ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: (item.listing_type === "trade" || item.listing_type === "sale_and_trade" || item.status === "for_trade") ? "#2563eb" : "var(--gray-800)" }}
-                  >
-                    {(item.listing_type === "trade" || item.listing_type === "sale_and_trade" || item.status === "for_trade") ? "Unlist Trade" : "For Trade"}
                   </button>
                   <button
                     className="your-listings-btn"
@@ -872,6 +899,21 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
             </div>
             <h3 style={{ fontWeight: 800, marginBottom: 24, fontSize: 18 }}>Edit Listing</h3>
             <form onSubmit={handleEditSave} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
+                <span>Listing type</span>
+                <EditListingTypeSelector
+                  value={getEditableListingType(editingItem)}
+                  onChange={(listingType) => {
+                    setError(null);
+                    setEditingItem((current) => ({
+                      ...current,
+                      listing_type: listingType,
+                      status: current.status === "flagged" ? "flagged" : "active",
+                    }));
+                  }}
+                />
+              </div>
+
               <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
                 <span>Photos</span>
                 {/* The image strip owns photo-only edits; the parent keeps the

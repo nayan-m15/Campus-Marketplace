@@ -531,6 +531,7 @@ test("YourListingsPage edits status and deletes a listing", async () => {
   expect(onBack).toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+  fireEvent.click(screen.getByRole("radio", { name: /for sale & trade/i }));
   fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Desk Lamp Pro" } });
   // Category edits should use the same Save Changes path as the other fields.
   fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Textbooks" } });
@@ -547,7 +548,9 @@ test("YourListingsPage edits status and deletes a listing", async () => {
           table === "listings" &&
           payload?.title === "Desk Lamp Pro" &&
           payload?.price === 300.75 &&
-          payload?.category === "Textbooks"
+          payload?.category === "Textbooks" &&
+          payload?.listing_type === "sale_and_trade" &&
+          payload?.status === "active"
       )
     ).toBe(true)
   );
