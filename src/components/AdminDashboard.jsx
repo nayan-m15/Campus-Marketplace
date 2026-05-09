@@ -678,13 +678,6 @@ export default function AdminDashboard({
         delta: "Exchange workflows enabled",
         tone: "info",
       },
-      {
-        id: "workspace",
-        label: "Current workspace",
-        value: activeNavItem.label,
-        delta: activeNavItem.subtitle,
-        tone: "neutral",
-      },
     ];
   }, [activeNavItem.label, activeNavItem.subtitle, listings, listingsLoading]);
 
@@ -835,7 +828,7 @@ export default function AdminDashboard({
             <p className="admin-hero__subtitle">{activeNavItem.subtitle}</p>
           </div>
           <div className="admin-hero__meta">
-            <span className="admin-hero__badge">CampusXchange operations</span>
+            <span className="admin-hero__badge">CampusXChange operations</span>
             <p className="admin-hero__date">
               {formatAdminDate(new Date(), {
                 weekday: "long",
