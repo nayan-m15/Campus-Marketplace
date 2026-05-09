@@ -19,9 +19,9 @@
 .listing-card--marketplace {
   box-sizing: border-box;
   width: 100%;
-  height: var(--listing-card-height);
-  min-height: var(--listing-card-height);
-  max-height: var(--listing-card-height);
+  height: var(--listing-card-height, 405px);
+  min-height: var(--listing-card-height, 405px);
+  max-height: var(--listing-card-height, 405px);
 }
 
 .listing-card:hover {
@@ -35,7 +35,7 @@
 .listing-card__image-wrap {
   position: relative;
   width: 100%;
-  height: var(--listing-card-image-height);
+  height: var(--listing-card-image-height, 182px);
   padding-top: 0;
   background: #e5e7eb;
   flex-shrink: 0;
