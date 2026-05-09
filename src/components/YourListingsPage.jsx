@@ -758,8 +758,41 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
 
       {/* Edit modal */}
       {editingItem && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
-          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 480, width: "90%", maxHeight: "90vh", overflowY: "auto" }}>
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}
+          onClick={() => { setEditingItem(null); setIsEditingPrice(false); }}
+        >
+          <div
+          style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 480, width: "90%", maxHeight: "90vh", overflowY: "auto" }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                onClick={() => { setEditingItem(null); setIsEditingPrice(false); }}
+                style={{
+                  position: "absolute",
+                  top: -16,
+                  right: -16,
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "var(--gray-100)",
+                  color: "var(--gray-600)",
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  lineHeight: 1,
+                }}
+                aria-label="Close"
+                >
+                  ✕
+                </button>
+            </div>
             <h3 style={{ fontWeight: 800, marginBottom: 24, fontSize: 18 }}>Edit Listing</h3>
             <form onSubmit={handleEditSave} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
