@@ -1,14 +1,19 @@
 // Main structure for the admin dashboard feature lives here.
 // Shared UI pieces and page-level behavior are tied together in this file.
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "../styles/AdminDashboard.css";
 import { supabase } from "../supabaseClient";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import AdminModerateListingsPanel from "./AdminModerateListingsPanel";
 import FacilitiesManagementPanel from "./FacilitiesManagementPanel";
 import StaffManagementPanel from "./StaffManagementPanel";
+import {
+  downloadCsvReport,
+  downloadPdfReport,
+  formatColumnLabels,
+  formatReportValue,
+  getOrderedColumns,
+} from "../utils/adminReportExport";
 
 // ── Constants ───────────────────────────────────────────────────
 const MARKETPLACE_REPORT_TYPES = [
@@ -221,14 +226,6 @@ function ReportsPanel() {
       .filter((item) => item.value !== null && item.value !== undefined && item.value !== "")
       .map((item) => `${item.label}: ${formatValue(item.value, { currency: item.currency })}`);
 
-  const csvEscape = (value) => {
-    const stringValue = String(value ?? "");
-    if (/[",\n]/.test(stringValue)) {
-      return `"${stringValue.replace(/"/g, '""')}"`;
-    }
-    return stringValue;
-  };
-
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.
   const fetchReport = async () => {
@@ -273,89 +270,36 @@ function ReportsPanel() {
 
   const downloadCSV = () => {
     if (!reportData.length) return;
-    const columns = Object.keys(reportData[0]);
     const summaryLines = getSummaryLines(reportType, reportData);
-    const headers = columns.map(csvEscape).join(",");
-    const rows = reportData
-      .map((row) => columns.map((column) => csvEscape(row[column])).join(","))
-      .join("\n");
-    const csvContent = [
-      "=== SUMMARY ===",
-      ...summaryLines,
-      "",
-      "=== DATA ===",
-      headers,
-      rows,
-    ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "report.csv";
-    link.click();
-    URL.revokeObjectURL(url);
+    const reportTitle = MARKETPLACE_REPORT_TYPES.find((r) => r.value === reportType)?.label || "Marketplace Report";
+
+    downloadCsvReport({
+      fileName: `report-${reportType}.csv`,
+      reportTitle,
+      dateFrom,
+      dateTo,
+      generatedAt: new Date(),
+      summaryLines,
+      rows: reportData,
+    });
   };
 
   const downloadPDF = () => {
     if (!reportData.length) return;
-    const doc = new jsPDF();
     const summaryLines = getSummaryLines(reportType, reportData);
     const insightLines = generateInsights(reportType, reportData);
+    const reportTitle = MARKETPLACE_REPORT_TYPES.find((r) => r.value === reportType)?.label || "Marketplace Report";
 
-    doc.setFontSize(18);
-    doc.text("CAMPUSXCHANGE Marketplace Report", 14, 20);
-    doc.setFontSize(12);
-    doc.text(MARKETPLACE_REPORT_TYPES.find(r => r.value === reportType)?.label || "", 14, 28);
-    doc.setFontSize(10);
-    doc.text(`Date Range: ${dateFrom} to ${dateTo}`, 14, 34);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 40);
-    doc.setFontSize(11);
-    doc.text("Summary", 14, 50);
-
-    doc.setFontSize(10);
-    summaryLines.forEach((line, index) => {
-      doc.text(line, 14, 56 + index * 6);
+    downloadPdfReport({
+      fileName: `report-${reportType}.pdf`,
+      reportTitle,
+      dateFrom,
+      dateTo,
+      generatedAt: new Date(),
+      summaryLines,
+      insightLines,
+      rows: reportData,
     });
-
-    const columns = Object.keys(reportData[0]);
-    const rows = reportData.map((row) => columns.map((col) => row[col]));
-    const tableStartY = Math.max(75, 62 + summaryLines.length * 6);
-
-    autoTable(doc, {
-      startY: tableStartY,
-      head: [columns],
-      body: rows,
-      styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: "center" },
-      bodyStyles: { halign: "center" },
-      alternateRowStyles: { fillColor: [245, 245, 245] },
-      margin: { top: tableStartY },
-    });
-
-    if (insightLines.length) {
-      let insightsY = (doc.lastAutoTable?.finalY || tableStartY) + 12;
-      const pageHeight = doc.internal.pageSize.height;
-
-      if (insightsY > pageHeight - 30) {
-        doc.addPage();
-        insightsY = 20;
-      }
-
-      doc.setFontSize(11);
-      doc.text("Insights", 14, insightsY);
-      doc.setFontSize(10);
-      insightLines.forEach((line, index) => {
-        doc.text(`- ${line}`, 14, insightsY + 8 + index * 6);
-      });
-    }
-
-    const pageHeight = doc.internal.pageSize.height;
-    const pageWidth = doc.internal.pageSize.width;
-    doc.setFontSize(9);
-    doc.text("CAMPUSXCHANGE Reporting System", 14, pageHeight - 10);
-    doc.text("Page 1", pageWidth - 20, pageHeight - 10); // fixed x coordinate
-
-    doc.save(`report-${reportType}.pdf`);
   };
 
   // User-driven changes pass through this handler first.
@@ -367,6 +311,8 @@ function ReportsPanel() {
 
   const reportSummary = getReportSummary(reportType, reportData);
   const reportInsights = generateInsights(reportType, reportData);
+  const orderedPreviewColumns = getOrderedColumns(reportData);
+  const previewColumnLabels = formatColumnLabels(orderedPreviewColumns);
 
   return (
     <section className="panel" aria-labelledby="reports-heading">
@@ -497,16 +443,16 @@ function ReportsPanel() {
             <table className="report-table">
               <thead>
                 <tr>
-                  {Object.keys(reportData[0]).map((key) => (
-                    <th key={key} scope="col">{key}</th>
+                  {previewColumnLabels.map((label) => (
+                    <th key={label} scope="col">{label}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {reportData.map((row, idx) => (
                   <tr key={idx}>
-                    {Object.values(row).map((val, i) => (
-                      <td key={i}>{val?.toString()}</td>
+                    {orderedPreviewColumns.map((column) => (
+                      <td key={`${idx}-${column}`}>{formatReportValue(row[column], column)}</td>
                     ))}
                   </tr>
                 ))}
@@ -535,7 +481,6 @@ function ReportsPanel() {
 // ── Main AdminDashboard Component ───────────────────────────────
 export default function AdminDashboard({
   onSignOut,
-  onBackToMarketplace,
   listings = [],
   listingsLoading = false,
   listingsError = "",
