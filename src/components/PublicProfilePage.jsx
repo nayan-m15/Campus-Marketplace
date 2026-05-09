@@ -358,13 +358,13 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
               </>
             )}
 
-            {/* ── Rate this seller ── */}
+            {/* ── Rate this user ── */}
             {user && user.id !== userId && rateableListings.length > 0 && (
               <>
-                <p className="profile-section-title">Rate this seller</p>
+                <p className="profile-section-title">Rate this user</p>
                 <div className="pub-rating__form">
                   <div className="profile-field">
-                    <label>Select a listing you bought</label>
+                    <label>Select a listing you sold/bought</label>
                     <select
                       value={selectedListing}
                       onChange={(e) => {

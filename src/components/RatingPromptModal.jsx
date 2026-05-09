@@ -143,13 +143,9 @@ export default function RatingPromptModal({ pendingRatings, currentUserId, onDon
   const current = pendingRatings[index];
   if (!current) return null;
 
-  // txnId is the transaction id if submitted, null if skipped
   function handleClose(txnId) {
     const wasSubmitted = txnId !== null;
-    if (index + 1 < pendingRatings.length) {
-      setIndex(index + 1);
-    }
-    onDone(txnId, wasSubmitted);
+    onDone(current.id, wasSubmitted);
   }
 
   return (

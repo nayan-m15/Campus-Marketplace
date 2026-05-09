@@ -1470,7 +1470,7 @@ useEffect(() => {
 
   function dismissRating(txnId, wasSubmitted = false) {
     // not when they skip — skipped ones should still appear on the public profile.
-    if (wasSubmitted && txnId && user?.id) {
+    if (txnId && user?.id) {
       const key = `dismissed_ratings_${user.id}`;
       const existing = JSON.parse(localStorage.getItem(key) || "[]");
       if (!existing.includes(txnId)) {
