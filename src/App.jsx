@@ -513,9 +513,10 @@ function ListingDetailsModal({
   const [sendSuccess, setSendSuccess] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [flaggedWarningItem, setFlaggedWarningItem] = useState(null);
-
+  const prevItemIdRef = useRef(null);
   useEffect(() => {
-    if (item) {
+    if (item && item.id !== prevItemIdRef.current) {
+      prevItemIdRef.current = item.id;
       setMessage(`Hi, is the ${item.title || "item"} still available?`);
       setCurrentImageIndex(0);
       setFlaggedWarningItem(null);
@@ -601,7 +602,7 @@ function ListingDetailsModal({
       if (error) throw new Error(error.message);
       setMessage("");
       setSendSuccess("Message sent! Opening conversation...");
-      setTimeout(() => { onClose(); onMessageSeller(item, { acknowledged }); }, 1000);
+      setTimeout(() => { onClose(); onMessageSeller(item, { acknowledged, suppressDraft: true }); }, 1000);
     } catch (err) {
       setSendError(err.message || "Failed to send message.");
     } finally {
@@ -1382,7 +1383,7 @@ useEffect(() => {
   // State updates and follow-up UI actions are triggered here.
   function openMessagesForListing(
     item,
-    { acknowledged = false, initialDraft = null, initialAction = null } = {},
+    { acknowledged = false, initialDraft = null, initialAction = null, suppressDraft = false } = {},
   ) {
     if (acknowledged && item?.id) {
       setAcknowledgedFlaggedListingId(item.id);
@@ -1397,7 +1398,7 @@ useEffect(() => {
     setMsgRecipientId(item.user_id || null);
     setMsgListingTitle(item.title);
     setMsgListingId(item.id || null);
-    setMsgInitialDraft(initialDraft);
+    setMsgInitialDraft(suppressDraft ? "" : initialDraft);
     setMsgInitialAction(initialAction);
     navigateToPage("messages");
   }
@@ -1425,14 +1426,13 @@ useEffect(() => {
     }
   }
 
-  async function handleMessageSeller(item, { acknowledged = false } = {}) {
+  async function handleMessageSeller(item, { acknowledged = false, suppressDraft = false } = {}) {
     const latestItem = await resolveListingForMessaging(item);
     if (latestItem?.status === "flagged" && !acknowledged) {
       setFlaggedListingPrompt({ ...latestItem, __pendingAction: "message" });
       return;
     }
-
-    openMessagesForListing(latestItem, { acknowledged });
+    openMessagesForListing(latestItem, { acknowledged, suppressDraft });
   }
 
   async function handleSendOffer(item) {

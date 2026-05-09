@@ -330,26 +330,28 @@ export default function MessagesPage({
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
   // ── Auto-open chat from listing ───────────────────────────
+  // ── Auto-open chat from listing ───────────────────────────
+  const initialDraftAppliedRef = useRef(false);
   useEffect(() => {
-    if (!initialRecipientId || !user) return;
-    async function openInitialChat() {
-      setActiveListingId(initialListingId || null);
-      await openChat(initialRecipientId, initialListingId || null);
-      if (initialDraft) {
-        setDraft(initialDraft);
-      } else if (initialListingTitle) {
-        setDraft(`Hi! I'm interested in your listing: "${initialListingTitle}". Is it still available?`);
-      }
-      if (initialAction === "offer") {
-        setOfferError("");
-        setOfferAmount("");
-        setSendDraftBeforeOffer(true);
-        setShowOfferModal(true);
-      }
+  if (!initialRecipientId || !user) return;
+  async function openInitialChat() {
+    setActiveListingId(initialListingId || null);
+    await openChat(initialRecipientId, initialListingId || null);
+    if (initialDraft !== null && initialDraft !== undefined) {
+      setDraft(initialDraft);
+    } else if (initialListingTitle) {
+      setDraft(`Hi! I'm interested in your listing: "${initialListingTitle}". Is it still available?`);
     }
-    openInitialChat();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialRecipientId, initialListingId, user]);
+    if (initialAction === "offer") {
+      setOfferError("");
+      setOfferAmount("");
+      setSendDraftBeforeOffer(true);
+      setShowOfferModal(true);
+    }
+  }
+  openInitialChat();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [initialRecipientId, initialListingId, user]);
 
   // ── Mark messages AND offers as read ─────────────────────
   const markAsRead = useCallback(async (peerId, listingId = null) => {
@@ -404,7 +406,7 @@ export default function MessagesPage({
     setDeleteError("");
     setSendDraftBeforeOffer(false);
     setAcceptedOfferBanner(null);
-
+    setDraft("");
     const { data: profile } = await supabase
       .from("profiles")
       .select("id, name, display_name, avatar_url, institution")
