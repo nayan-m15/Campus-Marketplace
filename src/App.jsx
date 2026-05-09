@@ -31,6 +31,97 @@ import { StudentBookingsPage } from "./components/BookingsUi";
 import RatingPromptModal from "./components/RatingPromptModal";
 
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
+const DEBUG_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEBUG_AUTH === "true";
+const POST_LOGIN_REDIRECT_KEY = "campusxchange:post-login-redirect";
+const PAGE_PATHS = {
+  home: "/",
+  login: "/login",
+  signup: "/signup",
+  profile: "/profile",
+  publicProfile: "/profiles",
+  messages: "/messages",
+  admin: "/admin",
+  yourlistings: "/your-listings",
+  bookings: "/bookings",
+  wishlist: "/wishlist",
+  settings: "/settings",
+};
+const PROTECTED_PAGES = new Set([
+  "profile",
+  "messages",
+  "admin",
+  "yourlistings",
+  "bookings",
+  "wishlist",
+  "settings",
+]);
+const priceSuggestionCache = new Map();
+
+function normalizeBasePath(basePath = import.meta.env.BASE_URL || "/") {
+  if (!basePath) return "/";
+  const normalized = basePath.startsWith("/") ? basePath : `/${basePath}`;
+  return normalized.endsWith("/") ? normalized : `${normalized}/`;
+}
+
+function stripBasePath(pathname, basePath = normalizeBasePath()) {
+  if (!pathname) return "/";
+  const normalizedBase = normalizeBasePath(basePath);
+
+  if (normalizedBase !== "/" && pathname.startsWith(normalizedBase)) {
+    const stripped = pathname.slice(normalizedBase.length - 1);
+    return stripped || "/";
+  }
+
+  return pathname || "/";
+}
+
+function buildAppPath(appPath, basePath = normalizeBasePath()) {
+  const normalizedBase = normalizeBasePath(basePath);
+  const normalizedPath = appPath === "/" ? "/" : appPath.replace(/\/+$/, "");
+
+  if (normalizedBase === "/") {
+    return normalizedPath;
+  }
+
+  const baseWithoutTrailingSlash = normalizedBase.replace(/\/$/, "");
+  return normalizedPath === "/"
+    ? `${baseWithoutTrailingSlash}/`
+    : `${baseWithoutTrailingSlash}${normalizedPath}`;
+}
+
+function getPageForPath(pathname) {
+  const appPath = stripBasePath(pathname);
+  const matchedRoute = Object.entries(PAGE_PATHS).find(([, path]) => path === appPath);
+  return matchedRoute?.[0] ?? "home";
+}
+
+function getPageForAppPath(appPath) {
+  const matchedRoute = Object.entries(PAGE_PATHS).find(([, path]) => path === appPath);
+  return matchedRoute?.[0] ?? "home";
+}
+
+function getPathForPage(page) {
+  return PAGE_PATHS[page] || PAGE_PATHS.home;
+}
+
+function isProtectedPage(page) {
+  return PROTECTED_PAGES.has(page);
+}
+
+function persistPostLoginRedirect(path) {
+  if (typeof window === "undefined" || !path || path === PAGE_PATHS.login) return;
+  window.sessionStorage.setItem(POST_LOGIN_REDIRECT_KEY, path);
+}
+
+function readPostLoginRedirect() {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
+}
+
+function clearPostLoginRedirect() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+}
 
 // Quick guard logic sits here for this decision point.
 // The check keeps the rest of the flow cleaner to read.
@@ -68,6 +159,196 @@ function warningToastStyle(top = 20) {
     boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
     fontFamily: "var(--font)",
   };
+}
+
+function parseListingPriceValue(price) {
+  if (typeof price === "number") return Number.isFinite(price) ? price : null;
+  const numericText = String(price ?? "")
+    .replace(/\s/g, "")
+    .replace(/[^0-9.,]/g, "")
+    .replace(/,(?=\d{3}(\D|$))/g, "")
+    .replace(",", ".");
+  const value = Number(numericText);
+
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function getPriceSuggestionErrorMessage(error) {
+  const message = error?.message || "";
+
+  if (message.toLowerCase().includes("failed to send a request to the edge function")) {
+    return "Price check is unavailable right now.";
+  }
+
+  if (message.toLowerCase().includes("not found")) {
+    return "Not enough comparable Google Shopping results found.";
+  }
+
+  return message || "Price check is unavailable right now.";
+}
+
+function getPriceFairness(listingPrice, suggestion) {
+  const suggestedPrice = Number(suggestion?.suggestedPrice || 0);
+  const rangeMin = Number(suggestion?.suggestedRange?.min || suggestedPrice * 0.9);
+  const rangeMax = Number(suggestion?.suggestedRange?.max || suggestedPrice * 1.1);
+
+  if (!listingPrice || !suggestedPrice) {
+    return {
+      label: "Price check",
+      tone: "neutral",
+      message: "No comparison available.",
+    };
+  }
+
+  if (listingPrice < rangeMin * 0.8) {
+    return {
+      label: "Very good price",
+      tone: "good",
+      message: "This is below the suggested second-hand range.",
+    };
+  }
+
+  if (listingPrice <= rangeMax) {
+    return {
+      label: "Good price",
+      tone: "good",
+      message: "This is within the suggested second-hand range.",
+    };
+  }
+
+  if (listingPrice <= rangeMax * 1.25) {
+    return {
+      label: "Fair price",
+      tone: "fair",
+      message: "This is slightly above the suggested range.",
+    };
+  }
+
+  return {
+    label: "High price",
+    tone: "high",
+    message: "This is above the suggested second-hand range.",
+  };
+}
+
+function ListingPriceCheck({ item }) {
+  const [priceCheck, setPriceCheck] = useState(null);
+  const [priceCheckLoading, setPriceCheckLoading] = useState(false);
+  const [priceCheckError, setPriceCheckError] = useState("");
+
+  const listingPrice = parseListingPriceValue(item?.price);
+  const cacheKey = item?.id ? String(item.id) : "";
+  const hasEnoughDetail =
+    Boolean(item?.title?.trim()) &&
+    Boolean(item?.condition) &&
+    Boolean(item?.category);
+
+  useEffect(() => {
+    if (!item?.id || !hasEnoughDetail || !listingPrice) {
+      setPriceCheck(null);
+      setPriceCheckError("");
+      setPriceCheckLoading(false);
+      return;
+    }
+
+    if (priceSuggestionCache.has(cacheKey)) {
+      const cached = priceSuggestionCache.get(cacheKey);
+      setPriceCheck(cached.data || null);
+      setPriceCheckError(cached.error || "");
+      setPriceCheckLoading(false);
+      return;
+    }
+
+    let ignore = false;
+
+    if (!supabase.functions?.invoke) {
+      const cached = { data: null, error: "Price check is unavailable right now." };
+      priceSuggestionCache.set(cacheKey, cached);
+      setPriceCheck(cached.data);
+      setPriceCheckError(cached.error);
+      setPriceCheckLoading(false);
+      return;
+    }
+
+    setPriceCheckLoading(true);
+    setPriceCheckError("");
+
+    supabase.functions.invoke("price-suggestion", {
+      body: {
+        listingId: item.id,
+        query: item.title,
+        description: item.description || "",
+        category: item.category,
+        condition: item.condition,
+      },
+    }).then(({ data, error }) => {
+      if (ignore) return;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      priceSuggestionCache.set(cacheKey, { data, error: "" });
+      setPriceCheck(data);
+    }).catch((error) => {
+      if (ignore) return;
+      const errorMessage = getPriceSuggestionErrorMessage(error);
+      priceSuggestionCache.set(cacheKey, { data: null, error: errorMessage });
+      setPriceCheck(null);
+      setPriceCheckError(errorMessage);
+    }).finally(() => {
+      if (!ignore) setPriceCheckLoading(false);
+    });
+
+    return () => {
+      ignore = true;
+    };
+  }, [item?.id, item?.title, item?.description, item?.category, item?.condition, cacheKey, hasEnoughDetail, listingPrice]);
+
+  if (!listingPrice) return null;
+
+  if (!hasEnoughDetail) {
+    return (
+      <section className="item-modal-price-check item-modal-price-check--neutral">
+        <strong>Price check unavailable</strong>
+        <p>More listing detail is needed to compare this price.</p>
+      </section>
+    );
+  }
+
+  if (priceCheckLoading) {
+    return (
+      <section className="item-modal-price-check item-modal-price-check--neutral">
+        <strong>Checking price...</strong>
+        <p>Comparing similar South African Google Shopping results.</p>
+      </section>
+    );
+  }
+
+  if (priceCheckError) {
+    return (
+      <section className="item-modal-price-check item-modal-price-check--neutral">
+        <strong>Price check unavailable</strong>
+        <p>{priceCheckError}</p>
+      </section>
+    );
+  }
+
+  if (!priceCheck) return null;
+
+  const fairness = getPriceFairness(listingPrice, priceCheck);
+  const confidenceLevel = priceCheck.confidence?.level || "Low";
+
+  return (
+    <section className={`item-modal-price-check item-modal-price-check--${fairness.tone}`}>
+      <div className="item-modal-price-check__top">
+        <strong>{fairness.label}</strong>
+        <span>{confidenceLevel} confidence</span>
+      </div>
+      <p>{fairness.message}</p>
+      <p>
+        Based on Google Shopping SA prices, adjusted for condition. Suggested range:{" "}
+        {priceCheck.suggestedRange?.minFormatted} - {priceCheck.suggestedRange?.maxFormatted}.
+      </p>
+    </section>
+  );
 }
 
 async function buildIncomingMessageNotice(message) {
@@ -265,7 +546,19 @@ function ListingDetailsModal({
   const wishlisted = isWishlisted?.(item.id) ?? false;
   const joinedLabel =
     item.joined_label || (item.joined_year ? String(item.joined_year) : "Not provided");
-  const isTradeListing = item.listing_type === "trade" || item.status === "for_trade";
+  const listingType = String(item.listing_type || "sale").toLowerCase();
+  const isSaleAndTrade =
+    item.status === "for_trade" ||
+    ["sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
+  const tradeBadgeLabel = isSaleAndTrade
+    ? "For Trade"
+    : listingType === "trade" || listingType === "trade_only"
+      ? "For Trade Only"
+      : "";
+  const tradeBadgeClassName =
+    tradeBadgeLabel === "For Trade Only"
+      ? "item-modal-trade-badge item-modal-trade-badge--only"
+      : "item-modal-trade-badge";
 
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.
@@ -379,8 +672,8 @@ function ListingDetailsModal({
                             {item.price || "Price not available"}
                           </p>
                           <span className="item-modal-condition">{item.condition || "Good"}</span>
-                          {isTradeListing && (
-                            <span className="item-modal-trade-badge">For Trade</span>
+                          {tradeBadgeLabel && (
+                            <span className={tradeBadgeClassName}>{tradeBadgeLabel}</span>
                           )}
                         </div>
 
@@ -400,6 +693,7 @@ function ListingDetailsModal({
                       <div className="item-modal-description-card">
                         <h3>Description</h3>
                         <p>{item.description?.trim() || "No description provided."}</p>
+                        <ListingPriceCheck item={item} />
                       </div>
                     </div>
                   </div>
@@ -412,7 +706,6 @@ function ListingDetailsModal({
                       <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
                       <p><strong>Joined since:</strong> {joinedLabel}</p>
                       {item.category && <p><strong>Category:</strong> {item.category}</p>}
-                      <p><strong>Distance:</strong> {item.distance || "0 km"}</p>
                     </div>
                   </div>
 
@@ -632,10 +925,18 @@ function FlaggedListingWarningToast({ item, onClose, onContinue }) {
 // Component entry point for this part of the interface.
 // Rendering and feature-specific behavior are coordinated here.
 function AppInner() {
-  const { user, loading, signOut, isPasswordRecovery, clearPasswordRecovery } = useAuth();
+  const {
+    user,
+    loading,
+    signOut,
+    isPasswordRecovery,
+    clearPasswordRecovery,
+    lastAuthEvent,
+  } = useAuth();
 
-  const [page, setPage] = useState("home");
-  const skipHistoryPushRef = useRef(false);
+  const [page, setPage] = useState(() =>
+    typeof window === "undefined" ? "home" : getPageForPath(window.location.pathname)
+  );
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [activeCondition, setActiveCondition] = useState("All Conditions");
   const [priceSort, setPriceSort] = useState("");
@@ -718,32 +1019,75 @@ function AppInner() {
   const [prevPage, setPrevPage] = useState("home");
 
   useEffect(() => {
-    const currentState = window.history.state || {};
-    if (currentState.page !== "home") {
-      window.history.replaceState({ ...currentState, page: "home" }, "");
+    if (!showForm || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [showForm]);
+
+  const navigateToPage = useCallback((nextPage, options = {}) => {
+    if (typeof window === "undefined") {
+      setPage(nextPage);
+      return;
     }
 
-    // User-driven changes pass through this handler first.
-    // State updates and follow-up UI actions are triggered here.
-    function handlePopState(event) {
-      skipHistoryPushRef.current = true;
-      setPage(event.state?.page || "home");
+    const { replace = false, preserveSearch = false, preserveHash = false } = options;
+    const nextPath = buildAppPath(getPathForPage(nextPage));
+    const nextUrl = `${nextPath}${preserveSearch ? window.location.search : ""}${preserveHash ? window.location.hash : ""}`;
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+    if (currentPath !== nextUrl) {
+      window.history[replace ? "replaceState" : "pushState"]({ page: nextPage }, "", nextUrl);
+    } else if (replace) {
+      window.history.replaceState({ page: nextPage }, "", nextUrl);
+    }
+
+    setPage((currentPage) => (currentPage === nextPage ? currentPage : nextPage));
+  }, []);
+
+  const redirectToLogin = useCallback((requestedPage = page) => {
+    const requestedPath = getPathForPage(requestedPage);
+
+    if (isProtectedPage(requestedPage)) {
+      persistPostLoginRedirect(requestedPath);
+    }
+
+    if (DEBUG_AUTH) {
+      console.debug("[AuthGuard] redirecting to login", {
+        requestedPage,
+        requestedPath,
+      });
+    }
+
+    navigateToPage("login", { replace: true });
+  }, [navigateToPage, page]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const normalizedPath = buildAppPath(getPathForPage(page));
+    if (window.location.pathname !== normalizedPath) {
+      const nextUrl = `${normalizedPath}${window.location.search}${window.location.hash}`;
+      window.history.replaceState({ page }, "", nextUrl);
+    } else if (window.history.state?.page !== page) {
+      const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.history.replaceState({ ...(window.history.state || {}), page }, "", currentUrl);
+    }
+
+    function handlePopState() {
+      setPage(getPageForPath(window.location.pathname));
     }
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    const currentState = window.history.state || {};
-
-    if (skipHistoryPushRef.current) {
-      skipHistoryPushRef.current = false;
-      return;
-    }
-
-    if (currentState.page === page) return;
-    window.history.pushState({ ...currentState, page }, "");
   }, [page]);
 
   useEffect(() => {
@@ -761,11 +1105,20 @@ function AppInner() {
       setProfileChecked(false);
       setNeedsSetup(false);
       setAvatarUrl(null);
+      setProfileName(null);
       setIsAdmin(false);
       setIsStaff(false);
       setCurrentProfile(null);
       return;
     }
+
+    let isActive = true;
+
+    setProfileChecked(false);
+    setNeedsSetup(false);
+    setIsAdmin(false);
+    setIsStaff(false);
+    setCurrentProfile(null);
 
     supabase
       .from("profiles")
@@ -773,6 +1126,8 @@ function AppInner() {
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
+        if (!isActive) return;
+
         if (data) {
           setAvatarUrl(data.avatar_url || null);
           setProfileName(data.display_name || data.name || null);
@@ -786,10 +1141,49 @@ function AppInner() {
         }
         setProfileChecked(true);
       })
-      .catch(() => setProfileChecked(true));
+      .catch(() => {
+        if (!isActive) return;
+        setAvatarUrl(null);
+        setProfileName(null);
+        setIsAdmin(false);
+        setIsStaff(false);
+        setNeedsSetup(true);
+        setCurrentProfile(null);
+        setProfileChecked(true);
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [user]);
 
-// ── Rating prompt ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (loading || (user && !profileChecked)) return;
+
+    if (!user) {
+      if (isProtectedPage(page)) {
+        redirectToLogin(page);
+      }
+      return;
+    }
+
+    if (page === "admin" && !isAdmin) {
+      navigateToPage("home", { replace: true });
+      return;
+    }
+
+    if (DEBUG_AUTH) {
+      console.debug("[AuthGuard] access granted", {
+        page,
+        userId: user.id,
+        isAdmin,
+        isStaff,
+        needsSetup,
+      });
+    }
+  }, [loading, user, profileChecked, page, isAdmin, isStaff, needsSetup, redirectToLogin, navigateToPage]);
+
+  // ── Rating prompt ──────────────────────────────────────────────────────────
 const checkPendingRatings = useCallback(async () => {
   if (!user) return;
 
@@ -939,7 +1333,10 @@ useEffect(() => {
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
   function handleAuthNavigate(target) {
-    setPage(target === "home" ? "home" : target);
+    if (target === "home" || target === "signup" || target === "login") {
+      clearPostLoginRedirect();
+    }
+    navigateToPage(target === "home" ? "home" : target);
   }
 
   // User-driven changes pass through this handler first.
@@ -966,7 +1363,7 @@ useEffect(() => {
     }
 
     if (!user) {
-      setPage("login");
+      redirectToLogin("messages");
       return;
     }
     setMsgRecipientId(item.user_id || null);
@@ -974,7 +1371,7 @@ useEffect(() => {
     setMsgListingId(item.id || null);
     setMsgInitialDraft(initialDraft);
     setMsgInitialAction(initialAction);
-    setPage("messages");
+    navigateToPage("messages");
   }
 
   async function resolveListingForMessaging(item) {
@@ -1012,7 +1409,7 @@ useEffect(() => {
 
   async function handleSendOffer(item) {
     if (!user) {
-      setPage("login");
+      redirectToLogin("messages");
       return;
     }
 
@@ -1032,32 +1429,32 @@ useEffect(() => {
   // State updates and follow-up UI actions are triggered here.
   function handleSellerClick(sellerId) {
     if (user && sellerId === user.id) {
-      setPage("profile");
+      navigateToPage("profile");
       return;
     }
     setPrevPage("home");
     setPublicProfileId(sellerId);
-    setPage("publicProfile");
+    navigateToPage("publicProfile");
   }
 
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
   function handleSetupComplete() {
     setNeedsSetup(false);
-    setPage(isAdmin ? "admin" : "home");
+    navigateToPage(isAdmin ? "admin" : "home", { replace: true });
   }
 
   // Supporting logic for the go home flow is kept here.
   // Breaking it out makes the file easier to scan and maintain.
   function goHome() {
-    setPage("home");
+    navigateToPage("home");
     setSearchQuery("");
   }
 
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
   function handleAccountDeleted() {
-    setPage("home");
+    navigateToPage("home", { replace: true });
     setSearchQuery("");
     setSelectedListing(null);
     setShowForm(false);
@@ -1085,12 +1482,7 @@ useEffect(() => {
 
   function handlePasswordResetComplete() {
     clearPasswordRecovery();
-    setPage("home");
-    window.history.replaceState(
-      { ...(window.history.state || {}), page: "home" },
-      "",
-      window.location.pathname
-    );
+    navigateToPage("home", { replace: true });
   }
 
   function handleOpenModeration(item) {
@@ -1181,11 +1573,33 @@ useEffect(() => {
   useEffect(() => {
     if (loading || !user || !profileChecked || (page !== "login" && page !== "signup")) return;
 
-    const destination = isAdmin ? "admin" : "home";
-    skipHistoryPushRef.current = true;
-    setPage(destination);
-    window.history.replaceState({ ...(window.history.state || {}), page: destination }, "");
-  }, [loading, user, profileChecked, isAdmin, page]);
+    const pendingPath = readPostLoginRedirect();
+    const pendingPage = pendingPath ? getPageForAppPath(pendingPath) : null;
+
+    if (DEBUG_AUTH) {
+      console.debug("[AuthGuard] resolving post-login destination", {
+        pendingPath,
+        pendingPage,
+        isAdmin,
+        needsSetup,
+        lastAuthEvent,
+      });
+    }
+
+    clearPostLoginRedirect();
+
+    if (pendingPage === "admin" && isAdmin) {
+      navigateToPage("admin", { replace: true });
+      return;
+    }
+
+    if (pendingPage && pendingPage !== "login" && pendingPage !== "signup" && pendingPage !== "home") {
+      navigateToPage(pendingPage, { replace: true });
+      return;
+    }
+
+    navigateToPage(isAdmin ? "admin" : "home", { replace: true });
+  }, [loading, user, profileChecked, isAdmin, needsSetup, page, lastAuthEvent, navigateToPage]);
 
   if (loading || (user && !profileChecked)) {
     return (
@@ -1203,20 +1617,7 @@ useEffect(() => {
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
 
   if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
-  if (user && isStaff) {
-    return (
-      <>
-        <TradeFacilityDashboard onSignOut={signOut} staffProfile={currentProfile} />
-        {showRatingModal && pendingRatings.length > 0 && (
-          <RatingPromptModal
-            pendingRatings={pendingRatings}
-            currentUserId={user.id}
-            onDone={(txnId) => dismissRating(txnId)}
-          />
-        )}
-      </>
-    );
-  }
+  if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} staffProfile={currentProfile} />;
   if (user && isAdmin && page === "admin") {
     return (
       <>
@@ -1252,28 +1653,34 @@ useEffect(() => {
     profile: {
       display_name: profileName,
     },
-    onLogin: () => setPage("login"),
-    onSignup: () => setPage("signup"),
+    onLogin: () => {
+      clearPostLoginRedirect();
+      navigateToPage("login");
+    },
+    onSignup: () => {
+      clearPostLoginRedirect();
+      navigateToPage("signup");
+    },
     onShowListingForm: () => { goHome(); setShowForm(true); },
-    onProfile: () => setPage("profile"),
+    onProfile: () => navigateToPage("profile"),
     onMessages: () => {
       setMsgRecipientId(null);
       setMsgListingTitle(null);
       setMsgListingId(null);
       setMsgInitialDraft(null);
       setMsgInitialAction(null);
-      setPage("messages");
+      navigateToPage("messages");
     },
     onSignOut: signOut,
     onHome: goHome,
-    onYourListings: () => setPage("yourlistings"),
-    onBookings: () => setPage("bookings"),
-    onWishlist: () => setPage("wishlist"),
+    onYourListings: () => navigateToPage("yourlistings"),
+    onBookings: () => navigateToPage("bookings"),
+    onWishlist: () => navigateToPage("wishlist"),
     wishlistCount: wishlistItems.length,
-    onSettings: () => setPage("settings"),
+    onSettings: () => navigateToPage("settings"),
     unreadCount,
     isAdmin,
-    onAdminDashboard: () => setPage("admin"),
+    onAdminDashboard: () => navigateToPage("admin"),
   };
 
   const messageNoticeToast = messageNotice && (
@@ -1286,7 +1693,7 @@ useEffect(() => {
         setMsgListingId(null);
         setMsgInitialDraft(null);
         setMsgInitialAction(null);
-        setPage("messages");
+        navigateToPage("messages");
       }}
       style={{ position: "fixed", top: 20, right: 20, maxWidth: 320, textAlign: "left", background: "var(--gray-900)", color: "#fff", padding: "12px 16px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", cursor: "pointer", fontFamily: "var(--font)" }}
       aria-label="Open new message notification"
@@ -1327,7 +1734,7 @@ useEffect(() => {
         {messageNoticeToast}
         <PublicProfilePage
           userId={publicProfileId}
-          onBack={() => setPage(prevPage)}
+          onBack={() => navigateToPage(prevPage)}
           onMessageSeller={
             user
               ? () => {
@@ -1336,7 +1743,7 @@ useEffect(() => {
                   setMsgListingId(null);
                   setMsgInitialDraft(null);
                   setMsgInitialAction(null);
-                  setPage("messages");
+                  navigateToPage("messages");
                 }
               : null
           }
@@ -1376,10 +1783,10 @@ useEffect(() => {
           onViewProfile={(sellerId) => {
             setPrevPage("messages");
             setPublicProfileId(sellerId);
-            setPage("publicProfile");
+            navigateToPage("publicProfile");
           }}
           onUnreadChange={setUnreadCount}
-          onGoToBookings={() => setPage("bookings")}
+          onGoToBookings={() => navigateToPage("bookings")}
         />
       </>
     );
@@ -1527,12 +1934,18 @@ useEffect(() => {
         {messageNoticeToast}
 
         {showForm && (
-          <dialog className="modal-overlay" open onClick={() => setShowForm(false)}>
-            <article className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="listing-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="listing-form-title"
+            onClick={() => setShowForm(false)}
+          >
+            <article className="listing-modal-content" onClick={(e) => e.stopPropagation()}>
               <button className="modal-close" onClick={() => setShowForm(false)} aria-label="Close modal" type="button">×</button>
               <ListingForm onCancel={() => setShowForm(false)} onSuccess={handleListingSuccess} />
             </article>
-          </dialog>
+          </div>
         )}
 
         <ListingDetailsModal
@@ -1581,8 +1994,8 @@ useEffect(() => {
           <Hero
             onListingClick={setSelectedListing}
             onBrowseClick={handleScrollToListings}
-            onSignupClick={() => setPage("signup")}
-            onLoginClick={() => setPage("login")}
+            onSignupClick={() => navigateToPage("signup")}
+            onLoginClick={() => navigateToPage("login")}
             user={user}
           />
         </section>
