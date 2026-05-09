@@ -967,6 +967,19 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         .update(updatePayload)
         .eq("id", transactionId);
       if (err) throw err;
+
+      // When a transaction is completed, lock the listing as sold
+      // so the seller cannot relist it through the trade facility flow.
+      if (nextStatus === "completed") {
+        const txn = transactions.find((t) => t.id === transactionId);
+        if (txn?.listing_id) {
+          await supabase
+            .from("listings")
+            .update({ status: "sold" })
+            .eq("id", txn.listing_id);
+        }
+      }
+
       showToast(`Transaction updated to "${STATUS_META[nextStatus]?.label || nextStatus}".`);
       await loadDashboard();
     } catch (err) {
@@ -1075,14 +1088,23 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
             .eq("id", transaction.collectionId);
         }
 
+        // AFTER — add listing lock in the same block:
         if (nextStatus === "completed") {
           await supabase
-          .from("transactions")
-          .update({
-            buyer_rating_pending: true,
-            seller_rating_pending: true,
-          })
-          .eq("id", transaction.id);
+            .from("transactions")
+            .update({
+              buyer_rating_pending: true,
+              seller_rating_pending: true,
+            })
+         .eq("id", transaction.id);
+
+          // Lock the listing as sold so the seller cannot relist it.
+          if (transaction.listing_id) {
+           await supabase
+            .from("listings")
+            .update({ status: "sold" })
+            .eq("id", transaction.listing_id);
+          }
         }
         // Notify relevant party
         if (staffProfile?.id) {
