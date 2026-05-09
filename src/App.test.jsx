@@ -9,6 +9,7 @@ const mockGetSession = vi.fn(() => Promise.resolve({ data: { session: null } }))
 const mockOnAuthStateChange = vi.fn(() => ({
   data: { subscription: { unsubscribe: vi.fn() } },
 }));
+const mockSignOut = vi.fn(() => Promise.resolve({ error: null }));
 const mockInsertMessage = vi.fn(() => Promise.resolve({ error: null }));
 let mockProfileRole = "student";
 
@@ -112,6 +113,7 @@ vi.mock("./supabaseClient", () => ({
     auth: {
       getSession: (...args) => mockGetSession(...args),
       onAuthStateChange: (...args) => mockOnAuthStateChange(...args),
+      signOut: (...args) => mockSignOut(...args),
     },
     channel: vi.fn(() => ({
       on: vi.fn().mockReturnThis(),
@@ -226,6 +228,8 @@ beforeEach(() => {
   });
   mockInsertMessage.mockReset();
   mockInsertMessage.mockResolvedValue({ error: null });
+  mockSignOut.mockReset();
+  mockSignOut.mockResolvedValue({ error: null });
   Element.prototype.scrollIntoView = vi.fn();
   window.history.replaceState({}, "", "/");
 });
@@ -792,6 +796,29 @@ test("keeps an authenticated admin on the admin page after refresh", async () =>
 
   expect(await screen.findByRole("heading", { name: /admin dashboard/i })).toBeInTheDocument();
   expect(window.location.pathname).toBe("/admin");
+  expect(screen.queryByRole("heading", { name: /welcome back/i })).not.toBeInTheDocument();
+});
+
+test("redirects to the main page after signing out from a protected page", async () => {
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "student@example.com" },
+      },
+    },
+  });
+  window.history.replaceState({}, "", "/messages");
+
+  renderApp();
+
+  expect(await screen.findByRole("heading", { name: /^messages$/i })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: /^sign out$/i }));
+
+  await waitFor(() => {
+    expect(mockSignOut).toHaveBeenCalled();
+    expect(window.location.pathname).toBe("/");
+  });
   expect(screen.queryByRole("heading", { name: /welcome back/i })).not.toBeInTheDocument();
 });
 
