@@ -331,6 +331,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   const [editingItem, setEditingItem] = useState(null);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [flagReasonItem, setFlagReasonItem] = useState(null);
   const [successMsg, setSuccessMsg] = useState("");
   const [editPriceSuggestion, setEditPriceSuggestion] = useState(null);
   const [editPriceSuggestionLoading, setEditPriceSuggestionLoading] = useState(false);
@@ -639,12 +640,13 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
           const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
           const isSold = item.status === "sold";
           const isTradeOnly = item.listing_type === "trade";
+          const isFlagged = item.status === "flagged";
           // Prefer the saved cover, but still render listings that only have the
           // multi-image array populated.
           const coverImage = getListingCover(item);
 
           return (
-            <article key={item.id} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", border: "1px solid var(--gray-200)", opacity: isSold ? 0.7 : 1, position: "relative" }}>
+            <article key={item.id} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", border: isFlagged ? "1.5px solid #ef4444" : "1px solid var(--gray-200)", opacity: isSold ? 0.7 : 1, position: "relative" }}>
 
               {/* Status badge */}
               {(item.status === "sold" || item.status === "for_trade" || item.listing_type === "trade" || item.listing_type === "sale_and_trade") && (
@@ -653,10 +655,22 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   background: item.status === "sold" ? "#111" : isTradeOnly ? "#1e40af" : "#2563eb",
                   color: "#fff", borderRadius: 8, padding: "4px 10px",
                   fontSize: 12, fontWeight: 700
-                }}>
-                  {item.status === "sold" ? "SOLD" : isTradeOnly ? "FOR TRADE ONLY" : "FOR TRADE"}
-                </div>
-              )}
+              }}>
+                {item.status === "sold" ? "SOLD" : isTradeOnly ? "FOR TRADE ONLY" : "FOR TRADE"}
+              </div>
+            )}
+
+            {/* Flagged badge */}
+            {isFlagged && (
+              <div style={{
+                position: "absolute", top: 12, right: 12, zIndex: 1,
+                background: "#ef4444", color: "#fff", borderRadius: 8,
+                padding: "4px 10px", fontSize: 12, fontWeight: 700,
+                display: "flex", alignItems: "center", gap: 4,
+              }}>
+                FLAGGED
+              </div>
+            )}
 
               {/* Image */}
               <div style={{ height: 160, background: "var(--surface-soft)", overflow: "hidden" }}>
@@ -679,7 +693,26 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 </div>
 
                 <p style={{ fontSize: 18, fontWeight: 800, color: "var(--gray-900)", margin: "0 0 4px" }}>{formatZAR(item.price)}</p>
-                <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "0 0 16px" }}>{item.category}</p>
+                <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "0 0 8px" }}>{item.category}</p>
+
+                {/* Flag reason banner */}
+                {isFlagged && (
+                  <button
+                    onClick={() => setFlagReasonItem(item)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6, width: "100%",
+                      marginBottom: 12, padding: "8px 10px", borderRadius: 8,
+                      background: "#fef2f2", border: "1px solid #fecaca",
+                      cursor: "pointer", textAlign: "left", fontFamily: "var(--font)",
+                    }}
+                  >
+                    <span style={{ fontSize: 13 }}>🚩</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#b91c1c", flex: 1 }}>
+                      This listing was flagged by staff
+                    </span>
+                    <span style={{ fontSize: 11, color: "#ef4444", fontWeight: 500 }}>See reason →</span>
+                  </button>
+                )}
 
                 {/* Actions */}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -752,6 +785,42 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Flag reason modal */}
+      {flagReasonItem && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}
+          onClick={() => setFlagReasonItem(null)}
+        >
+          <div
+            style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 400, width: "90%", textAlign: "center" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🚩</div>
+            <h3 style={{ fontWeight: 800, marginBottom: 8, color: "var(--gray-900)" }}>Listing Flagged</h3>
+            <p style={{ color: "var(--gray-600)", fontSize: 13, marginBottom: 8 }}>
+              A staff member has flagged <strong>"{flagReasonItem.title}"</strong> for the following reason:
+            </p>
+            <div style={{
+              background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10,
+              padding: "12px 16px", marginBottom: 24, textAlign: "left",
+            }}>
+              <p style={{ margin: 0, fontSize: 14, color: "#b91c1c", fontWeight: 600, lineHeight: 1.5 }}>
+                {flagReasonItem.flag_reason || "No reason provided."}
+              </p>
+            </div>
+            <p style={{ color: "var(--gray-500)", fontSize: 12, marginBottom: 20 }}>
+              Please edit or remove this listing to address the issue. Flagged listings are hidden from other users.
+            </p>
+            <button
+              onClick={() => setFlagReasonItem(null)}
+              style={{ padding: "10px 28px", borderRadius: 9, border: "1px solid var(--gray-200)", background: "var(--surface)", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
