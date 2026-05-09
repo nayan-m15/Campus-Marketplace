@@ -211,7 +211,7 @@ function resultFor(table, mode, filters = {}) {
     }
     return { data: rows, error: null };
   }
-  if (table === "ratings") return { data: [{ listing_id: "listing-2", rating: 4 }], error: null };
+  if (table === "ratings") return { data: [], error: null };
   if (table === "listings" && mode === "rateable") {
     const ids = Array.isArray(filters.id) ? filters.id : filters.id ? [filters.id] : [];
     return { data: ids.map((id) => listingRecords[id]).filter(Boolean), error: null };
@@ -494,15 +494,14 @@ test("PublicProfilePage loads seller details and submits a rating", async () => 
   fireEvent.click(screen.getByRole("button", { name: /rate 5 stars/i }));
   fireEvent.click(screen.getByRole("button", { name: /submit rating/i }));
 
-  await waitFor(() => expect(mocks.upsert).toHaveBeenCalledWith(
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
     "ratings",
     expect.objectContaining({
       rater_id: "user-1",
       rated_id: "seller-1",
       listing_id: "listing-2",
       rating: 5,
-    }),
-    { onConflict: "rater_id,listing_id" }
+    })
   ));
 
   onView.unmount();
@@ -516,9 +515,6 @@ test("YourListingsPage edits status and deletes a listing", async () => {
   expect(await screen.findByRole("heading", { name: /your listings/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /back/i }));
   expect(onBack).toHaveBeenCalled();
-
-  fireEvent.click(screen.getByRole("button", { name: /mark sold/i }));
-  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith("listings", { status: "sold" }));
 
   fireEvent.click(screen.getByRole("button", { name: /edit/i }));
   fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Desk Lamp Pro" } });
@@ -541,6 +537,9 @@ test("YourListingsPage edits status and deletes a listing", async () => {
       )
     ).toBe(true)
   );
+
+  fireEvent.click(screen.getByRole("button", { name: /mark sold/i }));
+  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith("listings", { status: "sold" }));
 
   fireEvent.click(screen.getByRole("button", { name: /🗑|delete/i }));
   fireEvent.click(await screen.findByRole("button", { name: /^delete$/i }));
