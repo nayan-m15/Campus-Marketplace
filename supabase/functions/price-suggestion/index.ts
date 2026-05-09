@@ -143,6 +143,47 @@ function hasSpecificText(text: string) {
   return usefulWords.length >= 3;
 }
 
+function getMeaningfulTokens(text: string) {
+  const stopWords = new Set([
+    "and",
+    "for",
+    "from",
+    "good",
+    "great",
+    "item",
+    "like",
+    "new",
+    "old",
+    "only",
+    "other",
+    "poor",
+    "sale",
+    "sell",
+    "the",
+    "this",
+    "used",
+    "with",
+  ]);
+
+  return [
+    ...new Set(
+      text
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((word) => word.length >= 4 && !stopWords.has(word)),
+    ),
+  ].slice(0, 10);
+}
+
+function resultMatchesListing(result: ShoppingResult, tokens: string[]) {
+  if (tokens.length === 0) return true;
+
+  const resultText = `${result.title || ""} ${result.source || ""}`.toLowerCase();
+  const matchedTokens = tokens.filter((token) => resultText.includes(token));
+
+  return matchedTokens.length > 0;
+}
+
 function parsePrice(result: ShoppingResult) {
   if (typeof result.extracted_price === "number" && result.extracted_price > 0) {
     return result.extracted_price;
@@ -263,6 +304,8 @@ function getConfidence({
   brandSignals,
   sampleSize,
   variation,
+  relevantSampleSize,
+  meaningfulTokenCount,
 }: {
   query: string;
   description: string;
@@ -271,6 +314,8 @@ function getConfidence({
   brandSignals: string[];
   sampleSize: number;
   variation: number;
+  relevantSampleSize: number;
+  meaningfulTokenCount: number;
 }) {
   let score = 0;
   const reasons: string[] = [];
@@ -293,6 +338,14 @@ function getConfidence({
     reasons.push("The listing text has enough descriptive terms to narrow the search.");
   } else {
     warnings.push("The listing text is broad, so the search may include different product types.");
+  }
+
+  if (meaningfulTokenCount >= 2 && relevantSampleSize >= 3) {
+    score += 15;
+    reasons.push("Shopping result titles match the listing details.");
+  } else if (meaningfulTokenCount >= 2) {
+    score -= 20;
+    warnings.push("Shopping results did not closely match the listing details.");
   }
 
   if (category) {
@@ -490,9 +543,26 @@ Deno.serve(async (req) => {
       .filter((result) => result.extractedPrice !== null);
 
     const randResults = pricedResults.filter(looksLikeRand);
-    const usableResults = randResults.length > 0 ? randResults : pricedResults;
+    const currencyResults = randResults.length > 0 ? randResults : pricedResults;
+    const meaningfulTokens = getMeaningfulTokens(`${query} ${description}`);
+    const relevantResults = currencyResults.filter((result) =>
+      resultMatchesListing(result, meaningfulTokens),
+    );
+    const usableResults = relevantResults.length >= 2 ? relevantResults : currencyResults;
     const prices = usableResults.map((result) => result.extractedPrice as number);
     const filteredPrices = removeOutliers(prices);
+
+    if (meaningfulTokens.length >= 2 && relevantResults.length === 0) {
+      return jsonResponse(
+        {
+          error: "Price check inconclusive. No reliable shopping matches were found for this listing.",
+          query,
+          searchQuery,
+          location,
+        },
+        404,
+      );
+    }
 
     if (filteredPrices.length === 0) {
       return jsonResponse(
@@ -519,6 +589,8 @@ Deno.serve(async (req) => {
       brandSignals,
       sampleSize: filteredPrices.length,
       variation: priceVariation,
+      relevantSampleSize: relevantResults.length,
+      meaningfulTokenCount: meaningfulTokens.length,
     });
     const suggestedPrice = roundToNearestFive(retailMedian * conditionFactor);
     const suggestedRange = {

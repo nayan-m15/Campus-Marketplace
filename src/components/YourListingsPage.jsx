@@ -129,16 +129,26 @@ function formatEditPrice(value) {
 
 function getPriceSuggestionErrorMessage(error) {
   const message = error?.message || "";
+  const lowerMessage = message.toLowerCase();
 
-  if (message.toLowerCase().includes("failed to send a request to the edge function")) {
-    return "Price suggestion is unavailable right now.";
+  if (lowerMessage.includes("failed to send a request to the edge function")) {
+    return "The pricing service could not be reached right now.";
   }
 
-  if (message.toLowerCase().includes("not found")) {
-    return "Not enough comparable Google Shopping results found.";
+  if (lowerMessage.includes("non-2xx") || lowerMessage.includes("non 2xx")) {
+    return "We could not compare this listing with reliable shopping results.";
   }
 
-  return message || "Price suggestion is unavailable right now.";
+  if (
+    lowerMessage.includes("inconclusive") ||
+    lowerMessage.includes("not enough") ||
+    lowerMessage.includes("no usable") ||
+    lowerMessage.includes("not found")
+  ) {
+    return "We could not find reliable shopping matches for this listing.";
+  }
+
+  return "Price suggestion is unavailable right now.";
 }
 
 function EditPriceSuggestion({ suggestion, loading, error, hasEnoughDetail }) {
