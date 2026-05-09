@@ -677,11 +677,15 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
             )}
 
               {/* Image */}
-              <div style={{ height: 160, background: "var(--surface-soft)", overflow: "hidden" }}>
+              <div style={{ position: "relative", width: "100%", paddingTop: "75%", background: "#e5e7eb", overflow: "hidden" }}>
                 {coverImage ? (
-                  <img src={coverImage} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img
+                    src={coverImage}
+                    alt={item.title}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }}
+                  />
                 ) : (
-                  <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>
                     {item.emoji || "📦"}
                   </div>
                 )}
