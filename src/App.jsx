@@ -1468,16 +1468,21 @@ useEffect(() => {
     window.location.assign(getAppBaseUrl());
   }
 
-  function dismissRating(txnId) {
-    if (txnId && user?.id) {
+  function dismissRating(txnId, wasSubmitted = false) {
+    // not when they skip — skipped ones should still appear on the public profile.
+    if (wasSubmitted && txnId && user?.id) {
       const key = `dismissed_ratings_${user.id}`;
       const existing = JSON.parse(localStorage.getItem(key) || "[]");
       if (!existing.includes(txnId)) {
         localStorage.setItem(key, JSON.stringify([...existing, txnId]));
       }
     }
-    setPendingRatings([]);
-    setShowRatingModal(false);
+    // Remove only the completed/skipped transaction, not all of them
+    setPendingRatings((prev) => {
+      const remaining = txnId ? prev.filter((r) => r.id !== txnId) : prev;
+      if (remaining.length === 0) setShowRatingModal(false);
+      return remaining;
+    });
   }
 
   function handlePasswordResetComplete() {
@@ -1710,7 +1715,7 @@ useEffect(() => {
           <RatingPromptModal
             pendingRatings={pendingRatings}
             currentUserId={user.id}
-            onDone={(txnId) => dismissRating(txnId)}
+            onDone={(txnId, wasSubmitted) => dismissRating(txnId, wasSubmitted)}
           />
         )}
         <header><Navbar {...navbarProps} /></header>
@@ -1727,7 +1732,7 @@ useEffect(() => {
           <RatingPromptModal
             pendingRatings={pendingRatings}
             currentUserId={user.id}
-            onDone={(txnId) => dismissRating(txnId)}
+            onDone={(txnId, wasSubmitted) => dismissRating(txnId, wasSubmitted)}
           />
         )}
         <header><Navbar {...navbarProps} /></header>
@@ -1759,7 +1764,7 @@ useEffect(() => {
           <RatingPromptModal
             pendingRatings={pendingRatings}
             currentUserId={user.id}
-            onDone={(txnId) => dismissRating(txnId)}
+            onDone={(txnId, wasSubmitted) => dismissRating(txnId, wasSubmitted)}
           />
         )}
         <header><Navbar {...navbarProps} /></header>
@@ -1799,7 +1804,7 @@ useEffect(() => {
           <RatingPromptModal
             pendingRatings={pendingRatings}
             currentUserId={user.id}
-            onDone={(txnId) => dismissRating(txnId)}
+            onDone={(txnId, wasSubmitted) => dismissRating(txnId, wasSubmitted)}
           />
         )}
         <header><Navbar {...navbarProps} /></header>
@@ -1823,7 +1828,7 @@ useEffect(() => {
           <RatingPromptModal
             pendingRatings={pendingRatings}
             currentUserId={user.id}
-            onDone={(txnId) => dismissRating(txnId)}
+            onDone={(txnId, wasSubmitted) => dismissRating(txnId, wasSubmitted)}
           />
         )}
         <header><Navbar {...navbarProps} /></header>
@@ -1841,7 +1846,7 @@ useEffect(() => {
           <RatingPromptModal
             pendingRatings={pendingRatings}
             currentUserId={user.id}
-            onDone={(txnId) => dismissRating(txnId)}
+            onDone={(txnId, wasSubmitted) => dismissRating(txnId, wasSubmitted)}
           />
         )}
         <header><Navbar {...navbarProps} /></header>
@@ -1903,7 +1908,7 @@ useEffect(() => {
         <RatingPromptModal
           pendingRatings={pendingRatings}
           currentUserId={user.id}
-          onDone={(txnId) => dismissRating(txnId)}
+          onDone={(txnId, wasSubmitted) => dismissRating(txnId, wasSubmitted)}
         />
       )}
       <header><Navbar {...navbarProps} /></header>
@@ -1919,7 +1924,7 @@ useEffect(() => {
         <RatingPromptModal
           pendingRatings={pendingRatings}
           currentUserId={user.id}
-          onDone={(txnId) => dismissRating(txnId)}
+          onDone={(txnId, wasSubmitted) => dismissRating(txnId, wasSubmitted)}
         />
       )}
       <header>

@@ -97,46 +97,65 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
       .finally(() => setLoading(false));
   }, [userId]);
 
-  // ── Load listings the current user has messaged the seller about ──
+  // ── Load listings the current user can rate this seller for ──
   useEffect(() => {
     if (!user || !userId || user.id === userId) return;
 
-    supabase
-      .from("messages")
-      .select("listing_id")
-      .eq("sender_id", user.id)
-      .eq("receiver_id", userId)
-      .not("listing_id", "is", null)
-      .then(async ({ data: msgData }) => {
-        if (!msgData || msgData.length === 0) return;
+    async function loadRateableListings() {
+      // Source 1: listings the user messaged the seller about
+      const { data: msgData } = await supabase
+        .from("messages")
+        .select("listing_id")
+        .eq("sender_id", user.id)
+        .eq("receiver_id", userId)
+        .not("listing_id", "is", null);
 
-        const listingIds = [...new Set(msgData.map((m) => m.listing_id))];
+      // Source 2: completed transactions where both parties were involved
+      const { data: txnData } = await supabase
+        .from("transactions")
+        .select("listing_id")
+        .eq("status", "completed")
+        .or(
+          `and(buyer_id.eq.${user.id},seller_id.eq.${userId}),and(seller_id.eq.${user.id},buyer_id.eq.${userId})`
+        )
+        .not("listing_id", "is", null);
 
-        const { data: listings } = await supabase
-          .from("listings")
-          .select("id, title")
-          .in("id", listingIds);
+      const allListingIds = [
+        ...new Set([
+          ...(msgData || []).map((m) => m.listing_id),
+          ...(txnData || []).map((t) => t.listing_id),
+        ]),
+      ].filter(Boolean);
 
-        if (!listings) return;
+      if (allListingIds.length === 0) return;
 
-        // Check which ones the user has already rated
-        const { data: existingRatings } = await supabase
-          .from("ratings")
-          .select("listing_id, rating")
-          .eq("rater_id", user.id)
-          .eq("rated_id", userId);
+      const { data: listings } = await supabase
+        .from("listings")
+        .select("id, title")
+        .in("id", allListingIds);
 
-        const ratedMap = Object.fromEntries(
-          (existingRatings || []).map((r) => [r.listing_id, r.rating])
-        );
+      if (!listings) return;
 
-        setRateableListings(
-          listings.map((l) => ({
-            ...l,
-            existingRating: ratedMap[l.id] || null,
-          }))
-        );
-      });
+      // Check which ones the user has already rated
+      const { data: existingRatings } = await supabase
+        .from("ratings")
+        .select("listing_id, rating")
+        .eq("rater_id", user.id)
+        .eq("rated_id", userId);
+
+      const ratedMap = Object.fromEntries(
+        (existingRatings || []).map((r) => [r.listing_id, r.rating])
+      );
+
+      setRateableListings(
+        listings.map((l) => ({
+          ...l,
+          existingRating: ratedMap[l.id] || null,
+        }))
+      );
+    }
+
+    loadRateableListings();
   }, [user, userId]);
 
   // ── Helpers ──────────────────────────────────────────────────
@@ -151,15 +170,13 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("ratings").upsert(
-        {
-          rater_id:   user.id,
-          rated_id:   userId,
-          listing_id: selectedListing,
-          rating:     selectedStars,
-        },
-        { onConflict: "rater_id,listing_id" }
-      );
+      const { error } = await supabase.from("ratings").insert({
+        rater_id: user.id,
+        rated_id: userId,
+        listing_id: selectedListing,
+        rating: selectedStars,
+      });
+
       if (error) throw new Error(error.message);
 
       showToast("✅ Rating submitted!");
@@ -356,39 +373,44 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
                         setSelectedStars(l?.existingRating || 0);
                       }}
                     >
-                      <option value="">Choose a listing…</option>
-                      {rateableListings.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.title}
-                          {l.existingRating ? ` (rated: ${l.existingRating}★)` : ""}
-                        </option>
-                      ))}
+                    <option value="">Choose a listing…</option>
+                    {rateableListings.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.title}
+                        {l.existingRating ? ` (rated: ${l.existingRating}★)` : ""}
+                      </option>
+                    ))}
                     </select>
                   </div>
 
+                {/* Show rating picker only if this listing hasn't been rated yet */}
+                {selectedListingData && !selectedListingData.existingRating && (
                   <div className="profile-field">
                     <label>Your rating</label>
                     <StarPicker value={selectedStars} onChange={setSelectedStars} />
                   </div>
+                )}
 
-                  {selectedListingData?.existingRating && (
-                    <p className="pub-rating__existing-note">
-                      You previously rated this listing {selectedListingData.existingRating}★ — submitting will update it.
-                    </p>
-                  )}
+          {selectedListingData?.existingRating ? (
+            <p className="pub-rating__existing-note">
+              You already rated this listing {selectedListingData.existingRating}★. Ratings cannot be changed after submission.
+            </p>
+         ) : null}
 
-                  <button
-                    className="profile-save-btn"
-                    style={{ width: "100%", marginTop: 4 }}
-                    onClick={handleSubmitRating}
-                    disabled={submitting || !selectedStars || !selectedListing}
-                    type="button"
-                  >
-                    {submitting ? "Submitting…" : "Submit Rating"}
-                  </button>
-                </div>
-              </>
-            )}
+          {selectedListingData && !selectedListingData.existingRating && (
+            <button
+              className="profile-save-btn"
+              style={{ width: "100%", marginTop: 4 }}
+              onClick={handleSubmitRating}
+              disabled={submitting || !selectedStars || !selectedListing}
+              type="button"
+            >
+            {submitting ? "Submitting…" : "Submit Rating"}
+          </button>
+        )}
+    </div>
+  </>
+)}
 
           </div>
         </div>

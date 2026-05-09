@@ -20,14 +20,13 @@ function SingleRatingModal({ transaction, currentUserId, onClose }) {
     try {
       if (!el.open) el.showModal();
     } catch {
-      // dialog not yet in the DOM — no-op, browser will show it once mounted
+      // dialog not yet in the DOM — no-op
     }
   }, []);
 
   async function handleSubmit() {
     if (!selected) return;
 
-  // Guard: listing_id is NOT NULL in the schema — catch it before the DB does
     if (!transaction.listing_id) {
       setError("This transaction is missing a listing reference and cannot be rated.");
       return;
@@ -44,9 +43,8 @@ function SingleRatingModal({ transaction, currentUserId, onClose }) {
     });
 
     if (err) {
-      // If they already rated this listing, treat it as success and move on
       if (err.code === "23505") {
-        // unique violation — already rated
+        // already rated — treat as success
       } else {
         setError(err.message || "Failed to submit rating.");
         setSubmitting(false);
@@ -63,13 +61,14 @@ function SingleRatingModal({ transaction, currentUserId, onClose }) {
       .update(updateField)
       .eq("id", transaction.id);
 
-    onClose();
+    // onClose receives the txnId so App.jsx can permanently dismiss it
+    onClose(transaction.id);
   }
 
   const display = hovered || selected;
 
   return (
-    <dialog ref={dialogRef} className="brm-dialog" onClose={onClose}>
+    <dialog ref={dialogRef} className="brm-dialog" onClose={() => onClose(null)}>
       <div className="brm-inner">
         <header className="brm-header">
           <span className="brm-header-icon">⭐</span>
@@ -77,7 +76,7 @@ function SingleRatingModal({ transaction, currentUserId, onClose }) {
             <h2 className="brm-title">Rate your {role}</h2>
             <p className="brm-subtitle">Transaction for {transaction.item}</p>
           </div>
-          <button className="brm-close-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button className="brm-close-btn" onClick={() => onClose(null)} aria-label="Close">✕</button>
         </header>
 
         <div className="brm-body">
@@ -119,7 +118,8 @@ function SingleRatingModal({ transaction, currentUserId, onClose }) {
         </div>
 
         <footer className="brm-footer">
-          <button className="btn-secondary" onClick={onClose} disabled={submitting}>
+          {/* Skip: pass null so App does NOT permanently dismiss — user can still rate on profile page */}
+          <button className="btn-secondary" onClick={() => onClose(null)} disabled={submitting}>
             Skip
           </button>
           <button
@@ -143,13 +143,13 @@ export default function RatingPromptModal({ pendingRatings, currentUserId, onDon
   const current = pendingRatings[index];
   if (!current) return null;
 
-  function handleClose() {
-    const txnId = current.transactionId ?? current.id;
+  // txnId is the transaction id if submitted, null if skipped
+  function handleClose(txnId) {
+    const wasSubmitted = txnId !== null;
     if (index + 1 < pendingRatings.length) {
       setIndex(index + 1);
-    } else {
-      onDone(txnId);
     }
+    onDone(txnId, wasSubmitted);
   }
 
   return (
