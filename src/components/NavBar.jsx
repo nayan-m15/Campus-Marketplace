@@ -108,7 +108,10 @@ export default function Navbar({
     <>
       {/* Keeps page content from sliding under the fixed navbar. */}
       <div className="navbar-spacer" aria-hidden="true" />
-      <header ref={headerRef} className={`navbar${searchOpen ? " navbar--mobile-search-open" : ""}`}>
+      <header
+        ref={headerRef}
+        className={`navbar${searchOpen ? " navbar--mobile-search-open" : ""}${!user ? " navbar--logged-out" : ""}`}
+      >
         {searchOpen ? (
           // Mobile-only search state:
           // when search is open, we swap out the normal compact mobile navbar
