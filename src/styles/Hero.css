@@ -837,7 +837,7 @@ html.dark .carousel-nav--next {
 /* Card */
 .popup-card {
   width: 90%;
-  max-width: 460px;
+  max-width: 340px;
 
   padding: 22px 24px;
   border-radius: 18px;
@@ -893,37 +893,7 @@ html.dark .carousel-nav--next {
   font-size: 13.5px;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 12px;
-}
-
-.popup-card__list {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 8px;
-  padding: 0;
-  margin: 0 0 18px;
-  list-style: none;
-  text-align: left;
-}
-
-.popup-card__list li {
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 12.5px;
-  line-height: 1.38;
-  padding-left: 18px;
-  position: relative;
-}
-
-.popup-card__list li::before {
-  content: "";
-  position: absolute;
-  top: 0.58em;
-  left: 2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--green);
+  margin-bottom: 18px;
 }
 
 /* Button refinement */
