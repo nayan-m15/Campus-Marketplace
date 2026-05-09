@@ -17,22 +17,23 @@ const INSTITUTIONS_BY_PROVINCE = {
       "UNISA",
     ],
     private: [
-      "Varsity College (Johannesburg / Pretoria)",
-      "Rosebank College (Johannesburg)",
-      "Boston City Campus (Johannesburg / Pretoria)",
-      "Damelin (Johannesburg / Pretoria)",
-      "IIE MSA (Midrand / Sandton)",
-      "Richfield Graduate Institute (Johannesburg)",
-      "Regent Business School (Johannesburg)",
-      "Milpark Business School",
-      "Regenesys Business School",
-      "MANCOSA (Johannesburg)",
-      "SACAP (Johannesburg)",
-      "Pearson Institute of Higher Education",
-      "Vega School (Johannesburg)",
-      "DC Academy",
-      "The Animation School (Johannesburg)",
-      "Academy of Learning (Johannesburg)",
+      // Private institutions are hidden for now. Uncomment these when they should be available again.
+      // "Varsity College (Johannesburg / Pretoria)",
+      // "Rosebank College (Johannesburg)",
+      // "Boston City Campus (Johannesburg / Pretoria)",
+      // "Damelin (Johannesburg / Pretoria)",
+      // "IIE MSA (Midrand / Sandton)",
+      // "Richfield Graduate Institute (Johannesburg)",
+      // "Regent Business School (Johannesburg)",
+      // "Milpark Business School",
+      // "Regenesys Business School",
+      // "MANCOSA (Johannesburg)",
+      // "SACAP (Johannesburg)",
+      // "Pearson Institute of Higher Education",
+      // "Vega School (Johannesburg)",
+      // "DC Academy",
+      // "The Animation School (Johannesburg)",
+      // "Academy of Learning (Johannesburg)",
     ],
   },
   "Western Cape": {
@@ -43,19 +44,20 @@ const INSTITUTIONS_BY_PROVINCE = {
       "Cape Peninsula University of Technology (CPUT)",
     ],
     private: [
-      "Varsity College (Cape Town)",
-      "Rosebank College (Cape Town)",
-      "Boston City Campus (Cape Town)",
-      "Damelin (Cape Town)",
-      "Red & Yellow Creative School",
-      "Open Window School of Visual Communication",
-      "Inscape Design College (Cape Town)",
-      "Greenside Design Center (Cape Town)",
-      "AFDA (Cape Town)",
-      "Cornerstone Institute",
-      "CityVarsity",
-      "SACAP (Cape Town)",
-      "IMM Graduate School (Cape Town)",
+      // Private institutions are hidden for now. Uncomment these when they should be available again.
+      // "Varsity College (Cape Town)",
+      // "Rosebank College (Cape Town)",
+      // "Boston City Campus (Cape Town)",
+      // "Damelin (Cape Town)",
+      // "Red & Yellow Creative School",
+      // "Open Window School of Visual Communication",
+      // "Inscape Design College (Cape Town)",
+      // "Greenside Design Center (Cape Town)",
+      // "AFDA (Cape Town)",
+      // "Cornerstone Institute",
+      // "CityVarsity",
+      // "SACAP (Cape Town)",
+      // "IMM Graduate School (Cape Town)",
     ],
   },
   "KwaZulu-Natal": {
@@ -66,14 +68,15 @@ const INSTITUTIONS_BY_PROVINCE = {
       "University of Zululand",
     ],
     private: [
-      "Varsity College (Durban / Westville)",
-      "Rosebank College (Durban)",
-      "Boston City Campus (Durban)",
-      "Damelin (Durban)",
-      "Richfield Graduate Institute (Durban)",
-      "MANCOSA (Durban)",
-      "SACAP (Durban)",
-      "IMM Graduate School (Durban)",
+      // Private institutions are hidden for now. Uncomment these when they should be available again.
+      // "Varsity College (Durban / Westville)",
+      // "Rosebank College (Durban)",
+      // "Boston City Campus (Durban)",
+      // "Damelin (Durban)",
+      // "Richfield Graduate Institute (Durban)",
+      // "MANCOSA (Durban)",
+      // "SACAP (Durban)",
+      // "IMM Graduate School (Durban)",
     ],
   },
   "Eastern Cape": {
@@ -84,10 +87,11 @@ const INSTITUTIONS_BY_PROVINCE = {
       "University of Fort Hare",
     ],
     private: [
-      "Varsity College (East London / Port Elizabeth)",
-      "Boston City Campus (Port Elizabeth)",
-      "Damelin (Port Elizabeth)",
-      "Richfield Graduate Institute (East London)",
+      // Private institutions are hidden for now. Uncomment these when they should be available again.
+      // "Varsity College (East London / Port Elizabeth)",
+      // "Boston City Campus (Port Elizabeth)",
+      // "Damelin (Port Elizabeth)",
+      // "Richfield Graduate Institute (East London)",
     ],
   },
   "Free State": {
@@ -96,38 +100,45 @@ const INSTITUTIONS_BY_PROVINCE = {
       "Central University of Technology (CUT)",
     ],
     private: [
-      "Varsity College (Bloemfontein)",
-      "Boston City Campus (Bloemfontein)",
-      "Damelin (Bloemfontein)",
-      "Academy of Learning (Bloemfontein)",
+      // Private institutions are hidden for now. Uncomment these when they should be available again.
+      // "Varsity College (Bloemfontein)",
+      // "Boston City Campus (Bloemfontein)",
+      // "Damelin (Bloemfontein)",
+      // "Academy of Learning (Bloemfontein)",
     ],
   },
   "North West": {
     public: ["North-West University (NWU)"],
     private: [
-      "Varsity College (Potchefstroom)",
-      "Boston City Campus (Rustenburg)",
-      "Academy of Learning (Rustenburg)",
+      // Private institutions are hidden for now. Uncomment these when they should be available again.
+      // "Varsity College (Potchefstroom)",
+      // "Boston City Campus (Rustenburg)",
+      // "Academy of Learning (Rustenburg)",
     ],
   },
   "Limpopo": {
     public: ["University of Limpopo"],
     private: [
-      "Boston City Campus (Polokwane)",
-      "Richfield Graduate Institute (Polokwane)",
-      "Academy of Learning (Polokwane)",
+      // Private institutions are hidden for now. Uncomment these when they should be available again.
+      // "Boston City Campus (Polokwane)",
+      // "Richfield Graduate Institute (Polokwane)",
+      // "Academy of Learning (Polokwane)",
     ],
   },
   "Mpumalanga": {
     public: ["University of Mpumalanga"],
     private: [
-      "Boston City Campus (Nelspruit)",
-      "Academy of Learning (Nelspruit)",
+      // Private institutions are hidden for now. Uncomment these when they should be available again.
+      // "Boston City Campus (Nelspruit)",
+      // "Academy of Learning (Nelspruit)",
     ],
   },
   "Northern Cape": {
     public: ["Sol Plaatje University"],
-    private: ["Academy of Learning (Kimberley)"],
+    private: [
+      // Private institutions are hidden for now. Uncomment these when they should be available again.
+      // "Academy of Learning (Kimberley)",
+    ],
   },
 };
 
@@ -225,7 +236,8 @@ export default function ProfileSetupPage({ onComplete }) {
   const availableInstitutions = provinceData
     ? [
         { group: "Public Universities", items: provinceData.public },
-        { group: "Private Colleges & Universities", items: provinceData.private },
+        // Private institutions are hidden for now. Uncomment this group to show them again.
+        // { group: "Private Colleges & Universities", items: provinceData.private },
       ]
     : [];
 
