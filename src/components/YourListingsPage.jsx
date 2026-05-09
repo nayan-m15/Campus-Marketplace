@@ -686,21 +686,21 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   <button
                     className="your-listings-btn"
                     onClick={() => {
+                      if (isSold) return;
                       setError(null);
                       setEditingItem({
                         ...item,
                         title: clampLength(item.title, LISTING_TITLE_MAX),
                         description: clampLength(item.description, LISTING_DESCRIPTION_MAX),
                         price: clampPriceInput(item.price),
-                        // Seed the modal with ordered existing images so users
-                        // can remove, reorder, or append photos before saving.
                         editImages: getListingImages(item),
                       });
                       setIsEditingPrice(false);
                     }}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: "var(--gray-800)" }}
-                  >
-                    Edit
+                    disabled={isSold}
+                  style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: "#fff", fontSize: 13, fontWeight: 600, cursor: isSold ? "not-allowed" : "pointer", fontFamily: "var(--font)", color: isSold ? "var(--gray-400)" : "var(--gray-800)", opacity: isSold ? 0.45 : 1 }}
+                >
+                  Edit
                   </button>
                   <button
                     className="your-listings-btn"
@@ -711,7 +711,8 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   </button>
                   <button
                     className="your-listings-btn"
-                    onClick={() => handleMarkTrade(item)}
+                    onClick={() => { if (!isSold) handleMarkTrade(item); }}
+                    disabled={isSold}
                     style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: (item.listing_type === "trade" || item.listing_type === "sale_and_trade" || item.status === "for_trade") ? "#eff6ff" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: (item.listing_type === "trade" || item.listing_type === "sale_and_trade" || item.status === "for_trade") ? "#2563eb" : "var(--gray-800)" }}
                   >
                     {(item.listing_type === "trade" || item.listing_type === "sale_and_trade" || item.status === "for_trade") ? "Unlist Trade" : "For Trade"}
