@@ -658,24 +658,28 @@ export default function AdminDashboard({
 
     return [
       {
+        id: "inventory",
         label: "Marketplace listings",
         value: new Intl.NumberFormat("en-ZA").format(listings.length),
         delta: `${flaggedCount} flagged`,
         tone: flaggedCount > 0 ? "warn" : "neutral",
       },
       {
+        id: "active",
         label: "Active listings",
         value: new Intl.NumberFormat("en-ZA").format(activeListings),
         delta: listingsLoading ? "Refreshing data" : "Ready for review",
         tone: "positive",
       },
       {
+        id: "trade",
         label: "Trade-enabled",
         value: new Intl.NumberFormat("en-ZA").format(tradeCount),
         delta: "Exchange workflows enabled",
         tone: "info",
       },
       {
+        id: "workspace",
         label: "Current workspace",
         value: activeNavItem.label,
         delta: activeNavItem.subtitle,
@@ -826,12 +830,12 @@ export default function AdminDashboard({
       <main className="admin-main">
         <header className="admin-hero">
           <div className="admin-hero__copy">
-            <p className="admin-hero__eyebrow">Enterprise operations dashboard</p>
+            <p className="admin-hero__eyebrow">Admin workspace</p>
             <h2 className="admin-hero__title">{activeNavItem.label}</h2>
             <p className="admin-hero__subtitle">{activeNavItem.subtitle}</p>
           </div>
           <div className="admin-hero__meta">
-            <span className="admin-hero__badge">Live workspace</span>
+            <span className="admin-hero__badge">CampusXchange operations</span>
             <p className="admin-hero__date">
               {formatAdminDate(new Date(), {
                 weekday: "long",
@@ -844,8 +848,11 @@ export default function AdminDashboard({
         </header>
 
         <section className="admin-kpi-grid" aria-label="Admin overview metrics">
-          {dashboardMetrics.map((metric) => (
-            <article key={metric.label} className="admin-kpi-card">
+          {dashboardMetrics.map((metric, index) => (
+            <article
+              key={metric.label}
+              className={`admin-kpi-card admin-kpi-card--${metric.id} ${index === 0 ? "admin-kpi-card--featured" : ""}`}
+            >
               <span className="admin-kpi-card__label">{metric.label}</span>
               <strong className="admin-kpi-card__value">{metric.value}</strong>
               <span className={`admin-kpi-card__trend admin-kpi-card__trend--${metric.tone}`}>{metric.delta}</span>
