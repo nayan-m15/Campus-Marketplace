@@ -46,19 +46,6 @@ const NAV_ITEMS = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function mapBookingStatusToTransactionStatus(bookingType, bookingStatus, currentStatus) {
-  if (bookingType === "dropoff") {
-    if (bookingStatus === "completed") return "item_received";
-    if (["scheduled", "pending_approval", "cancelled"].includes(bookingStatus)) return "awaiting_dropoff";
-  }
-  if (bookingType === "collection") {
-    if (bookingStatus === "pending_approval" || bookingStatus === "cancelled") return "item_received";
-    if (bookingStatus === "scheduled")  return "awaiting_collection";
-    if (bookingStatus === "completed")  return "item_released";
-  }
-  return currentStatus;
-}
-
 function formatDate(dateStr) {
   if (!dateStr) return "-";
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-ZA", {
@@ -187,15 +174,14 @@ function StatCard({ icon, iconColor, value, label, subLabel }) {
 }
 
 // ---------------------------------------------------------------------------
-// BookingCard — used in Drop-off & Collection tabs (pending_approval only)
+// BookingCard — used in Drop-off & Collection tabs
 // ---------------------------------------------------------------------------
 
-/**
- * In the request tabs (Drop-off / Collection) a booking is always
- * `pending_approval`.  Staff can only Accept or Decline — no status dropdown.
- */
-function BookingCard({ booking, transaction, onAccept, onDecline, saving }) {
+function BookingCard({ booking, transaction }) {
   const isDropoff = booking.type === "dropoff";
+  const operationalHint = isDropoff
+    ? "Auto-confirmed booking. Use Manage Bookings once the seller physically drops the item off."
+    : "Auto-confirmed booking. Use Manage Bookings once the buyer physically collects the item.";
 
   return (
     <article className="booking-card">
@@ -243,31 +229,13 @@ function BookingCard({ booking, transaction, onAccept, onDecline, saving }) {
               <StatusBadge status={transaction.status} />
             </li>
           ) : null}
+          <li className="booking-card__detail">
+            <span className="booking-card__detail-label">Next step</span>
+            <span className="booking-card__detail-value managed-card__hint">{operationalHint}</span>
+          </li>
         </ul>
       </section>
 
-      <footer className="booking-card__footer">
-        <menu className="booking-card__actions" role="list">
-          <li>
-            <button
-              className="btn-action btn-action--receipt"
-              onClick={() => onAccept(booking, transaction)}
-              disabled={saving}
-            >
-              <span aria-hidden="true">✓</span> Accept Booking
-            </button>
-          </li>
-          <li>
-            <button
-              className="btn-action btn-action--noshow"
-              onClick={() => onDecline(booking, transaction)}
-              disabled={saving}
-            >
-              Decline Booking
-            </button>
-          </li>
-        </menu>
-      </footer>
     </article>
   );
 }
@@ -378,7 +346,7 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
             <li className="booking-card__detail">
               <span className="booking-card__detail-label">Next step</span>
               <span className="booking-card__detail-value managed-card__hint">
-                ⏳ Waiting for buyer to submit a collection booking request.
+                ⏳ Waiting for the buyer to book a collection slot.
               </span>
             </li>
           ) : null}
@@ -423,18 +391,14 @@ function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
 
   if (!dialog) return null;
 
-  const isAccept  = dialog.actionType === "accept_booking";
-  const isDecline = dialog.actionType === "decline_booking";
+  const isAccept = false;
+  const isDecline = false;
 
   const titles = {
-    accept_booking:  "Accept Booking Request",
-    decline_booking: "Decline Booking Request",
     managed_action:  `Confirm: ${STATUS_META[dialog.nextStatus]?.label || dialog.nextStatus}`,
   };
 
   const subtitles = {
-    accept_booking:  "This will schedule the booking and move it to Manage Bookings.",
-    decline_booking: "This will cancel and remove the booking request.",
     managed_action:  `Update the transaction to "${STATUS_META[dialog.nextStatus]?.label || dialog.nextStatus}".`,
   };
 
@@ -490,7 +454,7 @@ function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
 // ---------------------------------------------------------------------------
 
 function OverviewSection({ transactions, bookings }) {
-  const pendingRequests   = bookings.filter((b) => b.status === "pending_approval").length;
+  const pendingRequests   = bookings.filter((b) => b.status === "scheduled").length;
   const managed           = transactions.filter((t) => MANAGED_STATUSES.includes(t.status)).length;
   const awaitingDropoff   = transactions.filter((t) => t.status === "awaiting_dropoff").length;
   const awaitingCollection= transactions.filter((t) => t.status === "awaiting_collection").length;
@@ -506,10 +470,10 @@ function OverviewSection({ transactions, bookings }) {
           </section>
         </header>
         <ul className="stats-grid" role="list">
-          <li><StatCard icon="📝" iconColor="amber"  value={pendingRequests}    label="Pending Requests"       subLabel="Bookings awaiting staff approval" /></li>
+          <li><StatCard icon="🗓" iconColor="amber"  value={pendingRequests}    label="Scheduled Bookings"     subLabel="Auto-confirmed facility slots" /></li>
           <li><StatCard icon="⚙️"  iconColor="blue"   value={managed}            label="Active in Manage"       subLabel="Transactions in progress" /></li>
           <li><StatCard icon="📥" iconColor="amber"  value={awaitingDropoff}    label="Awaiting Drop-off"      subLabel="Seller still needs to arrive" /></li>
-          <li><StatCard icon="🔔" iconColor="blue"   value={awaitingCollection} label="Ready for Collection"   subLabel="Approved buyers can now arrive" /></li>
+          <li><StatCard icon="🔔" iconColor="blue"   value={awaitingCollection} label="Ready for Collection"   subLabel="Buyer has booked and can arrive" /></li>
           <li><StatCard icon="✅" iconColor="green"  value={completedAll}       label="Completed Transactions" subLabel="Fully closed trades" /></li>
         </ul>
       </article>
@@ -518,24 +482,29 @@ function OverviewSection({ transactions, bookings }) {
 }
 
 // ---------------------------------------------------------------------------
-// BookingsSection — Drop-off & Collection request tabs (pending_approval only)
+// BookingsSection — Drop-off & Collection schedules
 // ---------------------------------------------------------------------------
 
 function BookingsSection({
   type,
   bookings,
   transactions,
-  onAccept,
-  onDecline,
-  savingIds,
 }) {
   const [search, setSearch] = useState("");
   const label = type === "dropoff" ? "Drop-off" : "Collection";
 
-  // Only show pending_approval bookings of the right type
+  const transactionById = useMemo(
+    () => Object.fromEntries(transactions.map((transaction) => [transaction.id, transaction])),
+    [transactions],
+  );
+
   const filtered = bookings.filter((b) => {
     if (b.type !== type) return false;
-    if (b.status !== "pending_approval") return false;
+    const transaction = transactionById[b.transactionId];
+    if (!transaction) return false;
+    if (type === "dropoff" && !["awaiting_dropoff", "item_received"].includes(transaction.status)) return false;
+    if (type === "collection" && !["awaiting_collection", "item_released", "completed"].includes(transaction.status)) return false;
+    if (!["scheduled", "completed"].includes(b.status)) return false;
     if (!search.trim()) return true;
     const hay = [b.personName, b.itemName, b.studentId, b.transactionId, b.location]
       .filter(Boolean).join(" ").toLowerCase();
@@ -544,20 +513,20 @@ function BookingsSection({
 
   return (
     <section className="view-section" aria-labelledby={`${type}-heading`}>
-      <h2 id={`${type}-heading`} className="sr-only">{label} Booking Requests</h2>
+      <h2 id={`${type}-heading`} className="sr-only">{label} Bookings</h2>
 
       <article className="panel">
         <header className="panel__header">
           <section>
-            <h3 className="panel__title">{label} Requests</h3>
+            <h3 className="panel__title">{label} Bookings</h3>
             <p className="panel__subtitle">
               {type === "dropoff"
-                ? "Review and approve seller drop-off requests before scheduling."
-                : "Review and approve buyer collection requests before scheduling."}
+                ? "Drop-off slots confirm automatically. Use Manage Bookings to confirm when the seller hands the item over."
+                : "Collection slots confirm automatically. Use Manage Bookings to confirm when the buyer collects the item."}
             </p>
           </section>
           {filtered.length > 0 ? (
-            <p className="panel__count">{filtered.length} pending</p>
+            <p className="panel__count">{filtered.length} scheduled</p>
           ) : null}
         </header>
 
@@ -576,22 +545,16 @@ function BookingsSection({
         {filtered.length === 0 ? (
           <EmptyState
             icon="📭"
-            title="No pending requests"
-            description="New booking requests will appear here once students submit them."
+            title={`No ${label.toLowerCase()} bookings`}
+            description={`Auto-confirmed ${label.toLowerCase()} bookings will appear here once students schedule them.`}
           />
         ) : (
           <ul className="booking-list" role="list">
             {filtered.map((booking) => {
-              const transaction = transactions.find((t) => t.id === booking.transactionId);
+              const transaction = transactionById[booking.transactionId];
               return (
                 <li key={booking.id}>
-                  <BookingCard
-                    booking={booking}
-                    transaction={transaction}
-                    onAccept={onAccept}
-                    onDecline={onDecline}
-                    saving={Boolean(savingIds[booking.id])}
-                  />
+                  <BookingCard booking={booking} transaction={transaction} />
                 </li>
               );
             })}
@@ -1132,8 +1095,8 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   }, [dialog, loadDashboard, showToast, staffProfile?.id]);
 
   // ── Sidebar badges ────────────────────────────────────────────────────────
-  const pendingDropoffs    = bookings.filter((b) => b.type === "dropoff"    && b.status === "pending_approval").length;
-  const pendingCollections = bookings.filter((b) => b.type === "collection" && b.status === "pending_approval").length;
+  const pendingDropoffs    = bookings.filter((b) => b.type === "dropoff"    && b.status === "scheduled").length;
+  const pendingCollections = bookings.filter((b) => b.type === "collection" && b.status === "scheduled").length;
   const managedCount       = transactions.filter((t) => MANAGED_STATUSES.includes(t.status)).length;
 
   const badgeFor = (key) => {
@@ -1149,8 +1112,8 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
   const viewTitles = {
     overview:     "Dashboard Overview",
-    dropoffs:     "Drop-off Requests",
-    collections:  "Collection Requests",
+    dropoffs:     "Drop-off Bookings",
+    collections:  "Collection Bookings",
     manage:       "Manage Bookings",
     transactions: "All Transactions",
   };

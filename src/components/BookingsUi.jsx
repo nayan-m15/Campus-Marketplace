@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import "../styles/BookingsUi.css";
 import {
-  buildBookingId,
   DAYS,
   formatBookingDate,
   formatSlotLabel,
@@ -14,6 +13,26 @@ import {
   toDateInputValue,
 } from "../utils/bookingScheduling";
 import { canBookCollectionForStatus, TRANSACTION_STATUS_META } from "../utils/tradeWorkflow";
+
+function getBookingErrorMessage(error) {
+  const message = error?.message || "";
+  if (/slot is no longer available/i.test(message)) {
+    return "That slot has just filled up. Please choose another available time.";
+  }
+  if (/not ready for a drop-off booking/i.test(message)) {
+    return "This transaction is not ready for a drop-off booking yet.";
+  }
+  if (/collection cannot be booked/i.test(message)) {
+    return "Collection can only be booked after staff confirms the seller's drop-off.";
+  }
+  if (/only the seller can book/i.test(message) || /only the buyer can book/i.test(message)) {
+    return "You do not have permission to book this slot.";
+  }
+  if (/future time/i.test(message)) {
+    return "Please choose a future date and time.";
+  }
+  return message || "Unable to save the booking.";
+}
 
 function StepIndicator({ step }) {
   return (
@@ -219,65 +238,30 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
     setError("");
 
     const scheduledTime = `${selectedDate}T${selectedTime}:00`;
-    const bookingId = buildBookingId(bookingType === "dropoff" ? "DO" : "CL");
-    const bookingColumn = bookingType === "dropoff" ? "dropoff_id" : "collection_id";
-    const bookingStatus = "pending_approval";
     try {
-      const existingBookingId = bookingType === "dropoff" ? transaction.dropoff_id : transaction.collection_id;
+      const { data, error: bookingError } = await supabase.rpc("book_transaction_slot", {
+        p_transaction_id: transaction.id,
+        p_booking_type: bookingType,
+        p_facility_id: String(selectedFacility.id),
+        p_scheduled_time: scheduledTime,
+      });
 
-      if (existingBookingId) {
-        const { error: updateBookingError } = await supabase
-          .from("bookings")
-          .update({
-            scheduled_time: scheduledTime,
-            location: selectedFacility.name,
-            type: bookingType,
-            status: bookingStatus,
-          })
-          .eq("id", existingBookingId);
+      if (bookingError) throw bookingError;
 
-        if (updateBookingError) throw updateBookingError;
-
-        const { error: updateTransactionError } = await supabase
-          .from("transactions")
-          .update({
-            [bookingColumn]: existingBookingId,
-          })
-          .eq("id", transaction.id);
-
-        if (updateTransactionError) throw updateTransactionError;
-      } else {
-        const { error: insertBookingError } = await supabase
-          .from("bookings")
-          .insert({
-            id: bookingId,
-            type: bookingType,
-            scheduled_time: scheduledTime,
-            location: selectedFacility.name,
-            status: bookingStatus,
-          });
-
-        if (insertBookingError) throw insertBookingError;
-
-        const { error: updateTransactionError } = await supabase
-          .from("transactions")
-          .update({
-            [bookingColumn]: bookingId,
-          })
-          .eq("id", transaction.id);
-
-        if (updateTransactionError) throw updateTransactionError;
+      const bookingResult = Array.isArray(data) ? data[0] : data;
+      if (!bookingResult?.booking_id) {
+        throw new Error("Booking confirmation did not return a valid booking reference.");
       }
 
       onSuccess?.({
-        scheduledTime,
+        scheduledTime: bookingResult.scheduled_time || scheduledTime,
         bookingType,
-        bookingId: existingBookingId || bookingId,
+        bookingId: bookingResult.booking_id,
         transactionId: transaction.id,
       });
       setDone(true);
     } catch (err) {
-      setError(err.message || "Unable to save the booking.");
+      setError(getBookingErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

@@ -950,7 +950,7 @@ test("TradeFacilityDashboard renders navigation and sign out", () => {
 
   expect(screen.getByRole("heading", { name: /dashboard overview/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /drop-off bookings/i }));
-  expect(screen.getByRole("heading", { name: /drop-off requests/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /drop-off bookings/i })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: /all transactions/i }));
   expect(screen.getByRole("heading", { name: /all transactions/i })).toBeInTheDocument();
@@ -1032,18 +1032,13 @@ test("StudentBookingsPage lets a seller complete a drop-off booking flow", async
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
 
-  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
-    "bookings",
+  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
+    "book_transaction_slot",
     expect.objectContaining({
-      type: "dropoff",
-      location: "Main Trade Desk",
-      status: "pending_approval",
-    })
-  ));
-  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
-    "transactions",
-    expect.objectContaining({
-      dropoff_id: expect.stringMatching(/^DO-/),
+      p_transaction_id: "txn-4",
+      p_booking_type: "dropoff",
+      p_facility_id: "facility-1",
+      p_scheduled_time: "2099-05-04T09:00:00",
     })
   ));
 });
@@ -1074,18 +1069,13 @@ test("StudentBookingsPage lets a buyer complete a collection booking flow", asyn
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
 
-  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
-    "bookings",
+  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
+    "book_transaction_slot",
     expect.objectContaining({
-      type: "collection",
-      location: "Main Trade Desk",
-      status: "pending_approval",
-    })
-  ));
-  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
-    "transactions",
-    expect.objectContaining({
-      collection_id: expect.stringMatching(/^CL-/),
+      p_transaction_id: "txn-5",
+      p_booking_type: "collection",
+      p_facility_id: "facility-1",
+      p_scheduled_time: "2099-05-04T09:00:00",
     })
   ));
 });
