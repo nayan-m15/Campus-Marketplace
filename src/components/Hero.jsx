@@ -203,9 +203,15 @@ export default function Hero({
                   >
                     <h3>How It Works</h3>
                     <p>
-                      Browse listings, connect with sellers, and securely complete your
-                      transaction — all in one place.
+                      CampusXchange keeps campus buying, selling, and trading in one flow.
                     </p>
+                    <ul className="popup-card__list">
+                      <li>Sign up with your student profile, campus, and preferences.</li>
+                      <li>Browse, search, filter, sort, save favourites, and open full listing details.</li>
+                      <li>List items with photos, category, condition, price, and trade options.</li>
+                      <li>Message sellers, send offers, arrange sales or trades, and book campus trade facilities.</li>
+                      <li>Use ratings, notifications, flagged-listing warnings, and admin moderation for safer deals.</li>
+                    </ul>
 
                     <button
                       className="btn-outline"
