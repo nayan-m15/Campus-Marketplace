@@ -1,7 +1,7 @@
 // Main structure for the your listings page feature lives here.
 // Shared UI pieces and page-level behavior are tied together in this file.
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { CATEGORIES, CONDITION_COLORS } from "../data/listings";
@@ -12,6 +12,7 @@ const LISTING_PRICE_MAX_DIGITS = 8;
 const LISTING_PRICE_MAX_VALUE = 99999999.99;
 // Keep the edit modal aligned with the create-listing photo limit.
 const MAX_IMAGES = 5;
+const IMAGE_FILE_ACCEPT = "image/*";
 // The edit modal should offer real listing categories, excluding the filter-only
 // "All Items" option used by the browsing UI.
 const EDITABLE_CATEGORIES = CATEGORIES.filter((category) => category.label !== "All Items");
@@ -214,6 +215,8 @@ function getEditPriceSuggestionCacheKey(item) {
 // Photo editor used inside the listing edit modal. Existing URLs and newly
 // selected files share one ordered thumbnail strip so the first item is cover.
 function EditImageStrip({ images, onChange }) {
+  const libraryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const [draggingOver, setDraggingOver] = useState(false);
 
   // Reads selected or dropped files into previews, while preserving the File
@@ -292,8 +295,8 @@ function EditImageStrip({ images, onChange }) {
         ))}
 
         {images.length < MAX_IMAGES && (
-          // The add slot doubles as a drag-and-drop target and a native picker.
-          <label
+          // The add slot doubles as a drag-and-drop target and native picker launcher.
+          <div
             onDragOver={(event) => {
               event.preventDefault();
               setDraggingOver(true);
@@ -312,20 +315,55 @@ function EditImageStrip({ images, onChange }) {
               border: `2px dashed ${draggingOver ? "var(--green)" : "var(--gray-200)"}`,
               background: draggingOver ? "var(--mint)" : "var(--surface-soft)",
               color: "var(--gray-600)",
-              cursor: "pointer",
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
               textAlign: "center",
               fontSize: 12,
               fontWeight: 700,
               padding: 8,
+              gap: 6,
             }}
           >
-            Add photo
+            <button
+              type="button"
+              onClick={() => libraryInputRef.current?.click()}
+              style={{
+                width: "100%",
+                border: "none",
+                borderRadius: 6,
+                background: "var(--green)",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "5px 4px",
+              }}
+            >
+              Library
+            </button>
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              style={{
+                width: "100%",
+                border: "1px solid var(--gray-200)",
+                borderRadius: 6,
+                background: "#fff",
+                color: "var(--gray-600)",
+                cursor: "pointer",
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "5px 4px",
+              }}
+            >
+              Camera
+            </button>
             <input
+              ref={libraryInputRef}
               type="file"
-              accept="image/*"
+              accept={IMAGE_FILE_ACCEPT}
               multiple
               onChange={(event) => {
                 handleFiles(event.target.files);
@@ -334,7 +372,19 @@ function EditImageStrip({ images, onChange }) {
               style={{ display: "none" }}
               aria-label="Add listing photos"
             />
-          </label>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept={IMAGE_FILE_ACCEPT}
+              capture="environment"
+              onChange={(event) => {
+                handleFiles(event.target.files);
+                event.target.value = "";
+              }}
+              style={{ display: "none" }}
+              aria-label="Take listing photo"
+            />
+          </div>
         )}
       </div>
       <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
