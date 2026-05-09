@@ -3,6 +3,11 @@
 
 import { useEffect, useId, useState } from "react";
 import { CATEGORIES, CONDITIONS } from "../data/listings";
+import {
+  PRICE_INPUT_LENGTH_LIMIT,
+  limitPriceInput,
+  validatePriceRange,
+} from "../utils/priceRangeValidation";
 import "../styles/FilterBar.css";
 
 export default function FilterBar({
@@ -121,6 +126,10 @@ export default function FilterBar({
     const sortId = `${fieldIdBase}-${prefix}-price`;
     const minId = `${fieldIdBase}-${prefix}-price-min`;
     const maxId = `${fieldIdBase}-${prefix}-price-max`;
+    const minErrorId = `${minId}-error`;
+    const maxErrorId = `${maxId}-error`;
+    const rangeErrorId = `${fieldIdBase}-${prefix}-price-range-error`;
+    const priceRangeErrors = validatePriceRange(priceRange);
 
     const sortOptions = [
       { value: "", label: "Any price" },
@@ -177,33 +186,55 @@ export default function FilterBar({
             <span className="filter-bar__label-text">Minimum price</span>
             <input
               id={minId}
-              type="number"
-              min="0"
+              type="text"
+              inputMode="decimal"
+              maxLength={PRICE_INPUT_LENGTH_LIMIT}
               placeholder="0"
               value={priceRange.min}
               onChange={(e) =>
-                onPriceRangeChange?.({ ...priceRange, min: e.target.value })
+                onPriceRangeChange?.({ ...priceRange, min: limitPriceInput(e.target.value) })
               }
-              className="filter-bar__range-input"
+              className={`filter-bar__range-input${priceRangeErrors.min || priceRangeErrors.range ? " filter-bar__range-input--invalid" : ""}`}
               aria-label="Minimum price in Rand"
+              aria-invalid={priceRangeErrors.min || priceRangeErrors.range ? "true" : undefined}
+              aria-describedby={priceRangeErrors.min ? minErrorId : priceRangeErrors.range ? rangeErrorId : undefined}
             />
+            {priceRangeErrors.min && (
+              <span id={minErrorId} className="filter-bar__range-error" role="alert">
+                {priceRangeErrors.min}
+              </span>
+            )}
           </label>
 
           <label className="filter-bar__range-label" htmlFor={maxId}>
             <span className="filter-bar__label-text">Maximum price</span>
             <input
               id={maxId}
-              type="number"
-              min="0"
+              type="text"
+              inputMode="decimal"
+              maxLength={PRICE_INPUT_LENGTH_LIMIT}
               placeholder="Any"
               value={priceRange.max}
               onChange={(e) =>
-                onPriceRangeChange?.({ ...priceRange, max: e.target.value })
+                onPriceRangeChange?.({ ...priceRange, max: limitPriceInput(e.target.value) })
               }
-              className="filter-bar__range-input"
+              className={`filter-bar__range-input${priceRangeErrors.max || priceRangeErrors.range ? " filter-bar__range-input--invalid" : ""}`}
               aria-label="Maximum price in Rand"
+              aria-invalid={priceRangeErrors.max || priceRangeErrors.range ? "true" : undefined}
+              aria-describedby={priceRangeErrors.max ? maxErrorId : priceRangeErrors.range ? rangeErrorId : undefined}
             />
+            {priceRangeErrors.max && (
+              <span id={maxErrorId} className="filter-bar__range-error" role="alert">
+                {priceRangeErrors.max}
+              </span>
+            )}
           </label>
+
+          {priceRangeErrors.range && (
+            <p id={rangeErrorId} className="filter-bar__range-error filter-bar__range-error--full" role="alert">
+              {priceRangeErrors.range}
+            </p>
+          )}
         </fieldset>
       )}
     </>

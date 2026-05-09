@@ -545,6 +545,12 @@
   box-shadow: 0 0 0 4px rgba(31, 107, 82, 0.12);
 }
 
+.listings-section__range-input--invalid,
+.listings-section__range-input--invalid:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px rgba(199, 91, 74, 0.12);
+}
+
 .listings-section__range-fieldset {
   border: 1px solid rgba(31, 36, 31, 0.08);
   border-radius: 16px;
@@ -553,6 +559,7 @@
   display: flex;
   align-items: flex-end;
   gap: 10px;
+  flex-wrap: wrap;
   background: rgba(255, 255, 255, 0.75);
 }
 
@@ -564,6 +571,21 @@
 .listings-section__range-input {
   width: 110px;
   padding: 0 12px;
+}
+
+.listings-section__range-error {
+  max-width: 240px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--danger);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.listings-section__range-error--full {
+  flex-basis: 100%;
+  margin: 0;
 }
 
 .listings-section__range-input::-webkit-outer-spin-button,

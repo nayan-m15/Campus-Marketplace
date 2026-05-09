@@ -607,6 +607,59 @@ test("filters listings by custom minimum price", async () => {
   });
 });
 
+test("shows validation for invalid custom price entries without filtering listings", async () => {
+  renderApp();
+  const sortSelect = await screen.findByLabelText(/sort by/i);
+
+  fireEvent.change(sortSelect, { target: { value: "custom" } });
+  fireEvent.change(await screen.findByLabelText(/minimum price/i), {
+    target: { value: "abc" },
+  });
+
+  expect(
+    await screen.findByText(/minimum price must be a valid amount with up to two decimals/i)
+  ).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /open details for sony ps5/i })).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: /open details for master shifu children toy/i })
+  ).toBeInTheDocument();
+});
+
+test("shows validation when custom minimum price is greater than maximum price", async () => {
+  renderApp();
+  const sortSelect = await screen.findByLabelText(/sort by/i);
+
+  fireEvent.change(sortSelect, { target: { value: "custom" } });
+  fireEvent.change(await screen.findByLabelText(/minimum price/i), {
+    target: { value: "2000" },
+  });
+  fireEvent.change(await screen.findByLabelText(/maximum price/i), {
+    target: { value: "1000" },
+  });
+
+  expect(
+    await screen.findByText(/minimum price cannot be greater than maximum price/i)
+  ).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /open details for sony ps5/i })).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: /open details for master shifu children toy/i })
+  ).toBeInTheDocument();
+});
+
+test("limits custom price inputs to ten whole-number digits and two decimals", async () => {
+  renderApp();
+  const sortSelect = await screen.findByLabelText(/sort by/i);
+
+  fireEvent.change(sortSelect, { target: { value: "custom" } });
+  const minInput = await screen.findByLabelText(/minimum price/i);
+
+  fireEvent.change(minInput, {
+    target: { value: "123456789012.987" },
+  });
+
+  expect(minInput).toHaveValue("1234567890.98");
+});
+
 test("hides custom price inputs when switching back to any price", async () => {
   renderApp();
   const sortSelect = await screen.findByLabelText(/sort by/i);

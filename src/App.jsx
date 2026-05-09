@@ -24,6 +24,13 @@ import { supabase } from "./supabaseClient";
 import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
 import YourListingsPage from "./components/YourListingsPage";
 import { useWishlist } from "./context/useWishlist";
+import { getValidPriceRange } from "./utils/priceRangeValidation";
+import {
+  MODERATION_REASON_MAX_LENGTH,
+  getModerationReasonError,
+  limitModerationReason,
+  normalizeModerationReason,
+} from "./utils/moderationReasonValidation";
 import SettingsPage from "./components/SettingsPage";
 import { getAppBaseUrl } from "./utils/appUrl";
 import { insertMessage } from "./utils/messageDelivery";
@@ -813,6 +820,8 @@ function ModerationModal({
 }) {
   if (!item) return null;
 
+  const moderationReasonLength = moderationReason.length;
+
   return (
     <div className="item-modal-overlay" onClick={onClose}>
       <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -849,11 +858,27 @@ function ModerationModal({
                       <textarea
                         className="item-modal-textarea"
                         value={moderationReason}
-                        onChange={(e) => onReasonChange(e.target.value)}
+                        onChange={(e) => onReasonChange(limitModerationReason(e.target.value))}
                         rows={4}
+                        maxLength={MODERATION_REASON_MAX_LENGTH}
                         placeholder="Explain why this listing is being flagged."
+                        aria-describedby="moderation-reason-help"
                         style={{ marginBottom: 0 }}
                       />
+                      <span
+                        id="moderation-reason-help"
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          marginTop: 8,
+                          color: "var(--gray-500)",
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <span>{moderationReasonLength}/{MODERATION_REASON_MAX_LENGTH}</span>
+                      </span>
                     </label>
                     {actionState.error && <p className="item-modal-error">{actionState.error}</p>}
                     {actionState.success && <p className="item-modal-success">{actionState.success}</p>}
@@ -1278,6 +1303,9 @@ useEffect(() => {
   }
 
   const filteredListings = (() => {
+    const validPriceRange =
+      priceSort === "custom" ? getValidPriceRange(priceRange) : { min: "", max: "" };
+
     let result = allListings.filter((item) => {
       if (item.status === "sold") return false;
       const searchMatch = searchQuery.trim()
@@ -1295,13 +1323,13 @@ useEffect(() => {
 
       const minOk =
         priceSort !== "custom" ||
-        priceRange.min === "" ||
-        numericPrice(item) >= Number(priceRange.min);
+        validPriceRange.min === "" ||
+        numericPrice(item) >= Number(validPriceRange.min);
 
       const maxOk =
         priceSort !== "custom" ||
-        priceRange.max === "" ||
-        numericPrice(item) <= Number(priceRange.max);
+        validPriceRange.max === "" ||
+        numericPrice(item) <= Number(validPriceRange.max);
 
       return searchMatch && categoryMatch && conditionMatch && minOk && maxOk;
     });
@@ -1492,7 +1520,7 @@ useEffect(() => {
 
   function handleOpenModeration(item) {
     setModerationListing(item);
-    setModerationReason(item.flag_reason || "");
+    setModerationReason(limitModerationReason(item.flag_reason || ""));
     setModerationState({ loading: "", success: "", error: "" });
   }
 
@@ -1502,12 +1530,13 @@ useEffect(() => {
   }
 
   async function handleFlagListing(item) {
-    const reason = moderationReason.trim();
-    if (!reason) {
+    const reason = normalizeModerationReason(moderationReason);
+    const reasonError = getModerationReasonError(reason);
+    if (reasonError) {
       setModerationState({
         loading: "",
         success: "",
-        error: "Please enter a reason before flagging this listing.",
+        error: reasonError,
       });
       return;
     }
@@ -1639,7 +1668,7 @@ useEffect(() => {
           item={moderationListing}
           actionState={moderationState}
           moderationReason={moderationReason}
-          onReasonChange={setModerationReason}
+          onReasonChange={(value) => setModerationReason(limitModerationReason(value))}
           onClose={() => setModerationListing(null)}
           onFlagListing={handleFlagListing}
           onRemoveListing={handleRemoveListing}
@@ -1873,7 +1902,7 @@ useEffect(() => {
           item={moderationListing}
           actionState={moderationState}
           moderationReason={moderationReason}
-          onReasonChange={setModerationReason}
+          onReasonChange={(value) => setModerationReason(limitModerationReason(value))}
           onClose={() => setModerationListing(null)}
           onFlagListing={handleFlagListing}
           onRemoveListing={handleRemoveListing}
@@ -1967,7 +1996,7 @@ useEffect(() => {
           item={moderationListing}
           actionState={moderationState}
           moderationReason={moderationReason}
-          onReasonChange={setModerationReason}
+          onReasonChange={(value) => setModerationReason(limitModerationReason(value))}
           onClose={() => setModerationListing(null)}
           onFlagListing={handleFlagListing}
           onRemoveListing={handleRemoveListing}
