@@ -95,7 +95,7 @@ export default function Navbar({
       <input
         ref={mobileSearchInputRef}
         type="search"
-        placeholder="Search textbooks, electronics, furniture..."
+        placeholder="Search"
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
         onFocus={onSearchFocus}
@@ -165,6 +165,23 @@ export default function Navbar({
               <input
                 type="search"
                 placeholder="Search textbooks, electronics, furniture..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                onFocus={onSearchFocus}
+                onClick={onSearchFocus}
+              />
+            </form>
+
+            <form className="navbar__search navbar__search--logged-out-mobile" role="search" onSubmit={(e) => e.preventDefault()}>
+              <label className="navbar__search-icon" aria-hidden="true">
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </label>
+              <input
+                type="search"
+                placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 onFocus={onSearchFocus}
