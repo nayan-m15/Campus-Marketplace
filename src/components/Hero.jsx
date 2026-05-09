@@ -271,7 +271,7 @@ export default function Hero({
                           <img
                             src={listing.image_url}
                             alt={listing.title}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            className="listing-image__photo"
                           />
                         ) : (
                           <span className="listing-emoji">{listing.emoji}</span>
