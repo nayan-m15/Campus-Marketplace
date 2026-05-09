@@ -12,6 +12,8 @@ export default function ResetPasswordPage({ onComplete, autoContinueDelayMs = 15
   const [errors, setErrors] = useState([]);
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -95,28 +97,78 @@ export default function ResetPasswordPage({ onComplete, autoContinueDelayMs = 15
           <form onSubmit={handleSubmit} className="auth-form" noValidate>
             <div className="auth-field">
               <label htmlFor="reset-password">New password</label>
-              <input
-                id="reset-password"
-                type="password"
-                placeholder="Min. 6 chars, upper & lowercase, 1 number"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-              />
+              <div className="auth-password-control">
+                <input
+                  id="reset-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Min. 6 chars, upper & lowercase, 1 number"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="auth-password-toggle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                >
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                    <circle cx="12" cy="12" r="3" />
+                    {showPassword && <path d="M4 20 20 4" />}
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="auth-field">
               <label htmlFor="reset-password-confirm">Confirm new password</label>
-              <input
-                id="reset-password-confirm"
-                type="password"
-                placeholder="Repeat new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-              />
+              <div className="auth-password-control">
+                <input
+                  id="reset-password-confirm"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Repeat new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="auth-password-toggle"
+                  onClick={() => setShowConfirmPassword((current) => !current)}
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                  aria-pressed={showConfirmPassword}
+                >
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                    <circle cx="12" cy="12" r="3" />
+                    {showConfirmPassword && <path d="M4 20 20 4" />}
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <button type="submit" className="btn-primary auth-submit" disabled={loading}>

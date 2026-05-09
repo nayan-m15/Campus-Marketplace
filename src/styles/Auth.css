@@ -250,6 +250,11 @@
   padding-right: 48px;
 }
 
+.auth-password-control input::-ms-reveal,
+.auth-password-control input::-ms-clear {
+  display: none;
+}
+
 .auth-password-toggle {
   position: absolute;
   right: 12px;
