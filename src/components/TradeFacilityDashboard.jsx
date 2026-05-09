@@ -174,6 +174,28 @@ const BOOKING_STATUS_META = {
   rescheduled:{ label: "Rescheduled",cls: "bstatus--rescheduled"},
 };
 
+<<<<<<< Updated upstream
+=======
+// Active transaction lifecycle states shown in Manage Bookings
+const MANAGED_STATUSES = ["awaiting_dropoff", "item_received", "awaiting_collection", "item_released"];
+
+// ---------------------------------------------------------------------------
+// Navigation — includes new "Manage Bookings" tab
+// ---------------------------------------------------------------------------
+
+const NAV_ITEMS = [
+  { key: "overview",    label: "Overview",          icon: "🏠" },
+  { key: "dropoffs",    label: "Drop-off Bookings", icon: "📥" },
+  { key: "collections", label: "Collection Bookings",icon: "📤" },
+  { key: "manage",      label: "Manage Bookings",   icon: "⚙️"  },
+  { key: "transactions",label: "All Transactions",  icon: "📋" },
+];
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+>>>>>>> Stashed changes
 function formatDate(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr + "T00:00:00");
@@ -188,7 +210,68 @@ function initials(name) {
   return name.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
 }
 
+<<<<<<< Updated upstream
 // ── SUB-COMPONENTS ─────────────────────────────────────────────────────────────
+=======
+function buildListingMatchKey(userId, itemName) {
+  return `${userId || ""}::${String(itemName || "").trim().toLowerCase()}`;
+}
+
+function buildBookings(transactions, profilesById, bookingsById) {
+  const output = [];
+
+  for (const transaction of transactions) {
+    const sellerProfile = profilesById[transaction.seller_id] || {};
+    const buyerProfile  = profilesById[transaction.buyer_id]  || {};
+
+    if (transaction.dropoff_id && bookingsById[transaction.dropoff_id]) {
+      const booking = bookingsById[transaction.dropoff_id];
+      const when    = formatDateTime(booking.scheduled_time);
+      output.push({
+        id:             booking.id,
+        type:           "dropoff",
+        transactionId:  transaction.id,
+        personName:     sellerProfile.display_name || sellerProfile.name || transaction.seller_id,
+        studentId:      sellerProfile.email || transaction.seller_id,
+        role:           "seller",
+        scheduledDate:  booking.scheduled_time?.slice(0, 10) || "",
+        scheduledTime:  booking.scheduled_time?.slice(11, 16) || when.time,
+        status:         deriveBookingStatus("dropoff", transaction.status, booking.status),
+        itemName:       transaction.item,
+        location:       booking.location,
+      });
+    }
+
+    if (transaction.collection_id && bookingsById[transaction.collection_id]) {
+      const booking = bookingsById[transaction.collection_id];
+      const when    = formatDateTime(booking.scheduled_time);
+      output.push({
+        id:             booking.id,
+        type:           "collection",
+        transactionId:  transaction.id,
+        personName:     buyerProfile.display_name || buyerProfile.name || transaction.buyer_id,
+        studentId:      buyerProfile.email || transaction.buyer_id,
+        role:           "buyer",
+        scheduledDate:  booking.scheduled_time?.slice(0, 10) || "",
+        scheduledTime:  booking.scheduled_time?.slice(11, 16) || when.time,
+        status:         deriveBookingStatus("collection", transaction.status, booking.status),
+        itemName:       transaction.item,
+        location:       booking.location,
+      });
+    }
+  }
+
+  return output.sort((a, b) => {
+    const aTime = new Date(`${a.scheduledDate}T${a.scheduledTime || "00:00"}`);
+    const bTime = new Date(`${b.scheduledDate}T${b.scheduledTime || "00:00"}`);
+    return aTime - bTime;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Shared UI atoms
+// ---------------------------------------------------------------------------
+>>>>>>> Stashed changes
 
 function StatusBadge({ status }) {
   const meta = STATUS_META[status] || { label: status, cls: "", icon: "•" };
@@ -248,10 +331,19 @@ function BookingCard({ booking, transaction, onConfirmReceipt, onConfirmRelease,
   const isScheduled  = booking.status === "scheduled";
   const isToday      = booking.scheduledDate === TODAY;
 
+<<<<<<< Updated upstream
   const canConfirmReceipt  = isDropoff    && isScheduled && transaction?.status === "awaiting_dropoff";
   const canConfirmRelease  = isCollection && isScheduled &&
     (transaction?.status === "awaiting_collection" || transaction?.status === "item_received");
   const canMarkNoShow      = isScheduled;
+=======
+/**
+ * In the request tabs (Drop-off / Collection) a booking is always
+ * `pending_approval`.  Staff can only Accept or Decline — no status dropdown.
+ */
+function BookingCard({ booking, transaction }) {
+  const isDropoff = booking.type === "dropoff";
+>>>>>>> Stashed changes
 
   return (
     <article className={`booking-card ${isToday ? "booking-card--today" : ""}`}>
@@ -302,7 +394,156 @@ function BookingCard({ booking, transaction, onConfirmReceipt, onConfirmRelease,
         </ul>
       </section>
 
+<<<<<<< Updated upstream
       {isScheduled && (
+=======
+      {false ? <footer className="booking-card__footer">
+        <menu className="booking-card__actions" role="list">
+          <li>
+            <button
+              className="btn-action btn-action--receipt"
+              onClick={() => onAccept(booking, transaction)}
+              disabled={saving}
+            >
+              <span aria-hidden="true">✓</span> Accept Booking
+            </button>
+          </li>
+          <li>
+            <button
+              className="btn-action btn-action--noshow"
+              onClick={() => onDecline(booking, transaction)}
+              disabled={saving}
+            >
+              Decline Booking
+            </button>
+          </li>
+        </menu>
+      </footer> : null}
+    </article>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ManagedTransactionCard — used in the Manage Bookings tab
+// Shows guided action buttons based on transaction lifecycle state.
+// ---------------------------------------------------------------------------
+
+function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
+  const { status } = transaction;
+
+  const dropoffBooking   = bookings.find((b) => b.id === transaction.dropoffId);
+  const collectionBooking = bookings.find((b) => b.id === transaction.collectionId);
+
+  // Derive the contextual next action
+  const getAction = () => {
+    switch (status) {
+      case "awaiting_dropoff":
+        return {
+          label:  "Mark Item Received",
+          icon:   "📦",
+          cls:    "btn-action--receipt",
+          next:   "item_received",
+          hint:   "Confirm the seller has handed the item over.",
+        };
+      case "item_received":
+        // No manual button — collection booking approval drives the next step.
+        return null;
+      case "awaiting_collection":
+        return {
+          label: "Confirm Collection",
+          icon:  "↑",
+          cls:   "btn-action--release",
+          next:  "item_released",
+          hint:  "Confirm the buyer has collected the item.",
+        };
+      case "item_released":
+        return {
+          label: "Mark Transaction Complete",
+          icon:  "🏁",
+          cls:   "btn-action--receipt",
+          next:  "completed",
+          hint:  "Close the transaction and archive it.",
+        };
+      default:
+        return null;
+    }
+  };
+
+  const action = getAction();
+
+ 
+  return (
+    <article className="booking-card managed-card">
+      {/* Header */}
+      <header className="booking-card__header">
+        <section className="booking-card__header-left">
+          <section className="booking-card__person-info">
+            <p className="booking-card__person-name">{transaction.item}</p>
+            <p className="booking-card__person-meta booking-card__txn-id">{transaction.id}</p>
+          </section>
+        </section>
+        <section className="booking-card__header-right">
+          <StatusBadge status={status} />
+        </section>
+      </header>
+
+      
+
+      {/* Detail grid */}
+      <section className="booking-card__body">
+        <ul className="booking-card__details" role="list">
+          <li className="booking-card__detail">
+            <span className="booking-card__detail-label">Seller</span>
+            <span className="booking-card__detail-value">{transaction.seller.name}</span>
+          </li>
+          <li className="booking-card__detail">
+            <span className="booking-card__detail-label">Buyer</span>
+            <span className="booking-card__detail-value">{transaction.buyer.name}</span>
+          </li>
+          <li className="booking-card__detail">
+            <span className="booking-card__detail-label">Value</span>
+            <span className="booking-card__detail-value">
+              R {Number(transaction.price || 0).toLocaleString("en-ZA")}
+            </span>
+          </li>
+          {dropoffBooking ? (
+            <li className="booking-card__detail">
+              <span className="booking-card__detail-label">Drop-off</span>
+              <span className="booking-card__detail-value">
+                {formatDate(dropoffBooking.scheduledDate)} {dropoffBooking.scheduledTime}
+                <BookingStatusBadge status={dropoffBooking.status} />
+              </span>
+            </li>
+          ) : null}
+          {collectionBooking ? (
+            <li className="booking-card__detail">
+              <span className="booking-card__detail-label">Collection</span>
+              <span className="booking-card__detail-value">
+                {formatDate(collectionBooking.scheduledDate)} {collectionBooking.scheduledTime}
+                <BookingStatusBadge status={collectionBooking.status} />
+              </span>
+            </li>
+          ) : null}
+          {/* item_received: show that we're awaiting a collection booking */}
+          {status === "item_received" ? (
+            <li className="booking-card__detail">
+              <span className="booking-card__detail-label">Next step</span>
+              <span className="booking-card__detail-value managed-card__hint">
+                ⏳ Waiting for buyer to submit a collection booking request.
+              </span>
+            </li>
+          ) : null}
+          {action?.hint ? (
+            <li className="booking-card__detail">
+              <span className="booking-card__detail-label">Action</span>
+              <span className="booking-card__detail-value managed-card__hint">{action.hint}</span>
+            </li>
+          ) : null}
+        </ul>
+      </section>
+
+      {action ? (
+>>>>>>> Stashed changes
         <footer className="booking-card__footer">
           <menu className="booking-card__actions" role="list">
             {canConfirmReceipt && (
@@ -419,6 +660,7 @@ function ConfirmDialog({ dialog, onConfirm, onCancel }) {
 // ── OVERVIEW SECTION ──────────────────────────────────────────────────────────
 
 function OverviewSection({ transactions, bookings }) {
+<<<<<<< Updated upstream
   const active    = transactions.filter((t) => !["completed", "cancelled"].includes(t.status)).length;
   const inCustody = transactions.filter((t) => ["item_received", "awaiting_collection"].includes(t.status)).length;
   const todayDropoffs    = bookings.filter((b) => b.type === "dropoff"    && b.scheduledDate === TODAY && b.status === "scheduled").length;
@@ -431,6 +673,14 @@ function OverviewSection({ transactions, bookings }) {
     .filter((b) => b.status !== "scheduled")
     .sort((a, b) => (b.scheduledDate > a.scheduledDate ? 1 : -1))
     .slice(0, 5);
+=======
+  const scheduledBookings = bookings.filter((b) => b.status === "scheduled").length;
+  const pendingRequests   = scheduledBookings;
+  const managed           = transactions.filter((t) => MANAGED_STATUSES.includes(t.status)).length;
+  const awaitingDropoff   = transactions.filter((t) => t.status === "awaiting_dropoff").length;
+  const awaitingCollection= transactions.filter((t) => t.status === "awaiting_collection").length;
+  const completedAll      = transactions.filter((t) => t.status === "completed").length;
+>>>>>>> Stashed changes
 
   return (
     <section className="view-section" aria-labelledby="overview-heading">
@@ -538,6 +788,7 @@ function OverviewSection({ transactions, bookings }) {
 
 // ── BOOKINGS SECTION (Dropoffs / Collections) ─────────────────────────────────
 
+<<<<<<< Updated upstream
 function BookingsSection({ type, bookings, transactions, onConfirmReceipt, onConfirmRelease, onMarkNoShow }) {
   const [search, setSearch]     = useState("");
   const [filter, setFilter]     = useState("all");
@@ -564,6 +815,24 @@ function BookingsSection({ type, bookings, transactions, onConfirmReceipt, onCon
       (filter === "no_show"  && b.status === "no_show");
 
     return matchSearch && matchFilter;
+=======
+function BookingsSection({
+  type,
+  bookings,
+  transactions,
+}) {
+  const [search, setSearch] = useState("");
+  const label = type === "dropoff" ? "Drop-off" : "Collection";
+
+  // Show confirmed bookings for operational visibility.
+  const filtered = bookings.filter((b) => {
+    if (b.type !== type) return false;
+    if (b.status !== "scheduled") return false;
+    if (!search.trim()) return true;
+    const hay = [b.personName, b.itemName, b.studentId, b.transactionId, b.location]
+      .filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(search.toLowerCase());
+>>>>>>> Stashed changes
   });
 
   const counts = {
@@ -585,11 +854,16 @@ function BookingsSection({ type, bookings, transactions, onConfirmReceipt, onCon
 
   return (
     <section className="view-section" aria-labelledby={`${type}-heading`}>
+<<<<<<< Updated upstream
       <h2 id={`${type}-heading`} className="sr-only">{label} Bookings</h2>
+=======
+      <h2 id={`${type}-heading`} className="sr-only">{label} Booking Schedule</h2>
+>>>>>>> Stashed changes
 
       <article className="panel">
         <header className="panel__header">
           <section>
+<<<<<<< Updated upstream
             <h3 className="panel__title">{label} Bookings</h3>
             <p className="panel__subtitle">
               {isDropoff
@@ -597,6 +871,18 @@ function BookingsSection({ type, bookings, transactions, onConfirmReceipt, onCon
                 : "Manage buyer collections and confirm item release"}
             </p>
           </section>
+=======
+            <h3 className="panel__title">{label} Schedule</h3>
+            <p className="panel__subtitle">
+              {type === "dropoff"
+                ? "Confirmed seller drop-off bookings awaiting operational check-in."
+                : "Confirmed buyer collection bookings awaiting release at the facility."}
+            </p>
+          </section>
+          {filtered.length > 0 ? (
+            <p className="panel__count">{filtered.length} scheduled</p>
+          ) : null}
+>>>>>>> Stashed changes
         </header>
 
         <section className="bookings-controls">
@@ -632,9 +918,15 @@ function BookingsSection({ type, bookings, transactions, onConfirmReceipt, onCon
 
         {filtered.length === 0 ? (
           <EmptyState
+<<<<<<< Updated upstream
             icon="🔍"
             title="No bookings found"
             description={search ? "Try adjusting your search." : "No bookings match the selected filter."}
+=======
+            icon="📭"
+            title="No scheduled bookings"
+            description="Auto-confirmed bookings will appear here once students reserve a slot."
+>>>>>>> Stashed changes
           />
         ) : (
           <ul className="booking-list" role="list">
@@ -645,9 +937,12 @@ function BookingsSection({ type, bookings, transactions, onConfirmReceipt, onCon
                   <BookingCard
                     booking={booking}
                     transaction={transaction}
+<<<<<<< Updated upstream
                     onConfirmReceipt={onConfirmReceipt}
                     onConfirmRelease={onConfirmRelease}
                     onMarkNoShow={onMarkNoShow}
+=======
+>>>>>>> Stashed changes
                   />
                 </li>
               );
@@ -852,6 +1147,7 @@ export default function TradeFacilityDashboard({onSignOut}) {
     if (!dialog) return;
     const { actionType, booking, transaction } = dialog;
 
+<<<<<<< Updated upstream
     if (actionType === "receipt") {
       setBookings((prev) =>
         prev.map((b) => b.id === booking.id ? { ...b, status: "completed" } : b)
@@ -872,11 +1168,121 @@ export default function TradeFacilityDashboard({onSignOut}) {
         )
       );
       showToast(`✓ Item released to ${booking.personName} — transaction complete`);
+=======
+    try {
+      // ── Accept a pending booking request ──────────────────────────────────
+      if (actionType === "accept_booking") {
+        const nextTxnStatus = mapBookingStatusToTransactionStatus(
+          booking.type, "scheduled", transaction?.status
+        );
+
+        const [{ error: bErr }, { error: tErr }] = await Promise.all([
+          supabase.from("bookings").update({ status: "scheduled" }).eq("id", booking.id),
+          supabase.from("transactions").update({ status: nextTxnStatus }).eq("id", transaction.id),
+        ]);
+        if (bErr) throw bErr;
+        if (tErr) throw tErr;
+
+        // Notify the student
+        if (staffProfile?.id) {
+          const receiver = booking.type === "dropoff" ? transaction.seller_id : transaction.buyer_id;
+          await insertMessage({
+            sender_id:   staffProfile.id,
+            receiver_id: receiver,
+            content:     `Your ${booking.type === "dropoff" ? "drop-off" : "collection"} booking for "${booking.itemName}" at ${booking.location || "the trade facility"} on ${formatDate(booking.scheduledDate)} at ${booking.scheduledTime} has been approved.`,
+          });
+        }
+
+        showToast(`Booking accepted and scheduled for ${booking.personName}.`);
+
+      // ── Decline a pending booking request ────────────────────────────────
+      } else if (actionType === "decline_booking") {
+        const [{ error: bErr }, { error: tErr }] = await Promise.all([
+          supabase.from("bookings").delete().eq("id", booking.id),
+          booking.type === "collection"
+            ? supabase.from("transactions")
+                .update({ status: "item_received", collection_id: null })
+                .eq("id", transaction.id)
+            : supabase.from("transactions")
+                .update({ status: "awaiting_dropoff", dropoff_id: null })
+                .eq("id", transaction.id),
+        ]);
+        if (bErr) throw bErr;
+        if (tErr) throw tErr;
+
+        if (staffProfile?.id) {
+          const receiver = booking.type === "dropoff" ? transaction.seller_id : transaction.buyer_id;
+          await insertMessage({
+            sender_id:   staffProfile.id,
+            receiver_id: receiver,
+            content:     `Your ${booking.type === "dropoff" ? "drop-off" : "collection"} booking for "${booking.itemName}" was declined. Please choose a different slot in My Bookings.`,
+          });
+        }
+
+        showToast(`Booking declined for ${booking.personName}.`);
+
+      // ── Move a transaction through its lifecycle (Manage tab) ─────────────
+      } else if (actionType === "managed_action") {
+        const updates = [
+          supabase.from("transactions").update({ status: nextStatus }).eq("id", transaction.id),
+        ];
+
+        if (nextStatus === "item_received" && transaction.dropoffId) {
+          updates.push(
+            supabase.from("bookings").update({ status: "completed" }).eq("id", transaction.dropoffId)
+          );
+        }
+
+        if ((nextStatus === "item_released" || nextStatus === "completed") && transaction.collectionId) {
+          updates.push(
+            supabase.from("bookings").update({ status: "completed" }).eq("id", transaction.collectionId)
+          );
+        }
+
+        const results = await Promise.all(updates);
+        const tErr = results[0]?.error;
+        if (tErr) throw tErr;
+
+        // Notify relevant party
+        if (staffProfile?.id) {
+          const messages = {
+            item_received:       { to: transaction.buyer_id,  text: `Your item "${transaction.item}" has been checked in. You can now book your collection slot in My Bookings.` },
+            item_released:       { to: transaction.seller_id, text: `Your item "${transaction.item}" has been collected by the buyer. The transaction is almost complete.` },
+            completed:           { to: transaction.seller_id, text: `Transaction for "${transaction.item}" is now fully completed. Thank you for using CampusXChange!` },
+          };
+
+          const msg = messages[nextStatus];
+          if (msg) {
+            await insertMessage({
+              sender_id:   staffProfile.id,
+              receiver_id: msg.to,
+              content:     msg.text,
+            });
+          }
+        }
+
+        showToast(`Transaction moved to "${STATUS_META[nextStatus]?.label || nextStatus}".`);
+      }
+
+      setDialog(null);
+      await loadDashboard();
+    } catch (err) {
+      showToast(err.message || "Unable to complete the action.");
+    } finally {
+      setSaving(false);
+>>>>>>> Stashed changes
     }
     setDialog(null);
   }, [dialog, showToast]);
 
+<<<<<<< Updated upstream
   const handleDialogCancel = useCallback(() => setDialog(null), []);
+=======
+  // ── Sidebar badges ────────────────────────────────────────────────────────
+  const pendingDropoffs    = bookings.filter((b) => b.type === "dropoff"    && b.status === "scheduled").length;
+  const pendingCollections = bookings.filter((b) => b.type === "collection" && b.status === "scheduled").length;
+  const managedCount       = transactions.filter((t) => MANAGED_STATUSES.includes(t.status)).length;
+>>>>>>> Stashed changes
 
   // ── Date / time header ──
   const dateLabel = new Date(TODAY + "T00:00:00").toLocaleDateString("en-ZA", {

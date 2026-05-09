@@ -164,6 +164,20 @@ vi.mock("../supabaseClient", () => ({
       if (args[0] === "get_seller_rating") {
         return Promise.resolve({ data: [{ average: "4.5", count: "2" }], error: null });
       }
+      if (args[0] === "book_transaction_slot") {
+        const payload = args[1] || {};
+        const bookingId = payload.p_booking_type === "dropoff" ? "DO-TESTBOOK" : "CL-TESTBOOK";
+        return Promise.resolve({
+          data: [{
+            booking_id: bookingId,
+            location: "Main Trade Desk",
+            scheduled_time: payload.p_scheduled_time,
+            booking_status: "scheduled",
+            transaction_status: payload.p_booking_type === "dropoff" ? "awaiting_dropoff" : "awaiting_collection",
+          }],
+          error: null,
+        });
+      }
       return Promise.resolve({ data: [{ metric: "Listings", value: 3 }], error: null });
     },
     storage: {
@@ -484,3 +498,127 @@ test("TradeFacilityDashboard renders navigation and sign out", () => {
   fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
 });
+<<<<<<< Updated upstream
+=======
+
+test("StudentBookingsPage shows a seller drop-off booking action for accepted trades", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-2",
+      item: "Desk Lamp",
+      seller_id: "user-1",
+      buyer_id: "buyer-1",
+      price: 250,
+      status: "awaiting_dropoff",
+      dropoff_id: null,
+      collection_id: null,
+      created_at: "2026-04-18T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  expect(await screen.findByText(/my bookings/i)).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /book drop-off/i })).toBeInTheDocument();
+});
+
+test("StudentBookingsPage lets a buyer book collection after staff confirms drop-off", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-3",
+      item: "Desk Lamp",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 250,
+      status: "item_received",
+      dropoff_id: "booking-1",
+      collection_id: null,
+      created_at: "2026-04-18T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  expect(await screen.findByText(/my bookings/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /book collection/i })).toBeInTheDocument();
+});
+
+test("StudentBookingsPage lets a seller complete a drop-off booking flow", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-4",
+      item: "Desk Lamp",
+      seller_id: "user-1",
+      buyer_id: "buyer-1",
+      price: 250,
+      status: "awaiting_dropoff",
+      dropoff_id: null,
+      collection_id: null,
+      created_at: "2026-05-03T10:00:00.000Z",
+    }
+  );
+  bookings.splice(0, bookings.length);
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /book drop-off/i }));
+  fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
+  fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  fireEvent.click(screen.getByRole("button", { name: /next/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
+  fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
+
+  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
+    "book_transaction_slot",
+    expect.objectContaining({
+      p_transaction_id: "txn-4",
+      p_booking_type: "dropoff",
+      p_facility_id: "facility-1",
+      p_scheduled_time: "2099-05-04T09:00:00",
+    })
+  ));
+});
+
+test("StudentBookingsPage lets a buyer complete a collection booking flow", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-5",
+      item: "Desk Lamp",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 250,
+      status: "item_received",
+      dropoff_id: "booking-1",
+      collection_id: null,
+      created_at: "2026-05-03T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /book collection/i }));
+  fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
+  fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  fireEvent.click(screen.getByRole("button", { name: /next/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
+  fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
+
+  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
+    "book_transaction_slot",
+    expect.objectContaining({
+      p_transaction_id: "txn-5",
+      p_booking_type: "collection",
+      p_facility_id: "facility-1",
+      p_scheduled_time: "2099-05-04T09:00:00",
+    })
+  ));
+});
+>>>>>>> Stashed changes
