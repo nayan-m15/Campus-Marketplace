@@ -21,10 +21,48 @@ test("getAppBaseUrl falls back to the auth redirect url when provided", async ()
   expect(getAppBaseUrl()).toBe("https://auth.campusxchange.app/reset/");
 });
 
+test("getAppBaseUrl falls back to the site url when provided", async () => {
+  vi.stubEnv("VITE_SITE_URL", "https://nayan-m15.github.io/Campus-Marketplace/");
+
+  const { getAppBaseUrl } = await import("./appUrl");
+
+  expect(getAppBaseUrl()).toBe("https://nayan-m15.github.io/Campus-Marketplace/");
+});
+
 test("getAppBaseUrl builds from the current window origin and base path otherwise", async () => {
+  vi.stubEnv("VITE_APP_URL", "");
+  vi.stubEnv("VITE_AUTH_REDIRECT_URL", "");
+  vi.stubEnv("VITE_SITE_URL", "");
   vi.stubEnv("BASE_URL", "/Campus-Marketplace/");
 
   const { getAppBaseUrl } = await import("./appUrl");
 
   expect(getAppBaseUrl()).toBe("http://localhost:3000/Campus-Marketplace/");
+});
+
+test("getPasswordRecoveryRedirectUrl prefers localhost while developing", async () => {
+  vi.stubEnv("BASE_URL", "/Campus-Marketplace/");
+  vi.stubEnv("VITE_SITE_URL", "https://nayan-m15.github.io/Campus-Marketplace/");
+
+  const { getPasswordRecoveryRedirectUrl } = await import("./appUrl");
+
+  expect(getPasswordRecoveryRedirectUrl()).toBe(
+    "http://localhost:3000/Campus-Marketplace/?type=recovery"
+  );
+});
+
+test("getPasswordRecoveryRedirectUrl uses the configured deployed app outside localhost", async () => {
+  vi.stubEnv("BASE_URL", "/Campus-Marketplace/");
+  vi.stubEnv("VITE_SITE_URL", "https://nayan-m15.github.io/Campus-Marketplace/");
+  vi.stubGlobal("window", {
+    location: {
+      hostname: "nayan-m15.github.io",
+    },
+  });
+
+  const { getPasswordRecoveryRedirectUrl } = await import("./appUrl");
+
+  expect(getPasswordRecoveryRedirectUrl()).toBe(
+    "https://nayan-m15.github.io/Campus-Marketplace/?type=recovery"
+  );
 });
