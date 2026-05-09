@@ -446,7 +446,10 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   }
 
   async function handleMarkSold(id, currentStatus) {
-    const newStatus = currentStatus === "sold" ? "active" : "sold";
+    const listing = listings.find((l) => l.id === id);
+    const hasFlagReason = Boolean(listing?.flag_reason?.trim());
+    const wasSold = currentStatus === "sold";
+    const newStatus = wasSold ? (hasFlagReason ? "flagged" : "active") : "sold";
     const { error } = await supabase
       .from("listings")
       .update({ status: newStatus })
@@ -464,9 +467,10 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
       item.listing_type === "trade" ||
       item.listing_type === "sale_and_trade" ||
       item.status === "for_trade";
+    const isFlagged = item.status === "flagged";
     const updatePayload = isListedForTrade
-      ? { listing_type: "sale", status: "active" }
-      : { listing_type: "trade", status: "active" };
+      ? { listing_type: "sale", status: isFlagged ? "flagged" : "active" }
+      : { listing_type: "trade", status: isFlagged ? "flagged" : "active" };
     const { error } = await supabase
       .from("listings")
       .update(updatePayload)
