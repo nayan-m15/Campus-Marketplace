@@ -932,10 +932,12 @@ export default function MessagesPage({
       ]);
 
       // Show the in-chat accepted offer banner (replaces the old alert/toast)
-      setAcceptedOfferBanner({
-        amount: updatedOffer.amount,
-        listingTitle,
-      });
+      if (iAmTheLister) {
+        setAcceptedOfferBanner({
+          amount: updatedOffer.amount,
+          listingTitle,
+        });
+      }
     }
   };
 
