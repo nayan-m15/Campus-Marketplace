@@ -22,6 +22,7 @@ vi.mock("../context/AuthContext", () => ({
 }));
 
 beforeEach(() => {
+  vi.useRealTimers();
   vi.clearAllMocks();
   mocks.updateUser.mockResolvedValue({ error: null });
 });
@@ -80,6 +81,26 @@ test("resets the password successfully and continues to the marketplace", async 
 
   fireEvent.click(screen.getByRole("button", { name: /continue to marketplace/i }));
   expect(onComplete).toHaveBeenCalled();
+});
+
+test("continues to the marketplace automatically after a successful reset", async () => {
+  const onComplete = vi.fn();
+
+  render(<ResetPasswordPage onComplete={onComplete} autoContinueDelayMs={0} />);
+
+  fireEvent.change(screen.getByLabelText(/^new password$/i), {
+    target: { value: "Valid1" },
+  });
+  fireEvent.change(screen.getByLabelText(/confirm new password/i), {
+    target: { value: "Valid1" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /update password/i }));
+
+  expect(await screen.findByText(/password has been reset successfully/i)).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
 });
 
 test("shows Supabase errors when the password update fails", async () => {

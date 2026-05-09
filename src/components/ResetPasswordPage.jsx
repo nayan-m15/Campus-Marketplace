@@ -1,16 +1,34 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { validatePassword } from "../utils/passwordValidation";
 import "../styles/Auth.css";
 
-export default function ResetPasswordPage({ onComplete }) {
+export default function ResetPasswordPage({ onComplete, autoContinueDelayMs = 1500 }) {
   const { clearPasswordRecovery } = useAuth();
+  const autoContinueTimeoutRef = useRef(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState([]);
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (autoContinueTimeoutRef.current) {
+        clearTimeout(autoContinueTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  function completeResetFlow() {
+    if (autoContinueTimeoutRef.current) {
+      clearTimeout(autoContinueTimeoutRef.current);
+      autoContinueTimeoutRef.current = null;
+    }
+
+    onComplete();
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -39,6 +57,10 @@ export default function ResetPasswordPage({ onComplete }) {
 
     clearPasswordRecovery();
     setSuccess("Your password has been reset successfully.");
+
+    if (autoContinueDelayMs !== null) {
+      autoContinueTimeoutRef.current = setTimeout(completeResetFlow, autoContinueDelayMs);
+    }
   }
 
   return (
@@ -65,7 +87,7 @@ export default function ResetPasswordPage({ onComplete }) {
         {success ? (
           <>
             <p className="auth-success-message">{success}</p>
-            <button type="button" className="btn-primary auth-submit" onClick={onComplete}>
+            <button type="button" className="btn-primary auth-submit" onClick={completeResetFlow}>
               Continue to marketplace
             </button>
           </>
