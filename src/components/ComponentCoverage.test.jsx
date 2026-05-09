@@ -1,4 +1,7 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+// Main structure for the component coverage test feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { vi, beforeEach, afterEach, expect, test } from "vitest";
 import Footer from "./Footer";
 import FilterBar from "./FilterBar";
@@ -15,6 +18,8 @@ const authFns = {
   signIn: vi.fn(),
   signUp: vi.fn(),
   signInWithGoogle: vi.fn(),
+  resetPassword: vi.fn(),
+  clearPasswordRecovery: vi.fn(),
 };
 
 const updateUser = vi.fn();
@@ -30,6 +35,7 @@ const getUser = vi.fn();
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
     user: { id: "user-1", email: "student@example.com" },
+    isPasswordRecovery: false,
     ...authFns,
   }),
 }));
@@ -117,6 +123,7 @@ beforeEach(() => {
   authFns.signIn.mockResolvedValue({ error: null });
   authFns.signUp.mockResolvedValue({ data: {}, error: null });
   authFns.signInWithGoogle.mockResolvedValue({ error: null });
+  authFns.resetPassword.mockResolvedValue({ error: null });
   updateUser.mockResolvedValue({ error: null });
   signOut.mockResolvedValue({});
   rpc.mockResolvedValue({ error: null });
@@ -133,7 +140,7 @@ afterEach(() => {
 
 test("renders footer brand copy", () => {
   render(<Footer />);
-  expect(screen.getByText(/unexus/i)).toBeInTheDocument();
+  expect(screen.getByText(/campusxchange/i)).toBeInTheDocument();
   expect(screen.getByText(/student marketplace/i)).toBeInTheDocument();
 });
 
@@ -166,11 +173,51 @@ test("FilterBar fires callbacks for filter changes and clearing", () => {
   expect(onPriceRangeChange).toHaveBeenCalledWith({ min: "", max: "" });
 });
 
+test("FilterBar opens separate mobile filter and sort panels", () => {
+  const onCategoryChange = vi.fn();
+  const onConditionChange = vi.fn();
+  const onPriceSortChange = vi.fn();
+  const onPriceRangeChange = vi.fn();
+
+  render(
+    <FilterBar
+      activeCategory="All Items"
+      onCategoryChange={onCategoryChange}
+      activeCondition="All Conditions"
+      onConditionChange={onConditionChange}
+      priceSort=""
+      onPriceSortChange={onPriceSortChange}
+      priceRange={{ min: "", max: "" }}
+      onPriceRangeChange={onPriceRangeChange}
+      showSorting={false}
+      mobileSorting
+    />
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: /filter/i }));
+  const filterPanel = screen.getByRole("region", { name: /filter listings panel/i });
+  expect(within(filterPanel).getByRole("heading", { name: /^filter$/i })).toBeInTheDocument();
+
+  fireEvent.change(within(filterPanel).getByLabelText(/^category$/i), {
+    target: { value: "Electronics" },
+  });
+  expect(onCategoryChange).toHaveBeenCalledWith("Electronics");
+
+  fireEvent.click(screen.getByRole("button", { name: /apply/i }));
+  fireEvent.click(screen.getByRole("button", { name: /sort by/i }));
+  const sortPanel = screen.getByRole("region", { name: /sort listings panel/i });
+  expect(within(sortPanel).getByRole("heading", { name: /sort by/i })).toBeInTheDocument();
+
+  fireEvent.click(within(sortPanel).getByRole("button", { name: /price high to low/i }));
+  expect(onPriceSortChange).toHaveBeenCalledWith("price_desc");
+});
+
 test("ListingCard supports keyboard open, seller navigation, messaging, and wishlist toggles", () => {
   const onClick = vi.fn();
   const onSellerClick = vi.fn();
   const onMessageSeller = vi.fn();
   const onToggleWishlist = vi.fn();
+  const onModerate = vi.fn();
 
   render(
     <ListingCard
@@ -178,6 +225,8 @@ test("ListingCard supports keyboard open, seller navigation, messaging, and wish
       onClick={onClick}
       onSellerClick={onSellerClick}
       onMessageSeller={onMessageSeller}
+      isAdmin
+      onModerate={onModerate}
       onToggleWishlist={onToggleWishlist}
       isWishlisted
       user={{ id: "user-1" }}
@@ -196,6 +245,37 @@ test("ListingCard supports keyboard open, seller navigation, messaging, and wish
 
   fireEvent.click(screen.getByRole("button", { name: /remove from wishlist/i }));
   expect(onToggleWishlist).toHaveBeenCalledWith("listing-1");
+
+  fireEvent.click(screen.getByRole("button", { name: /report desk lamp/i }));
+  expect(onModerate).toHaveBeenCalledWith(listing);
+});
+
+test("ListingCard labels trade availability without labeling sale-only items", () => {
+  const { rerender } = render(
+    <ListingCard
+      item={{ ...listing, listing_type: "sale", status: "active" }}
+    />
+  );
+
+  expect(screen.queryByText(/^for trade$/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/for trade only/i)).not.toBeInTheDocument();
+
+  rerender(
+    <ListingCard
+      item={{ ...listing, listing_type: "sale_and_trade", status: "active" }}
+    />
+  );
+
+  expect(screen.getByText(/^for trade$/i)).toBeInTheDocument();
+
+  rerender(
+    <ListingCard
+      item={{ ...listing, listing_type: "trade", status: "active" }}
+    />
+  );
+
+  expect(screen.getByText(/for trade only/i)).toBeInTheDocument();
+  expect(screen.queryByText(/^for trade$/i)).not.toBeInTheDocument();
 });
 
 test("ListingsGrid renders empty state and forwards listing clicks", () => {
@@ -243,6 +323,7 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
   const onWishlist = vi.fn();
   const onSettings = vi.fn();
   const onSignOut = vi.fn();
+  const onAdminDashboard = vi.fn();
 
   render(
     <Navbar
@@ -254,6 +335,8 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
       onWishlist={onWishlist}
       onSettings={onSettings}
       onSignOut={onSignOut}
+      onAdminDashboard={onAdminDashboard}
+      isAdmin
       wishlistCount={2}
       unreadCount={101}
     />
@@ -274,10 +357,15 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
   expect(onWishlist).toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+  fireEvent.click(screen.getByRole("button", { name: /admin dashboard/i }));
+  expect(onAdminDashboard).toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
   fireEvent.click(screen.getByRole("button", { name: /settings/i }));
   expect(onSettings).toHaveBeenCalled();
 
-  fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
+  fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+  fireEvent.click(within(screen.getByRole("navigation", { name: /side menu/i })).getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
 });
 
@@ -321,7 +409,16 @@ test("LoginPage submits credentials and shows provider errors", async () => {
   fireEvent.change(screen.getByLabelText(/email address/i), {
     target: { value: "student@example.com" },
   });
-  fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "secret123" } });
+  const passwordInput = screen.getByLabelText(/^password$/i);
+  expect(passwordInput).toHaveAttribute("type", "password");
+
+  fireEvent.change(passwordInput, { target: { value: "secret123" } });
+  fireEvent.click(screen.getByRole("button", { name: /show password/i }));
+  expect(passwordInput).toHaveAttribute("type", "text");
+
+  fireEvent.click(screen.getByRole("button", { name: /hide password/i }));
+  expect(passwordInput).toHaveAttribute("type", "password");
+
   fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Bad credentials");
@@ -331,6 +428,21 @@ test("LoginPage submits credentials and shows provider errors", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("OAuth failed");
 });
 
+test("LoginPage can request a password reset email", async () => {
+  render(<LoginPage onNavigate={vi.fn()} />);
+
+  fireEvent.change(screen.getByLabelText(/email address/i), {
+    target: { value: "student@example.com" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /forgot your password/i }));
+  fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
+
+  await waitFor(() => {
+    expect(authFns.resetPassword).toHaveBeenCalledWith("student@example.com");
+  });
+  expect(await screen.findByText(/password reset link sent/i)).toBeInTheDocument();
+});
+
 test("SignupPage validates passwords and shows success after signup", async () => {
   const onNavigate = vi.fn();
   render(<SignupPage onNavigate={onNavigate} />);
@@ -338,22 +450,57 @@ test("SignupPage validates passwords and shows success after signup", async () =
   fireEvent.change(screen.getByLabelText(/email address/i), {
     target: { value: "student@example.com" },
   });
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "123" } });
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "123" } });
+  const signupPasswordInput = screen.getByLabelText(/^password$/i);
+  const confirmPasswordInput = screen.getByLabelText(/^confirm password$/i);
+
+  expect(signupPasswordInput).toHaveAttribute("type", "password");
+  fireEvent.click(screen.getByRole("button", { name: /^show password$/i }));
+  expect(signupPasswordInput).toHaveAttribute("type", "text");
+  fireEvent.click(screen.getByRole("button", { name: /^hide password$/i }));
+  expect(signupPasswordInput).toHaveAttribute("type", "password");
+
+  expect(confirmPasswordInput).toHaveAttribute("type", "password");
+  fireEvent.click(screen.getByRole("button", { name: /show confirm password/i }));
+  expect(confirmPasswordInput).toHaveAttribute("type", "text");
+  fireEvent.click(screen.getByRole("button", { name: /hide confirm password/i }));
+  expect(confirmPasswordInput).toHaveAttribute("type", "password");
+
+  fireEvent.change(signupPasswordInput, { target: { value: "123" } });
+  fireEvent.change(confirmPasswordInput, { target: { value: "123" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/at least 6/i);
 
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "secret123" } });
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "different" } });
+  fireEvent.change(signupPasswordInput, { target: { value: "Secret123" } });
+  fireEvent.change(confirmPasswordInput, { target: { value: "different" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/do not match/i);
 
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "secret123" } });
+  fireEvent.change(confirmPasswordInput, { target: { value: "Secret123" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
   expect(await screen.findByRole("heading", { name: /check your email/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /back to sign in/i }));
   expect(onNavigate).toHaveBeenCalledWith("login");
+});
+
+test("SignupPage reports when an email is already registered", async () => {
+  authFns.signUp.mockResolvedValueOnce({
+    data: { user: { identities: [] } },
+    error: null,
+  });
+
+  render(<SignupPage onNavigate={vi.fn()} />);
+
+  fireEvent.change(screen.getByLabelText(/email address/i), {
+    target: { value: "student@example.com" },
+  });
+  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "Secret123" } });
+  fireEvent.change(screen.getByLabelText(/^confirm password$/i), {
+    target: { value: "Secret123" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(/email is already registered/i);
 });
 
 test("SettingsPage updates password, preferences, theme, and delete confirmation", async () => {
@@ -369,21 +516,23 @@ test("SettingsPage updates password, preferences, theme, and delete confirmation
     />
   );
 
+  await waitFor(() => expect(profileEq).toHaveBeenCalledWith("id", "user-1"));
+
   fireEvent.click(screen.getByText(/back/i));
   expect(onBack).toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /update password/i }));
-  expect(screen.getByText(/at least 6 characters/i)).toBeInTheDocument();
+  expect(screen.getByText(/password must be at least 6 characters/i)).toBeInTheDocument();
 
-  fireEvent.change(screen.getByPlaceholderText(/at least 6 characters/i), {
-    target: { value: "secret123" },
+  fireEvent.change(screen.getByPlaceholderText(/min\. 6 chars, upper & lowercase, 1 number/i), {
+    target: { value: "Secret123" },
   });
   fireEvent.change(screen.getByPlaceholderText(/repeat new password/i), {
-    target: { value: "secret123" },
+    target: { value: "Secret123" },
   });
   fireEvent.click(screen.getByRole("button", { name: /update password/i }));
   expect(await screen.findByText(/password updated successfully/i)).toBeInTheDocument();
-  expect(updateUser).toHaveBeenCalledWith({ password: "secret123" });
+  expect(updateUser).toHaveBeenCalledWith({ password: "Secret123" });
 
   fireEvent.click(screen.getByRole("button", { name: /toggle message notifications/i }));
   fireEvent.click(screen.getByRole("button", { name: /save preferences/i }));
@@ -432,16 +581,19 @@ test("ListingForm validates required fields and publishes a completed listing", 
   expect(await screen.findByAltText(/upload 1/i)).toHaveAttribute("src", readerResult);
 
   fireEvent.change(screen.getByLabelText(/item name/i), { target: { value: "Lamp" } });
-  fireEvent.change(screen.getByLabelText(/asking price/i), { target: { value: "250" } });
+  fireEvent.change(screen.getByLabelText(/asking price/i), { target: { value: "250.75" } });
+  fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Furniture" } });
+  expect(screen.getByLabelText(/asking price/i)).toHaveValue("250.75");
   fireEvent.click(screen.getByRole("radio", { name: /good/i }));
-  fireEvent.click(screen.getByRole("button", { name: /for trade/i }));
+  fireEvent.click(screen.getByRole("radio", { name: /for sale & trade/i }));
   fireEvent.click(screen.getByRole("button", { name: /publish listing/i }));
 
   await waitFor(() => expect(insert).toHaveBeenCalledWith(expect.objectContaining({
     title: "Lamp",
-    price: 250,
+    price: 250.75,
     condition: "Good",
-    status: "for_trade",
+    listing_type: "sale_and_trade",
+    status: "active",
   })));
   expect(onSuccess).toHaveBeenCalled();
   expect(onCancel).toHaveBeenCalledTimes(2);

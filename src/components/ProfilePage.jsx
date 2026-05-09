@@ -1,3 +1,6 @@
+// Main structure for the profile page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
@@ -146,22 +149,30 @@ const PROFILE_ABOUT_MAX = 300;
 const PROFILE_PHONE_MAX = 15;
 const MIN_BIRTHDATE = "1900-01-01";
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function getMaxBirthdate() {
   const today = new Date();
   today.setFullYear(today.getFullYear() - 12);
   return today.toISOString().split("T")[0];
 }
 
+// A focused piece of component behavior is handled here.
+// Keeping it separate makes the main flow less crowded.
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function parseBirthdate(value) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+// Quick guard logic sits here for this decision point.
+// The check keeps the rest of the flow cleaner to read.
 function isValidBirthdate(value) {
   if (!value) return true;
 
@@ -182,6 +193,33 @@ function isValidBirthdate(value) {
   if (date > minAge) return false;
 
   return true;
+}
+
+// ── Star display (read-only) ─────────────────────────────────
+function StarDisplay({ average = 0, count = 0 }) {
+  return (
+    <div className="pub-rating__display">
+      <div className="pub-rating__stars">
+        {[1, 2, 3, 4, 5].map((i) => {
+          const filled = average >= i;
+          const half = !filled && average >= i - 0.5;
+          return (
+            <span
+              key={i}
+              className={`pub-rating__star ${filled ? "pub-rating__star--filled" : half ? "pub-rating__star--half" : ""}`}
+            >
+              ★
+            </span>
+          );
+        })}
+      </div>
+      <span className="pub-rating__label">
+        {count > 0
+          ? `${average} (${count} review${count !== 1 ? "s" : ""})`
+          : "No reviews yet"}
+      </span>
+    </div>
+  );
 }
 
 // ── Profile completion config ────────────────────────────────
@@ -243,6 +281,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
   const [avatarFile, setAvatarFile] = useState(null);
   const [memberSince, setMemberSince] = useState(null);
   const [phoneError, setPhoneError] = useState("");
+  const [ratingAvg, setRatingAvg] = useState(0);
+  const [ratingCount, setRatingCount] = useState(0);
 
   const [form, setForm] = useState({
     name: "",
@@ -295,6 +335,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
             phone: data.phone || "",
           });
           if (data.avatar_url) setAvatarPreview(data.avatar_url);
+          setRatingAvg(parseFloat(data.avg_rating) || 0);
+          setRatingCount(parseInt(data.rating_count) || 0);
         }
         setLoading(false);
       });
@@ -305,6 +347,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     setForm((f) => ({ ...f, province: val, institution: "" }));
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
@@ -321,6 +365,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
@@ -361,6 +407,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
       const { error } = await supabase.from("profiles").upsert(
         {
           id: user.id,
+          email: user.email,
           name: form.name.trim() || null,
           display_name: form.display_name.trim() || null,
           about: form.about.trim() || null,
@@ -400,6 +447,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     );
   }
 
+  // Small prep work happens in this helper before the UI uses the result.
+  // It keeps lookup, formatting, or data shaping out of the render path.
   function formatPhone(value) {
     const digits = value.replace(/\D/g, "").slice(0, 10);
 
@@ -408,11 +457,15 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
   }
 
+  // Quick guard logic sits here for this decision point.
+  // The check keeps the rest of the flow cleaner to read.
   function isValidPhone(phone) {
     const digits = phone.replace(/\D/g, "");
     return /^(0[6-8]\d{8})$/.test(digits);
   }
 
+  // Quick guard logic sits here for this decision point.
+  // The check keeps the rest of the flow cleaner to read.
   function isNotFake(phone) {
     const digits = phone.replace(/\D/g, "");
     return !/^(\d)\1+$/.test(digits);
@@ -463,6 +516,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
             <div className="profile-card__avatar-info">
               <h2>{form.display_name || form.name || "Your Profile"}</h2>
               <p>{user?.email}</p>
+              <StarDisplay average={ratingAvg} count={ratingCount} />
               {memberSince && (
                 <p style={{ fontSize: 12, color: "var(--gray-400)", marginTop: 4 }}>
                   🗓 Member since {memberSince}

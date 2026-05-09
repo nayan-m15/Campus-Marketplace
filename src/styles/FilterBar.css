@@ -1,133 +1,194 @@
-/* ── Wrapper ─────────────────────────────────────────────── */
+/* Design notes for filter bar live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 .filter-bar {
-  background: rgba(31, 36, 31, 0.97);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  padding: 0 32px;
-  position: sticky;
-  top: 64px;
-  z-index: 90;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  /* One wrapper for both experiences:
+     desktop shows filters inline, mobile swaps to trigger buttons and side panels. */
+  width: 100%;
 }
 
-/* ── Fieldset ────────────────────────────────────────────── */
+.filter-bar__mobile-controls,
+.filter-bar__mobile-layer {
+  display: none;
+}
+
 .filter-bar__fieldset {
-  border: none;
+  /* This card is the normal desktop-style filter surface. */
+  position: relative;
+  border: 1px solid rgba(31, 36, 31, 0.08);
+  border-radius: 24px;
   margin: 0;
-  padding: 12px 0;
+  padding: 28px 20px 20px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 16px;
-  flex-wrap: wrap;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(247, 244, 236, 0.98));
+  box-shadow:
+    0 14px 34px rgba(31, 36, 31, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .filter-bar__legend {
-  position: absolute;
-  width: 1px; height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+  background: transparent;
+  padding: 0;
 }
 
-/* ── Label + select pairs ────────────────────────────────── */
-.filter-bar__label {
+html.dark .filter-bar__legend {
+  color: #f8fafc;
+  background: transparent;
+  padding: 0;
+}
+
+html.dark .filter-bar__label-text,
+html.dark .filter-bar__range-legend {
+  color: #cbd5e1;
+}
+
+.filter-bar__label,
+.filter-bar__range-label {
+  /* Shared form layout used by the desktop card and the mobile panels. */
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 8px;
   cursor: pointer;
 }
 
 .filter-bar__label-text {
   font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.45);
+  font-weight: 700;
+  color: var(--gray-500);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   white-space: nowrap;
+}
+
+.filter-bar__select,
+.filter-bar__range-input {
+  width: 100%;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--gray-900);
+  background: #fff;
+  border: 1px solid rgba(31, 36, 31, 0.12);
+  border-radius: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+html.dark .filter-bar__select,
+html.dark .filter-bar__range-input,
+html.dark .filter-bar__fieldset,
+html.dark .filter-bar__range-fieldset,
+html.dark .filter-bar__mobile-trigger,
+html.dark .filter-bar__mobile-panel,
+html.dark .filter-bar__mobile-sort-option,
+html.dark .filter-bar__clear {
+  background: #1f2937;
+  color: #f9fafb;
+  border-color: #374151;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+html.dark .filter-bar__mobile-trigger {
+  color: #f9fafb;
+  border-color: rgba(148,163,184,0.32);
+}
+
+html.dark .filter-bar__mobile-sort-option {
+  background: rgba(255,255,255,0.04);
+  color: #f9fafb;
+  border-color: rgba(148,163,184,0.24);
+}
+
+html.dark .filter-bar__mobile-sort-option--active {
+  background: rgba(34,197,94,0.15);
+  color: var(--green);
+  border-color: rgba(34,197,94,0.35);
+}
+
+html.dark .filter-bar__select option {
+  background: #1f2937 !important;
+  color: #f9fafb !important;
 }
 
 .filter-bar__select {
   appearance: none;
   -webkit-appearance: none;
-  padding: 8px 32px 8px 12px;
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: var(--font);
-  color: rgba(255, 255, 255, 0.85);
-  background-color: rgba(255, 255, 255, 0.06);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23647A67' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  min-width: 0;
+  padding: 12px 40px 12px 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235F6B63' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
+  background-position: right 14px center;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  min-width: 148px;
 }
 
 .filter-bar__select option {
-  background: var(--navy);
-  color: #fff;
+  color: var(--gray-900);
+  background: #fff;
 }
 
-.filter-bar__select:hover {
-  border-color: rgba(31, 107, 82, 0.40);
-  background-color: rgba(255, 255, 255, 0.09);
+.filter-bar__select:hover,
+.filter-bar__range-input:hover {
+  border-color: rgba(31, 107, 82, 0.35);
+  background-color: rgba(255, 255, 255, 0.98);
 }
 
-.filter-bar__select:focus {
+html.dark .filter-bar__select:hover,
+html.dark .filter-bar__range-input:hover {
+  border-color: rgba(52, 211, 153, 0.45);
+  background-color: rgba(148, 163, 184, 0.16);
+}
+
+.filter-bar__select:focus,
+.filter-bar__range-input:focus {
   outline: none;
   border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.18);
+  box-shadow: 0 0 0 4px rgba(31, 107, 82, 0.12);
 }
 
-/* ── Range fieldset ──────────────────────────────────────── */
 .filter-bar__range-fieldset {
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 6px 14px;
+  /* The custom price range reveals itself only when that sort mode is active. */
+  border: 1px solid rgba(31, 36, 31, 0.08);
+  border-radius: 18px;
+  padding: 14px;
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.72);
   animation: range-reveal 0.15s ease;
-  background: rgba(255,255,255,0.04);
 }
 
 @keyframes range-reveal {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .filter-bar__range-legend {
   font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+  color: var(--gray-500);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0 4px;
-}
-
-.filter-bar__range-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.filter-bar__range-label .filter-bar__label-text {
-  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 0;
 }
 
 .filter-bar__range-input {
-  width: 72px;
-  padding: 5px 8px;
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  font-size: 13px;
-  font-family: var(--font);
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.06);
-  transition: border-color 0.15s;
+  padding: 12px 14px;
   -moz-appearance: textfield;
 }
 
@@ -136,33 +197,23 @@
   -webkit-appearance: none;
 }
 
-.filter-bar__range-input:focus {
-  outline: none;
-  border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.18);
-}
-
 .filter-bar__range-sep {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 14px;
-  font-weight: 500;
-  user-select: none;
+  display: none;
 }
 
-/* ── Clear button ────────────────────────────────────────── */
 .filter-bar__clear {
-  margin-left: auto;
-  padding: 7px 16px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(199, 91, 74, 0.35);
+  background: rgba(247, 229, 225, 0.68);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 700;
   font-family: var(--font);
   cursor: pointer;
-  border: 1.5px solid rgba(239, 68, 68, 0.5);
-  background: transparent;
-  color: var(--danger);
   transition: background 0.15s, color 0.15s, border-color 0.15s;
-  white-space: nowrap;
 }
 
 .filter-bar__clear:hover {
@@ -171,11 +222,225 @@
   border-color: var(--danger);
 }
 
-/* ── Responsive ──────────────────────────────────────────── */
+.filter-bar__apply {
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: none;
+  background: var(--grad-green);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(31, 107, 82, 0.22);
+}
+
+.filter-bar__mobile-sort-group {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filter-bar__mobile-sort-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filter-bar__mobile-sort-option {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(31, 36, 31, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--gray-900);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.filter-bar__mobile-sort-option--active {
+  border-color: rgba(31, 107, 82, 0.34);
+  background: rgba(31, 107, 82, 0.12);
+  color: var(--green);
+}
+
+@media (min-width: 1024px) {
+  .filter-bar {
+    position: sticky;
+    top: calc(var(--navbar-height) + 20px);
+  }
+}
+
+@media (max-width: 1023px) {
+  .filter-bar {
+    /* On mobile this sits just under the navbar so the trigger row stays easy to reach. */
+    position: sticky;
+    top: var(--navbar-height);
+    z-index: 90;
+    padding: 0 24px;
+  }
+
+  .filter-bar__fieldset {
+    /* Hide the always-open desktop filter card and let mobile use its own flow. */
+    display: none;
+  }
+
+  .filter-bar__mobile-controls {
+    /* Two equal launch buttons above the listings, matching the mobile shopping pattern. */
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 14px 0 16px;
+  }
+
+  .filter-bar__mobile-trigger {
+    min-height: 48px;
+    border-radius: 16px;
+    border: 1px solid rgba(31, 36, 31, 0.1);
+    background: linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(247, 244, 236, 0.98));
+    color: var(--navy);
+    font-size: 15px;
+    font-weight: 800;
+    font-family: var(--font);
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(31, 36, 31, 0.08);
+  }
+
+  .filter-bar__mobile-trigger--active {
+    border-color: rgba(31, 107, 82, 0.35);
+    color: var(--green);
+  }
+
+  .filter-bar__mobile-layer {
+    display: block;
+  }
+
+  .filter-bar__mobile-backdrop {
+    position: fixed;
+    inset: 0;
+    border: none;
+    background: rgba(20, 24, 22, 0.46);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 119;
+    cursor: pointer;
+  }
+
+  .filter-bar__mobile-panel {
+    /* The panel slides in from the side so filtering feels focused but still temporary. */
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(360px, 88vw);
+    padding: 24px 18px 20px;
+    background: linear-gradient(180deg, rgba(255, 253, 248, 0.99), rgba(247, 244, 236, 0.99));
+    box-shadow: -18px 0 40px rgba(31, 36, 31, 0.18);
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: filter-panel-slide-in 0.2s ease;
+  }
+
+  .filter-bar__mobile-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .filter-bar__mobile-panel-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray-500);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .filter-bar__mobile-panel-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--navy);
+  }
+
+  .filter-bar__mobile-close {
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(31, 36, 31, 0.08);
+    color: var(--navy);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .filter-bar__mobile-panel-body {
+    /* Scrollable body keeps long option lists from pushing the action buttons off screen. */
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  .filter-bar__mobile-panel-actions {
+    /* Actions stay pinned at the bottom of the panel flow. */
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .filter-bar__clear--mobile {
+    margin-top: 0;
+  }
+}
+
+@keyframes filter-panel-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @media (max-width: 640px) {
-  .filter-bar { padding: 0 16px; }
-  .filter-bar__fieldset { gap: 10px; }
-  .filter-bar__select { min-width: 120px; }
-  .filter-bar__clear { margin-left: 0; width: 100%; }
+  .filter-bar {
+    padding: 0 16px;
+  }
+
+  .filter-bar__mobile-controls {
+    gap: 10px;
+    padding: 12px 0 14px;
+  }
+
+  .filter-bar__mobile-trigger {
+    min-height: 46px;
+    font-size: 14px;
+  }
+
+  .filter-bar__mobile-panel {
+    width: 100%;
+    padding: 22px 16px 18px;
+  }
 }
 

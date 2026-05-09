@@ -1,6 +1,11 @@
+// Main structure for the wishlist page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import "../styles/WishlistPage.css";
 import { CONDITION_COLORS } from "../data/listings";
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function WishlistPage({
   wishlistItems = [],
   loading = false,
@@ -53,6 +58,8 @@ export default function WishlistPage({
   );
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function formatZAR(value) {
   const num = Number(String(value).replace(/[^0-9.]/g, ""));
   if (isNaN(num)) return "R 0";
@@ -64,6 +71,8 @@ function formatZAR(value) {
   }).format(num);
 }
 
+// Supporting logic for the wishlist card flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function WishlistCard({ item, onClick, onRemove }) {
   const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
 

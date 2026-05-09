@@ -1,3 +1,6 @@
+/* Design notes for hero live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 /* ── Hero Shell ────────────────────────────────────────── */
 .hero {
   position: relative;
@@ -233,10 +236,7 @@
 }
 
 .hero__stat-divider {
-  width: 1px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
+  display: none;
 }
 
 /* ── Carousel Styles ─────────────────────────────────────── */
@@ -338,14 +338,6 @@
 
 .listing-seller {
   color: var(--gray-500);
-}
-
-.listing-distance {
-  color: var(--green-dark);
-  background: var(--mint-pale);
-  padding: 0.15rem 0.4rem;
-  border-radius: 6px;
-  font-weight: 500;
 }
 
 .listing-price-condition {
@@ -646,7 +638,7 @@
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 900px) {
   .hero {
-    padding: 32px 20px 0;
+    padding: 24px 16px 0;
   }
 
   .hero--with-sell-cta {
@@ -658,22 +650,62 @@
   .hero__main {
     flex-direction: column;
     align-items: stretch;
-    gap: 28px;
+    gap: 24px;
     min-height: auto;
   }
 
   .hero__content {
     padding: 0;
     max-width: none;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .hero__stats {
-    gap: 0;
-    padding: 16px 20px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 18px;
+  }
+
+  .hero__stat-group,
+  .hero__stat {
+    width: 100%;
   }
 
   .hero__stat {
-    padding: 0 18px;
+    padding: 0;
+    min-width: 0;
+  }
+
+  .hero__description {
+    max-width: none;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .hero__buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .hero__buttons .btn-primary,
+  .hero__buttons .btn-outline {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero__badges {
+    justify-content: center;
+    gap: 14px 20px;
+  }
+
+  .hero__carousel {
+    display: none;
   }
 
   .hero__stat-value {
@@ -698,7 +730,7 @@
 
 @media (max-width: 640px) {
   .hero__title {
-    font-size: 40px;
+    font-size: 36px;
   }
 
   .hero__subtitle {
@@ -710,10 +742,8 @@
   }
 
   .hero__stats {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 
   .hero__stat-divider {
@@ -721,7 +751,11 @@
   }
 
   .hero__stat {
-    padding: 0 12px;
+    padding: 0;
+  }
+
+  .hero__buttons {
+    grid-template-columns: 1fr;
   }
 
   .sell-cta__heading {
@@ -734,12 +768,6 @@
   }
 }
 /* ── DARK MODE FIXES FOR HERO CAROUSEL ── */
-
-html.dark .listing-distance {
-  color: #f3f4f6 !important;
-  background: rgba(255, 255, 255, 0.12) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
 
 html.dark .listing-seller {
   color: #9ca3af !important;
@@ -882,3 +910,4 @@ html.dark .carousel-nav--next {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+

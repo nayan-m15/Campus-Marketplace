@@ -23,64 +23,17 @@ export function canBookCollectionForStatus(status) {
   ].includes(status);
 }
 
-export function deriveBookingStatus(type, transactionStatus, persistedBookingStatus = null) {
-  if (persistedBookingStatus === "cancelled") return "cancelled";
-  if (persistedBookingStatus === "pending_approval") return "pending_approval";
+export function deriveBookingStatus(type, transactionStatus) {
   if (transactionStatus === "cancelled") return "cancelled";
-
   if (type === "dropoff") {
     return ["awaiting_collection", "item_received", "item_released", "completed"].includes(transactionStatus)
       ? "completed"
-      : persistedBookingStatus || "scheduled";
+      : "scheduled";
   }
 
   if (transactionStatus === "collection_pending_approval") {
     return "pending_approval";
   }
 
-  return ["item_released", "completed"].includes(transactionStatus)
-    ? "completed"
-    : persistedBookingStatus || "scheduled";
-}
-
-export function getDropoffStageLabel(transaction) {
-  if (!transaction) return "";
-
-  if (!transaction.dropoff_booking) {
-    return "Waiting for seller drop-off booking";
-  }
-
-  if (["awaiting_dropoff", "pending"].includes(transaction.status)) {
-    if (transaction.dropoff_booking.status === "pending_approval") {
-      return "Drop-off request pending approval";
-    }
-
-    return "Awaiting seller drop-off completion";
-  }
-
-  return "Drop-off completed";
-}
-
-export function getCollectionStageLabel(transaction) {
-  if (!transaction) return "";
-
-  if (["item_released", "completed"].includes(transaction.status)) {
-    return "Collection completed";
-  }
-
-  if (!transaction.collection_booking) {
-    return canBookCollectionForStatus(transaction.status)
-      ? "Waiting for buyer collection booking"
-      : "Collection not available yet";
-  }
-
-  if (transaction.collection_booking.status === "pending_approval") {
-    return "Collection request pending approval";
-  }
-
-  if (transaction.status === "awaiting_collection") {
-    return "Collection scheduled";
-  }
-
-  return "Collection scheduled";
+  return ["item_released", "completed"].includes(transactionStatus) ? "completed" : "scheduled";
 }

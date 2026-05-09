@@ -1,4 +1,7 @@
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+// Main structure for the page coverage test feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, beforeEach, expect, test } from "vitest";
 import AdminDashboard from "./AdminDashboard";
 import Hero from "./Hero";
@@ -8,6 +11,7 @@ import ProfileSetupPage from "./ProfileSetupPage";
 import PublicProfilePage from "./PublicProfilePage";
 import TradeFacilityDashboard from "./TradeFacilityDashboard";
 import YourListingsPage from "./YourListingsPage";
+import { StudentBookingsPage } from "./BookingsUi";
 
 const mocks = vi.hoisted(() => ({
   upsert: vi.fn(),
@@ -53,6 +57,21 @@ const sellerProfile = {
   sex: "Female",
   avatar_url: "",
   created_at: "2024-01-01T00:00:00.000Z",
+  avg_rating: 4,
+  rating_count: 1,
+};
+
+const buyerProfile = {
+  id: "buyer-1",
+  name: "Buyer Person",
+  display_name: "Buyer",
+  about: "Interested buyer.",
+  province: "KwaZulu-Natal",
+  institution: "University of KwaZulu-Natal (UKZN)",
+  birthdate: "2002-02-02",
+  sex: "Male",
+  avatar_url: "",
+  created_at: "2024-06-01T00:00:00.000Z",
 };
 
 const userListing = {
@@ -64,12 +83,15 @@ const userListing = {
   category: "Electronics",
   status: "active",
   user_id: "user-1",
-  image_url: "",
+  // Seed a real existing image so the edit-photo test covers replacement.
+  image_url: "https://example.com/old-lamp.jpg",
+  image_urls: ["https://example.com/old-lamp.jpg"],
   emoji: "Lamp",
   created_at: "2026-01-01T00:00:00.000Z",
+  status: "active",
 };
 
-const messages = [
+const defaultMessages = [
   {
     id: "m1",
     created_at: new Date().toISOString(),
@@ -89,15 +111,114 @@ const messages = [
     listing_id: "listing-2",
   },
 ];
+const messages = [...defaultMessages];
+const defaultOffers = [];
+const offers = [...defaultOffers];
+const defaultTransactions = [
+  {
+    id: "txn-1",
+    item: "Textbook",
+    seller_id: "seller-1",
+    buyer_id: "user-1",
+    price: 500,
+    status: "awaiting_dropoff",
+    dropoff_id: "booking-1",
+    collection_id: null,
+    created_at: "2026-04-18T10:00:00.000Z",
+  },
+];
+const transactions = [...defaultTransactions];
+const defaultBookings = [
+  {
+    id: "booking-1",
+    type: "dropoff",
+    scheduled_time: "2026-04-19T10:00:00.000Z",
+    location: "Main Trade Desk",
+    created_at: "2026-04-18T10:05:00.000Z",
+  },
+];
+const bookings = [...defaultBookings];
+const defaultListingRecords = {
+  "listing-1": userListing,
+  "listing-2": {
+    id: "listing-2",
+    title: "Textbook",
+    price: 500,
+    user_id: "seller-1",
+    status: "active",
+    flag_reason: "",
+  },
+  "listing-3": {
+    id: "listing-3",
+    title: "Ball",
+    price: 120,
+    user_id: "seller-1",
+    status: "active",
+    flag_reason: "",
+  },
+};
+const listingRecords = structuredClone(defaultListingRecords);
 
+// Supporting logic for the result for flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function resultFor(table, mode, filters = {}) {
-  if (table === "profiles" && mode === "single") {
-    return { data: filters.id === "seller-1" ? sellerProfile : profile, error: null };
+  if (table === "listings" && mode === "count") {
+    const excludedUserId = filters.__neq?.user_id;
+    return {
+      data: null,
+      count: excludedUserId === "user-1" ? 8 : 11,
+      error: null,
+    };
   }
-  if (table === "profiles") return { data: [sellerProfile], error: null };
+  if (table === "profiles" && mode === "count") {
+    return { data: null, count: 24, error: null };
+  }
+  if (table === "profiles" && mode === "single") {
+    if (filters.id === "seller-1") return { data: sellerProfile, error: null };
+    if (filters.id === "buyer-1") return { data: buyerProfile, error: null };
+    return { data: profile, error: null };
+  }
+  if (table === "profiles") {
+    const ids = Array.isArray(filters.id) ? filters.id : filters.id ? [filters.id] : null;
+    return { data: [profile, sellerProfile, buyerProfile].filter((entry) => !ids || ids.includes(entry.id)), error: null };
+  }
   if (table === "messages") return { data: messages, error: null };
+  if (table === "offers" && mode === "single") {
+    const row = offers.find((offer) => !filters.id || offer.id === filters.id) || null;
+    return { data: row, error: null };
+  }
+  if (table === "offers") return { data: offers, error: null };
+  if (table === "transactions" && mode === "single") {
+    const row = transactions.find((transaction) => !filters.id || transaction.id === filters.id) || null;
+    return { data: row, error: null };
+  }
+  if (table === "transactions") {
+    let rows = [...transactions];
+    if (filters.seller_id) rows = rows.filter((row) => row.seller_id === filters.seller_id);
+    if (filters.buyer_id) rows = rows.filter((row) => row.buyer_id === filters.buyer_id);
+    if (filters.item) rows = rows.filter((row) => row.item === filters.item);
+    if (filters.id) {
+      const ids = Array.isArray(filters.id) ? filters.id : [filters.id];
+      rows = rows.filter((row) => ids.includes(row.id));
+    }
+    return { data: rows, error: null };
+  }
+  if (table === "bookings") {
+    let rows = [...bookings];
+    if (filters.id) {
+      const ids = Array.isArray(filters.id) ? filters.id : [filters.id];
+      rows = rows.filter((row) => ids.includes(row.id));
+    }
+    return { data: rows, error: null };
+  }
   if (table === "ratings") return { data: [{ listing_id: "listing-2", rating: 4 }], error: null };
-  if (table === "listings" && mode === "rateable") return { data: [{ id: "listing-2", title: "Textbook" }], error: null };
+  if (table === "listings" && mode === "rateable") {
+    const ids = Array.isArray(filters.id) ? filters.id : filters.id ? [filters.id] : [];
+    return { data: ids.map((id) => listingRecords[id]).filter(Boolean), error: null };
+  }
+  if (table === "listings" && mode === "single") {
+    return { data: listingRecords[filters.id] || userListing, error: null };
+  }
   if (table === "listings") return { data: [userListing], error: null };
   if (table === "facilities") {
     return {
@@ -107,9 +228,19 @@ function resultFor(table, mode, filters = {}) {
           name: "Main Trade Desk",
           capacity: 8,
           facility_hours: [
-            { day: "Mon", open: true, start_time: "09:00", end_time: "17:00" },
+            { day: "Monday", open: true, start_time: "09:00", end_time: "17:00" },
+            { day: "Tuesday", open: true, start_time: "09:00", end_time: "17:00" },
           ],
         },
+      ],
+      error: null,
+    };
+  }
+  if (table === "facility_hours") {
+    return {
+      data: [
+        { id: 1, facility_id: "facility-1", day: "Monday", open: true, start_time: "09:00", end_time: "17:00" },
+        { id: 2, facility_id: "facility-1", day: "Tuesday", open: true, start_time: "09:00", end_time: "17:00" },
       ],
       error: null,
     };
@@ -117,19 +248,41 @@ function resultFor(table, mode, filters = {}) {
   return { data: [], error: null };
 }
 
+// Supporting logic for the make query flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function makeQuery(table, mode = "list", filters = {}) {
   const query = {
-    select: () => query,
+    select: (_columns, options = {}) => {
+      if (options.head && options.count === "exact") {
+        return makeQuery(table, "count", filters);
+      }
+      return query;
+    },
     eq: (column, value) => {
       filters[column] = value;
       return query;
     },
-    neq: () => query,
+    neq: (column, value) => {
+      filters.__neq = {
+        ...(filters.__neq || {}),
+        [column]: value,
+      };
+      return query;
+    },
     gte: () => query,
+    lte: () => query,
     not: () => query,
     or: () => query,
     order: () => query,
-    in: () => makeQuery(table, "rateable", filters),
+    in: (column, values) => {
+      filters[column] = values;
+      return table === "listings" ? makeQuery(table, "rateable", filters) : query;
+    },
+    is: (column, value) => {
+      filters[column] = value;
+      return query;
+    },
+    maybeSingle: () => Promise.resolve(resultFor(table, "single", filters)),
     single: () => Promise.resolve(resultFor(table, "single", filters)),
     update: (payload) => {
       mocks.update(table, payload);
@@ -141,11 +294,11 @@ function makeQuery(table, mode = "list", filters = {}) {
     },
     insert: (payload) => {
       mocks.insert(table, payload);
-      return Promise.resolve({ data: null, error: null });
+      return query;
     },
     upsert: (payload, options) => {
       mocks.upsert(table, payload, options);
-      return Promise.resolve({ data: null, error: null });
+      return query;
     },
     then: (resolve) => Promise.resolve(resultFor(table, mode, filters)).then(resolve),
   };
@@ -213,7 +366,6 @@ vi.mock("../data/listings", () => ({
         condition: "Good",
         category: "Electronics",
         seller: "Seller",
-        distance: "0 km",
         image_url: "",
         emoji: "Calc",
       },
@@ -224,7 +376,6 @@ vi.mock("../data/listings", () => ({
         condition: "Like New",
         category: "Textbooks",
         seller: "Amina",
-        distance: "1 km",
         image_url: "",
         emoji: "Book",
       },
@@ -239,6 +390,8 @@ vi.mock("../data/listings", () => ({
   CATEGORIES: [
     { label: "All Items", emoji: "All" },
     { label: "Electronics", emoji: "Laptop" },
+    { label: "Textbooks", emoji: "Book" },
+    { label: "Other", emoji: "Box" },
   ],
   CONDITIONS: ["All Conditions", "New", "Like New", "Good", "Fair", "Poor"],
 }));
@@ -256,6 +409,11 @@ vi.mock("jspdf-autotable", () => ({ default: vi.fn() }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  messages.splice(0, messages.length, ...defaultMessages);
+  offers.splice(0, offers.length, ...defaultOffers);
+  transactions.splice(0, transactions.length, ...defaultTransactions);
+  bookings.splice(0, bookings.length, ...defaultBookings);
+  Object.assign(listingRecords, structuredClone(defaultListingRecords));
   HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
     this.open = true;
   });
@@ -290,6 +448,7 @@ test("ProfileSetupPage validates steps and saves completed profile", async () =>
     "profiles",
     expect.objectContaining({
       id: "user-1",
+      email: "student@example.com",
       name: "Test Student",
       display_name: "Test",
       institution: "University of Johannesburg (UJ)",
@@ -318,7 +477,11 @@ test("ProfilePage loads profile, validates phone, and saves updates", async () =
 
   await waitFor(() => expect(mocks.upsert).toHaveBeenCalledWith(
     "profiles",
-    expect.objectContaining({ display_name: "Campus Seller", phone: "0712345678" }),
+    expect.objectContaining({
+      email: "student@example.com",
+      display_name: "Campus Seller",
+      phone: "0712345678",
+    }),
     { onConflict: "id" }
   ));
   expect(onNameChange).toHaveBeenCalledWith("Campus Seller");
@@ -373,7 +536,12 @@ test("YourListingsPage edits status and deletes a listing", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: /edit/i }));
   fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Desk Lamp Pro" } });
-  fireEvent.change(screen.getByLabelText(/price/i), { target: { value: "300" } });
+  // Category edits should use the same Save Changes path as the other fields.
+  fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Textbooks" } });
+  const priceInput = screen.getByLabelText(/price/i);
+  fireEvent.focus(priceInput);
+  fireEvent.change(priceInput, { target: { value: "300.75" } });
+  expect(priceInput).toHaveValue("300.75");
   fireEvent.submit(screen.getByRole("button", { name: /save changes/i }).closest("form"));
 
   await waitFor(() =>
@@ -382,7 +550,8 @@ test("YourListingsPage edits status and deletes a listing", async () => {
         ([table, payload]) =>
           table === "listings" &&
           payload?.title === "Desk Lamp Pro" &&
-          payload?.price === 300
+          payload?.price === 300.75 &&
+          payload?.category === "Textbooks"
       )
     ).toBe(true)
   );
@@ -392,6 +561,53 @@ test("YourListingsPage edits status and deletes a listing", async () => {
 
   await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("listings"));
   expect(onListingChanged).toHaveBeenCalled();
+});
+
+test("YourListingsPage updates listing photos in the edit modal", async () => {
+  const onListingChanged = vi.fn();
+  render(<YourListingsPage onBack={vi.fn()} onListingChanged={onListingChanged} />);
+
+  // Open the existing listing and verify the current photo is loaded first.
+  fireEvent.click(await screen.findByRole("button", { name: /edit/i }));
+  expect(screen.getByAltText(/listing photo 1/i)).toHaveAttribute("src", "https://example.com/old-lamp.jpg");
+
+  // Remove the old cover so the newly selected file becomes the saved cover.
+  fireEvent.click(screen.getByRole("button", { name: /remove photo 1/i }));
+
+  const file = new File(["new image"], "new-lamp.png", { type: "image/png" });
+  const readerResult = "data:image/png;base64,bmV3LWxhbXA=";
+  // Mock FileReader because jsdom does not create image previews from files.
+  class MockFileReader {
+    readAsDataURL() {
+      this.result = readerResult;
+      this.onloadend();
+    }
+  }
+  vi.stubGlobal("FileReader", MockFileReader);
+
+  fireEvent.change(document.querySelector('input[aria-label="Add listing photos"]'), {
+    target: { files: [file] },
+  });
+
+  // Saving should upload the new file and write both cover and gallery columns.
+  expect(await screen.findByAltText(/listing photo 1/i)).toHaveAttribute("src", readerResult);
+  fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
+
+  await waitFor(() => expect(mocks.upload).toHaveBeenCalledWith(
+    expect.stringMatching(/^user-1\/.+\.png$/),
+    file,
+    { upsert: false }
+  ));
+  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
+    "listings",
+    expect.objectContaining({
+      image_url: "https://example.com/avatar.png",
+      image_urls: ["https://example.com/avatar.png"],
+    })
+  ));
+  expect(onListingChanged).toHaveBeenCalled();
+
+  vi.unstubAllGlobals();
 });
 
 test("Hero loads listings, opens help popup, and routes CTA clicks", async () => {
@@ -410,6 +626,8 @@ test("Hero loads listings, opens help popup, and routes CTA clicks", async () =>
     />
   );
 
+  expect(await screen.findByText("11")).toBeInTheDocument();
+
   fireEvent.click(screen.getByRole("button", { name: /start browsing/i }));
   expect(onBrowseClick).toHaveBeenCalled();
 
@@ -426,6 +644,20 @@ test("Hero loads listings, opens help popup, and routes CTA clicks", async () =>
   expect(onLoginClick).toHaveBeenCalled();
 });
 
+test("Hero active listings stat excludes the signed-in user's listings", async () => {
+  render(
+    <Hero
+      onListingClick={vi.fn()}
+      onBrowseClick={vi.fn()}
+      onSignupClick={vi.fn()}
+      onLoginClick={vi.fn()}
+      user={currentUser}
+    />
+  );
+
+  expect(await screen.findByText("8")).toBeInTheDocument();
+});
+
 test("MessagesPage opens a conversation and sends a message", async () => {
   const onBack = vi.fn();
   const onViewProfile = vi.fn();
@@ -435,11 +667,17 @@ test("MessagesPage opens a conversation and sends a message", async () => {
     <MessagesPage
       initialRecipientId="seller-1"
       initialListingTitle="Textbook"
+      initialListingId="listing-2"
       onBack={onBack}
       onViewProfile={onViewProfile}
       onUnreadChange={onUnreadChange}
     />
   );
+
+  expect(await screen.findByText(/seller's listing/i)).toBeInTheDocument();
+  expect(screen.getAllByRole("button", { name: /seller - textbook/i }).length).toBeGreaterThan(0);
+  expect(screen.getByRole("button", { name: /view seller/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Yes. Are you interested?" })).not.toBeInTheDocument();
 
   const sellerButtons = await screen.findAllByRole("button", { name: /seller/i });
   fireEvent.click(sellerButtons[1]);
@@ -464,21 +702,243 @@ test("MessagesPage opens a conversation and sends a message", async () => {
   expect(onUnreadChange).toHaveBeenCalled();
 });
 
+test("MessagesPage deletes the active chat after confirmation", async () => {
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingTitle="Textbook"
+      initialListingId="listing-2"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect(await screen.findByText(/seller's listing/i)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /delete chat/i }));
+  expect(await screen.findByRole("heading", { name: /delete this chat/i })).toBeInTheDocument();
+
+  fireEvent.click(screen.getAllByRole("button", { name: /delete chat/i })[1]);
+
+  await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("messages"));
+  expect(mocks.delete).toHaveBeenCalledWith("offers");
+  expect(await screen.findByRole("heading", { name: /your messages/i })).toBeInTheDocument();
+});
+
+test("MessagesPage creates separate threads for different listings from the same seller", async () => {
+  messages.splice(
+    0,
+    messages.length,
+    {
+      id: "m-listing-2",
+      created_at: new Date("2026-04-18T08:00:00.000Z").toISOString(),
+      sender_id: "seller-1",
+      receiver_id: "user-1",
+      content: "Textbook is still available",
+      is_read: false,
+      listing_id: "listing-2",
+    },
+    {
+      id: "m-listing-3",
+      created_at: new Date("2026-04-18T09:00:00.000Z").toISOString(),
+      sender_id: "seller-1",
+      receiver_id: "user-1",
+      content: "Ball is still available",
+      is_read: false,
+      listing_id: "listing-3",
+    }
+  );
+
+  render(
+    <MessagesPage
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect(await screen.findByRole("button", { name: /seller - textbook/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /seller - ball/i })).toBeInTheDocument();
+});
+
+test("MessagesPage keeps offer-only threads tied to a specific listing", async () => {
+  messages.splice(0, messages.length);
+  offers.splice(
+    0,
+    offers.length,
+    {
+      id: "offer-1",
+      created_at: new Date("2026-04-18T10:00:00.000Z").toISOString(),
+      sender_id: "user-1",
+      receiver_id: "seller-1",
+      listing_id: "listing-3",
+      amount: 5000,
+      status: "accepted",
+    }
+  );
+
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingId="listing-3"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect((await screen.findAllByRole("button", { name: /seller - ball/i })).length).toBeGreaterThan(0);
+  expect(screen.getByText(/seller's listing/i)).toBeInTheDocument();
+  expect(screen.getAllByText(/ball/i).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/offer accepted/i).length).toBeGreaterThan(0);
+});
+
+test("MessagesPage creates a transaction when an offer is accepted", async () => {
+  transactions.splice(0, transactions.length);
+  offers.splice(
+    0,
+    offers.length,
+    {
+      id: "offer-pending-1",
+      created_at: new Date("2026-04-18T10:00:00.000Z").toISOString(),
+      sender_id: "seller-1",
+      receiver_id: "user-1",
+      listing_id: "listing-2",
+      amount: 500,
+      status: "pending",
+    }
+  );
+
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingId="listing-2"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  fireEvent.click(await screen.findByRole("button", { name: /accept/i }));
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "transactions",
+    expect.objectContaining({
+      item: "Textbook",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 500,
+      status: "awaiting_dropoff",
+    })
+  ));
+
+  expect(mocks.update).toHaveBeenCalledWith(
+    "listings",
+    expect.objectContaining({ sold_price: 500, status: "sold" })
+  );
+});
+
+test("MessagesPage shows seller quick replies and sends the selected response", async () => {
+  listingRecords["listing-2"] = {
+    ...listingRecords["listing-2"],
+    user_id: "user-1",
+    title: "Desk Lamp",
+  };
+  messages.splice(
+    0,
+    messages.length,
+    {
+      id: "m-buyer-1",
+      created_at: new Date().toISOString(),
+      sender_id: "buyer-1",
+      receiver_id: "user-1",
+      content: "Is this still available?",
+      is_read: false,
+      listing_id: "listing-2",
+    }
+  );
+
+  render(
+    <MessagesPage
+      initialRecipientId="buyer-1"
+      initialListingId="listing-2"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect(await screen.findByRole("button", { name: "Yes. Are you interested?" })).toBeInTheDocument();
+  expect(screen.getByText(/your listing/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /view buyer/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "In talks. I'll let you know." })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Sorry, it's not available." })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Yes. Are you interested?" }));
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "messages",
+    expect.objectContaining({
+      sender_id: "user-1",
+      receiver_id: "buyer-1",
+      content: "Yes. Are you interested?",
+      listing_id: "listing-2",
+    })
+  ));
+});
+
+test("MessagesPage warns before sending a message for a flagged listing", async () => {
+  listingRecords["listing-2"] = {
+    ...listingRecords["listing-2"],
+    status: "flagged",
+    flag_reason: "Reported for suspicious payment requests.",
+  };
+
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingId="listing-2"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  const composer = await screen.findByPlaceholderText(/type a message/i);
+  fireEvent.change(composer, { target: { value: "Can I collect today?" } });
+  fireEvent.click(screen.getByRole("button", { name: /send message/i }));
+
+  expect(await screen.findByRole("heading", { name: /flagged listing warning/i })).toBeInTheDocument();
+  expect(screen.getByText(/reported for suspicious payment requests\./i)).toBeInTheDocument();
+  expect(mocks.insert).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "messages",
+    expect.objectContaining({
+      sender_id: "user-1",
+      receiver_id: "seller-1",
+      content: "Can I collect today?",
+      listing_id: "listing-2",
+    })
+  ));
+});
+
 test("AdminDashboard loads facilities, saves changes, and generates a report", async () => {
   const onSignOut = vi.fn();
   render(<AdminDashboard onSignOut={onSignOut} />);
 
   expect(await screen.findByText(/main trade desk/i)).toBeInTheDocument();
-  fireEvent.click(screen.getByText(/main trade desk/i));
-
-  fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
-  expect(await screen.findByRole("status")).toHaveTextContent(/changes saved/i);
+  fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+  fireEvent.click(screen.getByRole("button", { name: /update facility/i }));
+  expect(await screen.findByRole("status")).toHaveTextContent(/facility updated successfully/i);
 
   fireEvent.click(screen.getByRole("button", { name: /reports/i }));
   fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
 
-  expect(await screen.findByText(/listings overview/i)).toBeInTheDocument();
-  expect(mocks.rpc).toHaveBeenCalledWith("get_listings_overview", expect.any(Object));
+  expect(await screen.findByText(/executive overview/i)).toBeInTheDocument();
+  expect(mocks.rpc).toHaveBeenCalledWith("get_executive_overview", expect.any(Object));
 
   fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
@@ -486,20 +946,18 @@ test("AdminDashboard loads facilities, saves changes, and generates a report", a
 
 test("TradeFacilityDashboard renders navigation and sign out", () => {
   const onSignOut = vi.fn();
-  render(<TradeFacilityDashboard onSignOut={onSignOut} />);
+  render(<TradeFacilityDashboard onSignOut={onSignOut} staffProfile={profile} />);
 
   expect(screen.getByRole("heading", { name: /dashboard overview/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /drop-off bookings/i }));
-  expect(screen.getAllByRole("heading", { name: /drop-off bookings/i }).length).toBeGreaterThan(0);
+  expect(screen.getByRole("heading", { name: /drop-off requests/i })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: /all transactions/i }));
-  expect(screen.getAllByRole("heading", { name: /all transactions/i }).length).toBeGreaterThan(0);
+  expect(screen.getByRole("heading", { name: /all transactions/i })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
 });
-<<<<<<< Updated upstream
-=======
 
 test("StudentBookingsPage shows a seller drop-off booking action for accepted trades", async () => {
   transactions.splice(
@@ -574,13 +1032,18 @@ test("StudentBookingsPage lets a seller complete a drop-off booking flow", async
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
 
-  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
-    "book_transaction_slot",
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "bookings",
     expect.objectContaining({
-      p_transaction_id: "txn-4",
-      p_booking_type: "dropoff",
-      p_facility_id: "facility-1",
-      p_scheduled_time: "2099-05-04T09:00:00",
+      type: "dropoff",
+      location: "Main Trade Desk",
+      status: "pending_approval",
+    })
+  ));
+  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
+    "transactions",
+    expect.objectContaining({
+      dropoff_id: expect.stringMatching(/^DO-/),
     })
   ));
 });
@@ -611,14 +1074,18 @@ test("StudentBookingsPage lets a buyer complete a collection booking flow", asyn
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
 
-  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
-    "book_transaction_slot",
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "bookings",
     expect.objectContaining({
-      p_transaction_id: "txn-5",
-      p_booking_type: "collection",
-      p_facility_id: "facility-1",
-      p_scheduled_time: "2099-05-04T09:00:00",
+      type: "collection",
+      location: "Main Trade Desk",
+      status: "pending_approval",
+    })
+  ));
+  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
+    "transactions",
+    expect.objectContaining({
+      collection_id: expect.stringMatching(/^CL-/),
     })
   ));
 });
->>>>>>> Stashed changes

@@ -1,3 +1,6 @@
+/* Design notes for listing card live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 .listing-card {
   background: var(--surface-muted);
   border-radius: 16px;
@@ -24,7 +27,7 @@
   position: relative;
   width: 100%;
   padding-top: 75%;
-  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
+  background: #e5e7eb;
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -36,7 +39,10 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 12px;
+}
+
+.listing-card__image-wrap img {
+  padding: 0;
 }
 
 .listing-card__image-placeholder {
@@ -44,7 +50,59 @@
   align-items: center;
   justify-content: center;
   font-size: 56px;
-  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
+  background: #e5e7eb;
+  padding: 12px;
+}
+
+/* ── For Trade Badge ───────────────────────────────────── */
+.listing-card__trade-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  pointer-events: none;
+}
+
+.listing-card__trade-badge--only {
+  background: #1e40af;
+}
+
+.listing-card__trade-badge--stacked {
+  top: 46px;
+}
+
+.listing-card__trade-badge--admin-offset {
+  top: 50px;
+}
+
+.listing-card__trade-badge--stacked.listing-card__trade-badge--admin-offset {
+  top: 86px;
+}
+
+.listing-card__flagged-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  background: #b91c1c;
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  pointer-events: none;
+}
+
+.listing-card__flagged-badge--admin-offset {
+  top: 50px;
 }
 
 /* ── Wishlist Heart Button (on card image) ───────────────── */
@@ -87,6 +145,37 @@
 .listing-card__wishlist-btn--active:hover {
   color: var(--green-dark);
   transform: scale(1.08);
+}
+
+.listing-card__report-btn {
+  position: absolute;
+  top: 50px;
+  right: 10px;
+  z-index: 2;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgba(17, 24, 39, 0.82);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(6px);
+  transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.listing-card__report-btn--admin-left {
+  top: 10px;
+  left: 10px;
+  right: auto;
+}
+
+.listing-card__report-btn:hover {
+  background: rgba(185, 28, 28, 0.92);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(127, 29, 29, 0.24);
 }
 
 /* ── Keep the old .listing-card__like alias in case used elsewhere ── */
@@ -208,7 +297,7 @@
   white-space: nowrap;
 }
 
-/* ── Seller / Distance ─────────────────────────────────── */
+/* ── Seller ─────────────────────────────────── */
 .listing-card__meta {
   display: flex;
   flex-direction: column;
@@ -307,12 +396,134 @@
 /* ── Listings Grid ─────────────────────────────────────── */
 .listings-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
   list-style: none;
   padding: 0;
   margin: 0;
+}
+
+@media (max-width: 1200px) {
+  .listings-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .listings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.listings-section {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+.listings-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.listings-section__heading-block {
+  min-width: 0;
+}
+
+.listings-section__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gray-900);
+  letter-spacing: -0.5px;
+}
+
+.listings-section__count {
+  color: var(--gray-600);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.listings-section__sort-area {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.listings-section__sort-label,
+.listings-section__range-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.listings-section__sort-text,
+.listings-section__range-text,
+.listings-section__range-legend {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.listings-section__sort-select,
+.listings-section__range-input {
+  min-height: 44px;
+  border: 1px solid rgba(31, 36, 31, 0.12);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--gray-900);
+  font-family: var(--font);
+  font-size: 14px;
+}
+
+.listings-section__sort-select {
+  min-width: 210px;
+  padding: 0 40px 0 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235F6B63' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.listings-section__sort-select:focus,
+.listings-section__range-input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(31, 107, 82, 0.12);
+}
+
+.listings-section__range-fieldset {
+  border: 1px solid rgba(31, 36, 31, 0.08);
+  border-radius: 16px;
+  padding: 12px;
+  margin: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.listings-section__range-legend {
+  padding: 0;
+  margin-right: 2px;
+}
+
+.listings-section__range-input {
+  width: 110px;
+  padding: 0 12px;
+}
+
+.listings-section__range-input::-webkit-outer-spin-button,
+.listings-section__range-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
 }
 
 /* ── Empty State ───────────────────────────────────────── */
@@ -464,10 +675,11 @@
 .item-modal-carousel__frame {
   position: relative;
   width: 100%;
+  max-width: 680px;
   aspect-ratio: 16 / 8.5;
   border-radius: 24px;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
+  background: #e5e7eb;
 }
 
 .item-modal-carousel__nav {
@@ -522,12 +734,15 @@
   width: 100%;
   height: 100%;
   border-radius: 24px;
-  object-fit: cover;
-  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
+  background: #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 56px;
+}
+
+.item-modal-top-image {
+  object-fit: contain;
 }
 
 .item-modal-top-text {
@@ -562,6 +777,20 @@
   padding: 6px 12px;
 }
 
+.item-modal-trade-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: #2563eb;
+  border-radius: 999px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+.item-modal-trade-badge--only {
+  background: #1e40af;
+}
+
 .item-modal-price {
   margin: 0;
   font-size: 34px;
@@ -574,6 +803,70 @@
   font-size: 15px;
   font-weight: 500;
   color: #666;
+}
+
+.item-modal-price-check {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(31, 107, 82, 0.18);
+  background: rgba(235, 245, 239, 0.74);
+  padding: 12px 14px;
+  color: var(--gray-600);
+}
+
+.item-modal-price-check__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.item-modal-price-check strong {
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.item-modal-price-check span {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--green-dark);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.item-modal-price-check p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--gray-600);
+}
+
+.item-modal-price-check p + p {
+  margin-top: 4px;
+}
+
+.item-modal-price-check--good {
+  border-color: rgba(31, 107, 82, 0.24);
+  background: rgba(227, 239, 230, 0.82);
+}
+
+.item-modal-price-check--fair {
+  border-color: rgba(229, 157, 58, 0.38);
+  background: rgba(248, 232, 206, 0.68);
+}
+
+.item-modal-price-check--high {
+  border-color: rgba(199, 91, 74, 0.32);
+  background: rgba(247, 229, 225, 0.72);
+}
+
+.item-modal-price-check--high span {
+  color: #9f2f23;
 }
 
 .item-modal-wishlist-btn {
@@ -724,6 +1017,11 @@
   background: linear-gradient(135deg, #295e50 0%, #1f6b52 100%);
 }
 
+.item-modal-send-btn--offer {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);
+}
+
 .item-modal-actions {
   display: flex;
   gap: 10px;
@@ -747,6 +1045,25 @@
 }
 
 @media (max-width: 640px) {
+  .listings-section__header {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 18px;
+  }
+
+  .listings-section__sort-area {
+    display: none;
+  }
+
+  .listings-section__title {
+    font-size: 20px;
+  }
+
+  .listings-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+
   .item-modal-overlay { padding: 10px; }
   .item-modal-scroll { padding: 14px; }
   .modal-close { right: -8px; top: -8px; }
@@ -772,5 +1089,45 @@
 .listing-card__seller--link:hover {
   color: var(--green);
 }
+
+html.dark .item-modal-price-check {
+  background: #111827 !important;
+  border-color: #374151;
+  color: #cbd5e1;
+}
+
+html.dark .item-modal-price-check strong,
+html.dark .item-modal-price-check p {
+  color: #f9fafb !important;
+}
+
+html.dark .item-modal-price-check span {
+  background: rgba(255, 255, 255, 0.08);
+  color: #86efac !important;
+}
+
+html.dark .item-modal-price-check--good {
+  background: rgba(52, 211, 153, 0.10) !important;
+  border-color: rgba(52, 211, 153, 0.34);
+}
+
+html.dark .item-modal-price-check--fair {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
+html.dark .item-modal-price-check--fair span {
+  color: #fcd34d !important;
+}
+
+html.dark .item-modal-price-check--high {
+  background: rgba(248, 113, 113, 0.12) !important;
+  border-color: rgba(248, 113, 113, 0.42);
+}
+
+html.dark .item-modal-price-check--high span {
+  color: #fca5a5 !important;
+}
+
 
 

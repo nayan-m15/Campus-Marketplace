@@ -1,3 +1,6 @@
+/* Design notes for auth live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 /* ── Auth Page Layout ───────────────────────────────────── */
 .auth-page {
   min-height: 100vh;
@@ -40,6 +43,30 @@
   gap: 12px;
 }
 
+.auth-back-btn {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--gray-800);
+  font-family: var(--font);
+  margin-bottom: 24px;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.auth-back-btn:hover {
+  border-color: var(--gray-300);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.auth-back-btn:focus-visible {
+  outline: 2px solid rgba(31, 107, 82, 0.25);
+  outline-offset: 2px;
+}
+
 /* ── Logo ───────────────────────────────────────────────── */
 .auth-logo {
   display: flex;
@@ -64,9 +91,9 @@
 
 .auth-logo__text {
   font-weight: 800;
-  font-size: 18px;
+  font-size: 16px;
   color: var(--navy);
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
 }
 
 /* ── Headings ───────────────────────────────────────────── */
@@ -152,6 +179,24 @@
   text-align: left;
 }
 
+.auth-error--list {
+  margin: 0 0 12px;
+  padding-left: 30px;
+}
+
+.auth-success-message {
+  width: 100%;
+  background: rgba(31, 107, 82, 0.12);
+  color: var(--green-dark);
+  border: 1px solid rgba(31, 107, 82, 0.18);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
 /* ── Form ───────────────────────────────────────────────── */
 .auth-form {
   width: 100%;
@@ -193,6 +238,62 @@
 
 .auth-field input::placeholder {
   color: #b0b9c9;
+}
+
+.auth-password-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-password-control input {
+  padding-right: 48px;
+}
+
+.auth-password-toggle {
+  position: absolute;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gray-900);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.auth-password-toggle:hover,
+.auth-password-toggle:focus-visible {
+  background: rgba(31, 107, 82, 0.08);
+  color: var(--green-dark);
+}
+
+.auth-password-toggle:focus-visible {
+  outline: 2px solid rgba(31, 107, 82, 0.25);
+  outline-offset: 2px;
+}
+
+.auth-inline-link {
+  width: fit-content;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-inline-link--center {
+  margin-top: 14px;
 }
 
 /* ── Submit Button ──────────────────────────────────────── */
@@ -254,4 +355,5 @@
   font-size: 48px;
   margin-bottom: 8px;
 }
+
 

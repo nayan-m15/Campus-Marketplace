@@ -1,3 +1,6 @@
+// Main structure for the footer feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 export default function Footer() {
   return (
     <footer
@@ -11,7 +14,7 @@ export default function Footer() {
       }}
     >
       <p>
-        <strong style={{ color: "var(--amber)" }}>Unexus</strong>{" "}
+        <strong style={{ color: "var(--amber)" }}>CAMPUSXCHANGE</strong>{" "}
         — Student marketplace. Safe. Local. Trusted.
       </p>
     </footer>

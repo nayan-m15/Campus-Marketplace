@@ -1,16 +1,22 @@
-import { useState, useEffect } from "react";
+// Main structure for the settings page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
+import { validatePassword } from "../utils/passwordValidation";
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
   const { user } = useAuth();
+  const notifSavedTimeoutRef = useRef(null);
 
   // ── Password ──
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordErrors, setPasswordErrors] = useState([]);
   const [passwordMsg, setPasswordMsg] = useState(null);
-  const [passwordError, setPasswordError] = useState(null);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   // ── Notifications ──
@@ -26,16 +32,18 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
   const [deleteError, setDeleteError] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-function handleDarkMode(val) {
-  setDarkMode(val);
-  if (val) {
-    document.documentElement.classList.add("dark");
-    localStorage.setItem("theme", "dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-    localStorage.setItem("theme", "light");
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
+  function handleDarkMode(val) {
+    setDarkMode(val);
+    if (val) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
   }
-}
 
   // ── Load notification prefs from profile ──
   useEffect(() => {
@@ -51,16 +59,25 @@ function handleDarkMode(val) {
       });
   }, [user]);
 
+  useEffect(() => () => {
+    if (notifSavedTimeoutRef.current) {
+      clearTimeout(notifSavedTimeoutRef.current);
+    }
+  }, []);
+
   async function handleChangePassword() {
     setPasswordMsg(null);
-    setPasswordError(null);
+    setPasswordErrors([]);
 
-    if (!newPassword || newPassword.length < 6) {
-      setPasswordError("New password must be at least 6 characters.");
+    // Validate all password rules individually
+    const { valid, errors: pwErrors } = validatePassword(newPassword);
+    if (!valid) {
+      setPasswordErrors(pwErrors);
       return;
     }
+
     if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match.");
+      setPasswordErrors(["Passwords do not match."]);
       return;
     }
 
@@ -69,10 +86,9 @@ function handleDarkMode(val) {
     setPasswordLoading(false);
 
     if (error) {
-      setPasswordError(error.message);
+      setPasswordErrors([error.message]);
     } else {
       setPasswordMsg("Password updated successfully!");
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     }
@@ -105,7 +121,13 @@ function handleDarkMode(val) {
       })
       .eq("id", user.id);
     setNotifSaved(true);
-    setTimeout(() => setNotifSaved(false), 3000);
+    if (notifSavedTimeoutRef.current) {
+      clearTimeout(notifSavedTimeoutRef.current);
+    }
+    notifSavedTimeoutRef.current = setTimeout(() => {
+      setNotifSaved(false);
+      notifSavedTimeoutRef.current = null;
+    }, 3000);
   }
 
   async function handleDeleteAccount() {
@@ -150,22 +172,24 @@ function handleDarkMode(val) {
   };
 
   const sectionStyle = {
-  background: "var(--surface)",
-  borderRadius: 16,
-  padding: 28,
-  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-  border: "1px solid var(--gray-200)",
-  marginBottom: 24,
-};
+    background: "var(--surface)",
+    borderRadius: 16,
+    padding: 28,
+    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+    border: "1px solid var(--gray-200)",
+    marginBottom: 24,
+  };
 
   const labelStyle = {
-  fontSize: 13,
-  fontWeight: 600,
-  color: "var(--gray-800)",
-  marginBottom: 6,
-  display: "block",
-};
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--gray-800)",
+    marginBottom: 6,
+    display: "block",
+  };
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const toggleStyle = (active) => ({
     width: 44,
     height: 24,
@@ -178,6 +202,8 @@ function handleDarkMode(val) {
     flexShrink: 0,
   });
 
+  // A focused piece of component behavior is handled here.
+  // Keeping it separate makes the main flow less crowded.
   const toggleKnobStyle = (active) => ({
     position: "absolute",
     top: 3,
@@ -219,7 +245,7 @@ function handleDarkMode(val) {
               <input
                 type="password"
                 style={inputStyle}
-                placeholder="At least 6 characters"
+                placeholder="Min. 6 chars, upper & lowercase, 1 number"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
@@ -235,8 +261,18 @@ function handleDarkMode(val) {
               />
             </div>
 
-            {passwordError && <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>{passwordError}</p>}
-            {passwordMsg && <p style={{ color: "var(--green)", fontSize: 13, margin: 0 }}>{passwordMsg}</p>}
+            {/* Each failed rule shown as its own line */}
+            {passwordErrors.length > 0 && (
+              <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: 4 }}>
+                {passwordErrors.map((msg) => (
+                  <li key={msg} style={{ color: "#ef4444", fontSize: 13 }}>{msg}</li>
+                ))}
+              </ul>
+            )}
+
+            {passwordMsg && (
+              <p style={{ color: "var(--green)", fontSize: 13, margin: 0 }}>{passwordMsg}</p>
+            )}
 
             <button
               onClick={handleChangePassword}
@@ -295,24 +331,24 @@ function handleDarkMode(val) {
         </div>
       </section>
 
-            {/* ── Appearance ── */}
-        <section style={sectionStyle}>
+      {/* ── Appearance ── */}
+      <section style={sectionStyle}>
         <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "var(--gray-900)" }}>Appearance</h2>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
+          <div>
             <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "var(--gray-900)" }}>Dark mode</p>
             <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "2px 0 0" }}>Switch between light and dark theme</p>
-            </div>
-            <button
+          </div>
+          <button
             style={toggleStyle(darkMode)}
             onClick={() => handleDarkMode(!darkMode)}
             aria-label="Toggle dark mode"
-            >
+          >
             <span style={toggleKnobStyle(darkMode)} />
-            </button>
+          </button>
         </div>
-        </section>
+      </section>
 
       {/* ── Delete Account ── */}
       <section style={{ ...sectionStyle, border: "1px solid #fee2e2" }}>

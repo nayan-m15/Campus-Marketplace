@@ -13,12 +13,7 @@ import {
   mapHoursByDay,
   toDateInputValue,
 } from "../utils/bookingScheduling";
-import {
-  canBookCollectionForStatus,
-  getCollectionStageLabel,
-  getDropoffStageLabel,
-  TRANSACTION_STATUS_META,
-} from "../utils/tradeWorkflow";
+import { canBookCollectionForStatus, TRANSACTION_STATUS_META } from "../utils/tradeWorkflow";
 
 function StepIndicator({ step }) {
   return (
@@ -61,7 +56,7 @@ function SuccessView({ bookingType, facilityName, selectedDate, selectedTime, on
 
 async function loadFacilitiesWithHours() {
   const [{ data: facilitiesData, error: facilitiesError }, { data: hoursData, error: hoursError }] = await Promise.all([
-    supabase.from("facilities").select("id, name, capacity, status").order("name"),
+    supabase.from("facilities").select("id, name, capacity").order("name"),
     supabase.from("facility_hours").select("id, facility_id, day, open, start_time, end_time"),
   ]);
 
@@ -75,12 +70,10 @@ async function loadFacilitiesWithHours() {
     hoursByFacility.set(row.facility_id, current);
   }
 
-  return (facilitiesData || [])
-    .filter((facility) => facility.status !== "inactive")
-    .map((facility) => ({
-      ...facility,
-      hours: hoursByFacility.get(facility.id) || [],
-    }));
+  return (facilitiesData || []).map((facility) => ({
+    ...facility,
+    hours: hoursByFacility.get(facility.id) || [],
+  }));
 }
 
 async function fetchSlotUsage(location, selectedDate, excludeBookingId = null) {
@@ -103,31 +96,6 @@ async function fetchSlotUsage(location, selectedDate, excludeBookingId = null) {
     acc[slot] = (acc[slot] || 0) + 1;
     return acc;
   }, {});
-}
-
-function getBookingErrorMessage(error, bookingType) {
-  const fallback = bookingType === "dropoff"
-    ? "Unable to save the drop-off booking."
-    : "Unable to save the collection booking.";
-  const message = error?.message || fallback;
-
-  if (/no longer available|capacity|full/i.test(message)) {
-    return "That slot just filled up. Please choose another available time.";
-  }
-
-  if (/already booked|already has/i.test(message)) {
-    return bookingType === "dropoff"
-      ? "This transaction already has a drop-off booking for the current stage."
-      : "This transaction already has a collection booking for the current stage.";
-  }
-
-  if (/not ready|cannot be booked/i.test(message)) {
-    return bookingType === "dropoff"
-      ? "This transaction is not ready for a drop-off booking."
-      : "Collection booking is not available for this transaction yet.";
-  }
-
-  return message;
 }
 
 function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
@@ -251,28 +219,65 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
     setError("");
 
     const scheduledTime = `${selectedDate}T${selectedTime}:00`;
+    const bookingId = buildBookingId(bookingType === "dropoff" ? "DO" : "CL");
+    const bookingColumn = bookingType === "dropoff" ? "dropoff_id" : "collection_id";
+    const bookingStatus = "pending_approval";
     try {
-      const { data, error: bookingError } = await supabase.rpc("book_transaction_slot", {
-        p_transaction_id: transaction.id,
-        p_booking_type: bookingType,
-        p_facility_id: String(selectedFacility.id),
-        p_scheduled_time: scheduledTime,
-      });
+      const existingBookingId = bookingType === "dropoff" ? transaction.dropoff_id : transaction.collection_id;
 
-      if (bookingError) throw bookingError;
+      if (existingBookingId) {
+        const { error: updateBookingError } = await supabase
+          .from("bookings")
+          .update({
+            scheduled_time: scheduledTime,
+            location: selectedFacility.name,
+            type: bookingType,
+            status: bookingStatus,
+          })
+          .eq("id", existingBookingId);
 
-      const savedBooking = Array.isArray(data) ? data[0] : data;
-      const bookingId = savedBooking?.booking_id || buildBookingId(bookingType === "dropoff" ? "DO" : "CL");
+        if (updateBookingError) throw updateBookingError;
+
+        const { error: updateTransactionError } = await supabase
+          .from("transactions")
+          .update({
+            [bookingColumn]: existingBookingId,
+          })
+          .eq("id", transaction.id);
+
+        if (updateTransactionError) throw updateTransactionError;
+      } else {
+        const { error: insertBookingError } = await supabase
+          .from("bookings")
+          .insert({
+            id: bookingId,
+            type: bookingType,
+            scheduled_time: scheduledTime,
+            location: selectedFacility.name,
+            status: bookingStatus,
+          });
+
+        if (insertBookingError) throw insertBookingError;
+
+        const { error: updateTransactionError } = await supabase
+          .from("transactions")
+          .update({
+            [bookingColumn]: bookingId,
+          })
+          .eq("id", transaction.id);
+
+        if (updateTransactionError) throw updateTransactionError;
+      }
 
       onSuccess?.({
         scheduledTime,
         bookingType,
-        bookingId,
+        bookingId: existingBookingId || bookingId,
         transactionId: transaction.id,
       });
       setDone(true);
     } catch (err) {
-      setError(getBookingErrorMessage(err, bookingType));
+      setError(err.message || "Unable to save the booking.");
     } finally {
       setSubmitting(false);
     }
@@ -451,8 +456,6 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
     canBookCollectionForStatus(transaction.status) ||
     (transaction.status === "item_received" && Boolean(transaction.dropoff_booking));
   const canBookCollection = userIsBuyer && !transaction.collection_booking && collectionRequestReady;
-  const dropoffStageLabel = getDropoffStageLabel(transaction);
-  const collectionStageLabel = getCollectionStageLabel(transaction);
 
   return (
     <article className="bookings-page-card">
@@ -497,7 +500,6 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
           ) : (
             <p>Not booked yet</p>
           )}
-          <p className="bookings-page-card__stage">{dropoffStageLabel}</p>
           {canBookDropoff && (
             <button className="btn-primary bookings-page-card__action" onClick={() => onBook(transaction, "dropoff")}>
               Book drop-off
@@ -515,7 +517,6 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
           ) : (
             <p>Not booked yet</p>
           )}
-          <p className="bookings-page-card__stage">{collectionStageLabel}</p>
           {canBookCollection && (
             <button className="btn-primary bookings-page-card__action" onClick={() => onBook(transaction, "collection")}>
               Book collection

@@ -1,3 +1,6 @@
+// Main structure for the profile setup page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
@@ -133,20 +136,28 @@ const MIN_BIRTHDATE = "1900-01-01";
 const PROFILE_NAME_MAX = 80;
 const PROFILE_DISPLAY_NAME_MAX = 40;
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function getTodayDate() {
   return new Date().toISOString().split("T")[0];
 }
 
+// A focused piece of component behavior is handled here.
+// Keeping it separate makes the main flow less crowded.
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function parseBirthdate(value) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+// Small prep work happens in this helper before the UI uses the result.
+// It keeps lookup, formatting, or data shaping out of the render path.
 function getBirthdateError(value) {
   if (!value) return "Please enter your date of birth.";
 
@@ -160,7 +171,7 @@ function getBirthdateError(value) {
 
   const today = new Date();
   const minAge = new Date(today.getFullYear() - 12, today.getMonth(), today.getDate());
-  if (date > minAge) return "You must be at least 12 years old to use Unexus.";
+  if (date > minAge) return "You must be at least 12 years old to use CAMPUSXCHANGE.";
 
   return null;
 }
@@ -181,6 +192,8 @@ function StepDots({ current, total }) {
 
 const TOTAL_STEPS = 3;
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function ProfileSetupPage({ onComplete }) {
   const { user } = useAuth();
   const [step, setStep] = useState(0);
@@ -201,6 +214,8 @@ export default function ProfileSetupPage({ onComplete }) {
     setForm((f) => ({ ...f, [key]: val }));
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleProvinceChange = (val) => {
     setError("");
     setForm((f) => ({ ...f, province: val, institution: "" }));
@@ -231,6 +246,8 @@ export default function ProfileSetupPage({ onComplete }) {
     return null;
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleNext = () => {
     const err = validateStep();
     if (err) { setError(err); return; }
@@ -238,14 +255,22 @@ export default function ProfileSetupPage({ onComplete }) {
     setStep((s) => s + 1);
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleBack = () => {
     setError("");
     setStep((s) => s - 1);
   };
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   const handleFinish = async () => {
     const err = validateStep();
     if (err) { setError(err); return; }
+    if (!user?.id || !user?.email) {
+      setError("We could not find your account email. Please sign in again and try setup once more.");
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -256,6 +281,7 @@ export default function ProfileSetupPage({ onComplete }) {
       const { error: upsertError } = await supabase.from("profiles").upsert(
         {
           id: user.id,
+          email: user.email,
           name: form.name.trim(),
           display_name: displayName,
           sex: form.sex,
@@ -283,8 +309,10 @@ export default function ProfileSetupPage({ onComplete }) {
         {/* Header */}
         <div className="setup-header">
           <div className="setup-logo">
-            <strong className="setup-logo__icon">UX</strong>
-            <span className="setup-logo__text">Unexus</span>
+            <strong className="setup-logo__icon">
+              <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="setup-logo__img" />
+            </strong>
+            <span className="setup-logo__text">CAMPUSXCHANGE</span>
           </div>
           <StepDots current={step} total={TOTAL_STEPS} />
           <h1 className="setup-title">

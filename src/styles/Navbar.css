@@ -1,8 +1,13 @@
+/* Design notes for navbar live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 .navbar-spacer {
-  height: 64px;
+  /* Matches the fixed navbar height so page content starts in the right place. */
+  height: var(--navbar-height);
 }
 
 .navbar {
+  /* Shared base shell for both desktop and mobile states. */
   position: fixed;
   top: 0;
   left: 0;
@@ -16,13 +21,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
-  height: 64px;
+  height: var(--navbar-height);
   box-shadow: 0 1px 20px rgba(0, 0, 0, 0.3);
   gap: 4px;
 }
 
 /* Logo */
 .navbar__logo {
+  /* The logo button is shared, while the text label gets hidden on mobile below. */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -48,24 +54,188 @@
 }
 
 .navbar__logo-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
   border-radius: 10px;
 }
 
 .navbar__logo-text {
   font-weight: 800;
-  font-size: 18px;
+  font-size: 16px;
   color: #fff;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
 }
 
 /* Search */
 .navbar__search {
+  /* Shared search field styling.
+     Desktop keeps this inline, while mobile swaps to a separate overlay version. */
   flex: 1;
   max-width: 520px;
   position: relative;
 }
 
+.navbar__search--desktop {
+  /* Explicit hook so desktop search can be turned off on mobile without affecting shared styles. */
+  display: block;
+}
+
+.navbar__actions {
+  /* Right-side wrapper for mobile quick actions, desktop links, and the menu trigger. */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navbar__mobile-actions {
+  /* Hidden by default because the compact mobile controls only appear in the mobile breakpoint. */
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar__mobile-search-shell {
+  /* This is the temporary mobile overlay navbar that replaces the normal row during search. */
+  display: none;
+}
+
+.navbar__icon-btn {
+  /* Small circular action buttons used by the mobile quick-action row. */
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.navbar__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.navbar__icon-btn-wrap {
+  /* Gives us a stable anchor point for the unread badge. */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar__mobile-badge {
+  position: absolute;
+  top: -7px;
+  right: -10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #53d769;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(31, 36, 31, 0.92);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.navbar__mobile-badge::after {
+  content: attr(data-count);
+  line-height: 16px;
+  text-align: center;
+}
+
+.navbar__mobile-avatar {
+  /* Avatar stays intentionally small so it fits beside the mobile search trigger. */
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.navbar__mobile-avatar--placeholder {
+  /* Fallback avatar when the user has not uploaded an image yet. */
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar__desktop-avatar-placeholder {
+  /* Desktop gets the same fallback avatar language as mobile,
+     just sized to sit comfortably beside the username. */
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.82);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.navbar__icon-btn--plus {
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.navbar__mobile-search-trigger,
+.navbar__search-close {
+  /* These two controls are paired in the mobile search flow,
+     so they share the same interaction feel. */
+  border: none;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.navbar__mobile-search-trigger {
+  /* Wider on purpose so mobile gets a clear search affordance instead of a tiny icon hit area. */
+  min-width: 132px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font);
+}
+
+.navbar__mobile-search-trigger:hover,
+.navbar__search-close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.navbar__search-close {
+  /* Simple circular close button for the mobile overlay state. */
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
 .navbar__search-icon {
+  /* Shared icon placement for both desktop search and the mobile overlay search. */
   position: absolute;
   left: 14px;
   top: 50%;
@@ -77,6 +247,7 @@
 }
 
 .navbar__search input {
+  /* Base input treatment shared across both navbar search presentations. */
   width: 100%;
   padding: 10px 16px 10px 40px;
   border: 1.5px solid rgba(255, 255, 255, 0.1);
@@ -101,6 +272,7 @@
 
 /* Links */
 .navbar__links {
+  /* Desktop/tablet nav links live here and get hidden on mobile later. */
   display: flex;
   align-items: center;
   gap: 4px;
@@ -109,6 +281,7 @@
 }
 
 .navbar__link {
+  /* General desktop navigation button styling. */
   display: flex;
   align-items: center;
   gap: 6px;
@@ -139,12 +312,15 @@
 }
 /* Hamburger */
 .navbar__hamburger-wrap {
+  /* Shared positioning context for the dropdown menu. */
   position: relative;
   flex-shrink: 0;
   margin-left: 0px;
+  display: block;
 }
 
 .navbar__hamburger {
+  /* The trigger is restyled in the mobile breakpoint, but the structure stays the same. */
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -164,6 +340,7 @@
 
 /* Backdrop */
 .navbar__menu-backdrop {
+  /* Full-screen click target so the side menu can be dismissed naturally. */
   position: fixed;
   inset: 0;
   z-index: 99;
@@ -171,6 +348,7 @@
 
 /* Dropdown */
 .navbar__menu {
+  /* Shared dropdown / side-menu panel. */
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
@@ -230,3 +408,105 @@ html.dark .navbar__menu li button:hover {
 html.dark .navbar__hamburger span {
   background: #f9fafb;
 }
+
+@media (max-width: 900px) {
+  /* Mobile/tablet split:
+     below this breakpoint we stop trying to squeeze desktop navbar patterns down.
+     Instead, we use a compact row plus a dedicated search overlay state. */
+  .navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+  }
+
+  .navbar__logo {
+    min-width: 0;
+  }
+
+  .navbar__logo-text {
+    /* Mobile only shows the brand mark to save horizontal space. */
+    display: none;
+  }
+
+  .navbar__search--desktop {
+    /* Desktop inline search should disappear completely on mobile. */
+    display: none;
+  }
+
+  .navbar__search input {
+    /* Slightly larger touch-friendly input sizing on smaller screens. */
+    padding-block: 11px;
+    font-size: 15px;
+  }
+
+  .navbar__mobile-search-shell {
+    /* When search is open, this shell becomes the whole visible navbar row. */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .navbar__search--mobile-overlay {
+    /* Mobile overlay search takes the remaining width beside the close button. */
+    flex: 1;
+    max-width: none;
+  }
+
+  .navbar__search--mobile-overlay input {
+    /* Extra elevation helps the temporary overlay state feel distinct. */
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  }
+
+  .navbar__actions {
+    /* Lets the compact mobile action row use the free horizontal space. */
+    justify-content: flex-end;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .navbar__mobile-actions {
+    /* Mobile quick actions replace the desktop link row at this size. */
+    display: flex;
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .navbar__links {
+    /* Desktop nav links are intentionally hidden on mobile to keep responsibilities split. */
+    display: none;
+  }
+
+  .navbar__hamburger-wrap {
+    display: block;
+  }
+
+  .navbar__hamburger {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .navbar__hamburger span {
+    background: #f9fafb;
+  }
+
+  .navbar__menu {
+    /* Keep the dropdown inside the viewport on small screens. */
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: min(240px, calc(100vw - 32px));
+  }
+
+  .navbar--mobile-search-open {
+    /* Search-open mode stretches the overlay row across the full navbar width. */
+    justify-content: stretch;
+  }
+}
+

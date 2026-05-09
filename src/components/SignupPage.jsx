@@ -1,29 +1,55 @@
+// Main structure for the signup page feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getAppBaseUrl } from "../utils/appUrl";
+import { validatePassword } from "../utils/passwordValidation";
 import "../styles/Auth.css";
 
+const EMAIL_REGISTERED_MESSAGE = "Email is already registered. Try signing in instead.";
+
+// Quick guard logic sits here for this decision point.
+// The check keeps the rest of the flow cleaner to read.
+function isEmailAlreadyRegistered({ data, error }) {
+  const message = error?.message?.toLowerCase() || "";
+
+  return (
+    message.includes("already registered") ||
+    message.includes("user already exists") ||
+    message.includes("already been registered") ||
+    error?.status === 422 ||
+    (Array.isArray(data?.user?.identities) && data.user.identities.length === 0)
+  );
+}
+
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function SignupPage({ onNavigate }) {
   const { signUp, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState([]);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
+    setErrors([]);
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    // Validate password rules
+    const { valid, errors: pwErrors } = validatePassword(password);
+    if (!valid) {
+      setErrors(pwErrors);
       return;
     }
 
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setErrors(["Passwords do not match."]);
       return;
     }
 
@@ -36,43 +62,26 @@ export default function SignupPage({ onNavigate }) {
 
     setLoading(false);
 
-    if (error) {
-      if (
-        error.message?.toLowerCase().includes("already registered") ||
-        error.message?.toLowerCase().includes("user already exists") ||
-        error.status === 422
-      ) {
-        setError("An account with this email already exists. Try signing in instead.");
-      } else {
-        setError(error.message);
-      }
+    if (isEmailAlreadyRegistered({ data, error })) {
+      setErrors([EMAIL_REGISTERED_MESSAGE]);
       return;
     }
 
     if (error) {
-      if (
-        error.message?.toLowerCase().includes("already registered") ||
-        error.message?.toLowerCase().includes("user already exists") ||
-        error.status === 422
-      ){
-        setError("An account with this email already exists. Try signing in instead.");
-      } 
-      else {
-        setError(error.message);
-      }
-    return;
+      setErrors([error.message]);
+      return;
     }
+
     setSuccess(true);
   }
 
   async function handleGoogle() {
-    setError("");
+    setErrors([]);
     setGoogleLoading(true);
-    // Same origin-aware redirect for Google OAuth
     const redirectTo = getAppBaseUrl();
     const { error } = await signInWithGoogle({ redirectTo });
     setGoogleLoading(false);
-    if (error) setError(error.message);
+    if (error) setErrors([error.message]);
   }
 
   if (success) {
@@ -96,12 +105,20 @@ export default function SignupPage({ onNavigate }) {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <button
+          className="auth-back-btn"
+          type="button"
+          onClick={() => onNavigate("home")}
+        >
+          ←
+        </button>
+
         {/* Logo */}
         <div className="auth-logo">
           <span className="auth-logo__icon">
-            <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="UX Logo" className="navbar__logo-img" />
+            <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="navbar__logo-img" />
           </span>
-          <span className="auth-logo__text">Unexus</span>
+          <span className="auth-logo__text">CAMPUSXCHANGE</span>
         </div>
 
         <h1 className="auth-title">Create your account</h1>
@@ -127,7 +144,14 @@ export default function SignupPage({ onNavigate }) {
           <span>or sign up with email</span>
         </div>
 
-        {error && <p className="auth-error" role="alert">{error}</p>}
+        {/* Validation errors — each rule shown separately */}
+        {errors.length > 0 && (
+          <ul className="auth-error auth-error--list" role="alert">
+            {errors.map((msg) => (
+              <li key={msg}>{msg}</li>
+            ))}
+          </ul>
+        )}
 
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           <div className="auth-field">
@@ -145,28 +169,78 @@ export default function SignupPage({ onNavigate }) {
 
           <div className="auth-field">
             <label htmlFor="signup-password">Password</label>
-            <input
-              id="signup-password"
-              type="password"
-              placeholder="Min. 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-            />
+            <div className="auth-password-control">
+              <input
+                id="signup-password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Min. 6 chars, upper & lowercase, 1 number"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="auth-password-toggle"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                  <circle cx="12" cy="12" r="3" />
+                  {showPassword && <path d="M4 20 20 4" />}
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div className="auth-field">
             <label htmlFor="signup-confirm">Confirm password</label>
-            <input
-              id="signup-confirm"
-              type="password"
-              placeholder="Repeat your password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              required
-              autoComplete="new-password"
-            />
+            <div className="auth-password-control">
+              <input
+                id="signup-confirm"
+                type={showConfirm ? "text" : "password"}
+                placeholder="Repeat your password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                required
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="auth-password-toggle"
+                onClick={() => setShowConfirm((current) => !current)}
+                aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
+                aria-pressed={showConfirm}
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                  <circle cx="12" cy="12" r="3" />
+                  {showConfirm && <path d="M4 20 20 4" />}
+                </svg>
+              </button>
+            </div>
           </div>
 
           <button type="submit" className="btn-primary auth-submit" disabled={loading}>

@@ -1,7 +1,5 @@
 import { supabase } from "../supabaseClient";
 
-// ─── Static Config ─────────────────────────────────────────
-
 export const CATEGORIES = [
   { label: "All Items", emoji: "🛍️" },
   { label: "Textbooks", emoji: "📚" },
@@ -24,7 +22,8 @@ export const CONDITION_COLORS = {
 
 export const CONDITIONS = ["All Conditions", ...Object.keys(CONDITION_COLORS)];
 
-// ─── Mock fallback (used if Supabase fails) ─────────────────
+const LISTING_SELECT =
+  "id, title, description, price, condition, user_id, image_url, image_urls, category, status, listing_type, flag_reason, created_at";
 
 const MOCK_LISTINGS = [
   {
@@ -40,18 +39,22 @@ const MOCK_LISTINGS = [
     approximate_location: "Gauteng",
     joined_year: 2026,
     joined_label: "April 2026",
-    distance: "0.3 km",
     image_url: null,
     image_urls: [],
     emoji: "📚",
+    status: "active",
+    flag_reason: "",
   },
 ];
 
-// ─── Helpers ───────────────────────────────────────────────
-
 function formatPrice(price) {
   if (price === null || price === undefined) return "R 0";
-  return `R ${Number(price).toLocaleString("en-ZA")}`;
+  const num = Number(price);
+  const hasCents = Math.round(num * 100) % 100 !== 0;
+  return `R ${num.toLocaleString("en-US", {
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).replace(/,/g, " ")}`;
 }
 
 function getCategoryEmoji(category) {
@@ -106,22 +109,23 @@ export function normaliseListing(listing, profile) {
     approximate_location: profile?.province ?? "Location not provided",
     joined_year: getJoinedYear(profile?.created_at),
     joined_label: getJoinedLabel(profile?.created_at),
-    distance: "0 km",
     image_url: primaryImage,
     image_urls: primaryImage
       ? [primaryImage, ...imageUrls.filter((url) => url !== primaryImage)]
       : imageUrls,
     emoji: primaryImage ? null : getCategoryEmoji(category),
+    listing_type: listing.listing_type ?? "sale",
+    status: listing.status ?? "active",
+    flag_reason: listing.flag_reason ?? "",
+    created_at: listing.created_at ?? null,
   };
 }
-
-// ─── Main Fetch Function ───────────────────────────────────
 
 export async function fetchListings(currentUserId = null) {
   try {
     let query = supabase
       .from("listings")
-      .select("id, title, description, price, condition, user_id, image_url, image_urls, category, status")
+      .select(LISTING_SELECT)
       .neq("status", "sold")
       .order("created_at", { ascending: false });
 
@@ -134,7 +138,7 @@ export async function fetchListings(currentUserId = null) {
     if (error) throw error;
 
     const userIds = [
-      ...new Set((listings || []).map((l) => l.user_id).filter(Boolean)),
+      ...new Set((listings || []).map((listing) => listing.user_id).filter(Boolean)),
     ];
 
     let profilesMap = {};
@@ -148,7 +152,7 @@ export async function fetchListings(currentUserId = null) {
       if (profilesError) {
         console.error("Failed to fetch profiles:", profilesError.message);
       } else {
-        profilesMap = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
+        profilesMap = Object.fromEntries((profiles || []).map((profile) => [profile.id, profile]));
       }
     }
 
@@ -161,12 +165,10 @@ export async function fetchListings(currentUserId = null) {
   }
 }
 
-// ─── Single Listing ────────────────────────────────────────
-
 export async function fetchListingById(id) {
   const { data: listing, error } = await supabase
     .from("listings")
-    .select("id, title, description, price, condition, user_id, image_url, image_urls, category")
+    .select(LISTING_SELECT)
     .eq("id", id)
     .single();
 

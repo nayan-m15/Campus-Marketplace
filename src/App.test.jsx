@@ -1,23 +1,128 @@
+// Main structure for the app test feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import App from "./App";
 
+const mockGetSession = vi.fn(() => Promise.resolve({ data: { session: null } }));
+const mockOnAuthStateChange = vi.fn(() => ({
+  data: { subscription: { unsubscribe: vi.fn() } },
+}));
+const mockInsertMessage = vi.fn(() => Promise.resolve({ error: null }));
+let mockProfileRole = "student";
+
 vi.mock("./supabaseClient", () => ({
   supabase: {
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: null, error: null }),
+    from: (table) => {
+      let selectedColumns = "";
+
+      const query = {
+        eq: vi.fn(() => query),
+        in: vi.fn(() => query),
+        is: vi.fn(() => query),
+        neq: vi.fn(() => query),
+        or: vi.fn(() => query),
+        order: vi.fn(() => query),
+        update: vi.fn(() => query),
+        select: vi.fn(() => query),
+        maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+        single: vi.fn(() => {
+          if (table === "profiles") {
+            return Promise.resolve({
+              data: {
+                id: "user-123",
+                name: "Test Student",
+                display_name: "Test Student",
+                avatar_url: "",
+                role: mockProfileRole,
+                sex: "Female",
+                birthdate: "2001-01-01",
+                province: "Gauteng",
+                institution: "Wits",
+              },
+              error: null,
+            });
+          }
+
+          if (table === "listings") {
+            return Promise.resolve({
+              data: {
+                id: "1",
+                title: "Sony PS5",
+                price: 10999,
+                user_id: "user-abc",
+                status: "flagged",
+                flag_reason: "Reported for suspicious payment requests.",
+              },
+              error: null,
+            });
+          }
+
+          return Promise.resolve({ data: null, error: null });
         }),
-      }),
-    }),
-    auth: {
-      getSession: () => Promise.resolve({ data: { session: null } }),
-      onAuthStateChange: () => ({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      }),
+        then: vi.fn((resolve) => {
+          if (table === "wishlists") {
+            return Promise.resolve(resolve({ data: [], error: null, count: 0 }));
+          }
+
+          if (table === "messages" || table === "offers") {
+            return Promise.resolve(resolve({ data: [], error: null, count: 0 }));
+          }
+
+          if (table === "listings") {
+            return Promise.resolve(resolve({ data: [], error: null, count: 0 }));
+          }
+
+          return Promise.resolve(resolve({
+            data: null,
+            error: null,
+            count: 0,
+          }));
+        }),
+      };
+
+      query.select = vi.fn((columns) => {
+        selectedColumns = columns;
+        return query;
+      });
+
+      query.maybeSingle = vi.fn(() => {
+        if (table === "listings") {
+          return Promise.resolve({
+            data: {
+              id: "1",
+              title: "Sony PS5",
+              price: 10999,
+              user_id: "user-abc",
+              status: selectedColumns.includes("status") ? "flagged" : undefined,
+              flag_reason: selectedColumns.includes("flag_reason")
+                ? "Reported for suspicious payment requests."
+                : undefined,
+            },
+            error: null,
+          });
+        }
+
+        return Promise.resolve({ data: null, error: null });
+      });
+
+      return query;
     },
+    auth: {
+      getSession: (...args) => mockGetSession(...args),
+      onAuthStateChange: (...args) => mockOnAuthStateChange(...args),
+    },
+    channel: vi.fn(() => ({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn(() => ({})),
+    })),
+    removeChannel: vi.fn(),
   },
+}));
+
+vi.mock("./utils/messageDelivery", () => ({
+  insertMessage: (...args) => mockInsertMessage(...args),
 }));
 
 vi.mock("./components/Hero", () => ({
@@ -26,6 +131,15 @@ vi.mock("./components/Hero", () => ({
       <button onClick={onBrowseClick}>Start Browsing</button>
       <button onClick={onSignupClick}>Start listing</button>
       <button onClick={onLoginClick}>Already have an account? Sign in</button>
+    </section>
+  ),
+}));
+
+vi.mock("./components/AdminDashboard.jsx", () => ({
+  default: ({ onBackToMarketplace }) => (
+    <section aria-label="Admin dashboard">
+      <h1>Admin Dashboard</h1>
+      <button onClick={onBackToMarketplace}>Back to Marketplace</button>
     </section>
   ),
 }));
@@ -41,7 +155,6 @@ vi.mock("./data/listings", () => ({
         condition: "Good",
         category: "Electronics",
         seller: "Saurav",
-        distance: "0 km",
         image_url: "/ps5-1.jpg",
         image_urls: ["/ps5-1.jpg", "/ps5-2.jpg"],
         emoji: "Gamepad",
@@ -52,7 +165,10 @@ vi.mock("./data/listings", () => ({
         approximate_location: "Johannesburg",
         institution: "Wits",
         joined_year: 2024,
+        listing_type: "trade",
         created_at: "2026-02-01T08:00:00.000Z",
+        status: "flagged",
+        flag_reason: "Reported for suspicious payment requests.",
       },
       {
         id: "2",
@@ -62,7 +178,6 @@ vi.mock("./data/listings", () => ({
         condition: "Like New",
         category: "Other",
         seller: "Nayan",
-        distance: "0 km",
         image_url: "",
         emoji: "Toy",
         rating: 0,
@@ -95,10 +210,28 @@ vi.mock("./data/listings", () => ({
   },
 }));
 
+// Supporting logic for the render app flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function renderApp() {
   render(<App />);
 }
 
+beforeEach(() => {
+  mockProfileRole = "student";
+  mockGetSession.mockReset();
+  mockGetSession.mockResolvedValue({ data: { session: null } });
+  mockOnAuthStateChange.mockReset();
+  mockOnAuthStateChange.mockReturnValue({
+    data: { subscription: { unsubscribe: vi.fn() } },
+  });
+  mockInsertMessage.mockReset();
+  mockInsertMessage.mockResolvedValue({ error: null });
+  Element.prototype.scrollIntoView = vi.fn();
+  window.history.replaceState({}, "", "/");
+});
+
+// Supporting logic for the mock listings scroll targets flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function mockListingsScrollTargets(listingsHeading, filterBarTop = 120, listingsTop = 420) {
   const innerListingsSection = listingsHeading.closest("section");
   const listingsScrollSection = innerListingsSection?.parentElement;
@@ -287,6 +420,8 @@ test("opens listing details modal when a listing card is clicked", async () => {
   await waitFor(() => {
     expect(screen.getByRole("heading", { name: /description/i })).toBeInTheDocument();
   });
+  const modal = document.querySelector(".item-modal-content");
+  expect(within(modal).getByText(/for trade/i)).toBeInTheDocument();
 });
 
 test("modal shows login prompt when user is not logged in", async () => {
@@ -307,6 +442,56 @@ test("modal shows seller info", async () => {
   expect(within(modalContent).getByText(/seller:/i)).toBeInTheDocument();
   expect(within(modalContent).getByText(/institution:/i)).toBeInTheDocument();
   expect(within(modalContent).getByText(/Wits/)).toBeInTheDocument();
+});
+
+test("warns before sending a message about a flagged listing and shows the admin reason", async () => {
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "student@example.com" },
+      },
+    },
+  });
+
+  renderApp();
+  fireEvent.click(await screen.findByRole("button", { name: /open details for sony ps5/i }));
+
+  fireEvent.click(await screen.findByRole("button", { name: /send message/i }));
+
+  expect(await screen.findByRole("heading", { name: /flagged listing warning/i })).toBeInTheDocument();
+  expect(screen.getByText(/reported for suspicious payment requests\./i)).toBeInTheDocument();
+  expect(mockInsertMessage).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+  await waitFor(() => {
+    expect(mockInsertMessage).toHaveBeenCalledWith(expect.objectContaining({
+      sender_id: "user-123",
+      receiver_id: "user-abc",
+      listing_id: "1",
+    }));
+  });
+});
+
+test("warns before opening chat from the flagged listing message action", async () => {
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "student@example.com" },
+      },
+    },
+  });
+
+  renderApp();
+
+  fireEvent.click(await screen.findByRole("button", { name: /message saurav/i }));
+
+  expect(await screen.findByRole("heading", { name: /flagged listing warning/i })).toBeInTheDocument();
+  expect(screen.getByText(/reported for suspicious payment requests\./i)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+  expect(await screen.findByPlaceholderText(/type a message/i)).toBeInTheDocument();
 });
 
 test("closes modal when close button is clicked", async () => {
@@ -498,4 +683,48 @@ test("returns to the home hero when the browser goes back from signup", async ()
   await waitFor(() => {
     expect(screen.getByRole("region", { name: /hero/i })).toBeInTheDocument();
   });
+});
+
+test("shows the reset password page when the recovery link uses query params", async () => {
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "student@example.com" },
+      },
+    },
+  });
+  window.history.replaceState({}, "", "/?type=recovery&token_hash=abc123");
+
+  renderApp();
+
+  expect(await screen.findByRole("heading", { name: /reset your password/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /log in/i })).not.toBeInTheDocument();
+});
+
+test("keeps an authenticated admin on the admin page after refresh", async () => {
+  mockProfileRole = "admin";
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "admin@example.com" },
+      },
+    },
+  });
+  window.history.replaceState({}, "", "/admin");
+
+  renderApp();
+
+  expect(await screen.findByRole("heading", { name: /admin dashboard/i })).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/admin");
+  expect(screen.queryByRole("heading", { name: /welcome back/i })).not.toBeInTheDocument();
+});
+
+test("redirects an unauthenticated admin refresh to login", async () => {
+  mockGetSession.mockResolvedValue({ data: { session: null } });
+  window.history.replaceState({}, "", "/admin");
+
+  renderApp();
+
+  expect(await screen.findByRole("heading", { name: /welcome back/i })).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/login");
 });

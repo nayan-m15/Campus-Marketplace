@@ -648,13 +648,6 @@
   border: 1px solid rgba(16, 38, 26, 0.06);
 }
 
-.bookings-page-card__stage {
-  margin-top: 10px;
-  color: #476252;
-  font-size: 0.92rem;
-  font-weight: 600;
-}
-
 .bookings-page-card__booking p:last-of-type {
   margin-bottom: 0;
 }

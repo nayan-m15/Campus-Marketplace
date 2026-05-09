@@ -1,3 +1,6 @@
+/* Design notes for profile page live in this stylesheet.
+   Layout, spacing, and visual treatment for this area are handled here. */
+
 /* ═══════════════════════════════════════════════════════════
    ProfilePage.css — Updated colour scheme
 ═══════════════════════════════════════════════════════════ */
@@ -515,3 +518,4 @@ html.dark .profile-card p,
 html.dark .profile-card label {
   color: #f9fafb;
 }
+

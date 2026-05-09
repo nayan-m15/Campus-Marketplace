@@ -1,18 +1,37 @@
+// Main structure for the listing card feature lives here.
+// Shared UI pieces and page-level behavior are tied together in this file.
+
 import { CONDITION_COLORS } from "../data/listings";
 import "../styles/ListingCard.css";
 
+// Component entry point for this part of the interface.
+// Rendering and feature-specific behavior are coordinated here.
 export default function ListingCard({
   item,
   onClick,
   onMessageSeller,
   onSellerClick,
+  isAdmin = false,
+  onModerate,
   // Wishlist props
   isWishlisted = false,
   onToggleWishlist,
   user,
 }) {
   const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
+  const listingType = String(item.listing_type || "sale").toLowerCase();
+  const isSaleAndTrade =
+    item.status === "for_trade" ||
+    ["sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
+  const tradeBadgeLabel = isSaleAndTrade
+    ? "For Trade"
+    : listingType === "trade" || listingType === "trade_only"
+      ? "For Trade Only"
+      : "";
+  const tradeBadgeVariant = tradeBadgeLabel === "For Trade Only" ? " listing-card__trade-badge--only" : "";
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleKeyDown(e) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -20,10 +39,17 @@ export default function ListingCard({
     }
   }
 
+  // User-driven changes pass through this handler first.
+  // State updates and follow-up UI actions are triggered here.
   function handleWishlistClick(e) {
     e.stopPropagation();
-    if (!user) return; // silently ignore if not logged in — caller can show auth prompt
+    if (!user) return;
     onToggleWishlist?.(item.id);
+  }
+
+  function handleModerateClick(e) {
+    e.stopPropagation();
+    onModerate?.(item);
   }
 
   return (
@@ -40,7 +66,6 @@ export default function ListingCard({
           <img
             src={item.image_url}
             alt={item.title}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
           <figure className="listing-card__image-placeholder" aria-hidden="true">
@@ -48,7 +73,31 @@ export default function ListingCard({
           </figure>
         )}
 
-        {/* ── Wishlist heart button ── */}
+        {tradeBadgeLabel && (
+          <span
+            className={`listing-card__trade-badge${tradeBadgeVariant}${item.status === "flagged" ? " listing-card__trade-badge--stacked" : ""}${isAdmin ? " listing-card__trade-badge--admin-offset" : ""}`}
+          >
+            {tradeBadgeLabel}
+          </span>
+        )}
+
+        {item.status === "flagged" && (
+          <span className={`listing-card__flagged-badge${isAdmin ? " listing-card__flagged-badge--admin-offset" : ""}`}>
+            Flagged
+          </span>
+        )}
+
+        {isAdmin && (
+          <button
+            className="listing-card__report-btn listing-card__report-btn--admin-left"
+            onClick={handleModerateClick}
+            aria-label={`Report ${item.title}`}
+            type="button"
+          >
+            Report
+          </button>
+        )}
+
         {onToggleWishlist && (
           <button
             className={`listing-card__wishlist-btn${isWishlisted ? " listing-card__wishlist-btn--active" : ""}`}
@@ -90,7 +139,10 @@ export default function ListingCard({
           {onSellerClick && item.user_id ? (
             <button
               className="listing-card__seller listing-card__seller--link"
-              onClick={(e) => { e.stopPropagation(); onSellerClick(item.user_id, item.seller); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSellerClick(item.user_id, item.seller);
+              }}
               type="button"
               aria-label={`View profile of ${item.seller}`}
             >
@@ -105,7 +157,10 @@ export default function ListingCard({
         {onMessageSeller && (
           <button
             className="listing-card__msg-btn"
-            onClick={(e) => { e.stopPropagation(); onMessageSeller(item); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onMessageSeller(item);
+            }}
             aria-label={`Message ${item.seller}`}
             type="button"
           >
