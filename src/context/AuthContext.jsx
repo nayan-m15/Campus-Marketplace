@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { getAppBaseUrl } from "../utils/appUrl";
+import { getAppBaseUrl, getPasswordRecoveryRedirectUrl } from "../utils/appUrl";
 
 const AuthContext = createContext(null);
 const DEBUG_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEBUG_AUTH === "true";
@@ -146,7 +146,7 @@ export function AuthProvider({ children }) {
   };
 
   const resetPassword = async (email, { redirectTo } = {}) => {
-    const resolvedRedirect = redirectTo ?? getAppBaseUrl();
+    const resolvedRedirect = redirectTo ?? getPasswordRecoveryRedirectUrl();
 
     return supabase.auth.resetPasswordForEmail(email, {
       redirectTo: resolvedRedirect,
