@@ -250,6 +250,34 @@ test("ListingCard supports keyboard open, seller navigation, messaging, and wish
   expect(onModerate).toHaveBeenCalledWith(listing);
 });
 
+test("ListingCard labels trade availability without labeling sale-only items", () => {
+  const { rerender } = render(
+    <ListingCard
+      item={{ ...listing, listing_type: "sale", status: "active" }}
+    />
+  );
+
+  expect(screen.queryByText(/^for trade$/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/for trade only/i)).not.toBeInTheDocument();
+
+  rerender(
+    <ListingCard
+      item={{ ...listing, listing_type: "sale_and_trade", status: "active" }}
+    />
+  );
+
+  expect(screen.getByText(/^for trade$/i)).toBeInTheDocument();
+
+  rerender(
+    <ListingCard
+      item={{ ...listing, listing_type: "trade", status: "active" }}
+    />
+  );
+
+  expect(screen.getByText(/for trade only/i)).toBeInTheDocument();
+  expect(screen.queryByText(/^for trade$/i)).not.toBeInTheDocument();
+});
+
 test("ListingsGrid renders empty state and forwards listing clicks", () => {
   const onListingClick = vi.fn();
   const { rerender } = render(<ListingsGrid listings={[]} searchQuery="lamp" />);
@@ -381,7 +409,16 @@ test("LoginPage submits credentials and shows provider errors", async () => {
   fireEvent.change(screen.getByLabelText(/email address/i), {
     target: { value: "student@example.com" },
   });
-  fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "secret123" } });
+  const passwordInput = screen.getByLabelText(/^password$/i);
+  expect(passwordInput).toHaveAttribute("type", "password");
+
+  fireEvent.change(passwordInput, { target: { value: "secret123" } });
+  fireEvent.click(screen.getByRole("button", { name: /show password/i }));
+  expect(passwordInput).toHaveAttribute("type", "text");
+
+  fireEvent.click(screen.getByRole("button", { name: /hide password/i }));
+  expect(passwordInput).toHaveAttribute("type", "password");
+
   fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Bad credentials");
@@ -413,17 +450,32 @@ test("SignupPage validates passwords and shows success after signup", async () =
   fireEvent.change(screen.getByLabelText(/email address/i), {
     target: { value: "student@example.com" },
   });
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "123" } });
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "123" } });
+  const signupPasswordInput = screen.getByLabelText(/^password$/i);
+  const confirmPasswordInput = screen.getByLabelText(/^confirm password$/i);
+
+  expect(signupPasswordInput).toHaveAttribute("type", "password");
+  fireEvent.click(screen.getByRole("button", { name: /^show password$/i }));
+  expect(signupPasswordInput).toHaveAttribute("type", "text");
+  fireEvent.click(screen.getByRole("button", { name: /^hide password$/i }));
+  expect(signupPasswordInput).toHaveAttribute("type", "password");
+
+  expect(confirmPasswordInput).toHaveAttribute("type", "password");
+  fireEvent.click(screen.getByRole("button", { name: /show confirm password/i }));
+  expect(confirmPasswordInput).toHaveAttribute("type", "text");
+  fireEvent.click(screen.getByRole("button", { name: /hide confirm password/i }));
+  expect(confirmPasswordInput).toHaveAttribute("type", "password");
+
+  fireEvent.change(signupPasswordInput, { target: { value: "123" } });
+  fireEvent.change(confirmPasswordInput, { target: { value: "123" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/at least 6/i);
 
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "Secret123" } });
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "different" } });
+  fireEvent.change(signupPasswordInput, { target: { value: "Secret123" } });
+  fireEvent.change(confirmPasswordInput, { target: { value: "different" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/do not match/i);
 
-  fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "Secret123" } });
+  fireEvent.change(confirmPasswordInput, { target: { value: "Secret123" } });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
   expect(await screen.findByRole("heading", { name: /check your email/i })).toBeInTheDocument();
@@ -443,7 +495,7 @@ test("SignupPage reports when an email is already registered", async () => {
     target: { value: "student@example.com" },
   });
   fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "Secret123" } });
-  fireEvent.change(screen.getByLabelText(/confirm password/i), {
+  fireEvent.change(screen.getByLabelText(/^confirm password$/i), {
     target: { value: "Secret123" },
   });
   fireEvent.click(screen.getByRole("button", { name: /create account/i }));
@@ -533,14 +585,14 @@ test("ListingForm validates required fields and publishes a completed listing", 
   fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Furniture" } });
   expect(screen.getByLabelText(/asking price/i)).toHaveValue("250.75");
   fireEvent.click(screen.getByRole("radio", { name: /good/i }));
-  fireEvent.click(screen.getByRole("button", { name: /for trade/i }));
+  fireEvent.click(screen.getByRole("radio", { name: /for sale & trade/i }));
   fireEvent.click(screen.getByRole("button", { name: /publish listing/i }));
 
   await waitFor(() => expect(insert).toHaveBeenCalledWith(expect.objectContaining({
     title: "Lamp",
     price: 250.75,
     condition: "Good",
-    listing_type: "trade",
+    listing_type: "sale_and_trade",
     status: "active",
   })));
   expect(onSuccess).toHaveBeenCalled();

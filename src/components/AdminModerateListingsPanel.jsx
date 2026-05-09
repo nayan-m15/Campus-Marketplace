@@ -72,7 +72,9 @@ export default function AdminModerateListingsPanel({
   }, [activeCategory, activeCondition, listings, priceRange, priceSort, searchQuery]);
 
   const flaggedCount = listings.filter((item) => item.status === "flagged").length;
-  const tradeCount = listings.filter((item) => item.listing_type === "trade").length;
+  const tradeCount = listings.filter((item) =>
+    item.listing_type === "trade" || item.listing_type === "sale_and_trade" || item.status === "for_trade"
+  ).length;
 
   return (
     <section className="panel" aria-labelledby="moderate-listings-heading">
@@ -228,7 +230,11 @@ export default function AdminModerateListingsPanel({
                     </span>
                     <span className="moderation-pill">{item.category}</span>
                     <span className="moderation-pill">
-                      {item.listing_type === "trade" ? "Trade" : "Sale"}
+                      {item.listing_type === "trade"
+                        ? "Trade"
+                        : item.listing_type === "sale_and_trade" || item.status === "for_trade"
+                          ? "Sale & Trade"
+                          : "Sale"}
                     </span>
                   </div>
 

@@ -165,6 +165,10 @@ export default function MessagesPage({
   const [acknowledgedFlaggedListingIds, setAcknowledgedFlaggedListingIds] = useState(() =>
     initialAcknowledgedFlaggedListingId ? new Set([String(initialAcknowledgedFlaggedListingId)]) : new Set()
   );
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [deletingConversation, setDeletingConversation] = useState(false);
 
   // Buyer info banner: shown to the lister when a buyer messages about a listing
   const [iAmTheLister, setIAmTheLister] = useState(false);
@@ -395,6 +399,9 @@ export default function MessagesPage({
     setShowOfferModal(false);
     setOfferAmount("");
     setOfferError("");
+    setDeleteConfirmOpen(false);
+    setDeleteTarget(null);
+    setDeleteError("");
     setSendDraftBeforeOffer(false);
     setAcceptedOfferBanner(null);
 
@@ -658,6 +665,77 @@ export default function MessagesPage({
     setPendingFlaggedMessage("");
     textareaRef.current?.focus();
     await loadConversations();
+  };
+
+  const clearActiveConversation = () => {
+    setActiveId(null);
+    setActiveConversationKey(null);
+    setActivePeer(null);
+    setActiveListingId(null);
+    setConversationListing(null);
+    setMessages([]);
+    setOffers([]);
+    setDraft("");
+    setShowOfferModal(false);
+    setAcceptedOfferBanner(null);
+  };
+
+  const requestDeleteConversation = (conversation) => {
+    setDeleteTarget(conversation);
+    setDeleteError("");
+    setDeleteConfirmOpen(true);
+  };
+
+  const deleteConversation = async () => {
+    const target = deleteTarget || (
+      activeId
+        ? { key: activeConversationKey, peerId: activeId, listingId: activeListingId || null }
+        : null
+    );
+
+    if (!target?.peerId || !user || deletingConversation) return;
+
+    const peerId = target.peerId;
+    const listingId = target.listingId || null;
+    const conversationKey = target.key || buildConversationKey(peerId, listingId);
+    const participantsFilter = `and(sender_id.eq.${user.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${user.id})`;
+
+    setDeletingConversation(true);
+    setDeleteError("");
+
+    let messagesQuery = supabase
+      .from("messages")
+      .delete()
+      .or(participantsFilter);
+    messagesQuery = listingId ? messagesQuery.eq("listing_id", listingId) : messagesQuery.is("listing_id", null);
+
+    let offersQuery = supabase
+      .from("offers")
+      .delete()
+      .or(participantsFilter);
+    offersQuery = listingId ? offersQuery.eq("listing_id", listingId) : offersQuery.is("listing_id", null);
+
+    const [messagesResult, offersResult] = await Promise.all([messagesQuery, offersQuery]);
+    const error = messagesResult.error || offersResult.error;
+
+    if (error) {
+      setDeleteError(error.message || "Could not delete this chat.");
+      setDeletingConversation(false);
+      return;
+    }
+
+    setConversations((prev) => prev.filter((conversation) => conversation.key !== conversationKey));
+    setUnreadByPeer((prev) => {
+      const next = { ...prev };
+      delete next[conversationKey];
+      return next;
+    });
+    setDeleteConfirmOpen(false);
+    setDeleteTarget(null);
+    setDeletingConversation(false);
+    if (activeConversationKey === conversationKey) {
+      clearActiveConversation();
+    }
   };
 
   const resolveConversationListingForSend = async () => {
@@ -934,10 +1012,11 @@ export default function MessagesPage({
             const isActive = activeConversationKey === conv.key;
             const threadTitle = conv.listing?.title ? `${peerName(conv.profile)} - ${conv.listing.title}` : peerName(conv.profile);
             return (
-              <li key={conv.key}>
+              <li key={conv.key} className="msg-conv-row">
                 <button
                   className={`msg-conv-item ${isActive ? "msg-conv-item--active" : ""} ${unread > 0 && !isActive ? "msg-conv-item--unread" : ""}`}
                   onClick={() => openChat(conv.peerId, conv.listingId)}
+                  type="button"
                 >
                   <Avatar url={conv.profile?.avatar_url} name={peerName(conv.profile)} size={46} />
                   <div className="msg-conv-item__body">
@@ -979,6 +1058,24 @@ export default function MessagesPage({
                       )}
                     </div>
                   </div>
+                </button>
+                <button
+                  className="msg-conv-delete"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    requestDeleteConversation(conv);
+                  }}
+                  type="button"
+                  aria-label="Delete chat"
+                  title="Delete chat"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v5" />
+                    <path d="M14 11v5" />
+                  </svg>
                 </button>
               </li>
             );
@@ -1084,6 +1181,45 @@ export default function MessagesPage({
                     <button className="msg-offer-modal__cancel" onClick={() => setShowOfferModal(false)} type="button">Cancel</button>
                     <button className="msg-offer-modal__send" onClick={sendOffer} disabled={offerSending} type="button">
                       {offerSending ? "Sending…" : "Send Offer"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {deleteConfirmOpen && (
+              <div className="msg-offer-modal-overlay" onClick={() => !deletingConversation && setDeleteConfirmOpen(false)}>
+                <div className="msg-delete-modal" onClick={(e) => e.stopPropagation()}>
+                  <div className="msg-delete-modal__icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4h8v2" />
+                      <path d="M19 6l-1 14H6L5 6" />
+                      <path d="M10 11v5" />
+                      <path d="M14 11v5" />
+                    </svg>
+                  </div>
+                  <h3 className="msg-offer-modal__title">Delete this chat?</h3>
+                  <p className="msg-delete-modal__copy">
+                    This will permanently remove the messages and offers in this conversation.
+                  </p>
+                  {deleteError && <p className="msg-offer-modal__error">{deleteError}</p>}
+                  <div className="msg-offer-modal__actions">
+                    <button
+                      className="msg-offer-modal__cancel"
+                      onClick={() => setDeleteConfirmOpen(false)}
+                      disabled={deletingConversation}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="msg-delete-modal__confirm"
+                      onClick={deleteConversation}
+                      disabled={deletingConversation}
+                      type="button"
+                    >
+                      {deletingConversation ? "Deleting..." : "Delete chat"}
                     </button>
                   </div>
                 </div>

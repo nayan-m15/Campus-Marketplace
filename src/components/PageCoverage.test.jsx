@@ -294,11 +294,11 @@ function makeQuery(table, mode = "list", filters = {}) {
     },
     insert: (payload) => {
       mocks.insert(table, payload);
-      return Promise.resolve({ data: null, error: null });
+      return query;
     },
     upsert: (payload, options) => {
       mocks.upsert(table, payload, options);
-      return Promise.resolve({ data: null, error: null });
+      return query;
     },
     then: (resolve) => Promise.resolve(resultFor(table, mode, filters)).then(resolve),
   };
@@ -688,6 +688,29 @@ test("MessagesPage opens a conversation and sends a message", async () => {
   expect(onUnreadChange).toHaveBeenCalled();
 });
 
+test("MessagesPage deletes the active chat after confirmation", async () => {
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingTitle="Textbook"
+      initialListingId="listing-2"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect(await screen.findByText(/seller's listing/i)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /delete chat/i }));
+  expect(await screen.findByRole("heading", { name: /delete this chat/i })).toBeInTheDocument();
+
+  fireEvent.click(screen.getAllByRole("button", { name: /delete chat/i })[1]);
+
+  await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("messages"));
+  expect(mocks.delete).toHaveBeenCalledWith("offers");
+  expect(await screen.findByRole("heading", { name: /your messages/i })).toBeInTheDocument();
+});
+
 test("MessagesPage creates separate threads for different listings from the same seller", async () => {
   messages.splice(
     0,
@@ -893,10 +916,9 @@ test("AdminDashboard loads facilities, saves changes, and generates a report", a
   render(<AdminDashboard onSignOut={onSignOut} />);
 
   expect(await screen.findByText(/main trade desk/i)).toBeInTheDocument();
-  fireEvent.click(screen.getByText(/main trade desk/i));
-
-  fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
-  expect(await screen.findByRole("status")).toHaveTextContent(/changes saved/i);
+  fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+  fireEvent.click(screen.getByRole("button", { name: /update facility/i }));
+  expect(await screen.findByRole("status")).toHaveTextContent(/facility updated successfully/i);
 
   fireEvent.click(screen.getByRole("button", { name: /reports/i }));
   fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
@@ -991,7 +1013,7 @@ test("StudentBookingsPage lets a seller complete a drop-off booking flow", async
 
   fireEvent.click(await screen.findByRole("button", { name: /book drop-off/i }));
   fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
-  fireEvent.change(screen.getByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
   fireEvent.click(screen.getByRole("button", { name: /next/i }));
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
@@ -1033,7 +1055,7 @@ test("StudentBookingsPage lets a buyer complete a collection booking flow", asyn
 
   fireEvent.click(await screen.findByRole("button", { name: /book collection/i }));
   fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
-  fireEvent.change(screen.getByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
   fireEvent.click(screen.getByRole("button", { name: /next/i }));
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));

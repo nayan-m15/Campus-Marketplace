@@ -1156,7 +1156,7 @@ function AppInner() {
       isActive = false;
     };
   }, [user]);
-
+  
   useEffect(() => {
     if (loading || (user && !profileChecked)) return;
 
