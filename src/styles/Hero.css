@@ -271,7 +271,7 @@
 }
 
 /* Card inside carousel */
-.listing-card {
+.hero__carousel .listing-card {
   background: transparent;
   border-radius: 16px;
   overflow: hidden;
@@ -285,7 +285,7 @@
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.listing-card:hover {
+.hero__carousel .listing-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }

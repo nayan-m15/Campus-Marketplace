@@ -29,6 +29,13 @@ export default function ListingCard({
       ? "For Trade Only"
       : "";
   const tradeBadgeVariant = tradeBadgeLabel === "For Trade Only" ? " listing-card__trade-badge--only" : "";
+  const institution = item.institution || "Institution not provided";
+  const institutionLengthClass =
+    institution.length > 52
+      ? " listing-card__institution--very-long"
+      : institution.length > 36
+        ? " listing-card__institution--long"
+        : "";
 
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
@@ -54,7 +61,7 @@ export default function ListingCard({
 
   return (
     <article
-      className="listing-card"
+      className="listing-card listing-card--marketplace"
       onClick={onClick}
       onKeyDown={handleKeyDown}
       role="button"
@@ -151,7 +158,7 @@ export default function ListingCard({
           ) : (
             <p className="listing-card__seller">👤 {item.seller}</p>
           )}
-          <p className="listing-card__institution">🎓 {item.institution || "Institution not provided"}</p>
+          <p className={`listing-card__institution${institutionLengthClass}`}>🎓 {institution}</p>
         </section>
 
         {onMessageSeller && (

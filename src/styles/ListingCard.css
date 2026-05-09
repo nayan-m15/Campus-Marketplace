@@ -12,7 +12,16 @@
   cursor: pointer;
   display: flex;
   flex-direction: column;
+  height: 100%;
   border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.listing-card--marketplace {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--listing-card-height);
+  min-height: var(--listing-card-height);
+  max-height: var(--listing-card-height);
 }
 
 .listing-card:hover {
@@ -26,7 +35,8 @@
 .listing-card__image-wrap {
   position: relative;
   width: 100%;
-  padding-top: 75%;
+  height: var(--listing-card-image-height);
+  padding-top: 0;
   background: #e5e7eb;
   flex-shrink: 0;
   overflow: hidden;
@@ -232,7 +242,10 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 4px;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ── Header (title + badge) ────────────────────────────── */
@@ -274,6 +287,7 @@
   align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
+  min-height: 28px;
 }
 
 .listing-card__price {
@@ -304,6 +318,9 @@
   align-items: flex-start;
   gap: 6px;
   margin-top: 2px;
+  min-width: 0;
+  width: 100%;
+  min-height: 62px;
 }
 
 .listing-card__seller {
@@ -311,6 +328,11 @@
   color: #888;
   line-height: 1.3;
   margin: 0;
+  max-width: 100%;
+  min-height: 1.3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .listing-card__institution {
@@ -319,7 +341,22 @@
   line-height: 1.35;
   margin: 0;
   max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   overflow-wrap: anywhere;
+}
+
+.listing-card__institution--long {
+  font-size: 10.8px;
+  line-height: 1.3;
+}
+
+.listing-card__institution--very-long {
+  font-size: 10.2px;
+  line-height: 1.25;
 }
 
 /* ── Star Rating ───────────────────────────────────────── */
@@ -368,7 +405,7 @@
 /* ── Message Seller Button ─────────────────────────────── */
 .listing-card__msg-btn {
   width: 100%;
-  margin-top: 8px;
+  margin-top: auto;
   padding: 9px 14px;
   border-radius: 50px;
   border: 1.5px solid var(--green);
@@ -395,13 +432,21 @@
 
 /* ── Listings Grid ─────────────────────────────────────── */
 .listings-grid {
+  --listing-card-height: 405px;
+  --listing-card-image-height: 182px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-auto-rows: var(--listing-card-height);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
   list-style: none;
   padding: 0;
   margin: 0;
+}
+
+.listings-grid > li {
+  display: flex;
+  min-width: 0;
 }
 
 @media (max-width: 1200px) {
@@ -1045,6 +1090,11 @@
 }
 
 @media (max-width: 640px) {
+  .listings-grid {
+    --listing-card-height: 390px;
+    --listing-card-image-height: 165px;
+  }
+
   .listings-section__header {
     flex-direction: column;
     align-items: stretch;
