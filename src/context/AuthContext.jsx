@@ -87,7 +87,7 @@ export function AuthProvider({ children }) {
         }
 
         setUser(currentUser);
-        setIsPasswordRecovery(getRecoveryTypeFromUrl());
+        setIsPasswordRecovery((current) => current || getRecoveryTypeFromUrl());
       } finally {
         if (isMounted) {
           setLoading(false);

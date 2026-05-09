@@ -754,6 +754,29 @@ test("shows the reset password page when the recovery link uses query params", a
   expect(screen.queryByRole("button", { name: /log in/i })).not.toBeInTheDocument();
 });
 
+test("keeps the reset password page when Supabase emits a password recovery event", async () => {
+  const recoverySession = {
+    user: { id: "user-123", email: "student@example.com" },
+  };
+
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: recoverySession,
+    },
+  });
+  mockOnAuthStateChange.mockImplementation((callback) => {
+    callback("PASSWORD_RECOVERY", recoverySession);
+    return {
+      data: { subscription: { unsubscribe: vi.fn() } },
+    };
+  });
+
+  renderApp();
+
+  expect(await screen.findByRole("heading", { name: /reset your password/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /list item/i })).not.toBeInTheDocument();
+});
+
 test("keeps an authenticated admin on the admin page after refresh", async () => {
   mockProfileRole = "admin";
   mockGetSession.mockResolvedValue({
