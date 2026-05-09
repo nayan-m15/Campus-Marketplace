@@ -953,7 +953,7 @@ function AppInner() {
   const {
     user,
     loading,
-    signOut,
+    signOut: authSignOut,
     isPasswordRecovery,
     clearPasswordRecovery,
     lastAuthEvent,
@@ -1094,6 +1094,12 @@ function AppInner() {
 
     navigateToPage("login", { replace: true });
   }, [navigateToPage, page]);
+
+  const handleSignOut = useCallback(async () => {
+    clearPostLoginRedirect();
+    navigateToPage("home", { replace: true });
+    return authSignOut();
+  }, [authSignOut, navigateToPage]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -1651,12 +1657,12 @@ useEffect(() => {
   if (page === "signup") return <SignupPage onNavigate={handleAuthNavigate} />;
 
   if (user && needsSetup) return <ProfileSetupPage onComplete={handleSetupComplete} />;
-  if (user && isStaff) return <TradeFacilityDashboard onSignOut={signOut} staffProfile={currentProfile} />;
+  if (user && isStaff) return <TradeFacilityDashboard onSignOut={handleSignOut} staffProfile={currentProfile} />;
   if (user && isAdmin && page === "admin") {
     return (
       <>
         <AdminDashboard
-          onSignOut={signOut}
+          onSignOut={handleSignOut}
           onBackToMarketplace={goHome}
           listings={allListings}
           listingsLoading={listingsLoading}
@@ -1705,7 +1711,7 @@ useEffect(() => {
       setMsgInitialAction(null);
       navigateToPage("messages");
     },
-    onSignOut: signOut,
+    onSignOut: handleSignOut,
     onHome: goHome,
     onYourListings: () => navigateToPage("yourlistings"),
     onBookings: () => navigateToPage("bookings"),
@@ -1942,7 +1948,7 @@ useEffect(() => {
       )}
       <header><Navbar {...navbarProps} /></header>
       {messageNoticeToast}
-      <SettingsPage onBack={goHome} onSignOut={signOut} onAccountDeleted={handleAccountDeleted} />
+      <SettingsPage onBack={goHome} onSignOut={handleSignOut} onAccountDeleted={handleAccountDeleted} />
     </>
   );
 }
