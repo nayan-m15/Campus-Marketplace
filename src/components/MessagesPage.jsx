@@ -45,13 +45,23 @@ function buildConversationKey(peerId, listingId = null) {
 // It keeps lookup, formatting, or data shaping out of the render path.
 function buildOfferPreview(offer, currentUserId) {
   if (!offer) return "";
+  const isTrade = offer.offer_type === "trade_offer";
+  const sentByMe = offer.sender_id === currentUserId;
+
+  if (isTrade) {
+    if (offer.status === "accepted") return "🔄 Trade offer accepted";
+    if (offer.status === "declined") return "🔄 Trade offer declined";
+    if (offer.status === "cancelled") return "🔄 Trade offer cancelled";
+    return sentByMe ? "🔄 You sent a trade offer" : "🔄 Trade offer received";
+  }
+
   const amount = `R${Number(offer.amount).toLocaleString("en-ZA")}`;
   if (offer.status === "accepted") return `Offer accepted: ${amount}`;
   if (offer.status === "declined") return `Offer declined: ${amount}`;
   if (offer.status === "cancelled") return `Offer cancelled: ${amount}`;
-  const sentByMe = offer.sender_id === currentUserId;
   return sentByMe ? `You offered ${amount}` : `Offer received: ${amount}`;
 }
+
 
 // ── Helpers ────────────────────────────────────────────────
 function timeLabel(iso) {
@@ -182,6 +192,11 @@ export default function MessagesPage({
   const [offerSending, setOfferSending] = useState(false);
   const [offerError, setOfferError] = useState("");
   const [sendDraftBeforeOffer, setSendDraftBeforeOffer] = useState(false);
+  const [offerMode, setOfferMode] = useState("cash"); // "cash" | "trade"
+  const [tradeImage, setTradeImage] = useState(null);       // File object
+  const [tradeImagePreview, setTradeImagePreview] = useState(null); // data URL
+  const [tradeDescription, setTradeDescription] = useState("");
+  const [tradeError, setTradeError] = useState("");
 
   const bottomRef = useRef(null);
 
@@ -225,7 +240,7 @@ export default function MessagesPage({
 
     const { data: offerRows } = await supabase
       .from("offers")
-      .select("id, created_at, sender_id, receiver_id, amount, status, listing_id, is_read")
+      .select("id, created_at, sender_id, receiver_id, amount, status, listing_id, is_read, offer_type, image_url, description")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
@@ -299,7 +314,7 @@ export default function MessagesPage({
     if (listingIds.length > 0) {
       const { data } = await supabase
         .from("listings")
-        .select("id, title, price, user_id")
+        .select("id, title, price, user_id, listing_type")
         .in("id", listingIds);
       listings = data || [];
     }
@@ -344,7 +359,9 @@ export default function MessagesPage({
     }
     if (initialAction === "offer") {
       setOfferError("");
+      setTradeError("");
       setOfferAmount("");
+      setOfferMode("cash");
       setSendDraftBeforeOffer(true);
       setShowOfferModal(true);
     }
@@ -407,6 +424,11 @@ export default function MessagesPage({
     setSendDraftBeforeOffer(false);
     setAcceptedOfferBanner(null);
     setDraft("");
+    setOfferMode("cash");
+    setTradeImage(null);
+    setTradeImagePreview(null);
+    setTradeDescription("");
+    setTradeError("");
     const { data: profile } = await supabase
       .from("profiles")
       .select("id, name, display_name, avatar_url, institution")
@@ -416,7 +438,7 @@ export default function MessagesPage({
 
     const { data: msgs } = await supabase
       .from("messages")
-      .select("*")
+      .select("id, created_at, sender_id, receiver_id, content, is_read, listing_id")
       .or(
         `and(sender_id.eq.${user.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${user.id})`
       )
@@ -447,7 +469,7 @@ export default function MessagesPage({
 
       const { data: listing } = await supabase
         .from("listings")
-        .select("id, title, price, user_id, status, flag_reason")
+        .select("id, title, price, user_id, status, flag_reason, listing_type")
         .eq("id", String(msgWithListing.listing_id))
         .maybeSingle();
 
@@ -544,10 +566,11 @@ export default function MessagesPage({
       // Listen for is_read updates so sender's ticks turn green in real-time
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
         const updated = payload.new;
-        if (updated.sender_id !== user.id) return;
-        setMessages((prev) =>
-          prev.map((m) => m.id === updated.id ? { ...m, is_read: updated.is_read } : m)
-        );
+        if (updated.sender_id === user.id || updated.receiver_id === user.id) {
+          setMessages((prev) =>
+            prev.map((m) => m.id === updated.id ? { ...m, is_read: updated.is_read } : m)
+          );
+        }
         loadConversations();
       })
       .subscribe();
@@ -680,6 +703,11 @@ export default function MessagesPage({
     setDraft("");
     setShowOfferModal(false);
     setAcceptedOfferBanner(null);
+    setOfferMode("cash");
+    setTradeImage(null);
+    setTradeImagePreview(null);
+    setTradeDescription("");
+    setTradeError("");
   };
 
   const requestDeleteConversation = (conversation) => {
@@ -746,7 +774,7 @@ export default function MessagesPage({
     try {
       const { data: latestListing, error } = await supabase
         .from("listings")
-        .select("id, title, price, user_id, status, flag_reason")
+        .select("id, title, price, user_id, status, flag_reason, listing_type")
         .eq("id", String(conversationListing.id))
         .maybeSingle();
 
@@ -792,7 +820,11 @@ export default function MessagesPage({
   };
 
   // ── Send Offer ────────────────────────────────────────────
-  const sendOffer = async () => {
+const sendOffer = async () => {
+  const listingType = conversationListing?.listing_type || "sale";
+
+  // ── Cash offer ──────────────────────────────────────────
+  if (offerMode === "cash") {
     const amount = parseFloat(offerAmount.replace(/[^0-9.]/g, ""));
     if (!amount || amount <= 0) { setOfferError("Please enter a valid amount."); return; }
     if (!conversationListing?.id || !activeId) return;
@@ -806,7 +838,6 @@ export default function MessagesPage({
       setSendDraftBeforeOffer(false);
     }
 
-    // Cancel any existing pending offer for this listing+conversation (replace it)
     await supabase
       .from("offers")
       .update({ status: "declined", responded_at: new Date().toISOString() })
@@ -823,7 +854,6 @@ export default function MessagesPage({
         receiver_id: activeId,
         amount,
         status: "pending",
-        // is_read defaults to false in DB — receiver hasn't seen it yet
       })
       .select()
       .single();
@@ -832,7 +862,7 @@ export default function MessagesPage({
 
     setOffers((prev) => [
       ...prev.map((o) =>
-        o.sender_id === user.id && o.receiver_id === activeId && o.status === "pending"
+        o.sender_id === user.id && o.receiver_id === activeId && o.status === "pending" && !o.offer_type
           ? { ...o, status: "declined" }
           : o
       ),
@@ -841,7 +871,83 @@ export default function MessagesPage({
     setShowOfferModal(false);
     setOfferAmount("");
     setOfferSending(false);
-  };
+    return;
+  }
+
+  // ── Trade offer ─────────────────────────────────────────
+  if (!tradeDescription.trim()) { setTradeError("Please add a description."); return; }
+  if (!conversationListing?.id || !activeId) return;
+  setOfferSending(true);
+  setTradeError("");
+
+  const offerListingId = conversationListing.id || activeListingId;
+
+  if (sendDraftBeforeOffer && draft.trim()) {
+    await sendMessage(draft, { listingId: offerListingId });
+    setSendDraftBeforeOffer(false);
+  }
+
+  // Cancel any existing pending trade offers for this listing from this user
+  await supabase
+    .from("offers")
+    .update({ status: "cancelled", responded_at: new Date().toISOString() })
+    .eq("listing_id", offerListingId)
+    .eq("sender_id", user.id)
+    .eq("receiver_id", activeId)
+    .eq("offer_type", "trade_offer")
+    .eq("status", "pending");
+
+  // Upload image if provided
+  let imageUrl = null;
+  if (tradeImage) {
+    const ext = tradeImage.name.split(".").pop();
+    const path = `${user.id}/trade-offers/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("listing-images")
+      .upload(path, tradeImage, { upsert: true });
+    if (!uploadError) {
+      const { data: urlData } = supabase.storage.from("listing-images").getPublicUrl(path);
+      imageUrl = urlData?.publicUrl || null;
+    }
+  }
+
+  const { data: newTradeOffer, error } = await supabase
+    .from("offers")
+    .insert({
+      listing_id: offerListingId,
+      sender_id: user.id,
+      receiver_id: activeId,
+      amount: 0,
+      status: "pending",
+      offer_type: "trade_offer",
+      image_url: imageUrl,
+      description: tradeDescription.trim(),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error.message);
+    setTradeError("Failed to send trade offer.");
+    setOfferSending(false);
+    return;
+  }
+
+  setOffers((prev) => [
+    ...prev.map((o) =>
+      o.offer_type === "trade_offer" && o.sender_id === user.id && o.status === "pending"
+        ? { ...o, status: "cancelled" }
+        : o
+    ),
+    newTradeOffer,
+  ]);
+
+  setShowOfferModal(false);
+  setTradeImage(null);
+  setTradeImagePreview(null);
+  setTradeDescription("");
+  setOfferSending(false);
+};
 
   // ── Cancel Offer ──────────────────────────────────────────
   const cancelOffer = async (offerId) => {
@@ -856,32 +962,31 @@ export default function MessagesPage({
     setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
   };
 
-  // ── Respond to Offer ──────────────────────────────────────
   const respondToOffer = async (offerId, accept) => {
-    const newStatus = accept ? "accepted" : "declined";
-    const { data: updatedOffer, error } = await supabase
-      .from("offers")
-      .update({ status: newStatus, responded_at: new Date().toISOString() })
-      .eq("id", offerId)
-      .select()
+  const newStatus = accept ? "accepted" : "declined";
+  const { data: updatedOffer, error } = await supabase
+    .from("offers")
+    .update({ status: newStatus, responded_at: new Date().toISOString() })
+    .eq("id", offerId)
+    .select()
+    .single();
+
+  if (error) { console.error(error.message); return; }
+  setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
+
+  // Trade offers accepted — no transaction/listing update needed (no cash)
+  if (accept && updatedOffer && updatedOffer.offer_type !== "trade_offer") {
+    const { data: listing } = await supabase
+      .from("listings")
+      .select("id, title, user_id")
+      .eq("id", updatedOffer.listing_id)
       .single();
 
-    if (error) { console.error(error.message); return; }
+    const listingTitle = listing?.title || conversationListing?.title || "Marketplace item";
+    const sellerId = listing?.user_id || conversationListing?.user_id || activeId;
+    const buyerId = updatedOffer.sender_id === sellerId ? updatedOffer.receiver_id : updatedOffer.sender_id;
 
-    setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
-
-    if (accept && updatedOffer) {
-      const { data: listing } = await supabase
-        .from("listings")
-        .select("id, title, user_id")
-        .eq("id", updatedOffer.listing_id)
-        .single();
-
-      const listingTitle = listing?.title || conversationListing?.title || "Marketplace item";
-      const sellerId = listing?.user_id || conversationListing?.user_id || activeId;
-      const buyerId = updatedOffer.sender_id === sellerId ? updatedOffer.receiver_id : updatedOffer.sender_id;
-
-      const { data: existingTransactions } = await supabase
+    const { data: existingTransactions } = await supabase
       .from("transactions")
       .select("id, status, dropoff_id")
       .eq("seller_id", sellerId)
@@ -889,60 +994,47 @@ export default function MessagesPage({
       .eq("item", listingTitle)
       .order("created_at", { ascending: false });
 
-      const activeTransaction = (existingTransactions || []).find(
-        (t) => !["item_released", "completed", "cancelled"].includes(t.status)
-      );
+    const activeTransaction = (existingTransactions || []).find(
+      (t) => !["item_released", "completed", "cancelled"].includes(t.status)
+    );
 
-      // On UPDATE — only change the fields that the offer renegotiation owns.
-      // Never touch `status`; the trade workflow manages it separately.
-      const updatePayload = {
-        item:      listingTitle,
-        seller_id: sellerId,
-        buyer_id:  buyerId,
-        price:     updatedOffer.amount,
-        listing_id: updatedOffer.listing_id,
-      };
+    const updatePayload = {
+      item: listingTitle,
+      seller_id: sellerId,
+      buyer_id: buyerId,
+      price: updatedOffer.amount,
+      listing_id: updatedOffer.listing_id,
+    };
 
-      // On INSERT — new transaction always starts at the beginning of the lifecycle.
-      const insertPayload = {
-        ...updatePayload,
-        id:     buildTradeTransactionId(),
-        status: "awaiting_dropoff",
-      };
+    const insertPayload = {
+      ...updatePayload,
+      id: buildTradeTransactionId(),
+      status: "awaiting_dropoff",
+    };
 
     const transactionRequest = activeTransaction
       ? supabase.from("transactions").update(updatePayload).eq("id", activeTransaction.id)
       : supabase.from("transactions").insert(insertPayload);
 
-      const listingRequest = supabase
-        .from("listings")
-        .update({ sold_price: updatedOffer.amount, status: "sold" })
-        .eq("id", updatedOffer.listing_id);
+    const listingRequest = supabase
+      .from("listings")
+      .update({ sold_price: updatedOffer.amount, status: "sold" })
+      .eq("id", updatedOffer.listing_id);
 
-      const offerCleanupRequest = supabase
-        .from("offers")
-        .update({ status: "declined", responded_at: new Date().toISOString() })
-        .eq("listing_id", updatedOffer.listing_id)
-        .eq("status", "pending");
+    const offerCleanupRequest = supabase
+      .from("offers")
+      .update({ status: "declined", responded_at: new Date().toISOString() })
+      .eq("listing_id", updatedOffer.listing_id)
+      .eq("status", "pending");
 
-      const otherUserId = updatedOffer.sender_id === user.id ? updatedOffer.receiver_id : updatedOffer.sender_id;
-      
-      await Promise.allSettled([
-        transactionRequest,
-        listingRequest,
-        offerCleanupRequest,
-      ]);
+    await Promise.allSettled([transactionRequest, listingRequest, offerCleanupRequest]);
 
-      // Show the in-chat accepted offer banner (replaces the old alert/toast)
-      if (iAmTheLister) {
-        setAcceptedOfferBanner({
-          amount: updatedOffer.amount,
-          listingTitle,
-        });
-      }
+    if (iAmTheLister) {
+      setAcceptedOfferBanner({ amount: updatedOffer.amount, listingTitle });
     }
-  };
-
+  }
+};
+  
   // A focused piece of component behavior is handled here.
   // Keeping it separate makes the main flow less crowded.
   const peerName = (profile) => profile?.display_name || profile?.name || "Unknown User";
@@ -1140,7 +1232,20 @@ export default function MessagesPage({
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     <button
                       className="msg-buyer-banner__btn msg-buyer-banner__btn--offer"
-                      onClick={() => { if (!hasAcceptedOffer) { setShowOfferModal(true); setOfferError(""); setOfferAmount(""); } }}
+                      onClick={() => {
+                        if (!hasAcceptedOffer) {
+                        const lt = conversationListing?.listing_type || "sale";
+                        // For pure trade listings, default to trade mode; otherwise cash
+                        setOfferMode(lt === "trade" ? "trade" : "cash");
+                        setOfferError("");
+                        setTradeError("");
+                        setOfferAmount("");
+                        setTradeImage(null);
+                        setTradeImagePreview(null);
+                        setTradeDescription("");
+                        setShowOfferModal(true);
+                        }
+                      }}
                       disabled={hasAcceptedOffer}
                       title={hasAcceptedOffer ? "An offer has already been accepted" : undefined}
                       type="button"
@@ -1160,14 +1265,54 @@ export default function MessagesPage({
             )}
 
             {/* ── Send Offer Modal ── */}
-            {showOfferModal && conversationListing && (
-              <div className="msg-offer-modal-overlay" onClick={() => setShowOfferModal(false)}>
-                <div className="msg-offer-modal" onClick={(e) => e.stopPropagation()}>
-                  <h3 className="msg-offer-modal__title">Send an Offer</h3>
+            {showOfferModal && conversationListing && (() => {
+              const lt = conversationListing.listing_type || "sale";
+              const isSaleAndTrade = lt === "sale_and_trade";
+              const isTradeOnly = lt === "trade";
+              const isCashMode = offerMode === "cash";
+
+              return (
+                <div className="msg-offer-modal-overlay" onClick={() => setShowOfferModal(false)}>
+                  <div className="msg-offer-modal" onClick={(e) => e.stopPropagation()}>
+                    <h3 className="msg-offer-modal__title">Send an Offer</h3>
+
+                    {/* Mode toggle — only shown for sale_and_trade listings */}
+                    {isSaleAndTrade && (
+                      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                        <button
+                          type="button"
+                        onClick={() => { setOfferMode("cash"); setOfferError(""); setTradeError(""); }}
+                    style={{
+                      flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer",
+                      background: isCashMode ? "var(--primary, #6c47ff)" : "var(--surface-2, #f0f0f0)",
+                      color: isCashMode ? "#fff" : "inherit",
+                      fontWeight: 600, fontSize: 14,
+                    }}
+                  > 
+                      💵 Cash offer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setOfferMode("trade"); setOfferError(""); setTradeError(""); }}
+                      style={{
+                        flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer",
+                        background: !isCashMode ? "var(--primary, #6c47ff)" : "var(--surface-2, #f0f0f0)",
+                        color: !isCashMode ? "#fff" : "inherit",
+                        fontWeight: 600, fontSize: 14,
+                      }}
+                  >
+                      🔄 Trade offer
+                    </button>
+                  </div>
+                )}
+
+                {/* Cash offer fields */}
+                {(isCashMode && !isTradeOnly) && (
+                  <>
                   <p className="msg-offer-modal__sub">
-                    Listing price: <strong>R{Number(conversationListing.price).toLocaleString("en-ZA")}</strong>
+                      Listing price: <strong>R{Number(conversationListing.price).toLocaleString("en-ZA")}</strong>
                   </p>
-                  <div className="msg-offer-modal__input-wrap">
+                    <div className="msg-offer-modal__input-wrap">
                     <span className="msg-offer-modal__currency">R</span>
                     <input
                       className="msg-offer-modal__input"
@@ -1181,15 +1326,78 @@ export default function MessagesPage({
                     />
                   </div>
                   {offerError && <p className="msg-offer-modal__error">{offerError}</p>}
-                  <div className="msg-offer-modal__actions">
-                    <button className="msg-offer-modal__cancel" onClick={() => setShowOfferModal(false)} type="button">Cancel</button>
-                    <button className="msg-offer-modal__send" onClick={sendOffer} disabled={offerSending} type="button">
-                      {offerSending ? "Sending…" : "Send Offer"}
-                    </button>
-                  </div>
-                </div>
+                </>
+              )}
+
+                {/* Trade offer fields */}
+                {(!isCashMode || isTradeOnly) && (
+                  <>
+                    <p className="msg-offer-modal__sub">Describe what you're offering in exchange:</p>
+                  <textarea
+                    className="msg-offer-modal__input"
+                    placeholder="e.g. iPhone 13 in good condition, includes charger…"
+                    value={tradeDescription}
+                    onChange={(e) => { setTradeDescription(e.target.value); setTradeError(""); }}
+                    rows={3}
+                    autoFocus={isTradeOnly}
+                    style={{ width: "100%", resize: "vertical", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border, #e0e0e0)", fontSize: 14, boxSizing: "border-box" }}
+                  />
+
+                  {/* Image upload */}
+                    <label style={{ display: "block", marginTop: 12, cursor: "pointer" }}>
+                    <span style={{ fontSize: 13, color: "var(--text-muted, #888)", display: "block", marginBottom: 6 }}>
+                      📷 Attach a photo (optional)
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setTradeImage(file);
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setTradeImagePreview(ev.target.result);
+                          reader.readAsDataURL(file);
+                          setTradeError("");
+                      }}
+                      />
+                      {tradeImagePreview ? (
+                        <div style={{ position: "relative", display: "inline-block" }}>
+                        <img
+                          src={tradeImagePreview}
+                          alt="Trade item preview"
+                          style={{ maxWidth: "100%", maxHeight: 160, borderRadius: 8, display: "block" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); setTradeImage(null); setTradeImagePreview(null); }}
+                          style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 24, height: 24, cursor: "pointer", fontSize: 14, lineHeight: "24px", textAlign: "center" }}
+                        >
+                          ×
+                        </button>
+                        </div>
+                      ) : (
+                      <div style={{ border: "2px dashed var(--border, #e0e0e0)", borderRadius: 8, padding: "18px 0", textAlign: "center", color: "var(--text-muted, #888)", fontSize: 13 }}>
+                        Click to upload image
+                      </div>
+                    )}
+                  </label>
+
+                    {tradeError && <p className="msg-offer-modal__error">{tradeError}</p>}
+                  </>
+                )}
+
+                <div className="msg-offer-modal__actions" style={{ marginTop: 16 }}>
+                  <button className="msg-offer-modal__cancel" onClick={() => setShowOfferModal(false)} type="button">Cancel</button>
+                  <button className="msg-offer-modal__send" onClick={sendOffer} disabled={offerSending} type="button">
+                  {offerSending ? "Sending…" : "Send Offer"}
+                  </button>
               </div>
-            )}
+              </div>
+            </div>
+          );
+        })()}
 
             {deleteConfirmOpen && (
               <div className="msg-offer-modal-overlay" onClick={() => !deletingConversation && setDeleteConfirmOpen(false)}>
@@ -1323,80 +1531,141 @@ export default function MessagesPage({
                     <div className="msg-date-divider"><span>{dateLabel(date)}</span></div>
                     {items.map((item) => {
                       if (item._type === "offer") {
-                        const iMadeOffer = item.sender_id === user.id;
-                        const isPending = item.status === "pending";
-                        const isAccepted = item.status === "accepted";
-                        const isDeclined = item.status === "declined";
-                        // Tick status for offers I sent: read if receiver has opened the chat
-                        const offerTickStatus = item.is_read ? "read" : "sent";
-                        return (
-                          <div key={`offer-${item.id}`} className={`msg-offer-card-wrap ${iMadeOffer ? "msg-offer-card-wrap--mine" : "msg-offer-card-wrap--theirs"}`}>
-                            {!iMadeOffer && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
-                            <div className={`msg-offer-card ${iMadeOffer ? "msg-offer-card--mine" : "msg-offer-card--theirs"} ${isAccepted ? "msg-offer-card--accepted" : isDeclined ? "msg-offer-card--declined" : item.status === "cancelled" ? "msg-offer-card--declined" : ""}`}>
-                              <div className="msg-offer-card__header">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                                </svg>
-                                <span className="msg-offer-card__label">
-                                  {iMadeOffer ? `You offered ${peerName(activePeer)}` : `${peerName(activePeer)} offered you`}
-                                </span>
-                              </div>
-                              <p className="msg-offer-card__note">
-                                This offer only records the agreed price. Payment and collection are arranged later in chat.
-                              </p>
-                              <div className="msg-offer-card__amount">
-                                R{Number(item.amount).toLocaleString("en-ZA")}
-                              </div>
-                              {isPending && !iMadeOffer && (
-                                <div className="msg-offer-card__actions">
-                                  <button className="msg-offer-card__decline" onClick={() => respondToOffer(item.id, false)} type="button">Decline</button>
-                                  <button className="msg-offer-card__accept" onClick={() => respondToOffer(item.id, true)} type="button">Accept</button>
-                                </div>
-                              )}
-                              {isPending && iMadeOffer && (
-                                <div className="msg-offer-card__actions">
-                                  <p className="msg-offer-card__status msg-offer-card__status--pending" style={{ margin: 0 }}>Waiting for response…</p>
-                                  <button className="msg-offer-card__cancel-offer" onClick={() => cancelOffer(item.id)} type="button">Cancel Offer</button>
-                                </div>
-                              )}
-                              {isAccepted && (
-                                <div className="msg-offer-card__accepted-block">
-                                  <p className="msg-offer-card__status msg-offer-card__status--accepted" style={{ margin: 0 }}>✓ Offer accepted</p>
-                                  <p className="msg-offer-card__accepted-note">
-                                    Book a drop-off or collection slot to complete this transaction.
-                                  </p>
-                                  <button
-                                    className="msg-offer-card__bookings-btn"
-                                    onClick={() => onGoToBookings?.()}
-                                    type="button"
-                                  >
-                                    Go to My Bookings →
-                                  </button>
-                                </div>
-                              )}
-                              {isDeclined && (
-                                <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer declined</p>
-                              )}
-                              {item.status === "cancelled" && (
-                                <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer cancelled</p>
-                              )}
+  const iMadeOffer = item.sender_id === user.id;
+  const isPending = item.status === "pending";
+  const isAccepted = item.status === "accepted";
+  const isDeclined = item.status === "declined";
+  const isCancelled = item.status === "cancelled";
+  const isTrade = item.offer_type === "trade_offer";
+  const offerTickStatus = item.is_read ? "read" : "sent";
 
-                              {/* Read ticks — only shown on offers I sent */}
-                              {iMadeOffer && (
-                                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
-                                  <ReadTicks status={offerTickStatus} />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      }
+  return (
+    <div key={`offer-${item.id}`} className={`msg-offer-card-wrap ${iMadeOffer ? "msg-offer-card-wrap--mine" : "msg-offer-card-wrap--theirs"}`}>
+      {!iMadeOffer && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
+      <div className={`msg-offer-card ${iMadeOffer ? "msg-offer-card--mine" : "msg-offer-card--theirs"} ${isAccepted ? "msg-offer-card--accepted" : isDeclined ? "msg-offer-card--declined" : ""}`}
+        style={isTrade ? { padding: 0, overflow: "hidden", maxWidth: 300 } : {}}>
+
+        {isTrade ? (
+          // ── Trade offer card ──────────────────────────────
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px 6px", borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
+              <span style={{ fontSize: 14 }}>🔄</span>
+              <span style={{ fontWeight: 700, fontSize: 13 }}>Trade offer</span>
+              {isAccepted && <span style={{ marginLeft: "auto", fontSize: 11, color: "#53d769", fontWeight: 700 }}>✓ Accepted</span>}
+              {isDeclined && <span style={{ marginLeft: "auto", fontSize: 11, color: "#ff6b6b", fontWeight: 700 }}>✕ Declined</span>}
+              {isCancelled && <span style={{ marginLeft: "auto", fontSize: 11, color: "#ff6b6b", fontWeight: 700 }}>✕ Cancelled</span>}
+            </div>
+
+            {item.image_url && (
+              <img
+                src={item.image_url}
+                alt="Trade offer item"
+                style={{ width: "100%", display: "block", objectFit: "contain", maxHeight: 240 }}
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
+            )}
+
+            <div style={{ padding: "8px 12px 10px" }}>
+              {item.description && (
+                <p style={{ margin: "0 0 8px", fontSize: 14, lineHeight: 1.4, whiteSpace: "pre-wrap" }}>
+                  {item.description}
+                </p>
+              )}
+
+              {isPending && !iMadeOffer && (
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button
+                    onClick={() => respondToOffer(item.id, false)}
+                    type="button"
+                    style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", background: "rgba(255,255,255,0.15)", color: "inherit", fontWeight: 600, fontSize: 13, cursor: "pointer" }}
+                  >
+                    Decline
+                  </button>
+                  <button
+                    onClick={() => respondToOffer(item.id, true)}
+                    type="button"
+                    style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", background: "#53d769", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer" }}
+                  >
+                    Accept
+                  </button>
+                </div>
+              )}
+
+              {isPending && iMadeOffer && (
+                <div className="msg-offer-card__actions">
+                  <p className="msg-offer-card__status msg-offer-card__status--pending" style={{ margin: 0 }}>Waiting for response…</p>
+                  <button
+                    className="msg-offer-card__cancel-offer"
+                    onClick={() => cancelOffer(item.id)}
+                    type="button"
+                  >
+                    Cancel Offer
+                  </button>
+                </div>
+              )}
+
+              <span style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end", marginTop: 6, fontSize: 11, opacity: 0.6 }}>
+                {new Date(item.created_at).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
+                {iMadeOffer && <ReadTicks status={offerTickStatus} />}
+              </span>
+            </div>
+          </>
+        ) : (
+          // ── Cash offer card (unchanged) ───────────────────
+          <>
+            <div className="msg-offer-card__header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              <span className="msg-offer-card__label">
+                {iMadeOffer ? `You offered ${peerName(activePeer)}` : `${peerName(activePeer)} offered you`}
+              </span>
+            </div>
+            <p className="msg-offer-card__note">
+              This offer only records the agreed price. Payment and collection are arranged later in chat.
+            </p>
+            <div className="msg-offer-card__amount">
+              R{Number(item.amount).toLocaleString("en-ZA")}
+            </div>
+            {isPending && !iMadeOffer && (
+              <div className="msg-offer-card__actions">
+                <button className="msg-offer-card__decline" onClick={() => respondToOffer(item.id, false)} type="button">Decline</button>
+                <button className="msg-offer-card__accept" onClick={() => respondToOffer(item.id, true)} type="button">Accept</button>
+              </div>
+            )}
+            {isPending && iMadeOffer && (
+              <div className="msg-offer-card__actions">
+                <p className="msg-offer-card__status msg-offer-card__status--pending" style={{ margin: 0 }}>Waiting for response…</p>
+                <button className="msg-offer-card__cancel-offer" onClick={() => cancelOffer(item.id)} type="button">Cancel Offer</button>
+              </div>
+            )}
+            {isAccepted && (
+              <div className="msg-offer-card__accepted-block">
+                <p className="msg-offer-card__status msg-offer-card__status--accepted" style={{ margin: 0 }}>✓ Offer accepted</p>
+                <p className="msg-offer-card__accepted-note">Book a drop-off or collection slot to complete this transaction.</p>
+                <button className="msg-offer-card__bookings-btn" onClick={() => onGoToBookings?.()} type="button">Go to My Bookings →</button>
+              </div>
+            )}
+            {isDeclined && <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer declined</p>}
+            {isCancelled && <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer cancelled</p>}
+            {iMadeOffer && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+                <ReadTicks status={offerTickStatus} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
                       // Regular message bubble
                       const mine = item.sender_id === user.id;
                       const tickStatus = !item.id ? "sending" : item.is_read ? "read" : "sent";
+
                       return (
-                        <div key={item.id} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
+                        <div key={item.id ?? `opt-${item.created_at}`} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
                           {!mine && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
                           <div className={`msg-bubble ${mine ? "msg-bubble--mine" : "msg-bubble--theirs"}`}>
                             <p>{item.content}</p>
