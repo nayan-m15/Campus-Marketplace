@@ -1319,7 +1319,7 @@ const sendOffer = async () => {
                       style={{
                         flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer",
                         background: !isCashMode ? "var(--primary, #6c47ff)" : "var(--surface-2, #f0f0f0)",
-                        color: !isCashMode ? "#fff" : "inherit",
+                        color: "#fff",
                         fontWeight: 600, fontSize: 14,
                       }}
                   >
@@ -1641,6 +1641,28 @@ const sendOffer = async () => {
                     type="button"
                   >
                     Cancel Offer
+                  </button>
+                </div>
+              )}
+              {isAccepted && (
+                <div className="msg-offer-card__accepted-block">
+                  <p
+                    className="msg-offer-card__status msg-offer-card__status--accepted"
+                    style={{ margin: 0 }}
+                  >
+                  ✓ Trade offer accepted
+                  </p>
+
+                  <p className="msg-offer-card__accepted-note">
+                    Book a drop-off or collection slot to complete this transaction.
+                  </p>
+
+                  <button
+                    className="msg-offer-card__bookings-btn"
+                    onClick={() => onGoToBookings?.()}
+                    type="button"
+                  >
+                    Go to My Bookings →
                   </button>
                 </div>
               )}
