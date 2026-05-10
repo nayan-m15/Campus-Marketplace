@@ -437,6 +437,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [completedListingIds, setCompletedListingIds] = useState(new Set());
   const [editingItem, setEditingItem] = useState(null);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -533,14 +534,26 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   const fetchUserListings = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("listings")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    const [{ data: listingsData, error: listingsError }, { data: txnData }] = await Promise.all([
+      supabase
+        .from("listings")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("transactions")
+        .select("listing_id")
+        .eq("status", "completed")
+        .or(`seller_id.eq.${user.id},buyer_id.eq.${user.id}`),
+    ]);
 
-    if (error) setError(error.message);
-    else setListings(data || []);
+    if (listingsError) setError(listingsError.message);
+    else setListings(listingsData || []);
+
+    // Build a Set of listing IDs that were part of a completed transaction
+    // so the UI can block the Relist button for those items.
+    const ids = new Set((txnData || []).map((t) => t.listing_id).filter(Boolean));
+    setCompletedListingIds(ids);
     setLoading(false);
   }, [user]);
 
@@ -560,9 +573,14 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   }
 
   async function handleMarkSold(id, currentStatus) {
+    const wasSold = currentStatus === "sold";
+    // Prevent relisting items that were sold through a completed trade transaction.
+    if (wasSold && completedListingIds.has(id)) {
+      setError("This item was sold through a completed trade transaction and cannot be relisted.");
+      return;
+    }
     const listing = listings.find((l) => l.id === id);
     const hasFlagReason = Boolean(listing?.flag_reason?.trim());
-    const wasSold = currentStatus === "sold";
     const newStatus = wasSold ? (hasFlagReason ? "flagged" : "active") : "sold";
     const { error } = await supabase
       .from("listings")
@@ -855,9 +873,20 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   <button
                     className="your-listings-btn"
                     onClick={() => handleMarkSold(item.id, item.status)}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "sold" ? "#f0fdf4" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "sold" ? "var(--green)" : "var(--gray-800)" }}
+                    disabled={item.status === "sold" && completedListingIds.has(item.id)}
+                    title={item.status === "sold" && completedListingIds.has(item.id) ? "This item was sold through a completed trade transaction" : undefined}
+                    style={{
+                      flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb",
+                      background: item.status === "sold" ? "#f0fdf4" : "#fff",
+                      fontSize: 13, fontWeight: 600,
+                      cursor: item.status === "sold" && completedListingIds.has(item.id) ? "not-allowed" : "pointer",
+                      fontFamily: "var(--font)",
+                      color: item.status === "sold" ? "var(--green)" : "var(--gray-800)",
+                      opacity: item.status === "sold" && completedListingIds.has(item.id) ? 0.45 : 1,
+                    }}
+
                   >
-                    {item.status === "sold" ? "Relist" : " Mark Sold"}
+                    {item.status === "sold" ? "Relist" : "Mark Sold"}
                   </button>
                   <button
                     className="your-listings-btn"
