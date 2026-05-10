@@ -654,8 +654,15 @@ export default function MessagesPage({
 
   // ── Scroll to bottom ──────────────────────────────────────
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, offers]);
+  const timer = setTimeout(() => {
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  }, 50);
+
+  return () => clearTimeout(timer);
+}, [messages, offers, activeId]);
 
   // ── Auto-resize textarea ──────────────────────────────────
   useEffect(() => {
