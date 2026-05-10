@@ -3,12 +3,12 @@
 
 .listing-card {
   background: var(--surface-muted);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.04),
     0 4px 12px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-fast);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -31,13 +31,24 @@
     0 0 0 1px rgba(31, 107, 82, 0.15);
 }
 
+html.dark .listing-card {
+  background: var(--card-bg);
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
+html.dark .listing-card:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-default);
+}
+
 /* ── Image Area ────────────────────────────────────────── */
 .listing-card__image-wrap {
   position: relative;
   width: 100%;
   height: var(--listing-card-image-height, 182px);
   padding-top: 0;
-  background: #e5e7eb;
+  background: var(--border-subtle);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -60,7 +71,7 @@
   align-items: center;
   justify-content: center;
   font-size: 56px;
-  background: #e5e7eb;
+  background: var(--border-subtle);
   padding: 12px;
 }
 
@@ -70,8 +81,8 @@
   top: 10px;
   left: 10px;
   z-index: 2;
-  background: #2563eb;
-  color: #fff;
+  background: var(--green);
+  color: white;
   border-radius: 8px;
   padding: 4px 10px;
   font-size: 11px;
@@ -81,7 +92,7 @@
 }
 
 .listing-card__trade-badge--only {
-  background: #1e40af;
+  background: var(--info);
 }
 
 .listing-card__trade-badge--stacked {
@@ -96,13 +107,22 @@
   top: 86px;
 }
 
+html.dark .listing-card__trade-badge {
+  background: var(--info-dark);
+  border: 1px solid var(--info);
+}
+
+html.dark .listing-card__trade-badge--only {
+  background: var(--info);
+}
+
 .listing-card__flagged-badge {
   position: absolute;
   top: 10px;
   left: 10px;
   z-index: 2;
-  background: #b91c1c;
-  color: #fff;
+  background: var(--danger);
+  color: white;
   border-radius: 8px;
   padding: 4px 10px;
   font-size: 11px;
@@ -113,6 +133,11 @@
 
 .listing-card__flagged-badge--admin-offset {
   top: 50px;
+}
+
+html.dark .listing-card__flagged-badge {
+  background: var(--danger-dark);
+  border: 1px solid var(--danger);
 }
 
 /* ── Wishlist Heart Button (on card image) ───────────────── */
@@ -126,13 +151,13 @@
   border-radius: 50%;
   border: none;
   background: rgba(255, 255, 255, 0.92);
-  color: #ccc;
+  color: var(--text-tertiary);
   font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: color 0.2s, transform 0.15s, background 0.15s, box-shadow 0.15s;
+  transition: color var(--transition-base), transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   line-height: 1;
   backdrop-filter: blur(4px);
@@ -157,6 +182,24 @@
   transform: scale(1.08);
 }
 
+html.dark .listing-card__wishlist-btn {
+  background: var(--bg-floating);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+}
+
+html.dark .listing-card__wishlist-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+  color: var(--green);
+}
+
+html.dark .listing-card__wishlist-btn--active {
+  background: var(--success-soft);
+  border-color: var(--green);
+  color: var(--green);
+}
+
 .listing-card__report-btn {
   position: absolute;
   top: 50px;
@@ -166,14 +209,14 @@
   border-radius: 999px;
   padding: 7px 12px;
   background: rgba(17, 24, 39, 0.82);
-  color: #fff;
+  color: white;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
   backdrop-filter: blur(6px);
-  transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+  transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .listing-card__report-btn--admin-left {
@@ -188,6 +231,17 @@
   box-shadow: 0 10px 24px rgba(127, 29, 29, 0.24);
 }
 
+html.dark .listing-card__report-btn {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+html.dark .listing-card__report-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
 /* ── Keep the old .listing-card__like alias in case used elsewhere ── */
 .listing-card__like {
   position: absolute;
@@ -199,7 +253,7 @@
   border-radius: 50%;
   border: none;
   background: rgba(255, 255, 255, 0.92);
-  color: #ccc;
+  color: var(--text-tertiary);
   font-size: 16px;
   display: flex;
   align-items: center;
@@ -271,6 +325,10 @@
   min-height: 2.8em;
 }
 
+html.dark .listing-card__title {
+  color: var(--text-primary);
+}
+
 /* ── Condition Badge ───────────────────────────────────── */
 .listing-card__badge {
   font-size: 11px;
@@ -297,18 +355,30 @@
   letter-spacing: -0.3px;
 }
 
+html.dark .listing-card__price {
+  color: var(--text-primary);
+}
+
 .listing-card__price--prefix {
   font-size: 12px;
   font-weight: 400;
-  color: #555;
+  color: var(--text-secondary);
   margin-right: 1px;
+}
+
+html.dark .listing-card__price--prefix {
+  color: var(--text-tertiary);
 }
 
 .listing-card__original-price {
   font-size: 12px;
-  color: #aaa;
+  color: var(--text-tertiary);
   text-decoration: line-through;
   white-space: nowrap;
+}
+
+html.dark .listing-card__original-price {
+  color: var(--text-muted);
 }
 
 /* ── Seller ─────────────────────────────────── */
@@ -325,7 +395,7 @@
 
 .listing-card__seller {
   font-size: 12px;
-  color: #888;
+  color: var(--text-secondary);
   line-height: 1.3;
   margin: 0;
   max-width: 100%;
@@ -335,9 +405,13 @@
   white-space: nowrap;
 }
 
+html.dark .listing-card__seller {
+  color: var(--text-tertiary);
+}
+
 .listing-card__institution {
   font-size: 11.5px;
-  color: #aaa;
+  color: var(--text-tertiary);
   line-height: 1.35;
   margin: 0;
   max-width: 100%;
@@ -347,6 +421,10 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
+}
+
+html.dark .listing-card__institution {
+  color: var(--text-muted);
 }
 
 .listing-card__institution--long {
@@ -375,7 +453,7 @@
 .listing-card__star {
   font-size: 13px;
   line-height: 1;
-  color: #e0e0e0;
+  color: var(--text-secondary);
 }
 
 .listing-card__star--filled {
@@ -384,7 +462,7 @@
 
 .listing-card__star--half {
   position: relative;
-  color: #e0e0e0;
+  color: var(--text-secondary);
 }
 
 .listing-card__star--half::after {
@@ -399,7 +477,11 @@
 
 .listing-card__review-count {
   font-size: 12px;
-  color: #aaa;
+  color: var(--text-tertiary);
+}
+
+html.dark .listing-card__review-count {
+  color: var(--text-muted);
 }
 
 /* ── Message Seller Button ─────────────────────────────── */
@@ -424,10 +506,20 @@
 
 .listing-card__msg-btn:hover {
   background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
-  color: #fff;
+  color: white;
   border-color: transparent;
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(31, 107, 82, 0.35);
+}
+
+html.dark .listing-card__msg-btn {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+html.dark .listing-card__msg-btn:hover {
+  background: var(--grad-green);
+  color: white;
 }
 
 /* ── Listings Grid ─────────────────────────────────────── */
@@ -522,7 +614,7 @@
   min-height: 44px;
   border: 1px solid rgba(31, 36, 31, 0.12);
   border-radius: 14px;
-  background: #fff;
+  background: var(--bg-primary);
   color: var(--gray-900);
   font-family: var(--font);
   font-size: 14px;
@@ -615,7 +707,7 @@
 }
 
 .listings-empty__subtitle {
-  color: #aaa;
+  color: var(--text-tertiary);
   font-size: 14px;
   margin-bottom: 20px;
 }
@@ -746,7 +838,7 @@
   aspect-ratio: 16 / 8.5;
   border-radius: 24px;
   overflow: hidden;
-  background: #e5e7eb;
+  background: var(--border-subtle);
 }
 
 .item-modal-carousel__nav {
@@ -801,7 +893,7 @@
   width: 100%;
   height: 100%;
   border-radius: 24px;
-  background: #e5e7eb;
+  background: var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -847,15 +939,15 @@
 .item-modal-trade-badge {
   font-size: 12px;
   font-weight: 700;
-  color: #fff;
-  background: #2563eb;
+  color: white;
+  background: var(--green);
   border-radius: 999px;
   padding: 6px 12px;
   white-space: nowrap;
 }
 
 .item-modal-trade-badge--only {
-  background: #1e40af;
+  background: var(--info);
 }
 
 .item-modal-price {
@@ -869,7 +961,7 @@
 .item-modal-price-prefix {
   font-size: 15px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .item-modal-price-check {
@@ -933,7 +1025,7 @@
 }
 
 .item-modal-price-check--high span {
-  color: #9f2f23;
+  color: var(--danger);
 }
 
 .item-modal-wishlist-btn {
@@ -1057,7 +1149,7 @@
 
 .item-modal-send-btn {
   background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
-  color: #fff;
+  color: white;
   border: none;
   border-radius: 999px;
   padding: 12px 26px;
@@ -1081,11 +1173,11 @@
 }
 
 .item-modal-send-btn--secondary {
-  background: linear-gradient(135deg, #295e50 0%, #1f6b52 100%);
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
 }
 
 .item-modal-send-btn--offer {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--info) 0%, var(--info-dark) 100%);
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);
 }
 
@@ -1095,7 +1187,7 @@
   flex-wrap: wrap;
 }
 
-.item-modal-error { color: #b91c1c; font-size: 13px; margin-bottom: 10px; }
+.item-modal-error { color: var(--danger); font-size: 13px; margin-bottom: 10px; }
 .item-modal-success { color: var(--green-dark); font-size: 13px; margin-bottom: 10px; }
 
 .item-modal-scroll::-webkit-scrollbar { width: 8px; }
@@ -1152,7 +1244,7 @@
   font-size: 12px;
   font-family: inherit;
   font-weight: inherit;
-  color: #888;
+  color: var(--text-secondary);
   cursor: pointer;
   text-decoration: none;
   display: inline;
@@ -1163,42 +1255,42 @@
 }
 
 html.dark .item-modal-price-check {
-  background: #111827 !important;
-  border-color: #374151;
-  color: #cbd5e1;
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-default);
+  color: var(--text-secondary);
 }
 
 html.dark .item-modal-price-check strong,
 html.dark .item-modal-price-check p {
-  color: #f9fafb !important;
+  color: var(--text-primary) !important;
 }
 
 html.dark .item-modal-price-check span {
-  background: rgba(255, 255, 255, 0.08);
-  color: #86efac !important;
+  background: var(--bg-interactive);
+  color: var(--green) !important;
 }
 
 html.dark .item-modal-price-check--good {
-  background: rgba(52, 211, 153, 0.10) !important;
-  border-color: rgba(52, 211, 153, 0.34);
+  background: var(--success-soft) !important;
+  border-color: var(--green);
 }
 
 html.dark .item-modal-price-check--fair {
-  background: rgba(245, 158, 11, 0.12) !important;
-  border-color: rgba(245, 158, 11, 0.42);
+  background: var(--warning-soft) !important;
+  border-color: var(--warning);
 }
 
 html.dark .item-modal-price-check--fair span {
-  color: #fcd34d !important;
+  color: var(--warning) !important;
 }
 
 html.dark .item-modal-price-check--high {
-  background: rgba(248, 113, 113, 0.12) !important;
-  border-color: rgba(248, 113, 113, 0.42);
+  background: var(--danger-soft) !important;
+  border-color: var(--danger);
 }
 
 html.dark .item-modal-price-check--high span {
-  color: #fca5a5 !important;
+  color: var(--danger) !important;
 }
 
 

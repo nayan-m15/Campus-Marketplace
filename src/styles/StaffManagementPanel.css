@@ -8,7 +8,7 @@
   padding: 0 12px;
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--admin-text);
+  color: var(--text-primary);
 }
 
 .staff-toggle--disabled {
@@ -20,7 +20,7 @@
   height: 28px;
   border-radius: 999px;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--bg-interactive);
   color: currentColor;
   font-size: 0.72rem;
   font-weight: 800;

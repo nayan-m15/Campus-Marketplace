@@ -11,9 +11,9 @@
 
 /* ── Card Shell ──────────────────────────────────────────────── */
 .lf__card {
-  background: var(--surface-muted);
+  background: var(--bg-secondary);
   border-radius: 20px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07), 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
   width: 100%;
   max-width: 480px;
   max-height: calc(100vh - 48px);
@@ -21,6 +21,12 @@
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  transition: background var(--transition-base), box-shadow var(--transition-base);
+}
+
+html.dark .lf__card {
+  background: var(--bg-floating);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ── Header ──────────────────────────────────────────────────── */
@@ -32,14 +38,14 @@
 .lf__title {
   font-size: 20px;
   font-weight: 700;
-  color: #111;
+  color: var(--text-primary);
   margin: 0 0 4px;
   line-height: 1.25;
 }
 
 .lf__subtitle {
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0;
 }
 
@@ -54,28 +60,33 @@
   width: 100%;
   padding-top: 62%; /* close to the card's 4:3 feel */
   border-radius: 14px;
-  border: 2px dashed #e0e0e0;
-  background: #f7faf7;
+  border: 2px dashed var(--border-subtle);
+  background: var(--bg-interactive);
   cursor: pointer;
   overflow: hidden;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+html.dark .lf__image-zone {
+  border-color: var(--border-default);
+  background: var(--bg-elevated);
 }
 
 .lf__image-zone:hover,
 .lf__image-zone:focus-visible {
-  border-color: var(--green-dark);
-  background: var(--amber-pale);
+  border-color: var(--green);
+  background: var(--success-soft);
   outline: none;
 }
 
 .lf__image-zone--drag {
-  border-color: var(--green-dark);
-  background: var(--amber-pale);
+  border-color: var(--green);
+  background: var(--success-soft);
 }
 
 .lf__image-zone--filled {
   border-style: solid;
-  border-color: var(--gray-200);
+  border-color: var(--border-default);
 }
 
 /* Upload prompt (empty state) */
@@ -98,12 +109,12 @@
 .lf__upload-label {
   font-size: 14px;
   font-weight: 600;
-  color: #444;
+  color: var(--text-primary);
 }
 
 .lf__upload-hint {
   font-size: 11.5px;
-  color: #aaa;
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -142,7 +153,7 @@
 .lf__image-overlay-label {
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: white;
 }
 
 /* Hidden native input */
@@ -155,7 +166,7 @@
   display: block;
   font-size: 12.5px;
   font-weight: 600;
-  color: #555;
+  color: var(--text-secondary);
   margin-bottom: 7px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -165,15 +176,16 @@
 .lf__input {
   width: 100%;
   height: 44px;
-  border: 1.5px solid var(--gray-200);
+  border: 1.5px solid var(--border-subtle);
   border-radius: 10px;
   padding: 0 14px;
   font-size: 14px;
-  color: #111;
-  background: var(--surface);
+  color: var(--text-primary);
+  background: var(--bg-primary);
   outline: none;
   box-sizing: border-box;
-  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 
@@ -182,29 +194,34 @@
   -webkit-appearance: none;
 }
 
+html.dark .lf__input {
+  border-color: var(--border-default);
+  background: var(--bg-elevated);
+}
+
 .lf__input::placeholder {
-  color: #c0c0c0;
+  color: var(--text-muted);
 }
 
 .lf__input:hover {
-  border-color: #ccc;
-  background: var(--surface-muted);
+  border-color: var(--border-focus);
+  background: var(--bg-interactive);
 }
 
 .lf__input:focus {
-  border-color: var(--green-dark);
-  background: var(--surface-muted);
-  box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.15);
+  border-color: var(--green);
+  background: var(--bg-interactive);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15);
 }
 
 .lf__input--error {
-  border-color: #e44;
-  background: #fdf5f5;
+  border-color: var(--danger);
+  background: var(--danger-soft);
 }
 
 .lf__input--error:focus {
-  border-color: #e44;
-  box-shadow: 0 0 0 3px rgba(238, 68, 68, 0.1);
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.1);
 }
 
 /* ── Price Field ─────────────────────────────────────────────── */
@@ -219,7 +236,7 @@
   left: 14px;
   font-size: 14px;
   font-weight: 600;
-  color: #555;
+  color: var(--text-secondary);
   pointer-events: none;
   user-select: none;
 }
@@ -230,22 +247,33 @@
 
 /* Price Suggestion */
 .lf__suggestion-panel {
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 12px;
   margin-bottom: 10px;
-  color: var(--gray-700);
+  color: var(--text-primary);
+}
+
+html.dark .lf__suggestion-panel {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+  color: var(--text-primary);
 }
 
 .lf__suggestion-panel--muted {
-  background: var(--surface-soft);
-  color: var(--gray-600);
+  background: var(--bg-interactive);
+  color: var(--text-secondary);
+}
+
+html.dark .lf__suggestion-panel--muted {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .lf__suggestion-panel--warning {
-  border-color: #f2c94c;
-  background: #fff9e8;
+  border-color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .lf__suggestion-panel strong,
@@ -256,21 +284,21 @@
   gap: 8px;
   font-size: 13px;
   font-weight: 700;
-  color: var(--gray-900);
+  color: var(--text-primary);
 }
 
 .lf__suggestion-panel p {
   margin: 6px 0 0;
   font-size: 12px;
   line-height: 1.45;
-  color: var(--gray-600);
+  color: var(--text-secondary);
 }
 
 .lf__suggestion-price {
   margin-top: 8px;
   font-size: 24px;
   font-weight: 800;
-  color: var(--green-dark);
+  color: var(--green);
   line-height: 1.1;
 }
 
@@ -285,24 +313,24 @@
 }
 
 .lf__confidence--high {
-  background: #e8f5ee;
-  color: var(--green-dark);
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .lf__confidence--medium {
-  background: #fff4df;
-  color: #9a6400;
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .lf__confidence--low {
-  background: #feecec;
-  color: #b42318;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .lf__suggestion-notes {
   margin: 8px 0 0;
   padding-left: 18px;
-  color: var(--gray-600);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -311,57 +339,11 @@
   margin-top: 3px;
 }
 
-html.dark .lf__suggestion-panel {
-  background: #111827 !important;
-  border-color: #374151;
-  color: #d1d5db;
-}
-
-html.dark .lf__suggestion-panel--muted {
-  background: #182132 !important;
-  border-color: #374151;
-  color: #cbd5e1;
-}
-
-html.dark .lf__suggestion-panel--warning {
-  background: rgba(245, 158, 11, 0.12) !important;
-  border-color: rgba(245, 158, 11, 0.55);
-}
-
-html.dark .lf__suggestion-panel strong,
-html.dark .lf__suggestion-header {
-  color: #f9fafb !important;
-}
-
-html.dark .lf__suggestion-panel p,
-html.dark .lf__suggestion-notes {
-  color: #cbd5e1 !important;
-}
-
-html.dark .lf__suggestion-price {
-  color: #86efac !important;
-}
-
-html.dark .lf__confidence--high {
-  background: rgba(52, 211, 153, 0.16);
-  color: #86efac !important;
-}
-
-html.dark .lf__confidence--medium {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fcd34d !important;
-}
-
-html.dark .lf__confidence--low {
-  background: rgba(248, 113, 113, 0.18);
-  color: #fca5a5 !important;
-}
-
 /* ── Error Message ───────────────────────────────────────────── */
 .lf__error {
   margin: 6px 0 0;
   font-size: 12px;
-  color: #e44;
+  color: var(--danger);
 }
 
 .lf__listing-type-row {
@@ -423,26 +405,35 @@ html.dark .lf__confidence--low {
   font-weight: 600;
   padding: 5px 14px;
   border-radius: 20px;
-  border: 1.5px solid #e0e0e0;
+  border: 1.5px solid var(--border-subtle);
   background: transparent;
-  color: #bbb;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: background 0.16s, color 0.16s, border-color 0.16s, transform 0.12s;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
   white-space: nowrap;
   line-height: 1.4;
 }
 
+html.dark .lf__condition-badge {
+  border-color: var(--border-default);
+  color: var(--text-tertiary);
+}
+
 .lf__condition-badge:hover {
-  border-color: var(--badge-color, #999);
-  color: var(--badge-color, #666);
-  background: var(--badge-bg, transparent);
+  border-color: var(--border-focus);
+  color: var(--text-secondary);
+  background: var(--bg-interactive);
 }
 
 .lf__condition-badge--selected {
-  background: var(--badge-bg, #eee);
-  color: var(--badge-color, #333);
-  border-color: var(--badge-border, #bbb);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border-focus);
   transform: scale(1.04);
+}
+
+html.dark .lf__condition-badge--selected {
+  background: var(--bg-interactive-hover);
 }
 
 /* ── Category Select ─────────────────────────────────────────── */
@@ -452,8 +443,22 @@ select.lf__input {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-color: var(--surface);
+  background-color: var(--bg-primary);
   cursor: pointer;
+}
+
+html.dark select.lf__input {
+  background-color: var(--bg-elevated);
+}
+
+select.lf__input option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+html.dark select.lf__input option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 /* ── Action Buttons ──────────────────────────────────────────── */
@@ -483,27 +488,31 @@ select.lf__input {
 
 /* Ghost / cancel */
 .lf__btn--ghost {
-  background: #f3f3f3;
-  color: #666;
+  background: var(--bg-interactive);
+  color: var(--text-secondary);
+}
+
+html.dark .lf__btn--ghost {
+  background: var(--bg-elevated);
 }
 
 .lf__btn--ghost:hover {
-  background: #ebebeb;
+  background: var(--bg-interactive-hover);
 }
 
 /* Primary / submit */
 .lf__btn--primary {
-  background: var(--green-dark);
-  color: #fff;
+  background: var(--grad-green);
+  color: white;
   flex: 1;
 }
 
 .lf__btn--primary:hover:not(.lf__btn--disabled) {
-  background: #4d6150;
+  filter: brightness(1.05);
 }
 
 .lf__btn--primary:focus-visible {
-  box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.30);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.30);
 }
 
 /* Disabled state */
@@ -515,8 +524,12 @@ select.lf__input {
 
 /* ── Divider between sections ────────────────────────────────── */
 .lf__section + .lf__section {
-  border-top: 1px solid #f4f4f4;
+  border-top: 1px solid var(--border-subtle);
   padding-top: 18px;
+}
+
+html.dark .lf__section + .lf__section {
+  border-top-color: var(--border-default);
 }
 
 /* ── Responsive ──────────────────────────────────────────────── */
@@ -606,8 +619,8 @@ select.lf__input {
   height: 34px;
   border: none;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  color: #333;
+  background: var(--bg-floating);
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 600;
   line-height: 1;
@@ -615,12 +628,17 @@ select.lf__input {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
-  transition: background 0.15s, transform 0.12s;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+html.dark .listing-modal-content > .modal-close {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
 }
 
 .listing-modal-content > .modal-close:hover {
-  background: #f0f0f0;
+  background: var(--bg-interactive-hover);
   transform: scale(1.06);
 }
 
@@ -639,17 +657,23 @@ select.lf__input {
   Scroll, max-height, and scrollbar all live here.
 */
 .draggable-modal {
-  background: var(--surface-muted);
+  background: var(--bg-secondary);
   border-radius: 20px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-xl);
   width: 100%;
   max-height: calc(100vh - 80px);
   overflow-y: auto;
   overflow-x: hidden;
   cursor: default;
+  transition: background var(--transition-base), box-shadow var(--transition-base);
 
   scrollbar-width: thin;
-  scrollbar-color: #cfcfcf transparent;
+  scrollbar-color: var(--border-default) transparent;
+}
+
+html.dark .draggable-modal {
+  background: var(--bg-floating);
+  box-shadow: var(--shadow-2xl);
 }
 
 .draggable-modal::-webkit-scrollbar {
@@ -661,12 +685,20 @@ select.lf__input {
 }
 
 .draggable-modal::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--border-default);
   border-radius: 999px;
 }
 
+html.dark .draggable-modal::-webkit-scrollbar-thumb {
+  background: var(--border-focus);
+}
+
 .draggable-modal::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--border-focus);
+}
+
+html.dark .draggable-modal::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .draggable-modal .lf__wrapper {

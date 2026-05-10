@@ -24,6 +24,7 @@
   height: var(--navbar-height);
   box-shadow: 0 1px 20px rgba(0, 0, 0, 0.3);
   gap: 4px;
+  transition: background var(--transition-base), border-color var(--transition-base);
 }
 
 /* Logo */
@@ -48,7 +49,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  color: #fff;
+  color: white;
   font-size: 14px;
   letter-spacing: -0.5px;
 }
@@ -64,7 +65,7 @@
 .navbar__logo-text {
   font-weight: 800;
   font-size: 16px;
-  color: #fff;
+  color: white;
   letter-spacing: 0;
 }
 
@@ -112,16 +113,26 @@
   border: none;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  color: white;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
 .navbar__icon-btn:hover {
   background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+html.dark .navbar__icon-btn {
+  background: var(--bg-interactive);
+  color: var(--text-primary);
+}
+
+html.dark .navbar__icon-btn:hover {
+  background: var(--bg-interactive-hover);
   transform: translateY(-1px);
 }
 
@@ -141,8 +152,8 @@
   height: 16px;
   padding: 0 3px;
   border-radius: 999px;
-  background: #53d769;
-  color: #fff;
+  background: var(--green);
+  color: white;
   font-size: 10px;
   font-weight: 700;
   box-shadow: 0 0 0 2px rgba(31, 36, 31, 0.92);
@@ -150,6 +161,11 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
+}
+
+html.dark .navbar__mobile-badge {
+  background: var(--green);
+  box-shadow: 0 0 0 2px var(--bg-navigation);
 }
 
 .navbar__mobile-badge::after {
@@ -170,12 +186,17 @@
 .navbar__mobile-avatar--placeholder {
   /* Fallback avatar when the user has not uploaded an image yet. */
   background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  color: white;
   font-size: 12px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+html.dark .navbar__mobile-avatar--placeholder {
+  background: var(--bg-interactive);
+  color: var(--text-primary);
 }
 
 .navbar__desktop-avatar-placeholder {
@@ -192,6 +213,11 @@
   flex-shrink: 0;
 }
 
+html.dark .navbar__desktop-avatar-placeholder {
+  background: var(--bg-interactive);
+  color: var(--text-primary);
+}
+
 .navbar__icon-btn--plus {
   font-size: 22px;
   font-weight: 500;
@@ -202,12 +228,12 @@
   /* These two controls are paired in the mobile search flow,
      so they share the same interaction feel. */
   border: none;
-  color: #fff;
+  color: white;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
 .navbar__mobile-search-trigger {
@@ -227,6 +253,17 @@
 .navbar__search-close:hover {
   background: rgba(255, 255, 255, 0.14);
   transform: translateY(-1px);
+}
+
+html.dark .navbar__mobile-search-trigger,
+html.dark .navbar__search-close {
+  background: var(--bg-interactive);
+  color: var(--text-primary);
+}
+
+html.dark .navbar__mobile-search-trigger:hover,
+html.dark .navbar__search-close:hover {
+  background: var(--bg-interactive-hover);
 }
 
 .navbar__search-close {
@@ -258,10 +295,10 @@
   border-radius: 50px;
   font-size: 14px;
   outline: none;
-  color: #fff;
+  color: white;
   background: rgba(255, 255, 255, 0.07);
   font-family: var(--font);
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .navbar__search input::placeholder {
@@ -272,6 +309,22 @@
   border-color: rgba(31, 107, 82, 0.60);
   background: rgba(255, 255, 255, 0.1);
   box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.15);
+}
+
+html.dark .navbar__search input {
+  background: var(--bg-secondary);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+html.dark .navbar__search input::placeholder {
+  color: var(--text-muted);
+}
+
+html.dark .navbar__search input:focus {
+  border-color: var(--border-focus);
+  background: var(--bg-interactive);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
 }
 
 /* Links */
@@ -298,11 +351,20 @@
   border: none;
   cursor: pointer;
   font-family: var(--font);
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .navbar__link:hover {
   background: rgba(31, 107, 82, 0.15);
+  color: var(--green);
+}
+
+html.dark .navbar__link {
+  color: var(--text-secondary);
+}
+
+html.dark .navbar__link:hover {
+  background: var(--bg-interactive);
   color: var(--green);
 }
 
@@ -312,7 +374,7 @@
 
 .navbar__logo:hover .navbar__logo-text,
 .navbar__logo:focus .navbar__logo-text {
-  color: #fff;
+  color: white;
 }
 /* Hamburger */
 .navbar__hamburger-wrap {
@@ -342,6 +404,10 @@
   border-radius: 2px;
 }
 
+html.dark .navbar__hamburger span {
+  background: var(--text-primary);
+}
+
 /* Backdrop */
 .navbar__menu-backdrop {
   /* Full-screen click target so the side menu can be dismissed naturally. */
@@ -363,6 +429,7 @@
   z-index: 100;
   min-width: 200px;
   overflow: hidden;
+  transition: background var(--transition-base), border-color var(--transition-base);
 }
 
 .navbar__menu ul {
@@ -384,33 +451,32 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .navbar__menu li button:hover {
   background: var(--mint);
   color: var(--green);
 }
+
 .navbar__menu {
   right: 0;
   left: auto;
 }
 
 html.dark .navbar__menu {
-  background: #1f2937;
-  border-color: #374151;
+  background: var(--bg-floating);
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-xl);
 }
 
 html.dark .navbar__menu li button {
-  color: #f9fafb;
+  color: var(--text-primary);
 }
 
 html.dark .navbar__menu li button:hover {
-  background: #374151;
-  color: #f9fafb;
-}
-
-html.dark .navbar__hamburger span {
-  background: #f9fafb;
+  background: var(--bg-interactive);
+  color: var(--green);
 }
 
 @media (max-width: 900px) {
@@ -498,7 +564,15 @@ html.dark .navbar__hamburger span {
   }
 
   .navbar__hamburger span {
-    background: #f9fafb;
+    background: var(--bg-primary);
+  }
+
+  html.dark .navbar__hamburger {
+    background: var(--bg-interactive);
+  }
+
+  html.dark .navbar__hamburger span {
+    background: var(--text-primary);
   }
 
   .navbar--logged-out {

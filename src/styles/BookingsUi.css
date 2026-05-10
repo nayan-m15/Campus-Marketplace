@@ -7,18 +7,19 @@
   padding: 0;
   border: none;
   border-radius: 16px;
-  background: var(--surface, #ffffff);
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.07),
-    0 8px 32px rgba(0, 0, 0, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.06);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-xl);
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);
   overflow-y: auto;
 }
 
+html.dark .brm-dialog {
+  background: var(--bg-elevated);
+}
+
 .brm-dialog::backdrop {
-  background: rgba(15, 15, 20, 0.45);
+  background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(2px);
 }
 
@@ -51,14 +52,14 @@
 .brm-title {
   font-size: 17px;
   font-weight: 600;
-  color: var(--text-primary, #111);
+  color: var(--text-primary);
   margin: 0 0 3px;
   line-height: 1.3;
 }
 
 .brm-subtitle {
   font-size: 12px;
-  color: var(--text-muted, #888);
+  color: var(--text-tertiary);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -70,16 +71,16 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--text-muted, #999);
+  color: var(--text-tertiary);
   font-size: 14px;
   padding: 4px 6px;
   border-radius: 6px;
   line-height: 1;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 .brm-close-btn:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--text-primary, #111);
+  background: var(--bg-interactive);
+  color: var(--text-primary);
 }
 
 /* ── STEP INDICATOR ───────────────────────────────────────────────────────── */
@@ -100,11 +101,11 @@
 .brm-step-line {
   flex: 1;
   height: 1px;
-  background: #e5e7eb;
+  background: var(--border-subtle);
   transition: background 0.25s;
 }
 .brm-step-line--active {
-  background: #2563eb;
+  background: var(--green);
 }
 
 .brm-step {
@@ -118,8 +119,8 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #e5e7eb;
-  color: #9ca3af;
+  background: var(--border-subtle);
+  color: var(--text-tertiary);
   font-size: 11px;
   font-weight: 600;
   display: flex;
@@ -130,23 +131,23 @@
 }
 
 .brm-step--active .brm-step-num {
-  background: #2563eb;
-  color: #fff;
+  background: var(--green);
+  color: white;
 }
 
 .brm-step-label {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-weight: 500;
   transition: color 0.25s;
 }
 
 .brm-step--active .brm-step-label {
-  color: #2563eb;
+  color: var(--green);
 }
 
 .brm-step--current .brm-step-label {
-  color: #111;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -171,12 +172,12 @@
 .brm-label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary, #111);
+  color: var(--text-primary);
 }
 
 .brm-optional {
   font-weight: 400;
-  color: var(--text-muted, #999);
+  color: var(--text-tertiary);
 }
 
 .brm-select,
@@ -184,9 +185,9 @@
   width: 100%;
   padding: 9px 12px;
   font-size: 14px;
-  color: var(--text-primary, #111);
-  background: var(--surface-secondary, #f9fafb);
-  border: 1px solid #e5e7eb;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   outline: none;
   box-sizing: border-box;
@@ -194,6 +195,12 @@
   appearance: none;
   -webkit-appearance: none;
   font-family: inherit;
+}
+
+html.dark .brm-select,
+html.dark .brm-input {
+  background: var(--bg-interactive);
+  border-color: var(--border-default);
 }
 
 .brm-select {
@@ -206,18 +213,23 @@
 
 .brm-select:focus,
 .brm-input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  background: #fff;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
+  background: var(--bg-primary);
+}
+
+html.dark .brm-select:focus,
+html.dark .brm-input:focus {
+  background: var(--bg-secondary);
 }
 
 .brm-textarea {
   width: 100%;
   padding: 9px 12px;
   font-size: 14px;
-  color: var(--text-primary, #111);
-  background: var(--surface-secondary, #f9fafb);
-  border: 1px solid #e5e7eb;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   outline: none;
   resize: vertical;
@@ -226,36 +238,52 @@
   line-height: 1.5;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.brm-textarea:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  background: #fff;
+
+html.dark .brm-textarea {
+  background: var(--bg-interactive);
+  border-color: var(--border-default);
 }
+
+.brm-textarea:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
+  background: var(--bg-primary);
+}
+
+html.dark .brm-textarea:focus {
+  background: var(--bg-secondary);
+}
+
 .brm-textarea::placeholder {
-  color: #c4c9d4;
+  color: var(--text-tertiary);
 }
 
 /* ── HINTS ────────────────────────────────────────────────────────────────── */
 
 .brm-hint {
   font-size: 12px;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-secondary);
   margin: 0;
 }
 .brm-hint--warn {
-  color: #d97706;
+  color: var(--warning);
 }
 .brm-hint--ok {
-  color: #16a34a;
+  color: var(--green);
 }
 
 /* ── HOURS PREVIEW ────────────────────────────────────────────────────────── */
 
 .brm-hours-preview {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   padding: 12px 14px;
+}
+
+html.dark .brm-hours-preview {
+  background: var(--bg-interactive);
+  border-color: var(--border-default);
 }
 
 .brm-hours-title {
@@ -263,7 +291,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   margin: 0 0 8px;
 }
 
@@ -280,11 +308,11 @@
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: var(--text-primary, #374151);
+  color: var(--text-primary);
   padding: 2px 0;
 }
 .brm-hours-row--closed {
-  color: #d1d5db;
+  color: var(--text-tertiary);
 }
 
 /* ── STEP 2: SUMMARY BAR ─────────────────────────────────────────────────── */
@@ -293,12 +321,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: var(--success-soft);
+  border: 1px solid var(--border-focus);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 13px;
-  color: #1e40af;
+  color: var(--green);
 }
 
 .brm-summary-branch {
@@ -306,14 +334,14 @@
 }
 
 .brm-summary-sep {
-  color: #93c5fd;
+  color: var(--text-tertiary);
 }
 
 .brm-change-btn {
   margin-left: auto;
   background: none;
   border: none;
-  color: #2563eb;
+  color: var(--green);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -322,7 +350,7 @@
   font-family: inherit;
 }
 .brm-change-btn:hover {
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba(52, 211, 153, 0.08);
 }
 
 /* ── TIME SLOTS GRID ──────────────────────────────────────────────────────── */
@@ -340,8 +368,8 @@
   align-items: center;
   justify-content: center;
   padding: 10px 8px;
-  background: #f9fafb;
-  border: 1.5px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border-subtle);
   border-radius: 10px;
   cursor: pointer;
   text-align: center;
@@ -349,34 +377,40 @@
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   gap: 2px;
 }
+
+html.dark .brm-slot {
+  background: var(--bg-interactive);
+  border-color: var(--border-default);
+}
+
 .brm-slot:hover:not(:disabled) {
-  border-color: #2563eb;
-  background: #eff6ff;
+  border-color: var(--green);
+  background: var(--success-soft);
 }
 .brm-slot--selected {
-  border-color: #2563eb;
-  background: #eff6ff;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: var(--green);
+  background: var(--success-soft);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15);
 }
 
 
 .brm-slot-time {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary, #111);
+  color: var(--text-primary);
 }
 .brm-slot--selected .brm-slot-time {
-  color: #1d4ed8;
+  color: var(--green);
 }
 
 .brm-slot-range {
   font-size: 11px;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-secondary);
 }
 
 .brm-slot-capacity {
   font-size: 10px;
-  color: #6b7280;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -385,9 +419,9 @@
 
 .brm-error {
   font-size: 13px;
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
   border-radius: 8px;
   padding: 10px 12px;
   margin: 0;
@@ -401,7 +435,7 @@
   align-items: center;
   gap: 10px;
   padding: 16px 24px 20px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* ── SUCCESS VIEW ─────────────────────────────────────────────────────────── */
@@ -419,26 +453,26 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-soft);
+  color: var(--green);
   font-size: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 16px;
-  border: 2px solid #bbf7d0;
+  border: 2px solid var(--border-focus);
 }
 
 .brm-success-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--text-primary, #111);
+  color: var(--text-primary);
   margin: 0 0 8px;
 }
 
 .brm-success-body {
   font-size: 14px;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-secondary);
   line-height: 1.6;
   margin: 0 0 24px;
   max-width: 320px;
@@ -450,10 +484,15 @@
   margin: 0 0 28px;
   width: 100%;
   max-width: 300px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   overflow: hidden;
+}
+
+html.dark .brm-success-details {
+  background: var(--bg-interactive);
+  border-color: var(--border-default);
 }
 
 .brm-success-details li {
@@ -462,16 +501,16 @@
   align-items: center;
   padding: 10px 14px;
   font-size: 13px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-subtle);
 }
 .brm-success-details li:last-child {
   border-bottom: none;
 }
 .brm-success-details li span:first-child {
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-tertiary);
 }
 .brm-success-details li strong {
-  color: var(--text-primary, #111);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -484,8 +523,14 @@
   min-height: calc(100vh - 120px);
   padding: 32px 24px 48px;
   background:
-    radial-gradient(circle at top left, rgba(22, 101, 52, 0.08), transparent 36%),
-    linear-gradient(180deg, #f8faf8 0%, #eef6f0 100%);
+    radial-gradient(circle at top left, rgba(52, 211, 153, 0.08), transparent 36%),
+    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+}
+
+html.dark .bookings-page {
+  background:
+    radial-gradient(circle at top left, rgba(52, 211, 153, 0.12), transparent 36%),
+    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-elevated) 100%);
 }
 
 .bookings-page__header {
@@ -503,20 +548,20 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #166534;
+  color: var(--green);
 }
 
 .bookings-page h1 {
   margin: 0 0 8px;
   font-size: clamp(28px, 4vw, 42px);
   line-height: 1.05;
-  color: #10261a;
+  color: var(--text-primary);
 }
 
 .bookings-page__intro {
   max-width: 720px;
   margin: 0;
-  color: #466152;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
@@ -531,23 +576,33 @@
   max-width: 960px;
   margin: 0 auto;
   padding: 32px 24px;
-  border: 1px solid rgba(22, 101, 52, 0.15);
+  border: 1px solid var(--border-subtle);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #345243;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+html.dark .bookings-page__empty {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
 }
 
 .bookings-page__empty--error {
-  color: #b42318;
-  border-color: rgba(180, 35, 24, 0.18);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .bookings-page-card {
   padding: 24px;
   border-radius: 22px;
-  border: 1px solid rgba(16, 38, 26, 0.08);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 14px 34px rgba(16, 38, 26, 0.06);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-lg);
+}
+
+html.dark .bookings-page-card {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
 }
 
 .bookings-page-card__header {
@@ -560,7 +615,7 @@
 
 .bookings-page-card__header h3 {
   margin: 0 0 4px;
-  color: #10261a;
+  color: var(--text-primary);
 }
 
 .bookings-page-card__eyebrow,
@@ -570,13 +625,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #5c7768;
+  color: var(--text-secondary);
 }
 
 .bookings-page-card__id {
   margin: 0;
   font-size: 13px;
-  color: #4b6356;
+  color: var(--text-secondary);
 }
 
 .bookings-page-status {
@@ -585,45 +640,45 @@
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  background: #e5e7eb;
-  color: #1f2937;
+  background: var(--bg-interactive);
+  color: var(--text-primary);
 }
 
 .bookings-page-status--awaiting_dropoff,
 .bookings-page-status--pending {
-  background: #fff7e6;
-  color: #9a6700;
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .bookings-page-status--dropped_off {
-  background: #dff7e8;
-  color: #166534;
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .bookings-page-status--awaiting_collection {
-  background: #dff0ff;
-  color: #155eef;
+  background: var(--border-focus);
+  color: var(--green);
 }
 
 .bookings-page-status--item_received {
-  background: #dff7e8;
-  color: #166534;
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .bookings-page-status--collection_pending_approval {
-  background: #eef4ff;
-  color: #1d4ed8;
+  background: var(--bg-interactive);
+  color: var(--green);
 }
 
 .bookings-page-status--item_released,
 .bookings-page-status--completed {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .bookings-page-status--cancelled {
-  background: #fee4e2;
-  color: #b42318;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .bookings-page-card__grid,
@@ -644,8 +699,13 @@
 .bookings-page-card__booking {
   padding: 18px;
   border-radius: 16px;
-  background: #f7faf8;
-  border: 1px solid rgba(16, 38, 26, 0.06);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+html.dark .bookings-page-card__booking {
+  background: var(--bg-interactive);
+  border-color: var(--border-default);
 }
 
 .bookings-page-card__booking p:last-of-type {

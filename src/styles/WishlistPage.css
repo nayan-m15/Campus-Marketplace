@@ -17,14 +17,14 @@
 .wl__title {
   font-size: 28px;
   font-weight: 700;
-  color: var(--gray-900, #111);
+  color: var(--text-primary);
   letter-spacing: -0.5px;
   margin: 0 0 6px;
 }
 
 .wl__subtitle {
   font-size: 14px;
-  color: var(--gray-500, #6b7280);
+  color: var(--text-tertiary);
   margin: 0;
 }
 
@@ -35,17 +35,22 @@
   align-items: center;
   gap: 16px;
   padding: 100px 0;
-  color: var(--gray-500, #6b7280);
+  color: var(--text-tertiary);
 }
 
 .wl__spinner {
   display: inline-block;
   width: 36px;
   height: 36px;
-  border: 3px solid var(--gray-200);
+  border: 3px solid var(--border-subtle);
   border-top-color: var(--green);
   border-radius: 50%;
   animation: wl-spin 0.7s linear infinite;
+}
+
+html.dark .wl__spinner {
+  border-color: var(--border-default);
+  border-top-color: var(--green);
 }
 
 @keyframes wl-spin {
@@ -69,13 +74,13 @@
 .wl__empty-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--gray-800, #1f2937);
+  color: var(--text-primary);
   margin: 0;
 }
 
 .wl__empty-sub {
   font-size: 14px;
-  color: var(--gray-500, #6b7280);
+  color: var(--text-tertiary);
   max-width: 300px;
   margin: 0;
 }
@@ -92,18 +97,23 @@
 
 /* ── Card ── */
 .wl__card {
-  background: #fff;
+  background: var(--bg-secondary);
   border-radius: 16px;
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--border-subtle);
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
   display: flex;
   flex-direction: column;
 }
 
+html.dark .wl__card {
+  background: var(--bg-floating);
+  border-color: var(--border-default);
+}
+
 .wl__card:hover {
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
 }
 
@@ -117,9 +127,13 @@
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  background: var(--surface-soft);
+  background: var(--bg-interactive);
   margin: 0;
   flex-shrink: 0;
+}
+
+html.dark .wl__img-wrap {
+  background: var(--bg-elevated);
 }
 
 .wl__img {
@@ -146,25 +160,30 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  border: none;
+  background: var(--bg-floating);
+  border: 1px solid var(--border-subtle);
   cursor: pointer;
   font-size: 16px;
   color: var(--danger);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-  transition: background 0.15s, transform 0.15s;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition-fast), transform var(--transition-fast);
   line-height: 1;
 }
 
+html.dark .wl__remove-btn {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+}
+
 .wl__remove-btn--active {
-  color: #166534;
+  color: var(--green);
 }
 
 .wl__remove-btn:hover {
-  background: #fff;
+  background: var(--bg-interactive-hover);
   transform: scale(1.12);
 }
 
@@ -180,12 +199,13 @@
 .wl__card-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--gray-900, #111);
+  color: var(--text-primary);
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-clamp: 2;
 }
 
 .wl__card-meta {
@@ -200,12 +220,18 @@
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 20px;
+  background: var(--bg-interactive);
+  color: var(--text-secondary);
+}
+
+html.dark .wl__condition {
+  background: var(--bg-elevated);
 }
 
 .wl__price {
   font-size: 15px;
   font-weight: 700;
-  color: var(--gray-900, #111);
+  color: var(--text-primary);
 }
 
 /* ── Responsive ── */

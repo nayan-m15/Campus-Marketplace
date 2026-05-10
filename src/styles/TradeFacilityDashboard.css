@@ -1,11 +1,11 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap");
 
 .staff-dashboard-shell {
-  --staff-border: rgba(31, 36, 31, 0.1);
-  --staff-border-strong: rgba(31, 36, 31, 0.16);
-  --staff-shadow: 0 10px 30px rgba(31, 36, 31, 0.06);
-  --staff-shadow-soft: 0 2px 10px rgba(31, 36, 31, 0.04);
-  --staff-bg: linear-gradient(180deg, rgba(255, 253, 248, 0.98) 0%, rgba(241, 238, 230, 0.94) 100%);
+  --staff-border: var(--border-subtle);
+  --staff-border-strong: var(--border-focus);
+  --staff-shadow: var(--shadow-md);
+  --staff-shadow-soft: var(--shadow-sm);
+  --staff-bg: var(--bg-secondary);
   display: grid;
   grid-template-columns: minmax(16rem, 18rem) minmax(0, 1fr) minmax(18rem, 22rem);
   gap: clamp(1rem, 2vw, 1.75rem);
@@ -13,8 +13,15 @@
   padding: clamp(0.75rem, 1vw, 1rem);
   background:
     radial-gradient(circle at top left, rgba(169, 185, 159, 0.2), transparent 28rem),
-    linear-gradient(180deg, var(--surface-muted) 0%, var(--mint-pale) 100%);
-  color: var(--gray-900);
+    var(--bg-primary);
+  color: var(--text-primary);
+  transition: background var(--transition-base);
+}
+
+html.dark .staff-dashboard-shell {
+  background:
+    radial-gradient(circle at top left, rgba(169, 185, 159, 0.1), transparent 28rem),
+    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
 }
 
 .staff-dashboard-backdrop {
@@ -59,9 +66,9 @@
   padding: 0.9rem;
   border: 1px solid var(--staff-border);
   border-radius: 1.5rem;
-  background: rgba(31, 36, 31, 0.98);
-  color: #f5f5f1;
-  box-shadow: 0 14px 34px rgba(23, 30, 24, 0.16);
+  background: var(--bg-floating);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -71,6 +78,10 @@
   inset: 0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 32%);
   pointer-events: none;
+}
+
+html.dark .sidebar::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 32%);
 }
 
 .sidebar > * {
@@ -106,7 +117,7 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--amber-light);
+  color: var(--warning);
 }
 
 .sidebar__close {
@@ -158,23 +169,23 @@
   border: 1px solid transparent;
   border-radius: 1rem;
   background: transparent;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-secondary);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
 }
 
 .sidebar__nav-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--bg-interactive);
+  border-color: var(--border-default);
+  color: var(--text-primary);
 }
 
 .sidebar__nav-btn--active {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--bg-elevated);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
 }
 
 .sidebar__nav-icon {
@@ -184,7 +195,8 @@
   width: 2rem;
   height: 2rem;
   border-radius: 0.7rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-interactive);
+  color: var(--green);
 }
 
 .sidebar__nav-label {
@@ -199,8 +211,8 @@
   height: 1.5rem;
   padding: 0 0.45rem;
   border-radius: 999px;
-  background: rgba(199, 91, 74, 0.9);
-  color: #fff;
+  background: var(--danger);
+  color: white;
   font-size: 0.72rem;
   font-weight: 700;
   display: inline-flex;
@@ -229,8 +241,8 @@
 .staff-avatar {
   width: 2.5rem;
   height: 2.5rem;
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background: var(--bg-interactive);
+  color: var(--text-primary);
 }
 
 .staff-info {
@@ -241,7 +253,7 @@
 .staff-name {
   font-size: 0.86rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -250,7 +262,7 @@
 .staff-email {
   margin-top: 0.15rem;
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -260,20 +272,20 @@
   width: 2.2rem;
   height: 2.2rem;
   border-radius: 0.8rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-default);
   background: transparent;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .sidebar__signout-btn:hover {
-  background: rgba(199, 91, 74, 0.18);
-  border-color: rgba(199, 91, 74, 0.35);
-  color: #fff;
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--text-primary);
 }
 
 .dashboard-main {
@@ -323,12 +335,12 @@
   font-size: clamp(1.7rem, 2vw, 2.25rem);
   line-height: 1.05;
   letter-spacing: -0.04em;
-  color: var(--navy);
+  color: var(--text-primary);
 }
 
 .topbar-date,
 .topbar-description {
-  color: var(--gray-500);
+  color: var(--text-tertiary);
 }
 
 .topbar-date {
@@ -361,8 +373,8 @@
   padding: 0.45rem 0.85rem;
   border: 1px solid var(--staff-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--green-dark);
+  background: var(--bg-secondary);
+  color: var(--green);
   font-size: 0.82rem;
   font-weight: 600;
 }
@@ -372,13 +384,13 @@
   height: 0.5rem;
   border-radius: 999px;
   background: var(--green);
-  box-shadow: 0 0 0 0 rgba(31, 107, 82, 0.35);
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.35);
   animation: staffPulse 1.8s ease-in-out infinite;
 }
 
 @keyframes staffPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(31, 107, 82, 0.32); }
-  50% { box-shadow: 0 0 0 0.45rem rgba(31, 107, 82, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.32); }
+  50% { box-shadow: 0 0 0 0.45rem rgba(52, 211, 153, 0); }
 }
 
 .view-section {
@@ -389,7 +401,7 @@
 .panel {
   border: 1px solid var(--staff-border);
   border-radius: 1.4rem;
-  background: rgba(255, 253, 248, 0.88);
+  background: var(--bg-secondary);
   box-shadow: var(--staff-shadow-soft);
   overflow: hidden;
 }
@@ -405,7 +417,7 @@
   gap: 1rem;
   padding: 1.3rem 1.4rem 1rem;
   border-bottom: 1px solid var(--staff-border);
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--bg-interactive);
 }
 
 .panel__title {
@@ -413,20 +425,20 @@
   font-size: 1.08rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--navy);
+  color: var(--text-primary);
 }
 
 .panel__subtitle {
   margin-top: 0.35rem;
   font-size: 0.84rem;
   line-height: 1.55;
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   max-width: 42rem;
 }
 
 .panel__count {
   padding-top: 0.15rem;
-  color: var(--green-dark);
+  color: var(--green);
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
@@ -457,10 +469,14 @@
   padding: 1.2rem 1.15rem 1.1rem;
   border: 1px solid var(--staff-border);
   border-radius: 1.1rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 244, 236, 0.95) 100%);
+  background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+html.dark .stat-card {
+  background: var(--bg-elevated);
 }
 
 .stat-card__top {
@@ -475,8 +491,8 @@
   width: 2.65rem;
   height: 2.65rem;
   border-radius: 0.95rem;
-  background: rgba(31, 107, 82, 0.08);
-  color: var(--green-dark);
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .stat-card__value {
@@ -484,7 +500,7 @@
   line-height: 1;
   font-weight: 700;
   letter-spacing: -0.05em;
-  color: var(--navy);
+  color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 
@@ -496,7 +512,7 @@
 .stat-card__label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--gray-900);
+  color: var(--text-primary);
   line-height: 1.3;
 }
 
@@ -504,7 +520,7 @@
   margin-top: 0.4rem;
   font-size: 0.79rem;
   line-height: 1.5;
-  color: var(--gray-500);
+  color: var(--text-tertiary);
 }
 
 .overview-grid {
@@ -532,7 +548,7 @@
 }
 
 .flow-item__count {
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -541,14 +557,14 @@
   height: 0.42rem;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(31, 107, 82, 0.08);
+  background: var(--bg-interactive);
 }
 
 .flow-item__bar span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--green) 0%, var(--sage-soft) 100%);
+  background: linear-gradient(90deg, var(--green) 0%, var(--success-soft) 100%);
 }
 
 .activity-feed,
@@ -598,26 +614,26 @@
 
 .activity-item__text,
 .schedule-item__title {
-  color: var(--gray-900);
+  color: var(--text-primary);
   font-size: 0.88rem;
   line-height: 1.45;
 }
 
 .activity-item__text strong {
-  color: var(--navy);
+  color: var(--text-primary);
 }
 
 .activity-item__meta,
 .schedule-item__item {
   margin-top: 0.18rem;
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.76rem;
   line-height: 1.45;
 }
 
 .schedule-item__time {
   min-width: 3.2rem;
-  color: var(--green-dark);
+  color: var(--green);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -625,7 +641,7 @@
 .bookings-controls {
   padding: 1rem 1.4rem;
   border-bottom: 1px solid var(--staff-border);
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--bg-interactive);
 }
 
 .bookings-controls--row,
@@ -646,21 +662,21 @@
   padding: 0 0.95rem;
   border: 1px solid var(--staff-border-strong);
   border-radius: 0.95rem;
-  background: rgba(255, 255, 255, 0.86);
-  color: var(--gray-500);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
 }
 
 .bookings-search {
   width: 100%;
   border: 0;
   background: transparent;
-  color: var(--gray-900);
+  color: var(--text-primary);
   font: inherit;
   outline: none;
 }
 
 .bookings-search::placeholder {
-  color: var(--gray-500);
+  color: var(--text-tertiary);
 }
 
 .status-select-wrap {
@@ -670,14 +686,14 @@
   padding: 0 0.85rem;
   border: 1px solid var(--staff-border-strong);
   border-radius: 0.95rem;
-  background: rgba(255, 255, 255, 0.86);
+  background: var(--bg-secondary);
 }
 
 .status-select {
   min-width: 12rem;
   border: 0;
   background: transparent;
-  color: var(--gray-900);
+  color: var(--text-primary);
   font: inherit;
   outline: none;
 }
@@ -700,9 +716,13 @@
 .booking-card {
   border: 1px solid var(--staff-border);
   border-radius: 1.15rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 244, 236, 0.96) 100%);
+  background: var(--bg-secondary);
   overflow: hidden;
   box-shadow: var(--staff-shadow-soft);
+}
+
+html.dark .booking-card {
+  background: var(--bg-elevated);
 }
 
 .booking-card__header,
@@ -734,7 +754,7 @@
 }
 
 .booking-card__person-name {
-  color: var(--navy);
+  color: var(--text-primary);
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.35;
@@ -743,7 +763,7 @@
 .booking-card__person-meta,
 .booking-card__txn-id {
   margin-top: 0.22rem;
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.76rem;
   line-height: 1.4;
   word-break: break-word;
@@ -770,7 +790,7 @@
 }
 
 .booking-card__detail-label {
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -778,7 +798,7 @@
 }
 
 .booking-card__detail-value {
-  color: var(--gray-900);
+  color: var(--text-primary);
   font-size: 0.86rem;
   line-height: 1.55;
 }
@@ -804,14 +824,14 @@
 }
 
 .booking-type-tag {
-  border: 1px solid rgba(31, 107, 82, 0.12);
-  background: rgba(31, 107, 82, 0.08);
-  color: var(--green-dark);
+  border: 1px solid var(--border-focus);
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .booking-type-tag--collection {
-  background: rgba(125, 143, 134, 0.12);
-  color: var(--gray-800);
+  background: var(--bg-interactive);
+  color: var(--text-primary);
 }
 
 .status-badge {
@@ -819,52 +839,52 @@
 }
 
 .status--awaiting-dropoff {
-  background: rgba(229, 157, 58, 0.14);
-  color: #8d5e1d;
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .status--item-received {
-  background: rgba(125, 143, 134, 0.14);
-  color: var(--gray-800);
+  background: var(--bg-interactive);
+  color: var(--text-primary);
 }
 
 .status--awaiting-collection {
-  background: rgba(169, 185, 159, 0.18);
-  color: var(--green-dark);
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .status--completed {
-  background: rgba(31, 107, 82, 0.12);
-  color: var(--green-dark);
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .status--cancelled {
-  background: rgba(199, 91, 74, 0.12);
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
 .bstatus--scheduled {
-  background: rgba(229, 157, 58, 0.12);
-  color: #8d5e1d;
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .bstatus--completed {
-  background: rgba(31, 107, 82, 0.12);
-  color: var(--green-dark);
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .bstatus--no-show {
-  background: rgba(199, 91, 74, 0.12);
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
 .managed-card__hint {
-  color: var(--gray-600);
+  color: var(--text-secondary);
 }
 
 .booking-card__footer {
   border-top: 1px solid var(--staff-border);
-  background: rgba(255, 255, 255, 0.42);
+  background: var(--bg-interactive);
 }
 
 .booking-card__actions {
@@ -889,9 +909,9 @@
 .btn-primary {
   padding: 0.7rem 1rem;
   border: 0;
-  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
-  color: #fff;
-  box-shadow: 0 10px 22px rgba(31, 107, 82, 0.22);
+  background: var(--grad-green);
+  color: white;
+  box-shadow: var(--shadow-md);
 }
 
 .btn-primary:hover,
@@ -902,8 +922,8 @@
 .btn-export {
   padding: 0.7rem 1rem;
   border: 1px solid var(--staff-border-strong);
-  background: rgba(255, 255, 255, 0.82);
-  color: var(--gray-800);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .btn-action {
@@ -912,13 +932,13 @@
 }
 
 .btn-action--receipt {
-  background: rgba(31, 107, 82, 0.12);
-  color: var(--green-dark);
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .btn-action--release {
-  background: rgba(125, 143, 134, 0.18);
-  color: var(--gray-900);
+  background: var(--bg-interactive);
+  color: var(--text-primary);
 }
 
 .empty-state {
@@ -936,8 +956,8 @@
   width: 3.25rem;
   height: 3.25rem;
   border-radius: 1rem;
-  background: rgba(31, 107, 82, 0.08);
-  color: var(--green-dark);
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .empty-state__icon-svg {
@@ -946,14 +966,14 @@
 }
 
 .empty-state__title {
-  color: var(--navy);
+  color: var(--text-primary);
   font-size: 0.95rem;
   font-weight: 700;
 }
 
 .empty-state__description {
   max-width: 22rem;
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.84rem;
   line-height: 1.55;
 }
@@ -979,8 +999,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--gray-500);
-  background: rgba(247, 244, 236, 0.98);
+  color: var(--text-tertiary);
+  background: var(--bg-interactive);
   border-bottom: 1px solid var(--staff-border-strong);
 }
 
@@ -988,13 +1008,13 @@
   padding: 1rem;
   vertical-align: top;
   border-bottom: 1px solid var(--staff-border);
-  background: rgba(255, 255, 255, 0.45);
-  color: var(--gray-800);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-size: 0.82rem;
 }
 
 .report-table tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--bg-elevated);
 }
 
 .transactions-table {
@@ -1006,8 +1026,8 @@
   align-items: center;
   padding: 0.28rem 0.52rem;
   border-radius: 0.55rem;
-  background: rgba(31, 107, 82, 0.08);
-  color: var(--green-dark);
+  background: var(--success-soft);
+  color: var(--green);
   font-family: "Courier New", monospace;
   font-size: 0.74rem;
   font-weight: 700;
@@ -1017,14 +1037,14 @@
 .txn-person__id,
 .txn-booking-time {
   margin-top: 0.28rem;
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.74rem;
 }
 
 .txn-item,
 .txn-price,
 .txn-person__name {
-  color: var(--navy);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -1046,12 +1066,12 @@
 }
 
 .txn-na {
-  color: var(--gray-400);
+  color: var(--text-tertiary);
 }
 
 .avatar {
-  background: rgba(31, 107, 82, 0.1);
-  color: var(--green-dark);
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .avatar--md {
@@ -1079,11 +1099,11 @@
 .utility-panel__footer {
   padding: 0.95rem 1.4rem 1.15rem;
   border-top: 1px solid var(--staff-border);
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--bg-interactive);
 }
 
 .utility-panel__context {
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.77rem;
   font-weight: 600;
 }
@@ -1098,12 +1118,16 @@
   padding: 0.95rem 1rem;
   border: 1px solid var(--staff-border);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.68);
+  background: var(--bg-secondary);
+}
+
+html.dark .utility-metric {
+  background: var(--bg-elevated);
 }
 
 .utility-metric__label {
   display: block;
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -1113,7 +1137,7 @@
 .utility-metric__value {
   display: block;
   margin-top: 0.45rem;
-  color: var(--navy);
+  color: var(--text-primary);
   font-size: 1.2rem;
   font-weight: 700;
 }
@@ -1131,7 +1155,7 @@ dialog.receipt-dialog {
 
 dialog.receipt-dialog::backdrop,
 dialog.confirm-dialog::backdrop {
-  background: rgba(17, 23, 19, 0.58);
+  background: rgba(0, 0, 0, 0.58);
   backdrop-filter: blur(4px);
 }
 
@@ -1140,8 +1164,13 @@ dialog.confirm-dialog {
   border: 1px solid var(--staff-border);
   border-radius: 1.5rem;
   overflow: hidden;
-  background: linear-gradient(180deg, #fffdf8 0%, #f5f1e8 100%);
-  box-shadow: 0 28px 60px rgba(31, 36, 31, 0.24);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-xl);
+}
+
+html.dark .receipt-dialog__inner,
+html.dark dialog.confirm-dialog {
+  background: var(--bg-elevated);
 }
 
 .receipt-dialog__header,
@@ -1173,14 +1202,14 @@ dialog.confirm-dialog {
 .receipt-dialog__title,
 .confirm-dialog__title {
   margin-top: 0.35rem;
-  color: var(--navy);
+  color: var(--text-primary);
   font-size: 1.18rem;
 }
 
 .receipt-dialog__subtitle,
 .confirm-dialog__subtitle {
   margin-top: 0.35rem;
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.84rem;
   line-height: 1.55;
 }
@@ -1190,8 +1219,8 @@ dialog.confirm-dialog {
   height: 2.3rem;
   border: 1px solid var(--staff-border-strong);
   border-radius: 0.8rem;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--gray-700, var(--gray-600));
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .receipt-dialog__toolbar {
@@ -1203,7 +1232,7 @@ dialog.confirm-dialog {
 }
 
 .receipt-dialog__results {
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.78rem;
   font-weight: 600;
 }
@@ -1226,7 +1255,13 @@ dialog.confirm-dialog {
 .receipt-option {
   border: 1px solid var(--staff-border);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--bg-secondary);
+}
+
+html.dark .receipt-dialog__empty,
+html.dark .receipt-preview,
+html.dark .receipt-option {
+  background: var(--bg-elevated);
 }
 
 .receipt-dialog__empty,
@@ -1242,7 +1277,7 @@ dialog.confirm-dialog {
 
 .receipt-option:hover,
 .receipt-option--selected {
-  border-color: rgba(31, 107, 82, 0.28);
+  border-color: var(--border-focus);
   box-shadow: var(--staff-shadow-soft);
 }
 
@@ -1256,7 +1291,7 @@ dialog.confirm-dialog {
 .receipt-option__item,
 .receipt-preview__title,
 .receipt-preview__details dd {
-  color: var(--navy);
+  color: var(--text-primary);
   font-weight: 700;
 }
 
@@ -1269,7 +1304,7 @@ dialog.confirm-dialog {
 .receipt-preview__placeholder,
 .receipt-dialog__error {
   margin-top: 0.45rem;
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.82rem;
   line-height: 1.55;
 }
@@ -1289,7 +1324,7 @@ dialog.confirm-dialog {
 }
 
 .receipt-preview__details dt {
-  color: var(--gray-500);
+  color: var(--text-tertiary);
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -1326,8 +1361,8 @@ dialog.confirm-dialog {
   width: 3rem;
   height: 3rem;
   border-radius: 1rem;
-  background: rgba(31, 107, 82, 0.08);
-  color: var(--green-dark);
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 .confirm-dialog__icon-svg {
@@ -1365,7 +1400,7 @@ dialog.confirm-dialog {
 }
 
 .confirm-dialog__info-value {
-  color: var(--navy);
+  color: var(--text-primary);
   font-size: 0.88rem;
   font-weight: 600;
 }
@@ -1380,9 +1415,9 @@ dialog.confirm-dialog {
   max-width: min(26rem, calc(100vw - 2rem));
   padding: 0.85rem 1rem;
   border-radius: 1rem;
-  background: rgba(31, 36, 31, 0.96);
-  color: #fff;
-  box-shadow: 0 20px 40px rgba(17, 23, 19, 0.24);
+  background: var(--bg-floating);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xl);
   opacity: 0;
   transform: translateY(0.8rem);
   pointer-events: none;
@@ -1402,129 +1437,12 @@ dialog.confirm-dialog {
   width: 1.65rem;
   height: 1.65rem;
   border-radius: 999px;
-  background: rgba(31, 107, 82, 0.28);
-}
-
-html.dark .staff-dashboard-shell {
-  --staff-border: rgba(255, 255, 255, 0.08);
-  --staff-border-strong: rgba(255, 255, 255, 0.14);
-  --staff-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-  --staff-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.18);
-  --staff-bg: linear-gradient(180deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%);
-  background:
-    radial-gradient(circle at top left, rgba(31, 107, 82, 0.2), transparent 28rem),
-    linear-gradient(180deg, #111827 0%, #0f172a 100%);
-  color: #f9fafb;
-}
-
-html.dark .dashboard-main,
-html.dark .utility-rail,
-html.dark .panel,
-html.dark .dashboard-topbar,
-html.dark .stat-card,
-html.dark .booking-card,
-html.dark .dashboard-search,
-html.dark .status-select-wrap,
-html.dark .utility-metric,
-html.dark .receipt-dialog__inner,
-html.dark dialog.confirm-dialog,
-html.dark .receipt-dialog__empty,
-html.dark .receipt-preview,
-html.dark .receipt-option {
-  background: #1f2937 !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  color: #f9fafb !important;
-}
-
-html.dark .panel__header,
-html.dark .bookings-controls,
-html.dark .booking-card__footer,
-html.dark .receipt-dialog__header,
-html.dark .receipt-dialog__footer,
-html.dark .confirm-dialog__header,
-html.dark .confirm-dialog__footer,
-html.dark .utility-panel__footer,
-html.dark .report-table thead th,
-html.dark .report-table tbody td {
-  background: rgba(17, 24, 39, 0.88) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-html.dark .topbar-title,
-html.dark .panel__title,
-html.dark .stat-card__value,
-html.dark .stat-card__label,
-html.dark .booking-card__person-name,
-html.dark .booking-card__detail-value,
-html.dark .activity-item__text,
-html.dark .schedule-item__title,
-html.dark .txn-item,
-html.dark .txn-price,
-html.dark .txn-person__name,
-html.dark .receipt-dialog__title,
-html.dark .confirm-dialog__title,
-html.dark .receipt-option__item,
-html.dark .receipt-option__price,
-html.dark .receipt-preview__title,
-html.dark .receipt-preview__details dd,
-html.dark .confirm-dialog__info-value,
-html.dark .utility-metric__value {
-  color: #f9fafb !important;
-}
-
-html.dark .topbar-date,
-html.dark .topbar-description,
-html.dark .panel__subtitle,
-html.dark .panel__count,
-html.dark .stat-card__sublabel,
-html.dark .booking-card__person-meta,
-html.dark .booking-card__detail-label,
-html.dark .managed-card__hint,
-html.dark .activity-item__meta,
-html.dark .schedule-item__item,
-html.dark .txn-date,
-html.dark .txn-person__id,
-html.dark .txn-booking-time,
-html.dark .receipt-option__meta,
-html.dark .receipt-preview__description,
-html.dark .receipt-preview__placeholder,
-html.dark .receipt-dialog__results,
-html.dark .confirm-dialog__subtitle,
-html.dark .utility-panel__context,
-html.dark .utility-metric__label {
-  color: #9ca3af !important;
-}
-
-html.dark .facility-open-badge,
-html.dark .topbar-theme-chip,
-html.dark .receipt-dialog__close,
-html.dark .topbar-menu-btn {
-  background: rgba(17, 24, 39, 0.9) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  color: #f9fafb !important;
-}
-
-html.dark .bookings-search,
-html.dark .status-select {
-  color: #f9fafb !important;
-}
-
-html.dark .bookings-search::placeholder {
-  color: #9ca3af !important;
-}
-
-html.dark .txn-id-chip,
-html.dark .booking-type-tag,
-html.dark .stat-card__icon,
-html.dark .empty-state__icon,
-html.dark .confirm-dialog__icon,
-html.dark .avatar {
-  background: rgba(31, 107, 82, 0.16) !important;
-  color: #d1fae5 !important;
+  background: var(--success-soft);
+  color: var(--green);
 }
 
 html.dark .flow-item__bar {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-interactive);
 }
 
 @media (max-width: 1300px) {

@@ -97,7 +97,7 @@
 .hero__title {
   font-size: 58px;
   font-weight: 800;
-  color: #fff;
+  color: white;
   line-height: 1.08;
   letter-spacing: -1.5px;
   margin-bottom: 6px;
@@ -221,7 +221,7 @@
 .hero__stat-value {
   font-size: 28px;
   font-weight: 800;
-  color: #fff;
+  color: white;
   letter-spacing: -0.8px;
   line-height: 1;
 }
@@ -561,7 +561,7 @@
   z-index: 1;
   font-size: 42px;
   font-weight: 800;
-  color: #fff;
+  color: white;
   letter-spacing: -1.2px;
   line-height: 1.1;
   margin-bottom: 16px;
@@ -596,7 +596,7 @@
   gap: 10px;
   padding: 14px 32px;
   background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
-  color: #fff;
+  color: white;
   border: none;
   border-radius: 50px;
   font-size: 15px;
@@ -631,7 +631,7 @@
 }
 
 .sell-cta__link:hover {
-  color: #fff;
+  color: white;
 }
 
 .sell-cta__btn:hover {
@@ -789,32 +789,196 @@
     border-radius: 22px;
   }
 }
-/* ── DARK MODE FIXES FOR HERO CAROUSEL ── */
+/* ── DARK MODE HERO STYLING ── */
+
+html.dark .hero__title {
+  color: var(--text-primary);
+}
+
+html.dark .hero__subtitle {
+  color: var(--green-light);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .hero__description {
+  color: var(--text-secondary);
+}
+
+html.dark .hero__badge {
+  color: var(--text-secondary);
+}
+
+html.dark .hero__badge-dot {
+  background: var(--green);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+}
+
+html.dark .hero__stats {
+  background: var(--bg-interactive);
+  border-color: var(--border-default);
+}
+
+html.dark .hero__stat-value {
+  color: var(--text-primary);
+}
+
+html.dark .hero__stat-label {
+  color: var(--text-tertiary);
+}
+
+/* ── Carousel Dark Mode ── */
+html.dark .carousel-container {
+  background: var(--bg-interactive);
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-lg);
+}
+
+html.dark .hero__carousel .listing-card {
+  background: var(--bg-secondary);
+  border-color: var(--border-subtle);
+}
+
+html.dark .hero__carousel .listing-card:hover {
+  box-shadow: var(--shadow-md);
+}
 
 html.dark .listing-seller {
-  color: #9ca3af !important;
+  color: var(--text-tertiary);
 }
 
 html.dark .listing-title,
 html.dark .listing-price {
-  color: #f9fafb !important;
+  color: var(--text-primary);
+}
+
+html.dark .listing-badge {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+
+html.dark .listing-price-condition {
+  border-top-color: var(--border-subtle);
+}
+
+html.dark .listing-condition {
+  background: var(--success-soft);
+  color: var(--green);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+html.dark .listing-button {
+  background: var(--grad-green);
+  box-shadow: 0 2px 8px rgba(52, 211, 153, 0.3);
+}
+
+html.dark .listing-button:hover {
+  box-shadow: 0 4px 14px rgba(52, 211, 153, 0.4);
+}
+
+html.dark .carousel-dot {
+  background: var(--text-muted);
+}
+
+html.dark .carousel-dot--active {
+  background: var(--green);
 }
 
 /* Arrow buttons */
 html.dark .carousel-nav {
-  background: rgba(17, 24, 39, 0.85) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--bg-floating);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-md);
 }
 
 html.dark .carousel-nav:hover {
-  background: rgba(31, 41, 55, 1) !important;
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lg);
 }
 
-/* Make arrows more visible */
 html.dark .carousel-nav--prev,
 html.dark .carousel-nav--next {
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
+}
+
+/* ── Sell CTA Dark Mode ── */
+html.dark .sell-cta {
+  background: var(--grad-hero);
+  border: 1px solid var(--border-subtle);
+}
+
+html.dark .sell-cta__eyebrow {
+  color: var(--green);
+}
+
+html.dark .sell-cta__eyebrow::before,
+html.dark .sell-cta__eyebrow::after {
+  background: rgba(52, 211, 153, 0.4);
+}
+
+html.dark .sell-cta__heading {
+  color: var(--text-primary);
+}
+
+html.dark .sell-cta__sub {
+  color: var(--text-secondary);
+}
+
+html.dark .sell-cta__sub strong {
+  color: var(--text-primary);
+}
+
+html.dark .sell-cta__btn {
+  background: var(--grad-green);
+  box-shadow: 0 6px 24px rgba(52, 211, 153, 0.4);
+}
+
+html.dark .sell-cta__btn:hover {
+  box-shadow: 0 10px 32px rgba(52, 211, 153, 0.5);
+}
+
+html.dark .sell-cta__link {
+  color: var(--text-secondary);
+}
+
+html.dark .sell-cta__link:hover {
+  color: var(--text-primary);
+}
+
+html.dark .sell-cta__fine {
+  color: var(--text-muted);
+}
+
+/* ── Popup Dark Mode ── */
+html.dark .popup-overlay {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+html.dark .popup-card {
+  background: var(--bg-floating);
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-xl), 0 0 40px rgba(52, 211, 153, 0.15);
+}
+
+html.dark .popup-card h3 {
+  color: var(--text-primary);
+}
+
+html.dark .popup-card p {
+  color: var(--text-secondary);
+}
+
+html.dark .popup-card .btn-outline {
+  background: var(--bg-interactive);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+html.dark .popup-card .btn-outline:hover {
+  background: var(--bg-interactive-hover);
+  border-color: var(--border-strong);
 }
 
 /* Overlay */
@@ -851,7 +1015,7 @@ html.dark .carousel-nav--next {
   border: 1px solid rgba(255,255,255,0.12);
   backdrop-filter: blur(14px);
 
-  color: #fff;
+  color: white;
   text-align: center;
 
   box-shadow:
@@ -905,7 +1069,7 @@ html.dark .carousel-nav--next {
   border: 1px solid rgba(255,255,255,0.15);
 
   background: rgba(255,255,255,0.06);
-  color: #fff;
+  color: white;
 
   transition: all 0.25s ease;
 }
