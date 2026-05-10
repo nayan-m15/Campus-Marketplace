@@ -584,8 +584,15 @@ export default function MessagesPage({
     if (!user) return;
     const channel = supabase
       .channel("offers-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "offers" }, (payload) => {
-        const offer = payload.new;
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "offers" }, async (payload) => {
+
+      const { data: offer } = await supabase
+        .from("offers")
+        .select("*")
+        .eq("id", payload.new.id)
+        .single();
+
+        if (!offer) return;
         if (offer.sender_id !== user.id && offer.receiver_id !== user.id) return;
 
         const peerId = offer.sender_id === user.id ? offer.receiver_id : offer.sender_id;
@@ -596,14 +603,21 @@ export default function MessagesPage({
             // Chat is open — offer is visible, mark it read immediately
             setOffers((prev) => {
               if (prev.find((o) => o.id === offer.id)) return prev;
-              return [
-                ...prev.map((o) =>
-                  o.sender_id === offer.sender_id && o.receiver_id === offer.receiver_id && o.status === "pending" && o.id !== offer.id
-                    ? { ...o, status: "declined" }
-                    : o
-                ),
-                offer,
-              ];
+              if (prev.some((o) => o.id === offer.id)) {
+  return prev;
+}
+
+  return [
+    ...prev.map((o) =>
+      o.sender_id === offer.sender_id &&
+      o.receiver_id === offer.receiver_id &&
+      o.status === "pending" &&
+      o.id !== offer.id
+        ? { ...o, status: "declined" }
+        : o
+    ),
+    offer,
+  ];
             });
             // Auto-mark offer as read since the chat is open
             if (offer.receiver_id === user.id) {
@@ -1562,17 +1576,36 @@ const sendOffer = async () => {
               <img
                 src={item.image_url}
                 alt="Trade offer item"
-                style={{ width: "100%", display: "block", objectFit: "contain", maxHeight: 240 }}
-                onError={(e) => { e.currentTarget.style.display = "none"; }}
+                style={{
+                  width: "100%",
+                  display: "block",
+                  objectFit: "contain",
+                  maxHeight: 240,
+                }}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
               />
             )}
 
-            <div style={{ padding: "8px 12px 10px" }}>
-              {item.description && (
-                <p style={{ margin: "0 0 8px", fontSize: 14, lineHeight: 1.4, whiteSpace: "pre-wrap" }}>
+            {item.description && (
+              <div style={{ padding: "10px 12px" }}>
+                <p
+                  style={{
+                      margin: 0,
+                      fontSize: 14,
+                      lineHeight: 1.4,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      color: "#fff",
+                  }}
+                >
                   {item.description}
                 </p>
-              )}
+              </div>
+            )}
+
+            <div style={{ padding: "8px 12px 10px" }}>
 
               {isPending && !iMadeOffer && (
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
