@@ -226,7 +226,7 @@
   padding: 10px 14px;
   font-size: 14px;
   color: var(--navy);
-  background: var(--surface);
+  background-color: var(--surface);
   font-family: var(--font);
   outline: none;
   box-sizing: border-box;
@@ -237,14 +237,14 @@
 .profile-field select:hover,
 .profile-field textarea:hover {
   border-color: var(--gray-300);
-  background: var(--surface-muted);
+  background-color: var(--surface-muted);
 }
 
 .profile-field input:focus,
 .profile-field select:focus,
 .profile-field textarea:focus {
   border-color: var(--green);
-  background: var(--surface-muted);
+  background-color: var(--surface-muted);
   box-shadow: 0 0 0 3px rgba(31, 107, 82, 0.15);
 }
 
@@ -468,7 +468,7 @@
   padding: 10px 14px;
   font-size: 14px;
   color: var(--navy);
-  background: var(--surface);
+  background-color: var(--surface);
   font-family: var(--font);
   outline: none;
   box-sizing: border-box;
@@ -504,7 +504,7 @@ html.dark .profile-card {
 html.dark .profile-card input,
 html.dark .profile-card select,
 html.dark .profile-card textarea {
-  background: #111827;
+  background-color: #111827;
   border-color: #374151;
   color: #f9fafb;
 }

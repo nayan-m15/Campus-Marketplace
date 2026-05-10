@@ -590,6 +590,8 @@ test("YourListingsPage updates listing photos in the edit modal", async () => {
   fireEvent.change(document.querySelector('input[aria-label="Add listing photos"]'), {
     target: { files: [file] },
   });
+  expect(document.querySelector('input[aria-label="Add listing photos"]')).not.toHaveAttribute("capture");
+  expect(document.querySelector('input[aria-label="Take listing photo"]')).toHaveAttribute("capture", "environment");
 
   // Saving should upload the new file and write both cover and gallery columns.
   expect(await screen.findByAltText(/listing photo 1/i)).toHaveAttribute("src", readerResult);

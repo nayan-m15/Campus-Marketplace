@@ -8,6 +8,7 @@ import "../styles/ListingForm.css";
 
 const CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"];
 const MAX_IMAGES = 5;
+const IMAGE_FILE_ACCEPT = "image/*";
 const LISTING_TITLE_MAX = 90;
 const LISTING_DESCRIPTION_MAX = 350;
 const LISTING_PRICE_MAX_DIGITS = 8;
@@ -50,7 +51,8 @@ function clampPriceInput(value) {
 }
 
 function ImageScrollStrip({ images, onChange }) {
-  const fileInputRef = useRef(null);
+  const libraryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const [draggingOver, setDraggingOver] = useState(false);
 
   const handleFiles = useCallback((files) => {
@@ -155,12 +157,6 @@ function ImageScrollStrip({ images, onChange }) {
 
         {images.length < MAX_IMAGES && (
           <div
-            role="button"
-            tabIndex={0}
-            onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") fileInputRef.current?.click();
-            }}
             onDragOver={(e) => {
               e.preventDefault();
               setDraggingOver(true);
@@ -174,23 +170,56 @@ function ImageScrollStrip({ images, onChange }) {
             style={{
               flexShrink: 0,
               width: 78,
-              height: 78,
+              height: 112,
               borderRadius: 10,
               border: `2px dashed ${draggingOver ? "var(--amber)" : "var(--gray-200)"}`,
               background: draggingOver ? "var(--amber-pale)" : "var(--surface-soft)",
-              cursor: "pointer",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: 4,
+              gap: 5,
+              padding: 6,
               transition: "border-color 0.2s, background 0.2s",
             }}
           >
             <span style={{ fontSize: 24 }}>📷</span>
-            <span style={{ fontSize: 10, color: "var(--gray-500)", fontWeight: 600 }}>
-              {images.length === 0 ? "Add photo" : "Add more"}
-            </span>
+            <button
+              type="button"
+              onClick={() => libraryInputRef.current?.click()}
+              style={{
+                width: "100%",
+                border: "none",
+                borderRadius: 6,
+                background: "var(--amber)",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: 10,
+                fontWeight: 700,
+                lineHeight: 1.2,
+                padding: "5px 4px",
+              }}
+            >
+              Library
+            </button>
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              style={{
+                width: "100%",
+                border: "1px solid var(--gray-200)",
+                borderRadius: 6,
+                background: "#fff",
+                color: "var(--gray-600)",
+                cursor: "pointer",
+                fontSize: 10,
+                fontWeight: 700,
+                lineHeight: 1.2,
+                padding: "5px 4px",
+              }}
+            >
+              Camera
+            </button>
             <span style={{ fontSize: 9, color: "var(--gray-400)" }}>
               {images.length}/{MAX_IMAGES}
             </span>
@@ -205,13 +234,30 @@ function ImageScrollStrip({ images, onChange }) {
       )}
 
       <input
-        ref={fileInputRef}
+        ref={libraryInputRef}
         type="file"
-        accept="image/*"
+        accept={IMAGE_FILE_ACCEPT}
         multiple
+        className="lf__file-input"
+        onChange={(e) => {
+          handleFiles(e.target.files);
+          e.target.value = "";
+        }}
+        aria-label="Choose listing photos from library"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept={IMAGE_FILE_ACCEPT}
         capture="environment"
         className="lf__file-input"
-        onChange={(e) => handleFiles(e.target.files)}
+        onChange={(e) => {
+          handleFiles(e.target.files);
+          e.target.value = "";
+        }}
+        aria-label="Take a listing photo"
         aria-hidden="true"
         tabIndex={-1}
       />

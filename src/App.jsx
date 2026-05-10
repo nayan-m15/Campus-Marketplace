@@ -182,22 +182,44 @@ function parseListingPriceValue(price) {
 
 function getPriceSuggestionErrorMessage(error) {
   const message = error?.message || "";
+  const lowerMessage = message.toLowerCase();
 
-  if (message.toLowerCase().includes("failed to send a request to the edge function")) {
-    return "Price check is unavailable right now.";
+  if (lowerMessage.includes("failed to send a request to the edge function")) {
+    return "The pricing service could not be reached right now.";
   }
 
-  if (message.toLowerCase().includes("not found")) {
+  if (lowerMessage.includes("non-2xx") || lowerMessage.includes("non 2xx")) {
+    return "We could not compare this listing with reliable shopping results.";
+  }
+
+  if (lowerMessage.includes("not enough") || lowerMessage.includes("no usable")) {
+    return "We could not find reliable shopping matches for this listing.";
+  }
+
+  if (lowerMessage.includes("not found")) {
     return "Not enough comparable Google Shopping results found.";
   }
 
-  return message || "Price check is unavailable right now.";
+  if (lowerMessage.includes("inconclusive")) {
+    return "We could not find reliable shopping matches for this listing.";
+  }
+
+  if (!message) {
+    return "Price check is unavailable right now.";
+  }
+
+  return "Price check is unavailable right now.";
 }
 
-function getPriceFairness(listingPrice, suggestion) {
+function getPriceFairness(listingPrice, suggestion, item) {
   const suggestedPrice = Number(suggestion?.suggestedPrice || 0);
   const rangeMin = Number(suggestion?.suggestedRange?.min || suggestedPrice * 0.9);
   const rangeMax = Number(suggestion?.suggestedRange?.max || suggestedPrice * 1.1);
+  const confidenceLevel = suggestion?.confidence?.level || "Low";
+  const listingType = String(item?.listing_type || "sale").toLowerCase();
+  const isTradeListing =
+    item?.status === "for_trade" ||
+    ["trade", "trade_only", "sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
 
   if (!listingPrice || !suggestedPrice) {
     return {
@@ -207,11 +229,30 @@ function getPriceFairness(listingPrice, suggestion) {
     };
   }
 
+  if (confidenceLevel === "Low" || suggestion?.confidence?.needsMoreDetail) {
+    return {
+      label: "Price check inconclusive",
+      tone: "neutral",
+      message: "We could not find reliable matches for this listing.",
+      showRange: false,
+    };
+  }
+
+  if (isTradeListing) {
+    return {
+      label: "Estimated trade value",
+      tone: "neutral",
+      message: "Use this as a rough value when comparing trade offers.",
+      showRange: true,
+    };
+  }
+
   if (listingPrice < rangeMin * 0.8) {
     return {
       label: "Very good price",
       tone: "good",
       message: "This is below the suggested second-hand range.",
+      showRange: true,
     };
   }
 
@@ -220,6 +261,7 @@ function getPriceFairness(listingPrice, suggestion) {
       label: "Good price",
       tone: "good",
       message: "This is within the suggested second-hand range.",
+      showRange: true,
     };
   }
 
@@ -228,6 +270,7 @@ function getPriceFairness(listingPrice, suggestion) {
       label: "Fair price",
       tone: "fair",
       message: "This is slightly above the suggested range.",
+      showRange: true,
     };
   }
 
@@ -235,6 +278,7 @@ function getPriceFairness(listingPrice, suggestion) {
     label: "High price",
     tone: "high",
     message: "This is above the suggested second-hand range.",
+    showRange: true,
   };
 }
 
@@ -244,14 +288,25 @@ function ListingPriceCheck({ item }) {
   const [priceCheckError, setPriceCheckError] = useState("");
 
   const listingPrice = parseListingPriceValue(item?.price);
-  const cacheKey = item?.id ? String(item.id) : "";
+  const imageUrl = item?.image_url || item?.image_urls?.find(Boolean) || "";
+  const cacheKey = item?.id
+    ? JSON.stringify({
+        id: String(item.id),
+        title: String(item.title || "").trim().toLowerCase(),
+        description: String(item.description || "").trim().toLowerCase(),
+        category: String(item.category || "").trim().toLowerCase(),
+        condition: String(item.condition || "").trim().toLowerCase(),
+        imageUrl,
+      })
+    : "";
+  const isFlagged = item?.status === "flagged";
   const hasEnoughDetail =
     Boolean(item?.title?.trim()) &&
     Boolean(item?.condition) &&
     Boolean(item?.category);
 
   useEffect(() => {
-    if (!item?.id || !hasEnoughDetail || !listingPrice) {
+    if (!item?.id || !hasEnoughDetail || !listingPrice || isFlagged) {
       setPriceCheck(null);
       setPriceCheckError("");
       setPriceCheckLoading(false);
@@ -287,6 +342,7 @@ function ListingPriceCheck({ item }) {
         description: item.description || "",
         category: item.category,
         condition: item.condition,
+        imageUrl,
       },
     }).then(({ data, error }) => {
       if (ignore) return;
@@ -307,9 +363,18 @@ function ListingPriceCheck({ item }) {
     return () => {
       ignore = true;
     };
-  }, [item?.id, item?.title, item?.description, item?.category, item?.condition, cacheKey, hasEnoughDetail, listingPrice]);
+  }, [item?.id, item?.title, item?.description, item?.category, item?.condition, item?.status, imageUrl, cacheKey, hasEnoughDetail, isFlagged, listingPrice]);
 
   if (!listingPrice) return null;
+
+  if (isFlagged) {
+    return (
+      <section className="item-modal-price-check item-modal-price-check--neutral">
+        <strong>Price check paused</strong>
+        <p>This listing has been flagged for review.</p>
+      </section>
+    );
+  }
 
   if (!hasEnoughDetail) {
     return (
@@ -340,7 +405,7 @@ function ListingPriceCheck({ item }) {
 
   if (!priceCheck) return null;
 
-  const fairness = getPriceFairness(listingPrice, priceCheck);
+  const fairness = getPriceFairness(listingPrice, priceCheck, item);
   const confidenceLevel = priceCheck.confidence?.level || "Low";
 
   return (
@@ -350,10 +415,12 @@ function ListingPriceCheck({ item }) {
         <span>{confidenceLevel} confidence</span>
       </div>
       <p>{fairness.message}</p>
-      <p>
-        Based on Google Shopping SA prices, adjusted for condition. Suggested range:{" "}
-        {priceCheck.suggestedRange?.minFormatted} - {priceCheck.suggestedRange?.maxFormatted}.
-      </p>
+      {fairness.showRange && (
+        <p>
+          Based on Google Shopping SA prices, adjusted for condition. Suggested range:{" "}
+          {priceCheck.suggestedRange?.minFormatted} - {priceCheck.suggestedRange?.maxFormatted}.
+        </p>
+      )}
     </section>
   );
 }

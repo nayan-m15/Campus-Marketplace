@@ -578,6 +578,8 @@ test("ListingForm validates required fields and publishes a completed listing", 
   fireEvent.change(document.querySelector('input[type="file"]'), {
     target: { files: [file] },
   });
+  expect(document.querySelector('input[type="file"]')).not.toHaveAttribute("capture");
+  expect(document.querySelector('input[aria-label="Take a listing photo"]')).toHaveAttribute("capture", "environment");
   expect(await screen.findByAltText(/upload 1/i)).toHaveAttribute("src", readerResult);
 
   fireEvent.change(screen.getByLabelText(/item name/i), { target: { value: "Lamp" } });
