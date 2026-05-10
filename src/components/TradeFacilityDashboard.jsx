@@ -520,6 +520,8 @@ function OverviewSection({ transactions, bookings }) {
   const awaitingCollection = transactions.filter((transaction) => transaction.status === "awaiting_collection").length;
   const completedAll = transactions.filter((transaction) => transaction.status === "completed").length;
   const totalValue = transactions.reduce((sum, transaction) => sum + Number(transaction.price || 0), 0);
+  const itemReceivedCount = transactions.filter((transaction) => transaction.status === "item_received").length;
+  const itemReleasedCount = transactions.filter((transaction) => transaction.status === "item_released").length;
 
   const latestTransactions = transactions.slice(0, 5);
 
@@ -534,14 +536,37 @@ function OverviewSection({ transactions, bookings }) {
           </section>
         </header>
 
-        <ul className="stats-grid" role="list">
-          <li><StatCard icon="table" value={pendingRequests} label="Scheduled Bookings" subLabel="Auto-confirmed facility slots" /></li>
-          <li><StatCard icon="settings" value={managed} label="Active in Manage" subLabel="Transactions currently in progress" /></li>
-          <li><StatCard icon="arrow-down" value={awaitingDropoff} label="Awaiting Drop-off" subLabel="Seller arrival still pending" /></li>
-          <li><StatCard icon="arrow-up" value={awaitingCollection} label="Ready for Collection" subLabel="Buyer can arrive at the facility" /></li>
-          <li><StatCard icon="check-circle" value={completedAll} label="Completed Transactions" subLabel="Closed handovers and archived trades" /></li>
-          <li><StatCard icon="receipt" value={`R ${totalValue.toLocaleString("en-ZA")}`} label="Processed Value" subLabel="Combined value across loaded transactions" /></li>
-        </ul>
+        <section className="operations-snapshot" aria-label="Operations snapshot metrics">
+          <div className="operations-snapshot__primary" role="list">
+            <div role="listitem">
+              <StatCard icon="settings" value={managed} label="Active in Manage" subLabel="Transactions currently in motion across the facility workflow" />
+            </div>
+            <div role="listitem">
+              <StatCard icon="table" value={pendingRequests} label="Scheduled Bookings" subLabel="Confirmed staff appointments that still need physical handling" />
+            </div>
+            <div role="listitem">
+              <StatCard icon="receipt" value={`R ${totalValue.toLocaleString("en-ZA")}`} label="Processed Value" subLabel="Combined trade value represented in the live ledger" />
+            </div>
+          </div>
+
+          <div className="operations-snapshot__secondary" role="list">
+            <div role="listitem">
+              <StatCard icon="arrow-down" value={awaitingDropoff} label="Awaiting Drop-off" subLabel="Seller arrival still pending" />
+            </div>
+            <div role="listitem">
+              <StatCard icon="package" value={itemReceivedCount} label="Item Received" subLabel="Items checked in and waiting for buyer action" />
+            </div>
+            <div role="listitem">
+              <StatCard icon="arrow-up" value={awaitingCollection} label="Ready for Collection" subLabel="Buyers can arrive for handover" />
+            </div>
+            <div role="listitem">
+              <StatCard icon="handoff" value={itemReleasedCount} label="Item Released" subLabel="Collected and nearing closure" />
+            </div>
+            <div role="listitem">
+              <StatCard icon="check-circle" value={completedAll} label="Completed Transactions" subLabel="Closed handovers and archived trades" />
+            </div>
+          </div>
+        </section>
       </article>
 
       <section className="overview-grid">

@@ -57,12 +57,11 @@
   display: flex;
   flex-direction: column;
   padding: 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--staff-border);
   border-radius: 1.5rem;
-  background:
-    linear-gradient(180deg, rgba(31, 36, 31, 0.98) 0%, rgba(23, 78, 61, 0.97) 100%);
+  background: rgba(31, 36, 31, 0.98);
   color: #f5f5f1;
-  box-shadow: 0 22px 50px rgba(23, 30, 24, 0.22);
+  box-shadow: 0 14px 34px rgba(23, 30, 24, 0.16);
   overflow: hidden;
 }
 
@@ -70,9 +69,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at top right, rgba(241, 197, 122, 0.13), transparent 16rem),
-    linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.03));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 32%);
   pointer-events: none;
 }
 
@@ -435,23 +432,35 @@
   white-space: nowrap;
 }
 
-.stats-grid {
-  list-style: none;
+.operations-snapshot {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.95rem;
+  gap: 1rem;
   padding: 1.1rem 1.4rem 1.4rem;
+}
+
+.operations-snapshot__primary,
+.operations-snapshot__secondary {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.operations-snapshot__primary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.operations-snapshot__secondary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .stat-card {
   height: 100%;
-  padding: 1rem 1rem 0.95rem;
+  padding: 1.2rem 1.15rem 1.1rem;
   border: 1px solid var(--staff-border);
   border-radius: 1.1rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 244, 236, 0.95) 100%);
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1rem;
 }
 
 .stat-card__top {
@@ -471,8 +480,8 @@
 }
 
 .stat-card__value {
-  font-size: clamp(1.55rem, 2vw, 2rem);
-  line-height: 1.1;
+  font-size: clamp(1.7rem, 2.4vw, 2.4rem);
+  line-height: 1;
   font-weight: 700;
   letter-spacing: -0.05em;
   color: var(--navy);
@@ -480,20 +489,21 @@
 }
 
 .stat-card__footer {
-  padding-top: 0.8rem;
+  padding-top: 0.95rem;
   border-top: 1px solid var(--staff-border);
 }
 
 .stat-card__label {
-  font-size: 0.86rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--gray-900);
+  line-height: 1.3;
 }
 
 .stat-card__sublabel {
-  margin-top: 0.3rem;
-  font-size: 0.76rem;
-  line-height: 1.45;
+  margin-top: 0.4rem;
+  font-size: 0.79rem;
+  line-height: 1.5;
   color: var(--gray-500);
 }
 
@@ -1531,8 +1541,12 @@ html.dark .flow-item__bar {
 }
 
 @media (max-width: 1080px) {
-  .stats-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .operations-snapshot__primary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .operations-snapshot__secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .overview-grid {
@@ -1587,8 +1601,9 @@ html.dark .flow-item__bar {
     justify-content: flex-start;
   }
 
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .operations-snapshot__primary,
+  .operations-snapshot__secondary {
+    grid-template-columns: 1fr;
   }
 
   .booking-card__details {
@@ -1623,16 +1638,12 @@ html.dark .flow-item__bar {
     padding-right: 1rem;
   }
 
-  .stats-grid,
+  .operations-snapshot,
   .booking-list,
   .flow-list,
   .utility-metrics {
     padding-left: 1rem;
     padding-right: 1rem;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
   }
 
   .bookings-controls--row,
