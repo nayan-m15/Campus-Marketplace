@@ -891,6 +891,12 @@ const sendOffer = async () => {
   }
 
   // ── Trade offer ─────────────────────────────────────────
+
+  if (!tradeImage) {
+    setTradeError("Please upload an image for your trade offer.");
+    return;
+  }
+
   if (!tradeDescription.trim()) { setTradeError("Please add a description."); return; }
   if (!conversationListing?.id || !activeId) return;
   setOfferSending(true);
@@ -1362,7 +1368,7 @@ const sendOffer = async () => {
                   {/* Image upload */}
                     <label style={{ display: "block", marginTop: 12, cursor: "pointer" }}>
                     <span style={{ fontSize: 13, color: "var(--text-muted, #888)", display: "block", marginBottom: 6 }}>
-                      📷 Attach a photo (optional)
+                      📷 Attach a photo
                     </span>
                     <input
                       type="file"
