@@ -6,50 +6,39 @@ import ReceiptModal from "./ReceiptModal";
 import { generateTransactionReceiptPdf } from "../utils/receiptPdf";
 import "../styles/TradeFacilityDashboard.css";
 
-// ---------------------------------------------------------------------------
-// Constants & meta
-// ---------------------------------------------------------------------------
-
 const STATUS_META = {
-  awaiting_dropoff:            { label: "Awaiting Drop-off",          cls: "status--awaiting-dropoff",   icon: "⏳" },
-  item_received:               { label: "Item Received",              cls: "status--item-received",       icon: "📦" },
-  collection_pending_approval: { label: "Collection Pending Approval",cls: "status--awaiting-collection", icon: "📝" },
-  awaiting_collection:         { label: "Awaiting Collection",        cls: "status--awaiting-collection", icon: "🔔" },
-  item_released:               { label: "Item Released",              cls: "status--completed",           icon: "🏁" },
-  completed:                   { label: "Completed",                  cls: "status--completed",           icon: "🏁" },
-  cancelled:                   { label: "Cancelled",                  cls: "status--cancelled",           icon: "✕"  },
+  awaiting_dropoff:            { label: "Awaiting Drop-off", cls: "status--awaiting-dropoff", icon: "clock" },
+  item_received:               { label: "Item Received", cls: "status--item-received", icon: "package" },
+  collection_pending_approval: { label: "Collection Pending Approval", cls: "status--awaiting-collection", icon: "clipboard" },
+  awaiting_collection:         { label: "Awaiting Collection", cls: "status--awaiting-collection", icon: "bell" },
+  item_released:               { label: "Item Released", cls: "status--completed", icon: "handoff" },
+  completed:                   { label: "Completed", cls: "status--completed", icon: "check-circle" },
+  cancelled:                   { label: "Cancelled", cls: "status--cancelled", icon: "x-circle" },
 };
 
 const BOOKING_STATUS_META = {
-  scheduled:        { label: "Scheduled",        cls: "bstatus--scheduled"  },
-  pending_approval: { label: "Pending Approval", cls: "bstatus--scheduled"  },
-  completed:        { label: "Completed",        cls: "bstatus--completed"  },
-  cancelled:        { label: "Cancelled",        cls: "bstatus--no-show"    },
+  scheduled: { label: "Scheduled", cls: "bstatus--scheduled" },
+  pending_approval: { label: "Pending Approval", cls: "bstatus--scheduled" },
+  completed: { label: "Completed", cls: "bstatus--completed" },
+  cancelled: { label: "Cancelled", cls: "bstatus--no-show" },
 };
 
-// Active transaction lifecycle states shown in Manage Bookings
 const MANAGED_STATUSES = ["awaiting_dropoff", "item_received", "awaiting_collection", "item_released"];
 
-// ---------------------------------------------------------------------------
-// Navigation — includes new "Manage Bookings" tab
-// ---------------------------------------------------------------------------
-
 const NAV_ITEMS = [
-  { key: "overview",    label: "Overview",          icon: "🏠" },
-  { key: "dropoffs",    label: "Drop-off Bookings", icon: "📥" },
-  { key: "collections", label: "Collection Bookings",icon: "📤" },
-  { key: "manage",      label: "Manage Bookings",   icon: "⚙️"  },
-  { key: "transactions",label: "All Transactions",  icon: "📋" },
+  { key: "overview", label: "Overview", icon: "grid" },
+  { key: "dropoffs", label: "Drop-off Bookings", icon: "arrow-down" },
+  { key: "collections", label: "Collection Bookings", icon: "arrow-up" },
+  { key: "manage", label: "Manage Bookings", icon: "settings" },
+  { key: "transactions", label: "All Transactions", icon: "table" },
 ];
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-ZA", {
-    day: "numeric", month: "short", year: "numeric",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
@@ -63,11 +52,18 @@ function formatDateTime(timestamp) {
 }
 
 function initials(name) {
-  return (name || "?").split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
+  return (name || "?").split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2);
 }
 
 function buildListingMatchKey(userId, itemName) {
   return `${userId || ""}::${String(itemName || "").trim().toLowerCase()}`;
+}
+
+function mapBookingStatusToTransactionStatus(type, bookingStatus, currentStatus) {
+  if (bookingStatus !== "scheduled") return currentStatus;
+  if (type === "dropoff") return "awaiting_dropoff";
+  if (type === "collection") return "awaiting_collection";
+  return currentStatus;
 }
 
 function buildBookings(transactions, profilesById, bookingsById) {
@@ -75,41 +71,41 @@ function buildBookings(transactions, profilesById, bookingsById) {
 
   for (const transaction of transactions) {
     const sellerProfile = profilesById[transaction.seller_id] || {};
-    const buyerProfile  = profilesById[transaction.buyer_id]  || {};
+    const buyerProfile = profilesById[transaction.buyer_id] || {};
 
     if (transaction.dropoff_id && bookingsById[transaction.dropoff_id]) {
       const booking = bookingsById[transaction.dropoff_id];
-      const when    = formatDateTime(booking.scheduled_time);
+      const when = formatDateTime(booking.scheduled_time);
       output.push({
-        id:             booking.id,
-        type:           "dropoff",
-        transactionId:  transaction.id,
-        personName:     sellerProfile.display_name || sellerProfile.name || transaction.seller_id,
-        studentId:      sellerProfile.email || transaction.seller_id,
-        role:           "seller",
-        scheduledDate:  booking.scheduled_time?.slice(0, 10) || "",
-        scheduledTime:  booking.scheduled_time?.slice(11, 16) || when.time,
-        status:         booking.status || deriveBookingStatus("dropoff", transaction.status),
-        itemName:       transaction.item,
-        location:       booking.location,
+        id: booking.id,
+        type: "dropoff",
+        transactionId: transaction.id,
+        personName: sellerProfile.display_name || sellerProfile.name || transaction.seller_id,
+        studentId: sellerProfile.email || transaction.seller_id,
+        role: "seller",
+        scheduledDate: booking.scheduled_time?.slice(0, 10) || "",
+        scheduledTime: booking.scheduled_time?.slice(11, 16) || when.time,
+        status: booking.status || deriveBookingStatus("dropoff", transaction.status),
+        itemName: transaction.item,
+        location: booking.location,
       });
     }
 
     if (transaction.collection_id && bookingsById[transaction.collection_id]) {
       const booking = bookingsById[transaction.collection_id];
-      const when    = formatDateTime(booking.scheduled_time);
+      const when = formatDateTime(booking.scheduled_time);
       output.push({
-        id:             booking.id,
-        type:           "collection",
-        transactionId:  transaction.id,
-        personName:     buyerProfile.display_name || buyerProfile.name || transaction.buyer_id,
-        studentId:      buyerProfile.email || transaction.buyer_id,
-        role:           "buyer",
-        scheduledDate:  booking.scheduled_time?.slice(0, 10) || "",
-        scheduledTime:  booking.scheduled_time?.slice(11, 16) || when.time,
-        status:         booking.status || deriveBookingStatus("collection", transaction.status),
-        itemName:       transaction.item,
-        location:       booking.location,
+        id: booking.id,
+        type: "collection",
+        transactionId: transaction.id,
+        personName: buyerProfile.display_name || buyerProfile.name || transaction.buyer_id,
+        studentId: buyerProfile.email || transaction.buyer_id,
+        role: "buyer",
+        scheduledDate: booking.scheduled_time?.slice(0, 10) || "",
+        scheduledTime: booking.scheduled_time?.slice(11, 16) || when.time,
+        status: booking.status || deriveBookingStatus("collection", transaction.status),
+        itemName: transaction.item,
+        location: booking.location,
       });
     }
   }
@@ -121,15 +117,93 @@ function buildBookings(transactions, profilesById, bookingsById) {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Shared UI atoms
-// ---------------------------------------------------------------------------
+function Icon({ name, className = "", title }) {
+  const icons = {
+    grid: (
+      <path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z" />
+    ),
+    "arrow-down": (
+      <path d="M12 4v13m0 0 5-5m-5 5-5-5" />
+    ),
+    "arrow-up": (
+      <path d="M12 20V7m0 0 5 5m-5-5-5 5" />
+    ),
+    settings: (
+      <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.36-6.36-2.12 2.12M7.76 16.24l-2.12 2.12m0-12.72 2.12 2.12m8.48 8.48 2.12 2.12M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+    ),
+    table: (
+      <path d="M4 6h16v12H4zM4 10h16M9 6v12M15 6v12" />
+    ),
+    clock: (
+      <path d="M12 7v5l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    ),
+    package: (
+      <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Zm0 0v18m8-13.5-8 4.5-8-4.5" />
+    ),
+    clipboard: (
+      <path d="M9 4h6m-5 0a1 1 0 0 0-1 1v1h6V5a1 1 0 0 0-1-1m-4 0h4m-7 3h10a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a1 1 0 0 1 1-1Z" />
+    ),
+    bell: (
+      <path d="M15 17H9m10-1H5l1.4-1.4A2 2 0 0 0 7 13.2V11a5 5 0 1 1 10 0v2.2a2 2 0 0 0 .6 1.4L19 16Z" />
+    ),
+    handoff: (
+      <path d="M8 12h4a2 2 0 1 0 0-4H9m3 4 1.5 1.5a2.1 2.1 0 0 0 2.97 0L20 10m-9 4H8l-3 3m0 0H3m2 0v2" />
+    ),
+    "check-circle": (
+      <path d="m8.5 12 2.5 2.5 4.5-5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    ),
+    "x-circle": (
+      <path d="m9 9 6 6m0-6-6 6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    ),
+    menu: (
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    ),
+    close: (
+      <path d="m6 6 12 12M18 6 6 18" />
+    ),
+    search: (
+      <path d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" />
+    ),
+    receipt: (
+      <path d="M7 4h10v16l-2.5-1.5L12 20l-2.5-1.5L7 20V4Zm3 4h4m-4 4h4" />
+    ),
+    activity: (
+      <path d="M4 13h4l2-6 4 10 2-4h4" />
+    ),
+    sun: (
+      <path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.64 5.64l1.77 1.77m9.18 9.18 1.77 1.77m0-12.72-1.77 1.77m-9.18 9.18-1.77 1.77M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" />
+    ),
+    moon: (
+      <path d="M20 14.5A7.5 7.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" />
+    ),
+    users: (
+      <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m16 0v-2a4 4 0 0 0-3-3.87M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 14v-2a4 4 0 0 0-3-3.87M15 4a3 3 0 0 1 0 6" />
+    ),
+  };
+
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden={title ? undefined : "true"}
+      role={title ? "img" : undefined}
+    >
+      {title ? <title>{title}</title> : null}
+      {icons[name] || icons.grid}
+    </svg>
+  );
+}
 
 function StatusBadge({ status }) {
-  const meta = STATUS_META[status] || { label: status, cls: "", icon: "•" };
+  const meta = STATUS_META[status] || { label: status, cls: "", icon: "grid" };
   return (
     <span className={`status-badge ${meta.cls}`}>
-      <span aria-hidden="true">{meta.icon}</span>
+      <Icon name={meta.icon} className="status-badge__icon" />
       {meta.label}
     </span>
   );
@@ -151,18 +225,22 @@ function Avatar({ name, size = "md" }) {
 function EmptyState({ icon, title, description }) {
   return (
     <section className="empty-state" aria-label={title}>
-      <span className="empty-state__icon" aria-hidden="true">{icon}</span>
+      <span className="empty-state__icon" aria-hidden="true">
+        <Icon name={icon} className="empty-state__icon-svg" />
+      </span>
       <p className="empty-state__title">{title}</p>
       <p className="empty-state__description">{description}</p>
     </section>
   );
 }
 
-function StatCard({ icon, iconColor, value, label, subLabel }) {
+function StatCard({ icon, value, label, subLabel }) {
   return (
     <article className="stat-card">
       <header className="stat-card__top">
-        <span className={`stat-card__icon stat-card__icon--${iconColor}`} aria-hidden="true">{icon}</span>
+        <span className="stat-card__icon" aria-hidden="true">
+          <Icon name={icon} className="stat-card__icon-svg" />
+        </span>
       </header>
       <p className="stat-card__value">{value}</p>
       <footer className="stat-card__footer">
@@ -172,10 +250,6 @@ function StatCard({ icon, iconColor, value, label, subLabel }) {
     </article>
   );
 }
-
-// ---------------------------------------------------------------------------
-// BookingCard — used in Drop-off & Collection tabs
-// ---------------------------------------------------------------------------
 
 function BookingCard({ booking, transaction }) {
   const isDropoff = booking.type === "dropoff";
@@ -229,57 +303,48 @@ function BookingCard({ booking, transaction }) {
               <StatusBadge status={transaction.status} />
             </li>
           ) : null}
-          <li className="booking-card__detail">
+          <li className="booking-card__detail booking-card__detail--full">
             <span className="booking-card__detail-label">Next step</span>
             <span className="booking-card__detail-value managed-card__hint">{operationalHint}</span>
           </li>
         </ul>
       </section>
-
     </article>
   );
 }
 
-// ---------------------------------------------------------------------------
-// ManagedTransactionCard — used in the Manage Bookings tab
-// Shows guided action buttons based on transaction lifecycle state.
-// ---------------------------------------------------------------------------
-
 function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
   const { status } = transaction;
+  const dropoffBooking = bookings.find((booking) => booking.id === transaction.dropoffId);
+  const collectionBooking = bookings.find((booking) => booking.id === transaction.collectionId);
 
-  const dropoffBooking   = bookings.find((b) => b.id === transaction.dropoffId);
-  const collectionBooking = bookings.find((b) => b.id === transaction.collectionId);
-
-  // Derive the contextual next action
   const getAction = () => {
     switch (status) {
       case "awaiting_dropoff":
         return {
-          label:  "Mark Item Received",
-          icon:   "📦",
-          cls:    "btn-action--receipt",
-          next:   "item_received",
-          hint:   "Confirm the seller has handed the item over.",
+          label: "Mark Item Received",
+          icon: "package",
+          cls: "btn-action--receipt",
+          next: "item_received",
+          hint: "Confirm the seller has handed the item over.",
         };
       case "item_received":
-        // No manual button — collection booking approval drives the next step.
         return null;
       case "awaiting_collection":
         return {
           label: "Confirm Collection",
-          icon:  "↑",
-          cls:   "btn-action--release",
-          next:  "item_released",
-          hint:  "Confirm the buyer has collected the item.",
+          icon: "handoff",
+          cls: "btn-action--release",
+          next: "item_released",
+          hint: "Confirm the buyer has collected the item.",
         };
       case "item_released":
         return {
           label: "Mark Transaction Complete",
-          icon:  "🏁",
-          cls:   "btn-action--receipt",
-          next:  "completed",
-          hint:  "Close the transaction and archive it.",
+          icon: "check-circle",
+          cls: "btn-action--receipt",
+          next: "completed",
+          hint: "Close the transaction and archive it.",
         };
       default:
         return null;
@@ -288,10 +353,8 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
 
   const action = getAction();
 
- 
   return (
     <article className="booking-card managed-card">
-      {/* Header */}
       <header className="booking-card__header">
         <section className="booking-card__header-left">
           <section className="booking-card__person-info">
@@ -304,9 +367,6 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
         </section>
       </header>
 
-      
-
-      {/* Detail grid */}
       <section className="booking-card__body">
         <ul className="booking-card__details" role="list">
           <li className="booking-card__detail">
@@ -326,8 +386,8 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
           {dropoffBooking ? (
             <li className="booking-card__detail">
               <span className="booking-card__detail-label">Drop-off</span>
-              <span className="booking-card__detail-value">
-                {formatDate(dropoffBooking.scheduledDate)} {dropoffBooking.scheduledTime}
+              <span className="booking-card__detail-value booking-card__detail-stack">
+                <span>{formatDate(dropoffBooking.scheduledDate)} {dropoffBooking.scheduledTime}</span>
                 <BookingStatusBadge status={dropoffBooking.status} />
               </span>
             </li>
@@ -335,23 +395,22 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
           {collectionBooking ? (
             <li className="booking-card__detail">
               <span className="booking-card__detail-label">Collection</span>
-              <span className="booking-card__detail-value">
-                {formatDate(collectionBooking.scheduledDate)} {collectionBooking.scheduledTime}
+              <span className="booking-card__detail-value booking-card__detail-stack">
+                <span>{formatDate(collectionBooking.scheduledDate)} {collectionBooking.scheduledTime}</span>
                 <BookingStatusBadge status={collectionBooking.status} />
               </span>
             </li>
           ) : null}
-          {/* item_received: show that we're awaiting a collection booking */}
           {status === "item_received" ? (
-            <li className="booking-card__detail">
+            <li className="booking-card__detail booking-card__detail--full">
               <span className="booking-card__detail-label">Next step</span>
               <span className="booking-card__detail-value managed-card__hint">
-                ⏳ Waiting for the buyer to book a collection slot.
+                Waiting for the buyer to book a collection slot.
               </span>
             </li>
           ) : null}
           {action?.hint ? (
-            <li className="booking-card__detail">
+            <li className="booking-card__detail booking-card__detail--full">
               <span className="booking-card__detail-label">Action</span>
               <span className="booking-card__detail-value managed-card__hint">{action.hint}</span>
             </li>
@@ -368,7 +427,8 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
                 onClick={() => onAction(transaction, action.next)}
                 disabled={saving}
               >
-                <span aria-hidden="true">{action.icon}</span> {action.label}
+                <Icon name={action.icon} className="btn-action__icon" />
+                {action.label}
               </button>
             </li>
           </menu>
@@ -377,10 +437,6 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
     </article>
   );
 }
-
-// ---------------------------------------------------------------------------
-// ConfirmDialog
-// ---------------------------------------------------------------------------
 
 function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
   const ref = useRef(null);
@@ -391,22 +447,30 @@ function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
 
   if (!dialog) return null;
 
-  const isAccept = false;
-  const isDecline = false;
-
   const titles = {
-    managed_action:  `Confirm: ${STATUS_META[dialog.nextStatus]?.label || dialog.nextStatus}`,
+    accept_booking: "Approve Booking",
+    decline_booking: "Decline Booking",
+    managed_action: `Confirm: ${STATUS_META[dialog.nextStatus]?.label || dialog.nextStatus}`,
   };
 
   const subtitles = {
-    managed_action:  `Update the transaction to "${STATUS_META[dialog.nextStatus]?.label || dialog.nextStatus}".`,
+    accept_booking: "Approve this facility booking and keep the transaction aligned with the schedule.",
+    decline_booking: "Decline this booking and notify the student to choose another slot.",
+    managed_action: `Update the transaction to "${STATUS_META[dialog.nextStatus]?.label || dialog.nextStatus}".`,
   };
+
+  const iconName =
+    dialog.actionType === "accept_booking"
+      ? "check-circle"
+      : dialog.actionType === "decline_booking"
+        ? "x-circle"
+        : "settings";
 
   return (
     <dialog ref={ref} className="confirm-dialog" onClose={onCancel}>
       <header className="confirm-dialog__header">
         <span className="confirm-dialog__icon" aria-hidden="true">
-          {isAccept ? "✓" : isDecline ? "⚠️" : "⚙️"}
+          <Icon name={iconName} className="confirm-dialog__icon-svg" />
         </span>
         <h2 className="confirm-dialog__title">{titles[dialog.actionType]}</h2>
         <p className="confirm-dialog__subtitle">{subtitles[dialog.actionType]}</p>
@@ -442,54 +506,115 @@ function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
       <footer className="confirm-dialog__footer">
         <button className="btn-export" onClick={onCancel} disabled={saving}>Cancel</button>
         <button className="btn-primary" onClick={onConfirm} disabled={saving}>
-          {saving ? "Saving…" : isAccept ? "Accept" : isDecline ? "Decline" : "Confirm"}
+          {saving ? "Saving..." : "Confirm"}
         </button>
       </footer>
     </dialog>
   );
 }
 
-// ---------------------------------------------------------------------------
-// OverviewSection
-// ---------------------------------------------------------------------------
-
 function OverviewSection({ transactions, bookings }) {
-  const pendingRequests   = bookings.filter((b) => b.status === "scheduled").length;
-  const managed           = transactions.filter((t) => MANAGED_STATUSES.includes(t.status)).length;
-  const awaitingDropoff   = transactions.filter((t) => t.status === "awaiting_dropoff").length;
-  const awaitingCollection= transactions.filter((t) => t.status === "awaiting_collection").length;
-  const completedAll      = transactions.filter((t) => t.status === "completed").length;
+  const pendingRequests = bookings.filter((booking) => booking.status === "scheduled").length;
+  const managed = transactions.filter((transaction) => MANAGED_STATUSES.includes(transaction.status)).length;
+  const awaitingDropoff = transactions.filter((transaction) => transaction.status === "awaiting_dropoff").length;
+  const awaitingCollection = transactions.filter((transaction) => transaction.status === "awaiting_collection").length;
+  const completedAll = transactions.filter((transaction) => transaction.status === "completed").length;
+  const totalValue = transactions.reduce((sum, transaction) => sum + Number(transaction.price || 0), 0);
+
+  const latestTransactions = transactions.slice(0, 5);
 
   return (
     <section className="view-section">
       <article className="panel">
         <header className="panel__header">
           <section>
+            <p className="panel__eyebrow">Operations Snapshot</p>
             <h3 className="panel__title">Facility Activity</h3>
-            <p className="panel__subtitle">Live trade handover progress from bookings and transactions.</p>
+            <p className="panel__subtitle">Live trade handover progress across bookings, collections, and completed trades.</p>
           </section>
         </header>
+
         <ul className="stats-grid" role="list">
-          <li><StatCard icon="🗓" iconColor="amber"  value={pendingRequests}    label="Scheduled Bookings"     subLabel="Auto-confirmed facility slots" /></li>
-          <li><StatCard icon="⚙️"  iconColor="blue"   value={managed}            label="Active in Manage"       subLabel="Transactions in progress" /></li>
-          <li><StatCard icon="📥" iconColor="amber"  value={awaitingDropoff}    label="Awaiting Drop-off"      subLabel="Seller still needs to arrive" /></li>
-          <li><StatCard icon="🔔" iconColor="blue"   value={awaitingCollection} label="Ready for Collection"   subLabel="Buyer has booked and can arrive" /></li>
-          <li><StatCard icon="✅" iconColor="green"  value={completedAll}       label="Completed Transactions" subLabel="Fully closed trades" /></li>
+          <li><StatCard icon="table" value={pendingRequests} label="Scheduled Bookings" subLabel="Auto-confirmed facility slots" /></li>
+          <li><StatCard icon="settings" value={managed} label="Active in Manage" subLabel="Transactions currently in progress" /></li>
+          <li><StatCard icon="arrow-down" value={awaitingDropoff} label="Awaiting Drop-off" subLabel="Seller arrival still pending" /></li>
+          <li><StatCard icon="arrow-up" value={awaitingCollection} label="Ready for Collection" subLabel="Buyer can arrive at the facility" /></li>
+          <li><StatCard icon="check-circle" value={completedAll} label="Completed Transactions" subLabel="Closed handovers and archived trades" /></li>
+          <li><StatCard icon="receipt" value={`R ${totalValue.toLocaleString("en-ZA")}`} label="Processed Value" subLabel="Combined value across loaded transactions" /></li>
         </ul>
       </article>
+
+      <section className="overview-grid">
+        <article className="panel">
+          <header className="panel__header">
+            <section>
+              <p className="panel__eyebrow">Live Queue</p>
+              <h3 className="panel__title">Transaction Flow</h3>
+              <p className="panel__subtitle">Status distribution across the current handover pipeline.</p>
+            </section>
+          </header>
+
+          <div className="flow-list" role="list">
+            {[
+              { key: "awaiting_dropoff", count: awaitingDropoff },
+              { key: "item_received", count: transactions.filter((transaction) => transaction.status === "item_received").length },
+              { key: "awaiting_collection", count: awaitingCollection },
+              { key: "item_released", count: transactions.filter((transaction) => transaction.status === "item_released").length },
+              { key: "completed", count: completedAll },
+            ].map((item) => (
+              <div className="flow-item" key={item.key} role="listitem">
+                <div className="flow-item__meta">
+                  <StatusBadge status={item.key} />
+                  <span className="flow-item__count">{item.count}</span>
+                </div>
+                <div className="flow-item__bar">
+                  <span
+                    style={{
+                      width: `${transactions.length ? Math.max((item.count / transactions.length) * 100, item.count ? 6 : 0) : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel">
+          <header className="panel__header">
+            <section>
+              <p className="panel__eyebrow">Recent Activity</p>
+              <h3 className="panel__title">Latest Transactions</h3>
+              <p className="panel__subtitle">Most recently created trade records in the facility ledger.</p>
+            </section>
+          </header>
+
+          {latestTransactions.length === 0 ? (
+            <EmptyState icon="activity" title="No activity yet" description="New trade transactions will appear here as they are created." />
+          ) : (
+            <ul className="activity-feed" role="list">
+              {latestTransactions.map((transaction) => (
+                <li key={transaction.id} className="activity-item">
+                  <span className={`activity-item__dot activity-item__dot--${transaction.status}`} />
+                  <div className="activity-item__content">
+                    <p className="activity-item__text">
+                      <strong>{transaction.item}</strong> for <em>R {Number(transaction.price || 0).toLocaleString("en-ZA")}</em>
+                    </p>
+                    <p className="activity-item__meta">
+                      {transaction.seller.name} to {transaction.buyer.name} · {formatDate(transaction.createdAt?.slice(0, 10) || "")}
+                    </p>
+                  </div>
+                  <StatusBadge status={transaction.status} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+      </section>
     </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// BookingsSection — Drop-off & Collection schedules
-// ---------------------------------------------------------------------------
-
-function BookingsSection({
-  type,
-  bookings,
-  transactions,
-}) {
+function BookingsSection({ type, bookings, transactions }) {
   const [search, setSearch] = useState("");
   const label = type === "dropoff" ? "Drop-off" : "Collection";
 
@@ -498,17 +623,19 @@ function BookingsSection({
     [transactions],
   );
 
-  const filtered = bookings.filter((b) => {
-    if (b.type !== type) return false;
-    const transaction = transactionById[b.transactionId];
+  const filtered = bookings.filter((booking) => {
+    if (booking.type !== type) return false;
+    const transaction = transactionById[booking.transactionId];
     if (!transaction) return false;
     if (type === "dropoff" && !["awaiting_dropoff", "item_received"].includes(transaction.status)) return false;
     if (type === "collection" && !["awaiting_collection", "item_released", "completed"].includes(transaction.status)) return false;
-    if (!["scheduled", "completed"].includes(b.status)) return false;
+    if (!["scheduled", "completed"].includes(booking.status)) return false;
     if (!search.trim()) return true;
-    const hay = [b.personName, b.itemName, b.studentId, b.transactionId, b.location]
-      .filter(Boolean).join(" ").toLowerCase();
-    return hay.includes(search.toLowerCase());
+    const haystack = [booking.personName, booking.itemName, booking.studentId, booking.transactionId, booking.location]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(search.toLowerCase());
   });
 
   return (
@@ -518,33 +645,35 @@ function BookingsSection({
       <article className="panel">
         <header className="panel__header">
           <section>
+            <p className="panel__eyebrow">{label} Queue</p>
             <h3 className="panel__title">{label} Bookings</h3>
             <p className="panel__subtitle">
               {type === "dropoff"
-                ? "Drop-off slots confirm automatically. Use Manage Bookings to confirm when the seller hands the item over."
-                : "Collection slots confirm automatically. Use Manage Bookings to confirm when the buyer collects the item."}
+                ? "Drop-off slots confirm automatically. Use Manage Bookings once the seller hands the item over."
+                : "Collection slots confirm automatically. Use Manage Bookings once the buyer completes the pickup."}
             </p>
           </section>
-          {filtered.length > 0 ? (
-            <p className="panel__count">{filtered.length} scheduled</p>
-          ) : null}
+          <p className="panel__count">{filtered.length} visible</p>
         </header>
 
         <section className="bookings-controls">
-          <label htmlFor={`${type}-search`} className="sr-only">Search bookings</label>
+          <label htmlFor={`${type}-search`} className="dashboard-search">
+            <Icon name="search" className="dashboard-search__icon" />
+            <span className="sr-only">Search bookings</span>
             <input
-            id={`${type}-search`}
-            type="search"
-            className="bookings-search"
-            placeholder="Search by name, item, or transaction ID…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+              id={`${type}-search`}
+              type="search"
+              className="bookings-search"
+              placeholder="Search by name, item, or transaction ID..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
         </section>
 
         {filtered.length === 0 ? (
           <EmptyState
-            icon="📭"
+            icon="table"
             title={`No ${label.toLowerCase()} bookings`}
             description={`Auto-confirmed ${label.toLowerCase()} bookings will appear here once students schedule them.`}
           />
@@ -565,34 +694,35 @@ function BookingsSection({
   );
 }
 
-// ---------------------------------------------------------------------------
-// ManageBookingsSection — accepted bookings / active transactions
-// ---------------------------------------------------------------------------
-
 function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Only show transactions in the active lifecycle
-  const managed = useMemo(() =>
-    transactions.filter((t) => MANAGED_STATUSES.includes(t.status)),
-    [transactions]
+  const managed = useMemo(
+    () => transactions.filter((transaction) => MANAGED_STATUSES.includes(transaction.status)),
+    [transactions],
   );
 
-  const filtered = useMemo(() => managed.filter((t) => {
-    if (statusFilter !== "all" && t.status !== statusFilter) return false;
-    if (!search.trim()) return true;
-    const hay = [t.id, t.item, t.seller?.name, t.buyer?.name]
-      .filter(Boolean).join(" ").toLowerCase();
-    return hay.includes(search.toLowerCase());
-  }), [managed, search, statusFilter]);
+  const filtered = useMemo(
+    () =>
+      managed.filter((transaction) => {
+        if (statusFilter !== "all" && transaction.status !== statusFilter) return false;
+        if (!search.trim()) return true;
+        const haystack = [transaction.id, transaction.item, transaction.seller?.name, transaction.buyer?.name]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(search.toLowerCase());
+      }),
+    [managed, search, statusFilter],
+  );
 
-  const STATUS_FILTER_OPTIONS = [
-    { value: "all",                 label: "All Active"           },
-    { value: "awaiting_dropoff",    label: "Awaiting Drop-off"    },
-    { value: "item_received",       label: "Item Received"        },
-    { value: "awaiting_collection", label: "Awaiting Collection"  },
-    { value: "item_released",       label: "Item Released"        },
+  const statusFilterOptions = [
+    { value: "all", label: "All Active" },
+    { value: "awaiting_dropoff", label: "Awaiting Drop-off" },
+    { value: "item_received", label: "Item Received" },
+    { value: "awaiting_collection", label: "Awaiting Collection" },
+    { value: "item_released", label: "Item Released" },
   ];
 
   return (
@@ -602,34 +732,39 @@ function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) 
       <article className="panel">
         <header className="panel__header">
           <section>
+            <p className="panel__eyebrow">Workflow Control</p>
             <h3 className="panel__title">Manage Bookings</h3>
             <p className="panel__subtitle">
-              Move accepted transactions through the handover lifecycle — from drop-off to collection to completion.
+              Move accepted transactions through the physical handover lifecycle, from intake to final completion.
             </p>
           </section>
           <p className="panel__count">{filtered.length} of {managed.length} active</p>
         </header>
 
         <section className="bookings-controls bookings-controls--row">
-          <label htmlFor="manage-search" className="sr-only">Search transactions</label>
+          <label htmlFor="manage-search" className="dashboard-search">
+            <Icon name="search" className="dashboard-search__icon" />
+            <span className="sr-only">Search transactions</span>
             <input
-            id="manage-search"
-            type="search"
-            className="bookings-search"
-            placeholder="Search by item, buyer, seller, or transaction ID…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+              id="manage-search"
+              type="search"
+              className="bookings-search"
+              placeholder="Search by item, buyer, seller, or transaction ID..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+
           <label className="status-select-wrap" htmlFor="manage-filter">
             <span className="sr-only">Filter by status</span>
             <select
               id="manage-filter"
               className="status-select"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(event) => setStatusFilter(event.target.value)}
             >
-              {STATUS_FILTER_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              {statusFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
           </label>
@@ -637,12 +772,12 @@ function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) 
 
         {filtered.length === 0 ? (
           <EmptyState
-            icon="⚙️"
+            icon="settings"
             title="No active transactions"
-            description="Accepted bookings will appear here, ready to move through the handover lifecycle."
+            description="Accepted bookings will appear here once they need staff handover actions."
           />
         ) : (
-          <ul className="booking-list" role="list">
+          <ul className="booking-list booking-list--dense" role="list">
             {filtered.map((transaction) => (
               <li key={transaction.id}>
                 <ManagedTransactionCard
@@ -660,10 +795,6 @@ function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) 
   );
 }
 
-// ---------------------------------------------------------------------------
-// TransactionsSection — archive / full ledger
-// ---------------------------------------------------------------------------
-
 function TransactionsSection({
   transactions,
   bookings,
@@ -673,7 +804,7 @@ function TransactionsSection({
 }) {
   const [search, setSearch] = useState("");
 
-  const TRANSACTION_STATUS_OPTIONS = [
+  const transactionStatusOptions = [
     "awaiting_dropoff",
     "item_received",
     "awaiting_collection",
@@ -682,12 +813,18 @@ function TransactionsSection({
     "cancelled",
   ];
 
-  const filtered = useMemo(() => transactions.filter((t) => {
-    if (!search.trim()) return true;
-    const hay = [t.id, t.item, t.seller.name, t.buyer.name]
-      .filter(Boolean).join(" ").toLowerCase();
-    return hay.includes(search.toLowerCase());
-  }), [search, transactions]);
+  const filtered = useMemo(
+    () =>
+      transactions.filter((transaction) => {
+        if (!search.trim()) return true;
+        const haystack = [transaction.id, transaction.item, transaction.seller.name, transaction.buyer.name]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(search.toLowerCase());
+      }),
+    [search, transactions],
+  );
 
   return (
     <section className="view-section" aria-labelledby="transactions-heading">
@@ -696,32 +833,34 @@ function TransactionsSection({
       <article className="panel">
         <header className="panel__header">
           <section>
+            <p className="panel__eyebrow">Full Ledger</p>
             <h3 className="panel__title">All Transactions</h3>
-            <p className="panel__subtitle">Full ledger of all accepted offers across every lifecycle stage.</p>
+            <p className="panel__subtitle">Complete view of accepted offers across every handover stage.</p>
           </section>
           <p className="panel__count">{filtered.length} of {transactions.length} transactions</p>
         </header>
 
         <section className="bookings-controls transactions-toolbar">
-          <div className="transactions-toolbar__search">
-            <label htmlFor="txn-search" className="sr-only">Search transactions</label>
-          <input
-            id="txn-search"
-            type="search"
-            className="bookings-search"
-            placeholder="Search by transaction ID, item, buyer or seller…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+          <label htmlFor="txn-search" className="dashboard-search transactions-toolbar__search">
+            <Icon name="search" className="dashboard-search__icon" />
+            <span className="sr-only">Search transactions</span>
+            <input
+              id="txn-search"
+              type="search"
+              className="bookings-search"
+              placeholder="Search by transaction ID, item, buyer, or seller..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
             />
-          </div>
+          </label>
           <button type="button" className="btn-primary" onClick={onOpenReceiptModal}>
-            <span aria-hidden="true">Receipt</span>
+            <Icon name="receipt" className="btn-action__icon" />
             Generate Receipt
           </button>
         </section>
 
         {filtered.length === 0 ? (
-          <EmptyState icon="🔍" title="No transactions found" description="Accepted offers will appear here." />
+          <EmptyState icon="search" title="No transactions found" description="Accepted offers will appear here once they enter the facility workflow." />
         ) : (
           <figure className="table-figure" role="group" aria-label="Transactions table">
             <table className="report-table transactions-table">
@@ -739,8 +878,9 @@ function TransactionsSection({
               </thead>
               <tbody>
                 {filtered.map((transaction) => {
-                  const dropoff    = bookings.find((b) => b.id === transaction.dropoffId);
-                  const collection = bookings.find((b) => b.id === transaction.collectionId);
+                  const dropoff = bookings.find((booking) => booking.id === transaction.dropoffId);
+                  const collection = bookings.find((booking) => booking.id === transaction.collectionId);
+
                   return (
                     <tr key={transaction.id}>
                       <td>
@@ -775,11 +915,11 @@ function TransactionsSection({
                             <select
                               className="status-select status-select--compact"
                               value={transaction.status}
-                              onChange={(e) => onTransactionStatusChange(transaction.id, e.target.value)}
+                              onChange={(event) => onTransactionStatusChange(transaction.id, event.target.value)}
                               disabled={Boolean(statusSavingIds[transaction.id])}
                             >
-                              {TRANSACTION_STATUS_OPTIONS.map((s) => (
-                                <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
+                              {transactionStatusOptions.map((status) => (
+                                <option key={status} value={status}>{STATUS_META[status]?.label || status}</option>
                               ))}
                             </select>
                           </label>
@@ -815,35 +955,135 @@ function TransactionsSection({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Root component
-// ---------------------------------------------------------------------------
+function UtilityRail({ transactions, bookings, activeView }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const todayBookings = bookings.filter((booking) => booking.scheduledDate === today).slice(0, 5);
+  const nextActions = transactions
+    .filter((transaction) => MANAGED_STATUSES.includes(transaction.status))
+    .slice(0, 4);
+  const completionRate = transactions.length
+    ? Math.round((transactions.filter((transaction) => transaction.status === "completed").length / transactions.length) * 100)
+    : 0;
+
+  return (
+    <aside className="utility-rail" aria-label="Operations side panel">
+      <article className="panel utility-panel">
+        <header className="panel__header">
+          <section>
+            <p className="panel__eyebrow">Today</p>
+            <h3 className="panel__title">Operations Summary</h3>
+            <p className="panel__subtitle">A quick view of what needs staff attention right now.</p>
+          </section>
+        </header>
+
+        <div className="utility-metrics">
+          <div className="utility-metric">
+            <span className="utility-metric__label">Today's bookings</span>
+            <strong className="utility-metric__value">{todayBookings.length}</strong>
+          </div>
+          <div className="utility-metric">
+            <span className="utility-metric__label">In-progress trades</span>
+            <strong className="utility-metric__value">{nextActions.length}</strong>
+          </div>
+          <div className="utility-metric">
+            <span className="utility-metric__label">Completion rate</span>
+            <strong className="utility-metric__value">{completionRate}%</strong>
+          </div>
+        </div>
+      </article>
+
+      <article className="panel utility-panel">
+        <header className="panel__header">
+          <section>
+            <p className="panel__eyebrow">Schedule</p>
+            <h3 className="panel__title">Today's Bookings</h3>
+            <p className="panel__subtitle">Next facility appointments based on booking time.</p>
+          </section>
+        </header>
+
+        {todayBookings.length === 0 ? (
+          <EmptyState icon="clock" title="No bookings today" description="Scheduled slots for today will surface here automatically." />
+        ) : (
+          <ul className="schedule-list" role="list">
+            {todayBookings.map((booking) => (
+              <li key={booking.id} className="schedule-item">
+                <div className="schedule-item__time">{booking.scheduledTime}</div>
+                <div className="schedule-item__content">
+                  <p className="schedule-item__title">{booking.personName}</p>
+                  <p className="schedule-item__item">{booking.itemName}</p>
+                </div>
+                <BookingStatusBadge status={booking.status} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+
+      <article className="panel utility-panel">
+        <header className="panel__header">
+          <section>
+            <p className="panel__eyebrow">Attention Queue</p>
+            <h3 className="panel__title">Next Actions</h3>
+            <p className="panel__subtitle">Operational reminders based on active workflow states.</p>
+          </section>
+        </header>
+
+        {nextActions.length === 0 ? (
+          <EmptyState icon="check-circle" title="Nothing blocked" description="Active lifecycle tasks will appear here when staff action is needed." />
+        ) : (
+          <ul className="activity-feed" role="list">
+            {nextActions.map((transaction) => (
+              <li key={transaction.id} className="activity-item">
+                <span className={`activity-item__dot activity-item__dot--${transaction.status}`} />
+                <div className="activity-item__content">
+                  <p className="activity-item__text">
+                    <strong>{transaction.item}</strong>
+                  </p>
+                  <p className="activity-item__meta">
+                    {STATUS_META[transaction.status]?.label || transaction.status}
+                  </p>
+                </div>
+                <StatusBadge status={transaction.status} />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <footer className="utility-panel__footer">
+          <span className="utility-panel__context">
+            Active view: {NAV_ITEMS.find((item) => item.key === activeView)?.label || "Overview"}
+          </span>
+        </footer>
+      </article>
+    </aside>
+  );
+}
 
 export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
-  const [activeView, setActiveView]       = useState("overview");
-  const [transactions, setTransactions]   = useState([]);
-  const [bookings, setBookings]           = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [error, setError]                 = useState("");
-  const [dialog, setDialog]               = useState(null);
-  const [saving, setSaving]               = useState(false);
-  const [savingIds, setSavingIds]         = useState({});
+  const [activeView, setActiveView] = useState("overview");
+  const [transactions, setTransactions] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [dialog, setDialog] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [savingIds, setSavingIds] = useState({});
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptGeneratingId, setReceiptGeneratingId] = useState("");
-  const [toast, setToast]                 = useState({ msg: "", visible: false });
-  const toastTimer                        = useRef(null);
+  const [toast, setToast] = useState({ msg: "", visible: false });
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const toastTimer = useRef(null);
 
-  // ── Toast helper ──────────────────────────────────────────────────────────
   const showToast = useCallback((msg) => {
     setToast({ msg, visible: true });
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast({ msg: "", visible: false }), 3200);
   }, []);
 
-  // ── Data loading ──────────────────────────────────────────────────────────
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     setError("");
+
     try {
       const { data: txRows, error: txErr } = await supabase
         .from("transactions")
@@ -852,15 +1092,15 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
       if (txErr) throw txErr;
 
-      const rows       = txRows || [];
-      const bookingIds = [...new Set(rows.flatMap((r) => [r.dropoff_id, r.collection_id]).filter(Boolean))];
-      const profileIds = [...new Set(rows.flatMap((r) => [r.seller_id,  r.buyer_id]).filter(Boolean))];
-      const sellerIds  = [...new Set(rows.map((r) => r.seller_id).filter(Boolean))];
+      const rows = txRows || [];
+      const bookingIds = [...new Set(rows.flatMap((row) => [row.dropoff_id, row.collection_id]).filter(Boolean))];
+      const profileIds = [...new Set(rows.flatMap((row) => [row.seller_id, row.buyer_id]).filter(Boolean))];
+      const sellerIds = [...new Set(rows.map((row) => row.seller_id).filter(Boolean))];
 
       const [
-        { data: bookingRows, error: bErr },
-        { data: profileRows, error: pErr },
-        { data: listingRows, error: lErr },
+        { data: bookingRows, error: bookingError },
+        { data: profileRows, error: profileError },
+        { data: listingRows, error: listingError },
       ] = await Promise.all([
         bookingIds.length
           ? supabase.from("bookings").select("*").in("id", bookingIds)
@@ -877,12 +1117,12 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
           : Promise.resolve({ data: [], error: null }),
       ]);
 
-      if (bErr) throw bErr;
-      if (pErr) throw pErr;
-      if (lErr) throw lErr;
+      if (bookingError) throw bookingError;
+      if (profileError) throw profileError;
+      if (listingError) throw listingError;
 
-      const profilesById = Object.fromEntries((profileRows || []).map((p) => [p.id, p]));
-      const bookingsById = Object.fromEntries((bookingRows || []).map((b) => [b.id, b]));
+      const profilesById = Object.fromEntries((profileRows || []).map((profile) => [profile.id, profile]));
+      const bookingsById = Object.fromEntries((bookingRows || []).map((booking) => [booking.id, booking]));
       const listingMatches = new Map();
 
       for (const listing of listingRows || []) {
@@ -892,28 +1132,28 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         }
       }
 
-      const mappedTransactions = rows.map((t) => {
-        const matchedListing = listingMatches.get(buildListingMatchKey(t.seller_id, t.item)) || null;
+      const mappedTransactions = rows.map((transaction) => {
+        const matchedListing = listingMatches.get(buildListingMatchKey(transaction.seller_id, transaction.item)) || null;
 
         return {
-          ...t,
+          ...transaction,
           listing_id: matchedListing?.id || null,
-          dropoffId:    t.dropoff_id,
-          collectionId: t.collection_id,
-          createdAt:    t.created_at,
+          dropoffId: transaction.dropoff_id,
+          collectionId: transaction.collection_id,
+          createdAt: transaction.created_at,
           matchedListing,
           itemDescription: matchedListing?.description || "",
           itemImageUrl: matchedListing?.image_url || matchedListing?.image_urls?.find(Boolean) || "",
-          quantity: Number(t.quantity || 1),
-          totalAmount: Number(t.total_amount ?? t.price ?? 0),
-          paymentMethod: t.payment_method || "",
+          quantity: Number(transaction.quantity || 1),
+          totalAmount: Number(transaction.total_amount ?? transaction.price ?? 0),
+          paymentMethod: transaction.payment_method || "",
           seller: {
-            name:      profilesById[t.seller_id]?.display_name || profilesById[t.seller_id]?.name || t.seller_id,
-            studentId: profilesById[t.seller_id]?.email || t.seller_id,
+            name: profilesById[transaction.seller_id]?.display_name || profilesById[transaction.seller_id]?.name || transaction.seller_id,
+            studentId: profilesById[transaction.seller_id]?.email || transaction.seller_id,
           },
           buyer: {
-            name:      profilesById[t.buyer_id]?.display_name || profilesById[t.buyer_id]?.name || t.buyer_id,
-            studentId: profilesById[t.buyer_id]?.email || t.buyer_id,
+            name: profilesById[transaction.buyer_id]?.display_name || profilesById[transaction.buyer_id]?.name || transaction.buyer_id,
+            studentId: profilesById[transaction.buyer_id]?.email || transaction.buyer_id,
           },
         };
       });
@@ -927,7 +1167,9 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     }
   }, []);
 
-  useEffect(() => { loadDashboard(); }, [loadDashboard]);
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
 
   useEffect(() => {
     const channel = supabase
@@ -935,10 +1177,29 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, loadDashboard)
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, loadDashboard)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [loadDashboard]);
 
-  // ── Accept / Decline booking (Drop-off & Collection tabs) ────────────────
+  useEffect(() => {
+    setIsNavOpen(false);
+  }, [activeView]);
+
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  useEffect(() => {
+    if (!isNavOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setIsNavOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isNavOpen]);
+
   const handleAccept = useCallback((booking, transaction) => {
     setDialog({ actionType: "accept_booking", booking, transaction });
   }, []);
@@ -947,14 +1208,13 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     setDialog({ actionType: "decline_booking", booking, transaction });
   }, []);
 
-  // ── Managed lifecycle action (Manage Bookings tab) ───────────────────────
   const handleManagedAction = useCallback((transaction, nextStatus) => {
     setDialog({ actionType: "managed_action", transaction, nextStatus });
   }, []);
 
-  // ── Manual status change (All Transactions table) ────────────────────────
   const handleTransactionStatusChange = useCallback(async (transactionId, nextStatus) => {
     setSavingIds((prev) => ({ ...prev, [transactionId]: true }));
+
     try {
       const updatePayload = { status: nextStatus };
       if (nextStatus === "completed") {
@@ -966,13 +1226,19 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         .from("transactions")
         .update(updatePayload)
         .eq("id", transactionId);
+
       if (err) throw err;
+
       showToast(`Transaction updated to "${STATUS_META[nextStatus]?.label || nextStatus}".`);
       await loadDashboard();
     } catch (err) {
       showToast(err.message || "Unable to update transaction status.");
     } finally {
-      setSavingIds((prev) => { const n = { ...prev }; delete n[transactionId]; return n; });
+      setSavingIds((prev) => {
+        const next = { ...prev };
+        delete next[transactionId];
+        return next;
+      });
     }
   }, [loadDashboard, showToast]);
 
@@ -987,6 +1253,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     }
 
     setReceiptGeneratingId(transaction.id);
+
     try {
       await generateTransactionReceiptPdf(transaction);
       setReceiptModalOpen(false);
@@ -998,75 +1265,73 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     }
   }, [showToast]);
 
-  // ── Central confirm handler ───────────────────────────────────────────────
   const handleDialogConfirm = useCallback(async () => {
     if (!dialog) return;
+
     const { actionType, booking, transaction, nextStatus } = dialog;
     setSaving(true);
 
     try {
-      // ── Accept a pending booking request ──────────────────────────────────
       if (actionType === "accept_booking") {
         const nextTxnStatus = mapBookingStatusToTransactionStatus(
-          booking.type, "scheduled", transaction?.status
+          booking.type,
+          "scheduled",
+          transaction?.status,
         );
 
-        const [{ error: bErr }, { error: tErr }] = await Promise.all([
+        const [{ error: bookingError }, { error: transactionError }] = await Promise.all([
           supabase.from("bookings").update({ status: "scheduled" }).eq("id", booking.id),
           supabase.from("transactions").update({ status: nextTxnStatus }).eq("id", transaction.id),
         ]);
-        if (bErr) throw bErr;
-        if (tErr) throw tErr;
 
-        // Notify the student
+        if (bookingError) throw bookingError;
+        if (transactionError) throw transactionError;
+
         if (staffProfile?.id) {
           const receiver = booking.type === "dropoff" ? transaction.seller_id : transaction.buyer_id;
           await insertMessage({
-            sender_id:   staffProfile.id,
+            sender_id: staffProfile.id,
             receiver_id: receiver,
-            content:     `Your ${booking.type === "dropoff" ? "drop-off" : "collection"} booking for "${booking.itemName}" at ${booking.location || "the trade facility"} on ${formatDate(booking.scheduledDate)} at ${booking.scheduledTime} has been approved.`,
+            content: `Your ${booking.type === "dropoff" ? "drop-off" : "collection"} booking for "${booking.itemName}" at ${booking.location || "the trade facility"} on ${formatDate(booking.scheduledDate)} at ${booking.scheduledTime} has been approved.`,
           });
         }
 
         showToast(`Booking accepted and scheduled for ${booking.personName}.`);
-
-      // ── Decline a pending booking request ────────────────────────────────
       } else if (actionType === "decline_booking") {
-        const [{ error: bErr }, { error: tErr }] = await Promise.all([
+        const [{ error: bookingError }, { error: transactionError }] = await Promise.all([
           supabase.from("bookings").delete().eq("id", booking.id),
           booking.type === "collection"
-            ? supabase.from("transactions")
-                .update({ status: "item_received", collection_id: null })
-                .eq("id", transaction.id)
+            ? supabase.from("transactions").update({ status: "item_received", collection_id: null }).eq("id", transaction.id)
             : Promise.resolve({ error: null }),
         ]);
-        if (bErr) throw bErr;
-        if (tErr) throw tErr;
+
+        if (bookingError) throw bookingError;
+        if (transactionError) throw transactionError;
 
         if (staffProfile?.id) {
           const receiver = booking.type === "dropoff" ? transaction.seller_id : transaction.buyer_id;
           await insertMessage({
-            sender_id:   staffProfile.id,
+            sender_id: staffProfile.id,
             receiver_id: receiver,
-            content:     `Your ${booking.type === "dropoff" ? "drop-off" : "collection"} booking for "${booking.itemName}" was declined. Please choose a different slot in My Bookings.`,
+            content: `Your ${booking.type === "dropoff" ? "drop-off" : "collection"} booking for "${booking.itemName}" was declined. Please choose a different slot in My Bookings.`,
           });
         }
 
         showToast(`Booking declined for ${booking.personName}.`);
-
-      // ── Move a transaction through its lifecycle (Manage tab) ─────────────
       } else if (actionType === "managed_action") {
         const updatePayload = { status: nextStatus };
-          if (nextStatus === "completed") {
-            updatePayload.buyer_rating_pending = true;
-            updatePayload.seller_rating_pending = true;
-          }
 
-        const { error: tErr } = await supabase
+        if (nextStatus === "completed") {
+          updatePayload.buyer_rating_pending = true;
+          updatePayload.seller_rating_pending = true;
+        }
+
+        const { error: transactionError } = await supabase
           .from("transactions")
           .update(updatePayload)
           .eq("id", transaction.id);
-          if (tErr) throw tErr;
+
+        if (transactionError) throw transactionError;
 
         if (nextStatus === "completed" && transaction.collectionId) {
           await supabase
@@ -1077,28 +1342,28 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
         if (nextStatus === "completed") {
           await supabase
-          .from("transactions")
-          .update({
-            buyer_rating_pending: true,
-            seller_rating_pending: true,
-          })
-          .eq("id", transaction.id);
+            .from("transactions")
+            .update({
+              buyer_rating_pending: true,
+              seller_rating_pending: true,
+            })
+            .eq("id", transaction.id);
         }
-        // Notify relevant party
+
         if (staffProfile?.id) {
           const messages = {
-            item_received:       { to: transaction.buyer_id,  text: `Your item "${transaction.item}" has been checked in. You can now book your collection slot in My Bookings.` },
-            awaiting_collection: { to: transaction.buyer_id,  text: `Your item "${transaction.item}" is ready for collection at the trade facility.` },
-            item_released:       { to: transaction.seller_id, text: `Your item "${transaction.item}" has been collected by the buyer. The transaction is almost complete.` },
-            completed:           { to: transaction.seller_id, text: `Transaction for "${transaction.item}" is now fully completed. Thank you for using CampusXChange!` },
+            item_received: { to: transaction.buyer_id, text: `Your item "${transaction.item}" has been checked in. You can now book your collection slot in My Bookings.` },
+            awaiting_collection: { to: transaction.buyer_id, text: `Your item "${transaction.item}" is ready for collection at the trade facility.` },
+            item_released: { to: transaction.seller_id, text: `Your item "${transaction.item}" has been collected by the buyer. The transaction is almost complete.` },
+            completed: { to: transaction.seller_id, text: `Transaction for "${transaction.item}" is now fully completed. Thank you for using CampusXChange!` },
           };
 
           const msg = messages[nextStatus];
           if (msg) {
             await insertMessage({
-              sender_id:   staffProfile.id,
+              sender_id: staffProfile.id,
               receiver_id: msg.to,
-              content:     msg.text,
+              content: msg.text,
             });
           }
         }
@@ -1115,43 +1380,57 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     }
   }, [dialog, loadDashboard, showToast, staffProfile?.id]);
 
-  // ── Sidebar badges ────────────────────────────────────────────────────────
-  const pendingDropoffs    = bookings.filter((b) => b.type === "dropoff"    && b.status === "scheduled").length;
-  const pendingCollections = bookings.filter((b) => b.type === "collection" && b.status === "scheduled").length;
-  const managedCount       = transactions.filter((t) => MANAGED_STATUSES.includes(t.status)).length;
+  const pendingDropoffs = bookings.filter((booking) => booking.type === "dropoff" && booking.status === "scheduled").length;
+  const pendingCollections = bookings.filter((booking) => booking.type === "collection" && booking.status === "scheduled").length;
+  const managedCount = transactions.filter((transaction) => MANAGED_STATUSES.includes(transaction.status)).length;
+  const dateLabel = new Date().toLocaleDateString("en-ZA", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const isDarkMode = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
 
   const badgeFor = (key) => {
-    if (key === "dropoffs")    return pendingDropoffs;
+    if (key === "dropoffs") return pendingDropoffs;
     if (key === "collections") return pendingCollections;
-    if (key === "manage")      return managedCount;
+    if (key === "manage") return managedCount;
     return 0;
   };
 
-  const dateLabel = new Date().toLocaleDateString("en-ZA", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-  });
-
   const viewTitles = {
-    overview:     "Dashboard Overview",
-    dropoffs:     "Drop-off Bookings",
-    collections:  "Collection Bookings",
-    manage:       "Manage Bookings",
+    overview: "Dashboard Overview",
+    dropoffs: "Drop-off Bookings",
+    collections: "Collection Bookings",
+    manage: "Manage Bookings",
     transactions: "All Transactions",
   };
 
+  const viewDescriptions = {
+    overview: "Monitor live facility throughput, operational pressure, and recent trade activity.",
+    dropoffs: "Review scheduled seller arrivals and prepare for item intake at the facility.",
+    collections: "Review scheduled buyer pickups and keep collection handovers moving cleanly.",
+    manage: "Advance accepted trades through physical receipt, release, and final completion.",
+    transactions: "Audit the full staff ledger and adjust lifecycle statuses without leaving the dashboard.",
+  };
+
   return (
-    <section className="staff-dashboard-wrapper">
-      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-      <aside className="sidebar">
+    <section className="staff-dashboard-shell">
+      <div className={`staff-dashboard-backdrop ${isNavOpen ? "staff-dashboard-backdrop--visible" : ""}`} onClick={() => setIsNavOpen(false)} aria-hidden="true" />
+
+      <aside className={`sidebar ${isNavOpen ? "sidebar--open" : ""}`}>
         <header className="sidebar__brand">
           <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="sidebar__logo" />
           <section className="sidebar__brand-text">
             <p className="sidebar__app-name">CAMPUSXCHANGE</p>
             <p className="sidebar__role">Trade Facility</p>
           </section>
+          <button type="button" className="sidebar__close" onClick={() => setIsNavOpen(false)} aria-label="Close navigation">
+            <Icon name="close" className="sidebar__close-icon" />
+          </button>
         </header>
 
-        <nav aria-label="Dashboard navigation">
+        <nav aria-label="Dashboard navigation" className="sidebar__nav-wrap">
           <ul className="sidebar__nav" role="list">
             {NAV_ITEMS.map((item) => {
               const badge = badgeFor(item.key);
@@ -1162,8 +1441,10 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
                     onClick={() => setActiveView(item.key)}
                     aria-current={activeView === item.key ? "page" : undefined}
                   >
-                    <span className="sidebar__nav-icon" aria-hidden="true">{item.icon}</span>
-                    {item.label}
+                    <span className="sidebar__nav-icon" aria-hidden="true">
+                      <Icon name={item.icon} className="sidebar__nav-icon-svg" />
+                    </span>
+                    <span className="sidebar__nav-label">{item.label}</span>
                     {badge > 0 ? (
                       <span className="sidebar__nav-badge" aria-label={`${badge} pending`}>{badge}</span>
                     ) : null}
@@ -1184,29 +1465,42 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
           </section>
           {onSignOut ? (
             <button className="sidebar__signout-btn" onClick={onSignOut} aria-label="Sign out" title="Sign out">
-              ⏻
+              <Icon name="close" className="sidebar__signout-icon" />
             </button>
           ) : null}
         </footer>
       </aside>
 
-      {/* ── Main content ─────────────────────────────────────────────────── */}
       <main className="dashboard-main" id="main-content">
         <header className="dashboard-topbar">
           <section className="topbar-left">
-            <h1 className="topbar-title">{viewTitles[activeView]}</h1>
+            <div className="topbar-row">
+              <button type="button" className="topbar-menu-btn" onClick={() => setIsNavOpen(true)} aria-label="Open navigation">
+                <Icon name="menu" className="topbar-menu-btn__icon" />
+              </button>
+              <div>
+                <p className="topbar-eyebrow">Staff Workspace</p>
+                <h1 className="topbar-title">{viewTitles[activeView]}</h1>
+              </div>
+            </div>
             <p className="topbar-date">{dateLabel}</p>
+            <p className="topbar-description">{viewDescriptions[activeView]}</p>
           </section>
+
           <section className="topbar-right">
             <span className="facility-open-badge">
               <span className="facility-open-dot" aria-hidden="true" />
               Facility Open
             </span>
+            <span className="topbar-theme-chip">
+              <Icon name={isDarkMode ? "moon" : "sun"} className="topbar-theme-chip__icon" />
+              {isDarkMode ? "Dark mode" : "Light mode"}
+            </span>
           </section>
         </header>
 
-        {loading ? <div className="panel">Loading facility activity…</div> : null}
-        {!loading && error ? <div className="panel">{error}</div> : null}
+        {loading ? <div className="panel panel--feedback">Loading facility activity...</div> : null}
+        {!loading && error ? <div className="panel panel--feedback">{error}</div> : null}
 
         {!loading && !error && activeView === "overview" ? (
           <OverviewSection transactions={transactions} bookings={bookings} />
@@ -1254,7 +1548,8 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         ) : null}
       </main>
 
-      {/* ── Confirm dialog ───────────────────────────────────────────────── */}
+      <UtilityRail transactions={transactions} bookings={bookings} activeView={activeView} />
+
       {dialog ? (
         <ConfirmDialog
           dialog={dialog}
@@ -1264,7 +1559,6 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         />
       ) : null}
 
-      {/* ── Toast ────────────────────────────────────────────────────────── */}
       {receiptModalOpen ? (
         <ReceiptModal
           transactions={transactions}
@@ -1282,7 +1576,9 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         aria-atomic="true"
         role="status"
       >
-        <span className="save-toast__icon" aria-hidden="true">✓</span>
+        <span className="save-toast__icon" aria-hidden="true">
+          <Icon name="check-circle" className="save-toast__icon-svg" />
+        </span>
         {toast.msg}
       </aside>
     </section>
