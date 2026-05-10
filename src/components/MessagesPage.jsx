@@ -844,7 +844,8 @@ const sendOffer = async () => {
       .eq("listing_id", offerListingId)
       .eq("sender_id", user.id)
       .eq("receiver_id", activeId)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .eq("offer_type", "sale_offer");
 
     const { data: newOffer, error } = await supabase
       .from("offers")
@@ -854,6 +855,7 @@ const sendOffer = async () => {
         receiver_id: activeId,
         amount,
         status: "pending",
+        offer_type: "sale_offer",
       })
       .select()
       .single();
