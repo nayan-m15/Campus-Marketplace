@@ -190,14 +190,14 @@ function getBirthdateError(value) {
 // ── Step indicator ───────────────────────────────────────────
 function StepDots({ current, total }) {
   return (
-    <div className="setup-steps">
+    <section className="setup-steps">
       {Array.from({ length: total }).map((_, i) => (
-        <div
+        <span
           key={i}
           className={`setup-step-dot ${i === current ? "setup-step-dot--active" : i < current ? "setup-step-dot--done" : ""}`}
         />
       ))}
-    </div>
+    </section>
   );
 }
 
@@ -315,17 +315,17 @@ export default function ProfileSetupPage({ onComplete }) {
   };
 
   return (
-    <div className="setup-page">
-      <div className="setup-card">
+    <section className="setup-page">
+      <article className="setup-card">
 
         {/* Header */}
-        <div className="setup-header">
-          <div className="setup-logo">
+        <header className="setup-header">
+          <section className="setup-logo">
             <strong className="setup-logo__icon">
               <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="setup-logo__img" />
             </strong>
             <span className="setup-logo__text">CAMPUSXCHANGE</span>
-          </div>
+          </section>
           <StepDots current={step} total={TOTAL_STEPS} />
           <h1 className="setup-title">
             {step === 0 && "What's your name?"}
@@ -337,15 +337,15 @@ export default function ProfileSetupPage({ onComplete }) {
             {step === 1 && "Just a few quick details to complete your profile."}
             {step === 2 && "We'll show you listings from your campus and province first."}
           </p>
-        </div>
+        </header>
 
         {/* Step content */}
-        <div className="setup-body">
+        <section className="setup-body">
 
           {/* ── Step 0: Name ── */}
           {step === 0 && (
             <>
-              <div className="setup-field">
+              <section className="setup-field">
                 <label htmlFor="s-name">Full name <span className="setup-required">*</span></label>
                 <input
                   id="s-name"
@@ -356,8 +356,8 @@ export default function ProfileSetupPage({ onComplete }) {
                   maxLength={PROFILE_NAME_MAX}
                   autoFocus
                 />
-              </div>
-              <div className="setup-field">
+              </section>
+              <section className="setup-field">
                 <label htmlFor="s-display">
                   Display name{" "}
                   <span className="setup-optional">(optional — shown on listings)</span>
@@ -373,16 +373,16 @@ export default function ProfileSetupPage({ onComplete }) {
                 <span className="setup-hint">
                   Leave blank to use your first name
                 </span>
-              </div>
+              </section>
             </>
           )}
 
           {/* ── Step 1: Sex + Birthdate ── */}
           {step === 1 && (
             <>
-              <div className="setup-field">
+              <section className="setup-field">
                 <label htmlFor="s-sex">Sex <span className="setup-required">*</span></label>
-                <div className="setup-radio-row">
+                <section className="setup-radio-row">
                   {["Male", "Female", "Prefer not to say"].map((opt) => (
                     <button
                       key={opt}
@@ -393,9 +393,9 @@ export default function ProfileSetupPage({ onComplete }) {
                       {opt}
                     </button>
                   ))}
-                </div>
-              </div>
-              <div className="setup-field">
+                </section>
+              </section>
+              <section className="setup-field">
                 <label htmlFor="s-birth">Date of birth <span className="setup-required">*</span></label>
                 <input
                   id="s-birth"
@@ -409,14 +409,14 @@ export default function ProfileSetupPage({ onComplete }) {
                     return d.toISOString().split("T")[0];
                   })()}
                 />
-              </div>
+              </section>
             </>
           )}
 
           {/* ── Step 2: Province + Institution ── */}
           {step === 2 && (
             <>
-              <div className="setup-field">
+              <section className="setup-field">
                 <label htmlFor="s-province">Province <span className="setup-required">*</span></label>
                 <select
                   id="s-province"
@@ -426,8 +426,8 @@ export default function ProfileSetupPage({ onComplete }) {
                   <option value="">Select province…</option>
                   {PROVINCES.map((p) => <option key={p}>{p}</option>)}
                 </select>
-              </div>
-              <div className="setup-field">
+              </section>
+              <section className="setup-field">
                 <label htmlFor="s-institution">
                   University / College <span className="setup-required">*</span>
                 </label>
@@ -446,16 +446,16 @@ export default function ProfileSetupPage({ onComplete }) {
                     </optgroup>
                   ))}
                 </select>
-              </div>
+              </section>
             </>
           )}
 
           {/* Error */}
           {error && <p className="setup-error" role="alert">⚠️ {error}</p>}
-        </div>
+        </section>
 
         {/* Footer / navigation */}
-        <div className="setup-footer">
+        <footer className="setup-footer">
           {step > 0 && (
             <button type="button" className="setup-btn setup-btn--ghost" onClick={handleBack}>
               ← Back
@@ -475,9 +475,9 @@ export default function ProfileSetupPage({ onComplete }) {
               {saving ? "Saving…" : "Let's go 🎉"}
             </button>
           )}
-        </div>
+        </footer>
 
-      </div>
-    </div>
+      </article>
+    </section>
   );
 }

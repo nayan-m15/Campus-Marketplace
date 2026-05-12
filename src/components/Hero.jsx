@@ -171,7 +171,7 @@ export default function Hero({
       <figure className="hero__bg" aria-hidden="true" />
       <figure className="hero__overlay" aria-hidden="true" />
 
-      <div className="hero__main">
+      <section className="hero__main">
         <header className="hero__content">
           <h1 className="hero__title">Buy, Sell &amp; Trade</h1>
           <h2 className="hero__subtitle">Within Your Campus</h2>
@@ -196,8 +196,8 @@ export default function Hero({
               How It Works
             </button>
              {showPopup && (
-                <div className="popup-overlay" onClick={() => setShowPopup(false)}>
-                  <div
+                <section className="popup-overlay" onClick={() => setShowPopup(false)}>
+                  <article
                     className="popup-card"
                     onClick={(e) => e.stopPropagation()} // prevents closing when clicking inside
                   >
@@ -213,8 +213,8 @@ export default function Hero({
                     >
                       Close
                     </button>
-                  </div>
-                </div>
+                  </article>
+                </section>
               )}
           </nav>
 
@@ -230,19 +230,19 @@ export default function Hero({
             ))}
           </ul>
 
-          <div className="hero__stats" aria-label="Marketplace stats">
+          <section className="hero__stats" aria-label="Marketplace stats">
             {heroStats.map((stat, index) => (
-              <div key={stat.label} className="hero__stat-group">
-                <div className="hero__stat">
+              <section key={stat.label} className="hero__stat-group">
+                <section className="hero__stat">
                   <span className="hero__stat-value">{stat.value}</span>
                   <span className="hero__stat-label">{stat.label}</span>
-                </div>
+                </section>
                 {index < heroStats.length - 1 && (
-                  <div className="hero__stat-divider" aria-hidden="true" />
+                  <span className="hero__stat-divider" aria-hidden="true" />
                 )}
-              </div>
+              </section>
             ))}
-          </div>
+          </section>
         </header>
 
         {topListings.length === 0 ? (
@@ -339,26 +339,26 @@ export default function Hero({
             </section>
           </section>
         )}
-      </div>
+      </section>
 
       {!user && (
         <section className="sell-cta" aria-label="List your item">
-          <div className="sell-cta__copy">
+          <section className="sell-cta__copy">
             <p className="sell-cta__eyebrow">Got something to sell?</p>
             <h3 className="sell-cta__heading">List it in under 60 seconds.</h3>
             <p className="sell-cta__sub">
               Free forever. Reach every student on campus instantly.
             </p>
-          </div>
+          </section>
 
-          <div className="sell-cta__actions">
+          <section className="sell-cta__actions">
             <button type="button" className="sell-cta__btn" onClick={onSignupClick}>
               Start listing <span className="sell-cta__btn-arrow">→</span>
             </button>
             <button type="button" className="sell-cta__link" onClick={onLoginClick}>
               Already have an account? Sign in
             </button>
-          </div>
+          </section>
         </section>
       )}
     </section>

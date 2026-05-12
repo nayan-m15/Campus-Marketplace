@@ -69,22 +69,22 @@ function SingleRatingModal({ transaction, currentUserId, onClose }) {
 
   return (
     <dialog ref={dialogRef} className="brm-dialog" onClose={() => onClose(null)}>
-      <div className="brm-inner">
+      <section className="brm-inner">
         <header className="brm-header">
           <span className="brm-header-icon">⭐</span>
-          <div className="brm-header-text">
+          <header className="brm-header-text">
             <h2 className="brm-title">Rate your {role}</h2>
             <p className="brm-subtitle">Transaction for {transaction.item}</p>
-          </div>
+          </header>
           <button className="brm-close-btn" onClick={() => onClose(null)} aria-label="Close">✕</button>
         </header>
 
-        <div className="brm-body">
+        <section className="brm-body">
           <p style={{ margin: 0, fontSize: 14, color: "var(--text-muted, #6b7280)" }}>
             How was your experience with <strong style={{ color: "#111" }}>{ratedName}</strong>?
           </p>
 
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", padding: "8px 0" }}>
+          <section style={{ display: "flex", gap: 8, justifyContent: "center", padding: "8px 0" }}>
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
@@ -106,7 +106,7 @@ function SingleRatingModal({ transaction, currentUserId, onClose }) {
                 ★
               </button>
             ))}
-          </div>
+          </section>
 
           {display > 0 && (
             <p style={{ textAlign: "center", margin: 0, fontSize: 13, color: "#6b7280" }}>
@@ -115,7 +115,7 @@ function SingleRatingModal({ transaction, currentUserId, onClose }) {
           )}
 
           {error && <p className="brm-error">{error}</p>}
-        </div>
+        </section>
 
         <footer className="brm-footer">
           {/* Skip: pass null so App does NOT permanently dismiss — user can still rate on profile page */}
@@ -130,7 +130,7 @@ function SingleRatingModal({ transaction, currentUserId, onClose }) {
             {submitting ? "Submitting…" : "Submit rating"}
           </button>
         </footer>
-      </div>
+      </section>
     </dialog>
   );
 }

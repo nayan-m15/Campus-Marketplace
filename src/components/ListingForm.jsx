@@ -77,8 +77,8 @@ function ImageScrollStrip({ images, onChange }) {
   }
 
   return (
-    <div>
-      <div
+    <section>
+      <section
         style={{
           display: "flex",
           gap: 10,
@@ -88,7 +88,7 @@ function ImageScrollStrip({ images, onChange }) {
         }}
       >
         {images.map((image, index) => (
-          <div
+          <section
             key={`${image.preview}-${index}`}
             style={{
               position: "relative",
@@ -152,11 +152,11 @@ function ImageScrollStrip({ images, onChange }) {
             >
               x
             </button>
-          </div>
+          </section>
         ))}
 
         {images.length < MAX_IMAGES && (
-          <div
+          <section
             onDragOver={(e) => {
               e.preventDefault();
               setDraggingOver(true);
@@ -223,9 +223,9 @@ function ImageScrollStrip({ images, onChange }) {
             <span style={{ fontSize: 9, color: "var(--gray-400)" }}>
               {images.length}/{MAX_IMAGES}
             </span>
-          </div>
+          </section>
         )}
-      </div>
+      </section>
 
       {images.length > 0 && (
         <p style={{ fontSize: 11, color: "var(--gray-400)", marginTop: 6 }}>
@@ -261,13 +261,13 @@ function ImageScrollStrip({ images, onChange }) {
         aria-hidden="true"
         tabIndex={-1}
       />
-    </div>
+    </section>
   );
 }
 
 function ConditionSelector({ value, onChange }) {
   return (
-    <div className="lf__condition-row" role="radiogroup" aria-label="Item condition">
+    <section className="lf__condition-row" role="radiogroup" aria-label="Item condition">
       {CONDITIONS.map((condition) => {
         const color = CONDITION_COLORS[condition] || "#6b7280";
         const selected = value === condition;
@@ -289,7 +289,7 @@ function ConditionSelector({ value, onChange }) {
           </button>
         );
       })}
-    </div>
+    </section>
   );
 }
 
@@ -310,31 +310,31 @@ function getPriceSuggestionErrorMessage(error) {
 function PriceSuggestionPanel({ suggestion, loading, error, hasEnoughDetail }) {
   if (!hasEnoughDetail) {
     return (
-      <div className="lf__suggestion-panel lf__suggestion-panel--muted">
+      <section className="lf__suggestion-panel lf__suggestion-panel--muted">
         <strong>Suggested price will appear here</strong>
         <p>
           Add the item name, description, condition, and category first. More specific details
           like a model number or brand help make the estimate more accurate.
         </p>
-      </div>
+      </section>
     );
   }
 
   if (loading) {
     return (
-      <div className="lf__suggestion-panel">
+      <section className="lf__suggestion-panel">
         <strong>Checking Google Shopping prices...</strong>
         <p>We are comparing similar South African shopping results before you enter your price.</p>
-      </div>
+      </section>
     );
   }
 
   if (error) {
     return (
-      <div className="lf__suggestion-panel lf__suggestion-panel--warning">
+      <section className="lf__suggestion-panel lf__suggestion-panel--warning">
         <strong>Price suggestion unavailable</strong>
         <p>{error}</p>
-      </div>
+      </section>
     );
   }
 
@@ -346,19 +346,19 @@ function PriceSuggestionPanel({ suggestion, loading, error, hasEnoughDetail }) {
   const reasons = suggestion.confidence?.reasons || [];
 
   return (
-    <div className="lf__suggestion-panel">
-      <div className="lf__suggestion-header">
+    <section className="lf__suggestion-panel">
+      <header className="lf__suggestion-header">
         <span>
           Suggested price based on Google Shopping
         </span>
         <span className={`lf__confidence lf__confidence--${confidenceClass}`}>
           {confidenceLevel} confidence
         </span>
-      </div>
+      </header>
 
-      <div className="lf__suggestion-price">
+      <section className="lf__suggestion-price">
         {suggestion.suggestedPriceFormatted}
-      </div>
+      </section>
 
       <p>
         This uses current South African Google Shopping results as a retail baseline, then
@@ -383,7 +383,7 @@ function PriceSuggestionPanel({ suggestion, loading, error, hasEnoughDetail }) {
           ))}
         </ul>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -410,7 +410,7 @@ function ListingTypeSelector({ value, onChange }) {
   ];
 
   return (
-    <div className="lf__listing-type-row" role="radiogroup" aria-label="Listing type">
+    <article className="lf__listing-type-row" role="radiogroup" aria-label="Listing type">
       {options.map((option) => {
         const selected = value === option.value;
         return (
@@ -434,7 +434,7 @@ function ListingTypeSelector({ value, onChange }) {
           </button>
         );
       })}
-    </div>
+    </article>
   );
 }
 
@@ -683,7 +683,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
 
         <section className="lf__section">
           <label className="lf__label" htmlFor="lf-category">Category</label>
-          <div style={{ position: "relative" }}>
+          <section style={{ position: "relative" }}>
             <select
               id="lf-category"
               className={`lf__input ${errors.category ? "lf__input--error" : ""}`}
@@ -715,7 +715,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
             >
               ▾
             </span>
-          </div>
+          </section>
           {errors.category && <p className="lf__error" role="alert">{errors.category}</p>}
         </section>
 
@@ -727,7 +727,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
             error={priceSuggestionError}
             hasEnoughDetail={hasEnoughPriceSuggestionDetail}
           />
-          <div className="lf__price-wrap">
+          <section className="lf__price-wrap">
             <span className="lf__currency" aria-hidden="true">R</span>
             <input
               id="lf-price"
@@ -743,7 +743,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
               maxLength={LISTING_PRICE_MAX_CHARS}
               aria-invalid={Boolean(errors.price)}
             />
-          </div>
+          </section>
           <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
             Maximum 8 digits before the decimal and 2 cents digits.
           </p>

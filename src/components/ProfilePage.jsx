@@ -207,8 +207,8 @@ function isValidBirthdate(value) {
 // ── Star display (read-only) ─────────────────────────────────
 function StarDisplay({ average = 0, count = 0 }) {
   return (
-    <div className="pub-rating__display">
-      <div className="pub-rating__stars">
+    <section className="pub-rating__display">
+      <section className="pub-rating__stars">
         {[1, 2, 3, 4, 5].map((i) => {
           const filled = average >= i;
           const half = !filled && average >= i - 0.5;
@@ -221,13 +221,13 @@ function StarDisplay({ average = 0, count = 0 }) {
             </span>
           );
         })}
-      </div>
+      </section>
       <span className="pub-rating__label">
         {count > 0
           ? `${average} (${count} review${count !== 1 ? "s" : ""})`
           : "No reviews yet"}
       </span>
-    </div>
+    </section>
   );
 }
 
@@ -258,23 +258,23 @@ function CompletionBar({ form, avatarPreview }) {
   });
 
   return (
-    <div className="profile-completion">
-      <div className="profile-completion__header">
+    <article className="profile-completion">
+      <header className="profile-completion__header">
         <span className="profile-completion__label">Profile completeness</span>
         <span className="profile-completion__pct" style={{ color }}>{pct}%</span>
-      </div>
-      <div className="profile-completion__track">
-        <div
+      </header>
+      <article className="profile-completion__track">
+        <article
           className="profile-completion__fill"
           style={{ width: `${pct}%`, background: color }}
         />
-      </div>
+      </article>
       {missing.length > 0 && (
         <p className="profile-completion__hint">
           Still missing: {missing.map((f) => f.label).join(", ")}
         </p>
       )}
-    </div>
+    </article>
   );
 }
 
@@ -451,9 +451,9 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gray-400)" }}>
+      <section style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gray-400)" }}>
         Loading profile…
-      </div>
+      </section>
     );
   }
 
@@ -483,27 +483,27 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
 
 
   return (
-    <div className="profile-page">
-      {toast && <div className="profile-toast">{toast}</div>}
+    <article className="profile-page">
+      {toast && <article className="profile-toast">{toast}</article>}
 
-      <div className="profile-page__inner">
+      <article className="profile-page__inner">
         <button className="profile-page__back" onClick={onBack}>← Back</button>
 
         {/* Completion bar */}
-        <div className="profile-card">
-          <div style={{ padding: "20px 32px" }}>
+        <article className="profile-card">
+          <section style={{ padding: "20px 32px" }}>
             <CompletionBar form={form} avatarPreview={avatarPreview} />
-          </div>
-        </div>
+          </section>
+        </article>
 
-        <div className="profile-card">
+        <article className="profile-card">
           {/* Avatar header */}
-          <div className="profile-card__avatar-section">
-            <div className="profile-card__avatar-wrap">
+          <article className="profile-card__avatar-section">
+            <article className="profile-card__avatar-wrap">
               {avatarPreview ? (
                 <img src={avatarPreview} alt="Avatar" className="profile-card__avatar" />
               ) : (
-                <div className="profile-card__avatar-placeholder">{initials}</div>
+                <article className="profile-card__avatar-placeholder">{initials}</article>
               )}
               <button
                 className="profile-card__avatar-btn"
@@ -521,9 +521,9 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                 style={{ display: "none" }}
                 onChange={handleAvatarChange}
               />
-            </div>
+            </article>
 
-            <div className="profile-card__avatar-info">
+            <article className="profile-card__avatar-info">
               <h2>{form.display_name || form.name || "Your Profile"}</h2>
               <p>{user?.email}</p>
               <StarDisplay average={ratingAvg} count={ratingCount} />
@@ -532,16 +532,16 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   🗓 Member since {memberSince}
                 </p>
               )}
-            </div>
-          </div>
+            </article>
+          </article>
 
           {/* Form body */}
-          <div className="profile-card__body">
+          <article className="profile-card__body">
 
             <p className="profile-section-title">Personal</p>
 
-            <div className="profile-field-row">
-              <div className="profile-field">
+            <article className="profile-field-row">
+              <article className="profile-field">
                 <label htmlFor="pf-name">Full name</label>
                 <input
                   id="pf-name"
@@ -551,8 +551,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   onChange={(e) => set("name", clampLength(e.target.value, PROFILE_NAME_MAX))}
                   maxLength={PROFILE_NAME_MAX}
                 />
-              </div>
-              <div className="profile-field">
+              </article>
+              <article className="profile-field">
                 <label htmlFor="pf-display">Display name</label>
                 <input
                   id="pf-display"
@@ -562,11 +562,11 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   onChange={(e) => set("display_name", clampLength(e.target.value, PROFILE_DISPLAY_NAME_MAX))}
                   maxLength={PROFILE_DISPLAY_NAME_MAX}
                 />
-              </div>
-            </div>
+              </article>
+            </article>
 
-            <div className="profile-field-row">
-              <div className="profile-field">
+            <article className="profile-field-row">
+              <article className="profile-field">
                 <label htmlFor="pf-sex">Sex</label>
                 <select id="pf-sex" value={form.sex} onChange={(e) => set("sex", e.target.value)}>
                   <option value="">Select…</option>
@@ -574,8 +574,8 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   <option>Female</option>
                   <option>Prefer not to say</option>
                 </select>
-              </div>
-              <div className="profile-field">
+              </article>
+              <article className="profile-field">
                 <label htmlFor="pf-birthdate">Date of birth</label>
                 <input
                   id="pf-birthdate"
@@ -585,10 +585,10 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   min={MIN_BIRTHDATE}
                   max={getMaxBirthdate()}
                 />
-              </div>
-            </div>
+              </article>
+            </article>
 
-            <div className="profile-field">
+            <article className="profile-field">
               <label htmlFor="pf-about">About you</label>
               <textarea
                 id="pf-about"
@@ -598,12 +598,12 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                 maxLength={PROFILE_ABOUT_MAX}
               />
               <span className="profile-field__hint">{form.about.length}/{PROFILE_ABOUT_MAX}</span>
-            </div>
+            </article>
 
             <p className="profile-section-title">Location & Institution</p>
 
-            <div className="profile-field-row">
-              <div className="profile-field">
+            <article className="profile-field-row">
+              <article className="profile-field">
                 <label htmlFor="pf-province">Province</label>
                 <select
                   id="pf-province"
@@ -613,9 +613,9 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                   <option value="">Select province…</option>
                   {PROVINCES.map((p) => <option key={p}>{p}</option>)}
                 </select>
-              </div>
+              </article>
 
-              <div className="profile-field">
+              <article className="profile-field">
                 <label htmlFor="pf-institution">
                   University / College
                   {!form.province && (
@@ -639,13 +639,13 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                     </optgroup>
                   ))}
                 </select>
-              </div>
-            </div>
+              </article>
+            </article>
 
             <p className="profile-section-title">Contact</p>
 
-            <div className="profile-field-row">
-              <div className="profile-field">
+            <article className="profile-field-row">
+              <article className="profile-field">
                 <label htmlFor="pf-phone">Phone number</label>
                 <input
                   id="pf-phone"
@@ -671,17 +671,17 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                 {phoneError && (
                   <span className="profile-field__error">{phoneError}</span>
                 )}
-            </div>
-            </div>
-          </div>
+            </article>
+            </article>
+          </article>
 
-          <div className="profile-card__footer">
+          <footer className="profile-card__footer">
             <button className="profile-save-btn" onClick={handleSave} disabled={saving}>
               {saving ? "Saving…" : "Save profile"}
             </button>
-          </div>
-        </div>
-      </div>
-    </div>
+          </footer>
+        </article>
+      </article>
+    </article>
   );
 }

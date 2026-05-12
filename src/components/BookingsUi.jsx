@@ -36,29 +36,29 @@ function getBookingErrorMessage(error) {
 
 function StepIndicator({ step }) {
   return (
-    <div className="brm-steps" role="list" aria-label="Booking steps">
+    <section className="brm-steps" role="list" aria-label="Booking steps">
       {["Facility & Date", "Time & Confirm"].map((label, index) => {
         const itemStep = index + 1;
         const active = step >= itemStep;
         const current = step === itemStep;
         return (
-          <div key={label} className="brm-step-group" role="listitem">
-            {index > 0 && <div className={`brm-step-line ${active ? "brm-step-line--active" : ""}`} />}
-            <div className={`brm-step ${active ? "brm-step--active" : ""} ${current ? "brm-step--current" : ""}`}>
+          <article key={label} className="brm-step-group" role="listitem">
+            {index > 0 && <span className={`brm-step-line ${active ? "brm-step-line--active" : ""}`} />}
+            <section className={`brm-step ${active ? "brm-step--active" : ""} ${current ? "brm-step--current" : ""}`}>
               <span className="brm-step-num" aria-hidden="true">{active && step > itemStep ? "✓" : itemStep}</span>
               <span className="brm-step-label">{label}</span>
-            </div>
-          </div>
+            </section>
+          </article>
         );
       })}
-    </div>
+    </section>
   );
 }
 
 function SuccessView({ bookingType, facilityName, selectedDate, selectedTime, onClose }) {
   return (
-    <div className="brm-success">
-      <div className="brm-success-icon" aria-hidden="true">✓</div>
+    <section className="brm-success">
+      <span className="brm-success-icon" aria-hidden="true">✓</span>
       <h3 className="brm-success-title">Slot booked</h3>
       <p className="brm-success-body">
         Your {bookingType === "dropoff" ? "drop-off" : "collection"} slot is now linked to the transaction.
@@ -69,7 +69,7 @@ function SuccessView({ bookingType, facilityName, selectedDate, selectedTime, on
         <li><span>Time</span><strong>{formatSlotLabel(selectedTime)}</strong></li>
       </ul>
       <button className="btn-primary brm-success-close" onClick={onClose}>Done</button>
-    </div>
+    </section>
   );
 }
 
@@ -269,7 +269,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
 
   return (
     <dialog ref={dialogRef} className="brm-dialog" onClose={onClose}>
-      <div className="brm-inner">
+      <section className="brm-inner">
         {done ? (
           <SuccessView
             bookingType={bookingType}
@@ -284,20 +284,20 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
               <span className="brm-header-icon" aria-hidden="true">
                 {bookingType === "dropoff" ? "📥" : "📦"}
               </span>
-              <div className="brm-header-text">
+              <header className="brm-header-text">
                 <h2 className="brm-title">
                   Book {bookingType === "dropoff" ? "Drop-off" : "Collection"} Slot
                 </h2>
                 <p className="brm-subtitle">{transaction.item} · {transaction.id}</p>
-              </div>
+              </header>
               <button className="brm-close-btn" onClick={onClose} aria-label="Close dialog">×</button>
             </header>
 
             <StepIndicator step={step} />
 
             {step === 1 && (
-              <div className="brm-body">
-                <div className="brm-field">
+              <section className="brm-body">
+                <section className="brm-field">
                   <label className="brm-label" htmlFor="booking-facility">Facility</label>
                   <select
                     id="booking-facility"
@@ -314,10 +314,10 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
                     ))}
                   </select>
                   {loadingFacilities && <p className="brm-hint">Loading facilities...</p>}
-                </div>
+                </section>
 
                 {selectedFacility && (
-                  <div className="brm-field">
+                  <section className="brm-field">
                     <label className="brm-label" htmlFor="booking-date">Date</label>
                 <input
                   id="booking-date"
@@ -341,11 +341,11 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
                     No more slots available today — all slots have passed.
                   </p>
                 )}
-                  </div>
+                  </section>
                 )}
 
                 {selectedFacility && (
-                  <div className="brm-hours-preview">
+                  <section className="brm-hours-preview">
                     <p className="brm-hours-title">Facility hours</p>
                     <ul className="brm-hours-list" role="list">
                       {DAYS.map((day) => {
@@ -360,30 +360,30 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
                         );
                       })}
                     </ul>
-                  </div>
+                  </section>
                 )}
 
                 {error && <p className="brm-error" role="alert">{error}</p>}
-              </div>
+              </section>
             )}
 
             {step === 2 && (
-              <div className="brm-body">
-                <div className="brm-summary-bar">
+              <section className="brm-body">
+                <section className="brm-summary-bar">
                   <span className="brm-summary-branch">{selectedFacility?.name}</span>
                   <span className="brm-summary-sep">·</span>
                   <span>{formatBookingDate(selectedDate)}</span>
                   <button className="brm-change-btn" onClick={() => setStep(1)}>Change</button>
-                </div>
+                </section>
 
-                <div className="brm-field">
+                <section className="brm-field">
                   <label className="brm-label">Available slots</label>
                   {loadingSlots ? (
                     <p className="brm-hint">Checking current bookings...</p>
                   ) : availableSlots.length === 0 ? (
                     <p className="brm-hint brm-hint--warn">No bookable slots for the selected day.</p>
                   ) : (
-                    <div className="brm-slots" role="group" aria-label="Available time slots">
+                    <section className="brm-slots" role="group" aria-label="Available time slots">
                       {availableSlots.filter((slot) => (slotUsage[slot] || 0) < (selectedFacility?.capacity || 1)).map((slot) => {
                         const capacity = selectedFacility?.capacity || 1;
                         const usage = slotUsage[slot] || 0;
@@ -400,12 +400,12 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
                           </button>
                         );
                       })}
-                    </div>
+                    </section>
                   )}
-                </div>
+                </section>
 
                 {error && <p className="brm-error" role="alert">{error}</p>}
-              </div>
+              </section>
             )}
 
             <footer className="brm-footer">
@@ -427,7 +427,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
             </footer>
           </>
         )}
-      </div>
+      </section>
     </dialog>
   );
 }
@@ -444,36 +444,36 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
   return (
     <article className="bookings-page-card">
       <header className="bookings-page-card__header">
-        <div>
+        <section>
           <p className="bookings-page-card__eyebrow">Transaction</p>
           <h3>{transaction.item}</h3>
           <p className="bookings-page-card__id">{transaction.id}</p>
-        </div>
+        </section>
         <span className={`bookings-page-status bookings-page-status--${transaction.status}`}>
           {TRANSACTION_STATUS_META[transaction.status] || transaction.status}
         </span>
       </header>
 
-      <div className="bookings-page-card__grid">
-        <div>
+      <article className="bookings-page-card__grid">
+        <section>
           <p className="bookings-page-card__label">Seller</p>
           <p>{transaction.seller_profile?.display_name || transaction.seller_profile?.name || transaction.seller_id}</p>
-        </div>
-        <div>
+        </section>
+        <section>
           <p className="bookings-page-card__label">Buyer</p>
           <p>{transaction.buyer_profile?.display_name || transaction.buyer_profile?.name || transaction.buyer_id}</p>
-        </div>
-        <div>
+        </section>
+        <section>
           <p className="bookings-page-card__label">Price</p>
           <p>R {Number(transaction.price || 0).toLocaleString("en-ZA")}</p>
-        </div>
-        <div>
+        </section>
+        <section>
           <p className="bookings-page-card__label">Created</p>
           <p>{formatTimestampDate(transaction.created_at)}</p>
-        </div>
-      </div>
+        </section>
+      </article>
 
-      <div className="bookings-page-card__bookings">
+      <article className="bookings-page-card__bookings">
         <section className="bookings-page-card__booking">
           <p className="bookings-page-card__label">Drop-off</p>
           {transaction.dropoff_booking ? (
@@ -507,7 +507,7 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
             </button>
           )}
         </section>
-      </div>
+      </article>
     </article>
   );
 }
@@ -591,24 +591,24 @@ export function StudentBookingsPage({ user, onBack }) {
   return (
     <section className="bookings-page">
       <header className="bookings-page__header">
-        <div>
+        <section>
           <button className="btn-export bookings-page__back" onClick={onBack}>← Back</button>
           <p className="bookings-page__eyebrow">Trade Facility</p>
           <h1>My Bookings</h1>
           <p className="bookings-page__intro">
             Book your drop-off and collection slots once a transaction is ready. Sellers book drop-off first, then buyers book collection after the item is received.
           </p>
-        </div>
+        </section>
       </header>
 
       {loading ? (
-        <div className="bookings-page__empty">Loading your transactions...</div>
+        <article className="bookings-page__empty">Loading your transactions...</article>
       ) : error ? (
-        <div className="bookings-page__empty bookings-page__empty--error">{error}</div>
+        <article className="bookings-page__empty bookings-page__empty--error">{error}</article>
       ) : transactions.length === 0 ? (
-        <div className="bookings-page__empty">No transactions are ready for booking yet.</div>
+        <article className="bookings-page__empty">No transactions are ready for booking yet.</article>
       ) : (
-        <div className="bookings-page__list">
+        <article className="bookings-page__list">
           {transactions.map((transaction) => (
             <TransactionBookingCard
               key={transaction.id}
@@ -617,7 +617,7 @@ export function StudentBookingsPage({ user, onBack }) {
               onBook={(selectedTransaction, bookingType) => setActiveBooking({ transaction: selectedTransaction, bookingType })}
             />
           ))}
-        </div>
+        </article>
       )}
 
       {activeBooking && (

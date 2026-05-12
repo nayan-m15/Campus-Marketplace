@@ -231,6 +231,7 @@ beforeEach(() => {
   mockSignOut.mockReset();
   mockSignOut.mockResolvedValue({ error: null });
   Element.prototype.scrollIntoView = vi.fn();
+  window.sessionStorage.clear();
   window.history.replaceState({}, "", "/");
 });
 
@@ -820,6 +821,23 @@ test("redirects to the main page after signing out from a protected page", async
     expect(window.location.pathname).toBe("/");
   });
   expect(screen.queryByRole("heading", { name: /welcome back/i })).not.toBeInTheDocument();
+});
+
+test("restores a protected route after static hosting serves the app fallback", async () => {
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "student@example.com" },
+      },
+    },
+  });
+  window.sessionStorage.setItem("campusxchange:static-host-redirect", "/messages");
+  window.history.replaceState({}, "", "/");
+
+  renderApp();
+
+  expect(await screen.findByRole("heading", { name: /^messages$/i })).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/messages");
 });
 
 test("redirects an unauthenticated admin refresh to login", async () => {

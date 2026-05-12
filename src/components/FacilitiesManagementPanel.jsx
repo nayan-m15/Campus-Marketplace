@@ -289,8 +289,8 @@ function FacilityFormModal({
   if (!isVisible) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+    <section className="modal-overlay" onClick={onClose}>
+      <section className="modal-content" onClick={e => e.stopPropagation()}>
         <header className="modal-header">
           <h2 className="modal-title">
             {facility ? "Edit Facility" : "Add New Facility"}
@@ -301,12 +301,12 @@ function FacilityFormModal({
         </header>
 
         <form onSubmit={handleSubmit} className="facility-form">
-          <div className="form-grid">
+          <section className="form-grid">
             {/* Basic Information */}
             <fieldset className="form-section">
               <legend className="form-legend">Basic Information</legend>
               
-              <div className="form-field">
+              <section className="form-field">
                 <label htmlFor="facility-name" className="form-label">Facility Name *</label>
                 <input
                   id="facility-name"
@@ -318,9 +318,9 @@ function FacilityFormModal({
                   disabled={isLoading}
                 />
                 {errors.name && <span className="form-error">{errors.name}</span>}
-              </div>
+              </section>
 
-              <div className="form-field">
+              <section className="form-field">
                 <label htmlFor="facility-description" className="form-label">Description</label>
                 <textarea
                   id="facility-description"
@@ -331,9 +331,9 @@ function FacilityFormModal({
                   rows={3}
                   disabled={isLoading}
                 />
-              </div>
+              </section>
 
-              <div className="form-field">
+              <section className="form-field">
                 <label htmlFor="facility-location" className="form-label">Location</label>
                 <input
                   id="facility-location"
@@ -344,9 +344,9 @@ function FacilityFormModal({
                   placeholder="e.g., Building A, Floor 2"
                   disabled={isLoading}
                 />
-              </div>
+              </section>
 
-              <div className="form-field">
+              <section className="form-field">
                 <label htmlFor="facility-image" className="form-label">Image URL</label>
                 <input
                   id="facility-image"
@@ -357,15 +357,15 @@ function FacilityFormModal({
                   placeholder="https://example.com/facility-image.jpg"
                   disabled={isLoading}
                 />
-              </div>
+              </section>
             </fieldset>
 
             {/* Capacity & Settings */}
             <fieldset className="form-section">
               <legend className="form-legend">Capacity & Settings</legend>
               
-              <div className="form-row">
-                <div className="form-field">
+              <section className="form-row">
+                <section className="form-field">
                   <label htmlFor="facility-capacity" className="form-label">Capacity Per Session *</label>
                   <input
                     id="facility-capacity"
@@ -378,9 +378,9 @@ function FacilityFormModal({
                     disabled={isLoading}
                   />
                   {errors.capacity && <span className="form-error">{errors.capacity}</span>}
-                </div>
+                </section>
 
-                <div className="form-field">
+                <section className="form-field">
                   <label htmlFor="session-duration" className="form-label">Session Duration (minutes) *</label>
                   <input
                     id="session-duration"
@@ -394,9 +394,9 @@ function FacilityFormModal({
                     disabled={isLoading}
                   />
                   {errors.session_duration_minutes && <span className="form-error">{errors.session_duration_minutes}</span>}
-                </div>
+                </section>
 
-                <div className="form-field">
+                <section className="form-field">
                   <label htmlFor="facility-status" className="form-label">Status</label>
                   <select
                     id="facility-status"
@@ -411,8 +411,8 @@ function FacilityFormModal({
                       </option>
                     ))}
                   </select>
-                </div>
-              </div>
+                </section>
+              </section>
             </fieldset>
 
             {/* Operating Hours */}
@@ -420,12 +420,12 @@ function FacilityFormModal({
               <legend className="form-legend">Operating Hours</legend>
               {errors.hours && <span className="form-error">{errors.hours}</span>}
               
-              <div className="hours-grid">
+              <section className="hours-grid">
                 {DAYS.map(day => {
                   const dayHours = formData.hours[day];
                   const dayError = errors[`hours_${day}`];
                   return (
-                    <div key={day} className="hours-row">
+                    <section key={day} className="hours-row">
                       <label className="hours-toggle">
                         <input
                           type="checkbox"
@@ -438,7 +438,7 @@ function FacilityFormModal({
                       </label>
                       
                       {dayHours.open && (
-                        <div className="time-inputs">
+                        <section className="time-inputs">
                           <input
                             type="time"
                             value={dayHours.start}
@@ -454,16 +454,16 @@ function FacilityFormModal({
                             className="time-input"
                             disabled={isLoading}
                           />
-                        </div>
+                        </section>
                       )}
                       
                       {dayError && <span className="form-error day-error">{dayError}</span>}
-                    </div>
+                    </section>
                   );
                 })}
-              </div>
+              </section>
             </fieldset>
-          </div>
+          </section>
 
           <footer className="modal-footer">
             <button
@@ -492,8 +492,8 @@ function FacilityFormModal({
             </button>
           </footer>
         </form>
-      </div>
-    </div>
+      </section>
+    </section>
   );
 }
 
@@ -505,7 +505,7 @@ function FacilityCard({ facility, onEdit, onDelete, onToggleStatus }) {
 
   return (
     <article className="facility-management-card">
-      <div className="facility-card-header">
+      <header className="facility-card-header">
         {facility.image_url && !imageError ? (
           <img 
             src={facility.image_url} 
@@ -514,12 +514,12 @@ function FacilityCard({ facility, onEdit, onDelete, onToggleStatus }) {
             onError={() => setImageError(true)}
           />
         ) : (
-          <div className="facility-image-placeholder">
+          <article className="facility-image-placeholder">
             <span className="facility-icon">FC</span>
-          </div>
+          </article>
         )}
         
-        <div className="facility-info">
+        <article className="facility-info">
           <h3 className="facility-name">{facility.name}</h3>
           {facility.location && (
             <p className="facility-location">📍 {facility.location}</p>
@@ -528,7 +528,7 @@ function FacilityCard({ facility, onEdit, onDelete, onToggleStatus }) {
             <p className="facility-description">{facility.description}</p>
           )}
           
-          <div className="facility-meta">
+          <article className="facility-meta">
             <span className="meta-item">
               <span className="meta-label">Capacity:</span>
               <span className="meta-value">{facility.capacity}</span>
@@ -541,39 +541,39 @@ function FacilityCard({ facility, onEdit, onDelete, onToggleStatus }) {
               <span className="meta-label">Days Open:</span>
               <span className="meta-value">{openDays}/7</span>
             </span>
-          </div>
-        </div>
+          </article>
+        </article>
         
-        <div className="facility-status">
+        <article className="facility-status">
           <span 
             className="status-badge"
             style={{ backgroundColor: statusInfo?.color }}
           >
             {statusInfo?.label}
           </span>
-        </div>
-      </div>
+        </article>
+      </header>
 
-      <div className="facility-hours-summary">
+      <article className="facility-hours-summary">
         <h4>Operating Hours</h4>
-        <div className="hours-summary-grid">
+        <section className="hours-summary-grid">
           {DAYS.map(day => {
             const hours = facility.hours[day];
             return (
-              <div key={day} className={`hours-summary-item ${!hours.open ? 'closed' : ''}`}>
+              <section key={day} className={`hours-summary-item ${!hours.open ? 'closed' : ''}`}>
                 <span className="day-name">{day.slice(0, 3)}</span>
                 {hours.open ? (
                   <span className="time-range">{hours.start} - {hours.end}</span>
                 ) : (
                   <span className="closed-label">Closed</span>
                 )}
-              </div>
+              </section>
             );
           })}
-        </div>
-      </div>
+        </section>
+      </article>
 
-      <div className="facility-actions">
+      <article className="facility-actions">
         <button 
           onClick={() => onEdit(facility)}
           className="btn btn-outline"
@@ -595,7 +595,7 @@ function FacilityCard({ facility, onEdit, onDelete, onToggleStatus }) {
         >
           Delete
         </button>
-      </div>
+      </article>
     </article>
   );
 }
@@ -908,18 +908,18 @@ export default function FacilitiesManagementPanel() {
     <section className="facilities-management-panel">
       {/* Toast Notification */}
       {toast.visible && (
-        <div
+        <section
           className={`toast toast--${toast.type} toast--visible`}
           role="status"
           aria-live={toast.type === "error" ? "assertive" : "polite"}
         >
           <span className="toast-message">{toast.message}</span>
-        </div>
+        </section>
       )}
 
       {/* Header */}
       <header className="panel-header">
-        <div className="header-content">
+        <header className="header-content">
           <hgroup>
             <h2 className="panel-title">Facilities Management</h2>
             <p className="panel-subtitle">Manage campus facilities, operating hours, and capacity settings</p>
@@ -931,11 +931,11 @@ export default function FacilitiesManagementPanel() {
           >
             Add Facility
           </button>
-        </div>
+        </header>
 
         {/* Filters */}
-        <div className="panel-filters">
-          <div className="filter-group">
+        <section className="panel-filters">
+          <section className="filter-group">
             <input
               type="text"
               placeholder="Search facilities..."
@@ -943,9 +943,9 @@ export default function FacilitiesManagementPanel() {
               onChange={e => setSearchTerm(e.target.value)}
               className="search-input"
             />
-          </div>
+          </section>
           
-          <div className="filter-group">
+          <section className="filter-group">
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
@@ -958,27 +958,27 @@ export default function FacilitiesManagementPanel() {
                 </option>
               ))}
             </select>
-          </div>
-        </div>
+          </section>
+        </section>
       </header>
 
       {/* Content */}
-      <div className="panel-content">
+      <section className="panel-content">
         {loading ? (
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
+          <section className="loading-state">
+            <span className="loading-spinner"></span>
             <p>Loading facilities...</p>
-          </div>
+          </section>
         ) : error ? (
-          <div className="error-state">
+          <section className="error-state">
             <span className="error-icon">!</span>
             <p>{error}</p>
             <button onClick={fetchFacilities} className="btn btn-primary" type="button">
               Retry
             </button>
-          </div>
+          </section>
         ) : filteredFacilities.length === 0 ? (
-          <div className="empty-state">
+          <section className="empty-state">
             <span className="empty-icon">FC</span>
             <h3>No facilities found</h3>
             <p>
@@ -991,9 +991,9 @@ export default function FacilitiesManagementPanel() {
                 Add First Facility
               </button>
             )}
-          </div>
+          </section>
         ) : (
-          <div className="facilities-grid">
+          <section className="facilities-grid">
             {filteredFacilities.map(facility => (
               <FacilityCard
                 key={facility.id}
@@ -1003,9 +1003,9 @@ export default function FacilitiesManagementPanel() {
                 onToggleStatus={handleToggleStatus}
               />
             ))}
-          </div>
+          </section>
         )}
-      </div>
+      </section>
 
       {/* Facility Form Modal */}
       <FacilityFormModal

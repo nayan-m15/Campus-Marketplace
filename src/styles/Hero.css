@@ -162,22 +162,22 @@
 /* 
   Add this HTML structure inside .hero__content before closing:
 
-  <div class="hero__stats">
-    <div class="hero__stat">
+  <section class="hero__stats">
+    <section class="hero__stat">
       <span class="hero__stat-value" id="stat-listings">—</span>
       <span class="hero__stat-label">Active listings</span>
-    </div>
-    <div class="hero__stat-divider"></div>
-    <div class="hero__stat">
+    </section>
+    <span class="hero__stat-divider"></span>
+    <section class="hero__stat">
       <span class="hero__stat-value" id="stat-sellers">—</span>
       <span class="hero__stat-label">Student sellers</span>
-    </div>
-    <div class="hero__stat-divider"></div>
-    <div class="hero__stat">
+    </section>
+    <span class="hero__stat-divider"></span>
+    <section class="hero__stat">
       <span class="hero__stat-value" id="stat-categories">—</span>
       <span class="hero__stat-label">Categories</span>
-    </div>
-  </div>
+    </section>
+  </section>
 */
 
 .hero__stats {

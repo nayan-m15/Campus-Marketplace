@@ -155,48 +155,48 @@ function getPriceSuggestionErrorMessage(error) {
 function EditPriceSuggestion({ suggestion, loading, error, hasEnoughDetail }) {
   if (!hasEnoughDetail) {
     return (
-      <div style={{ border: "1px solid var(--gray-200)", borderRadius: 10, padding: 12, background: "var(--surface-soft)", color: "var(--gray-600)" }}>
+      <section style={{ border: "1px solid var(--gray-200)", borderRadius: 10, padding: 12, background: "var(--surface-soft)", color: "var(--gray-600)" }}>
         <strong style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Suggested price will appear here</strong>
         <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45 }}>Add enough title, description, condition, and category detail first.</p>
-      </div>
+      </section>
     );
   }
 
   if (loading) {
     return (
-      <div style={{ border: "1px solid var(--gray-200)", borderRadius: 10, padding: 12, background: "var(--surface-soft)", color: "var(--gray-600)" }}>
+      <section style={{ border: "1px solid var(--gray-200)", borderRadius: 10, padding: 12, background: "var(--surface-soft)", color: "var(--gray-600)" }}>
         <strong style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Checking price...</strong>
         <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45 }}>Comparing South African Google Shopping results.</p>
-      </div>
+      </section>
     );
   }
 
   if (error) {
     return (
-      <div style={{ border: "1px solid rgba(229, 157, 58, 0.55)", borderRadius: 10, padding: 12, background: "rgba(229, 157, 58, 0.12)", color: "var(--gray-600)" }}>
+      <section style={{ border: "1px solid rgba(229, 157, 58, 0.55)", borderRadius: 10, padding: 12, background: "rgba(229, 157, 58, 0.12)", color: "var(--gray-600)" }}>
         <strong style={{ display: "block", fontSize: 13, marginBottom: 4 }}>Price suggestion unavailable</strong>
         <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45 }}>{error}</p>
-      </div>
+      </section>
     );
   }
 
   if (!suggestion) return null;
 
   return (
-    <div style={{ border: "1px solid rgba(31, 107, 82, 0.22)", borderRadius: 10, padding: 12, background: "rgba(227, 239, 230, 0.7)", color: "var(--gray-600)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+    <section style={{ border: "1px solid rgba(31, 107, 82, 0.22)", borderRadius: 10, padding: 12, background: "rgba(227, 239, 230, 0.7)", color: "var(--gray-600)" }}>
+      <section style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
         <strong style={{ fontSize: 13, color: "var(--gray-900)" }}>Suggested price</strong>
         <span style={{ fontSize: 10, fontWeight: 800, color: "var(--green)", textTransform: "uppercase" }}>
           {suggestion.confidence?.level || "Low"} confidence
         </span>
-      </div>
+      </section>
       <p style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 800, color: "var(--green-dark)" }}>
         {suggestion.suggestedPriceFormatted}
       </p>
       <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45 }}>
         Based on Google Shopping SA, adjusted for condition.
       </p>
-    </div>
+    </section>
   );
 }
 
@@ -247,12 +247,12 @@ function EditImageStrip({ images, onChange }) {
   }
 
   return (
-    <div>
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6 }}>
+    <section>
+      <section style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6 }}>
         {images.map((image, index) => (
           // Each thumbnail can be removed; non-cover thumbnails can move left
           // until they become the cover image.
-          <div
+          <section
             key={image.id}
             style={{
               position: "relative",
@@ -271,7 +271,7 @@ function EditImageStrip({ images, onChange }) {
                 Cover
               </span>
             )}
-            <div style={{ position: "absolute", top: 5, right: 5, display: "flex", gap: 4 }}>
+            <section style={{ position: "absolute", top: 5, right: 5, display: "flex", gap: 4 }}>
               {index > 0 && (
                 <button
                   type="button"
@@ -290,13 +290,13 @@ function EditImageStrip({ images, onChange }) {
               >
                 x
               </button>
-            </div>
-          </div>
+            </section>
+          </section>
         ))}
 
         {images.length < MAX_IMAGES && (
           // The add slot doubles as a drag-and-drop target and native picker launcher.
-          <div
+          <section
             onDragOver={(event) => {
               event.preventDefault();
               setDraggingOver(true);
@@ -384,19 +384,19 @@ function EditImageStrip({ images, onChange }) {
               style={{ display: "none" }}
               aria-label="Take listing photo"
             />
-          </div>
+          </section>
         )}
-      </div>
+      </section>
       <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
         First photo is the cover. Add up to {MAX_IMAGES}, remove old photos, or move a photo left to make it the cover.
       </p>
-    </div>
+    </section>
   );
 }
 
 function EditListingTypeSelector({ value, onChange }) {
   return (
-    <div style={{ display: "flex", gap: 8, width: "100%" }} role="radiogroup" aria-label="Listing type">
+    <section style={{ display: "flex", gap: 8, width: "100%" }} role="radiogroup" aria-label="Listing type">
       {LISTING_TYPE_OPTIONS.map((option) => {
         const selected = value === option.value;
         return (
@@ -427,7 +427,7 @@ function EditListingTypeSelector({ value, onChange }) {
           </button>
         );
       })}
-    </div>
+    </section>
   );
 }
 // Component entry point for this part of the interface.
@@ -437,6 +437,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [completedListingIds, setCompletedListingIds] = useState(new Set());
   const [editingItem, setEditingItem] = useState(null);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -533,14 +534,26 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   const fetchUserListings = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("listings")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    const [{ data: listingsData, error: listingsError }, { data: txnData }] = await Promise.all([
+      supabase
+        .from("listings")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("transactions")
+        .select("listing_id")
+        .eq("status", "completed")
+        .or(`seller_id.eq.${user.id},buyer_id.eq.${user.id}`),
+    ]);
 
-    if (error) setError(error.message);
-    else setListings(data || []);
+    if (listingsError) setError(listingsError.message);
+    else setListings(listingsData || []);
+
+    // Build a Set of listing IDs that were part of a completed transaction
+    // so the UI can block the Relist button for those items.
+    const ids = new Set((txnData || []).map((t) => t.listing_id).filter(Boolean));
+    setCompletedListingIds(ids);
     setLoading(false);
   }, [user]);
 
@@ -560,9 +573,14 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   }
 
   async function handleMarkSold(id, currentStatus) {
+    const wasSold = currentStatus === "sold";
+    // Prevent relisting items that were sold through a completed trade transaction.
+    if (wasSold && completedListingIds.has(id)) {
+      setError("This item was sold through a completed trade transaction and cannot be relisted.");
+      return;
+    }
     const listing = listings.find((l) => l.id === id);
     const hasFlagReason = Boolean(listing?.flag_reason?.trim());
-    const wasSold = currentStatus === "sold";
     const newStatus = wasSold ? (hasFlagReason ? "flagged" : "active") : "sold";
     const { error } = await supabase
       .from("listings")
@@ -696,10 +714,10 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface-muted)", padding: "32px 40px", fontFamily: "var(--font)" }}>
+    <section style={{ minHeight: "100vh", background: "var(--surface-muted)", padding: "32px 40px", fontFamily: "var(--font)" }}>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
+      <section style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
         <button
           onClick={onBack}
           style={{ background: "none", border: "1px solid var(--gray-200)", borderRadius: 9, padding: "8px 16px", cursor: "pointer", fontSize: 14, color: "var(--gray-800)", fontFamily: "var(--font)" }}
@@ -712,13 +730,13 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
             {listings.length} listing{listings.length !== 1 ? "s" : ""}
           </span>
         )}
-      </div>
+      </section>
 
       {/* Success toast */}
       {successMsg && (
-        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "var(--gray-900)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+        <section style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "var(--gray-900)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
           {successMsg}
-        </div>
+        </section>
       )}
 
       {/* Error */}
@@ -731,15 +749,15 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
 
       {/* Empty state */}
       {!loading && listings.length === 0 && (
-        <div style={{ textAlign: "center", padding: "80px 0", color: "var(--gray-600)" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📦</div>
+        <section style={{ textAlign: "center", padding: "80px 0", color: "var(--gray-600)" }}>
+          <section style={{ fontSize: 48, marginBottom: 16 }}>📦</section>
           <p style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No listings yet</p>
           <p style={{ fontSize: 14 }}>Click "+ List Item" in the navbar to create your first listing.</p>
-        </div>
+        </section>
       )}
 
       {/* Listings grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 24 }}>
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 24 }}>
         {listings.map((item) => {
           const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
           const isSold = item.status === "sold";
@@ -754,30 +772,30 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
 
               {/* Status badge */}
               {(item.status === "sold" || item.status === "for_trade" || item.listing_type === "trade" || item.listing_type === "sale_and_trade") && (
-                <div style={{
+                <section style={{
                   position: "absolute", top: 12, left: 12, zIndex: 1,
                   background: item.status === "sold" ? "#111" : isTradeOnly ? "#1e40af" : "#2563eb",
                   color: "#fff", borderRadius: 8, padding: "4px 10px",
                   fontSize: 12, fontWeight: 700
               }}>
                 {item.status === "sold" ? "SOLD" : isTradeOnly ? "FOR TRADE ONLY" : "FOR TRADE"}
-              </div>
+              </section>
             )}
 
             {/* Flagged badge */}
             {isFlagged && (
-              <div style={{
+              <section style={{
                 position: "absolute", top: 12, right: 12, zIndex: 1,
                 background: "#ef4444", color: "#fff", borderRadius: 8,
                 padding: "4px 10px", fontSize: 12, fontWeight: 700,
                 display: "flex", alignItems: "center", gap: 4,
               }}>
                 FLAGGED
-              </div>
+              </section>
             )}
 
               {/* Image */}
-              <div style={{ position: "relative", width: "100%", height: 220, background: "#e5e7eb", overflow: "hidden" }}>
+              <section style={{ position: "relative", width: "100%", height: 220, background: "#e5e7eb", overflow: "hidden" }}>
                 {coverImage ? (
                   <img
                     src={coverImage}
@@ -793,20 +811,20 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                     }}
                   />
                 ) : (
-                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>
+                  <section style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>
                     {item.emoji || "📦"}
-                  </div>
+                  </section>
                 )}
-              </div>
+              </section>
 
               {/* Details */}
-              <div style={{ padding: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+              <section style={{ padding: 16 }}>
+                <section style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                   <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--gray-900)", margin: 0, flex: 1 }}>{item.title}</h3>
                   <span style={{ background: conditionColor + "22", color: conditionColor, borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 600, marginLeft: 8, whiteSpace: "nowrap" }}>
                     {item.condition}
                   </span>
-                </div>
+                </section>
 
                 <p style={{ fontSize: 18, fontWeight: 800, color: "var(--gray-900)", margin: "0 0 4px" }}>{formatZAR(item.price)}</p>
                 <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "0 0 8px" }}>{item.category}</p>
@@ -831,7 +849,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 )}
 
                 {/* Actions */}
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <section style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
                     className="your-listings-btn"
                     onClick={() => {
@@ -855,9 +873,20 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   <button
                     className="your-listings-btn"
                     onClick={() => handleMarkSold(item.id, item.status)}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb", background: item.status === "sold" ? "#f0fdf4" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)", color: item.status === "sold" ? "var(--green)" : "var(--gray-800)" }}
+                    disabled={item.status === "sold" && completedListingIds.has(item.id)}
+                    title={item.status === "sold" && completedListingIds.has(item.id) ? "This item was sold through a completed trade transaction" : undefined}
+                    style={{
+                      flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb",
+                      background: item.status === "sold" ? "#f0fdf4" : "#fff",
+                      fontSize: 13, fontWeight: 600,
+                      cursor: item.status === "sold" && completedListingIds.has(item.id) ? "not-allowed" : "pointer",
+                      fontFamily: "var(--font)",
+                      color: item.status === "sold" ? "var(--green)" : "var(--gray-800)",
+                      opacity: item.status === "sold" && completedListingIds.has(item.id) ? 0.45 : 1,
+                    }}
+
                   >
-                    {item.status === "sold" ? "Relist" : " Mark Sold"}
+                    {item.status === "sold" ? "Relist" : "Mark Sold"}
                   </button>
                   <button
                     className="your-listings-btn"
@@ -866,21 +895,21 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   >
                     🗑️
                   </button>
-                </div>
-              </div>
+                </section>
+              </section>
             </article>
           );
         })}
-      </div>
+      </section>
 
       {/* Delete confirmation modal */}
       {deleteConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
-          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 400, width: "90%", textAlign: "center" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
+        <section style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
+          <section style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 400, width: "90%", textAlign: "center" }}>
+            <section style={{ fontSize: 40, marginBottom: 12 }}>🗑️</section>
             <h3 style={{ fontWeight: 800, marginBottom: 8 }}>Delete this listing?</h3>
             <p style={{ color: "var(--gray-600)", fontSize: 14, marginBottom: 24 }}>This cannot be undone.</p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+            <section style={{ display: "flex", gap: 12, justifyContent: "center" }}>
               <button
                 onClick={() => setDeleteConfirm(null)}
                 style={{ padding: "10px 24px", borderRadius: 9, border: "1px solid var(--gray-200)", background: "var(--surface)", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font)" }}
@@ -893,34 +922,34 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
               >
                 Delete
               </button>
-            </div>
-          </div>
-        </div>
+            </section>
+          </section>
+        </section>
       )}
 
       {/* Flag reason modal */}
       {flagReasonItem && (
-        <div
+        <section
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}
           onClick={() => setFlagReasonItem(null)}
         >
-          <div
+          <section
             style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 400, width: "90%", textAlign: "center" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontSize: 36, marginBottom: 12 }}>🚩</div>
+            <section style={{ fontSize: 36, marginBottom: 12 }}>🚩</section>
             <h3 style={{ fontWeight: 800, marginBottom: 8, color: "var(--gray-900)" }}>Listing Flagged</h3>
             <p style={{ color: "var(--gray-600)", fontSize: 13, marginBottom: 8 }}>
               A staff member has flagged <strong>"{flagReasonItem.title}"</strong> for the following reason:
             </p>
-            <div style={{
+            <section style={{
               background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10,
               padding: "12px 16px", marginBottom: 24, textAlign: "left",
             }}>
               <p style={{ margin: 0, fontSize: 14, color: "#b91c1c", fontWeight: 600, lineHeight: 1.5 }}>
                 {flagReasonItem.flag_reason || "No reason provided."}
               </p>
-            </div>
+            </section>
             <p style={{ color: "var(--gray-500)", fontSize: 12, marginBottom: 20 }}>
               Please edit or remove this listing to address the issue. Flagged listings are hidden from other users.
             </p>
@@ -930,21 +959,21 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
             >
               Close
             </button>
-          </div>
-        </div>
+          </section>
+        </section>
       )}
 
       {/* Edit modal */}
       {editingItem && (
-        <div
+        <section
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}
           onClick={() => { setEditingItem(null); setIsEditingPrice(false); }}
         >
-          <div
+          <section
           style={{ background: "var(--surface)", borderRadius: 16, padding: 32, maxWidth: 480, width: "90%", maxHeight: "90vh", overflowY: "auto" }}
           onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ position: "relative" }}>
+            <section style={{ position: "relative" }}>
               <button
                 type="button"
                 onClick={() => { setEditingItem(null); setIsEditingPrice(false); }}
@@ -970,10 +999,10 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 >
                   ✕
                 </button>
-            </div>
+            </section>
             <h3 style={{ fontWeight: 800, marginBottom: 24, fontSize: 18 }}>Edit Listing</h3>
             <form onSubmit={handleEditSave} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
+              <section style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
                 <span>Listing type</span>
                 <EditListingTypeSelector
                   value={getEditableListingType(editingItem)}
@@ -986,9 +1015,9 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                     }));
                   }}
                 />
-              </div>
+              </section>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
+              <section style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
                 <span>Photos</span>
                 {/* The image strip owns photo-only edits; the parent keeps the
                     full listing draft so Save Changes can persist everything. */}
@@ -1004,7 +1033,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                     }));
                   }}
                 />
-              </div>
+              </section>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--gray-800)" }}>
                 Title
@@ -1114,7 +1143,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 </span>
               </label>
 
-              <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+              <section style={{ display: "flex", gap: 12, marginTop: 8 }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -1132,11 +1161,11 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                 >
                   Save Changes
                 </button>
-              </div>
+              </section>
             </form>
-          </div>
-        </div>
+          </section>
+        </section>
       )}
-    </div>
+    </section>
   );
 }

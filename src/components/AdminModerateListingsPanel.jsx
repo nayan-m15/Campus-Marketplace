@@ -88,7 +88,7 @@ export default function AdminModerateListingsPanel({
       </header>
 
       <section className="moderation-toolbar" aria-label="Moderation filters">
-        <div className="moderation-toolbar__stats">
+        <section className="moderation-toolbar__stats">
           <article className="moderation-stat-card">
             <span className="moderation-stat-card__label">Total listings</span>
             <strong className="moderation-stat-card__value">{listings.length}</strong>
@@ -101,9 +101,9 @@ export default function AdminModerateListingsPanel({
             <span className="moderation-stat-card__label">Trade listings</span>
             <strong className="moderation-stat-card__value">{tradeCount}</strong>
           </article>
-        </div>
+        </section>
 
-        <div className="moderation-toolbar__filters">
+        <section className="moderation-toolbar__filters">
           <label className="moderation-field">
             <span className="moderation-field__label">Search</span>
             <input
@@ -194,7 +194,7 @@ export default function AdminModerateListingsPanel({
               </label>
             </>
           )}
-        </div>
+        </section>
       </section>
 
       {error ? (
@@ -224,7 +224,7 @@ export default function AdminModerateListingsPanel({
                 />
 
                 <section className="moderation-card__details">
-                  <div className="moderation-card__badges">
+                  <article className="moderation-card__badges">
                     <span className={`moderation-status moderation-status--${item.status === "flagged" ? "flagged" : "active"}`}>
                       {item.status === "flagged" ? "Flagged" : "Active"}
                     </span>
@@ -236,35 +236,35 @@ export default function AdminModerateListingsPanel({
                           ? "Sale & Trade"
                           : "Sale"}
                     </span>
-                  </div>
+                  </article>
 
                   <dl className="moderation-card__meta">
-                    <div>
+                    <section>
                       <dt>Seller</dt>
                       <dd>{item.seller || "Unknown"}</dd>
-                    </div>
-                    <div>
+                    </section>
+                    <section>
                       <dt>Institution</dt>
                       <dd>{item.institution || "Institution not provided"}</dd>
-                    </div>
-                    <div>
+                    </section>
+                    <section>
                       <dt>Location</dt>
                       <dd>{item.approximate_location || "Location not provided"}</dd>
-                    </div>
-                    <div>
+                    </section>
+                    <section>
                       <dt>Joined</dt>
                       <dd>{item.joined_label || "Unknown"}</dd>
-                    </div>
-                    <div>
+                    </section>
+                    <section>
                       <dt>Listed</dt>
                       <dd>{formatListingDate(item.created_at)}</dd>
-                    </div>
+                    </section>
                   </dl>
 
-                  <div className="moderation-card__reason">
+                  <article className="moderation-card__reason">
                     <span className="moderation-card__reason-label">Moderation note</span>
                     <p>{item.flag_reason?.trim() || "No moderation note has been added yet."}</p>
-                  </div>
+                  </article>
 
                   <button
                     className="btn-export moderation-card__action"

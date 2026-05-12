@@ -146,7 +146,7 @@ export default function FilterBar({
       {prefix === "mobile" ? (
         <fieldset className="filter-bar__mobile-sort-group">
           <legend className="filter-bar__label-text">Sort By</legend>
-          <div className="filter-bar__mobile-sort-options" role="group" aria-label="Sort by">
+          <section className="filter-bar__mobile-sort-options" role="group" aria-label="Sort by">
             {sortOptions.map((option) => (
               <button
                 key={option.value || "default"}
@@ -158,7 +158,7 @@ export default function FilterBar({
                 {option.label}
               </button>
             ))}
-          </div>
+          </section>
         </fieldset>
       ) : (
         <label className="filter-bar__label" htmlFor={sortId}>
@@ -245,7 +245,7 @@ export default function FilterBar({
     <nav className="filter-bar" aria-label="Listing filters">
       {/* Mobile gets a compact launcher row instead of showing every control at once.
           That keeps the listing area lighter while still exposing both actions up front. */}
-      <div className="filter-bar__mobile-controls" aria-label="Mobile listing controls">
+      <section className="filter-bar__mobile-controls" aria-label="Mobile listing controls">
         {mobileSorting && (
           <button
             type="button"
@@ -262,7 +262,7 @@ export default function FilterBar({
         >
           Filter
         </button>
-      </div>
+      </section>
 
       {/* This is the desktop / larger-screen version.
           It stays inline so the PC UI can keep the always-visible filter layout. */}
@@ -286,7 +286,7 @@ export default function FilterBar({
       {mobilePanel && (
         // Mobile-only overlay layer:
         // open one task at a time, either filtering or sorting, in a side panel.
-        <div className="filter-bar__mobile-layer" role="presentation">
+        <section className="filter-bar__mobile-layer" role="presentation">
           <button
             type="button"
             className="filter-bar__mobile-backdrop"
@@ -298,15 +298,15 @@ export default function FilterBar({
             className="filter-bar__mobile-panel"
             aria-label={mobilePanel === "filter" ? "Filter listings panel" : "Sort listings panel"}
           >
-            <div className="filter-bar__mobile-panel-header">
-              <div>
+            <header className="filter-bar__mobile-panel-header">
+              <section>
                 <p className="filter-bar__mobile-panel-eyebrow">
                   {mobilePanel === "filter" ? "Listings" : "Ordering"}
                 </p>
                 <h2 className="filter-bar__mobile-panel-title">
                   {mobilePanel === "filter" ? "Filter" : "Sort By"}
                 </h2>
-              </div>
+              </section>
               <button
                 type="button"
                 className="filter-bar__mobile-close"
@@ -315,15 +315,15 @@ export default function FilterBar({
               >
                 ×
               </button>
-            </div>
+            </header>
 
-            <div className="filter-bar__mobile-panel-body">
+            <section className="filter-bar__mobile-panel-body">
               {mobilePanel === "filter"
                 ? renderFilterFields("mobile")
                 : renderSortFields("mobile", mobileSorting)}
-            </div>
+            </section>
 
-            <div className="filter-bar__mobile-panel-actions">
+            <section className="filter-bar__mobile-panel-actions">
               {hasActiveFilters && (
                 <button
                   type="button"
@@ -344,9 +344,9 @@ export default function FilterBar({
               >
                 Apply
               </button>
-            </div>
+            </section>
           </section>
-        </div>
+        </section>
       )}
     </nav>
   );

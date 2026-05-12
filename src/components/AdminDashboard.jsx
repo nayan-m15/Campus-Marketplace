@@ -733,7 +733,7 @@ export default function AdminDashboard({
         <DashboardIcon name="menu" className="admin-mobile-toggle__icon" />
       </button>
 
-      <div
+      <span
         className={`admin-shell__backdrop ${mobileNavOpen ? "admin-shell__backdrop--visible" : ""}`}
         onClick={() => setMobileNavOpen(false)}
         aria-hidden="true"
@@ -741,14 +741,14 @@ export default function AdminDashboard({
 
       <nav className={`admin-sidebar ${mobileNavOpen ? "admin-sidebar--open" : ""}`} aria-label="Admin navigation">
         <header className="admin-sidebar__header">
-          <div className="admin-brand">
+          <section className="admin-brand">
            
             <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="sidebar__logo" />
             <hgroup className="admin-brand__text">
               <p className="admin-brand__eyebrow">CampusXchange</p>
               <h1 className="admin-brand__title">Admin Portal</h1>
             </hgroup>
-          </div>
+          </section>
           <button
             type="button"
             className="admin-sidebar__close"
@@ -759,7 +759,7 @@ export default function AdminDashboard({
           </button>
         </header>
 
-        <div className="admin-sidebar__section">
+        <section className="admin-sidebar__section">
           <p className="admin-sidebar__section-title">Workspace</p>
           <ul className="admin-sidebar__nav" role="list">
             {NAV_ITEMS.map((item) => (
@@ -783,9 +783,9 @@ export default function AdminDashboard({
               </li>
             ))}
           </ul>
-        </div>
+        </section>
 
-        <div className="admin-sidebar__section admin-sidebar__section--compact">
+        <section className="admin-sidebar__section admin-sidebar__section--compact">
           <p className="admin-sidebar__section-title">Signals</p>
           <ul className="admin-sidebar__signals" role="list">
             {moderationAlerts.map((alert) => (
@@ -795,18 +795,18 @@ export default function AdminDashboard({
               </li>
             ))}
           </ul>
-        </div>
+        </section>
 
         <footer className="admin-sidebar__footer">
-          <div className="admin-user-card">
-            <div className="admin-user-card__avatar" aria-hidden="true">
+          <article className="admin-user-card">
+            <span className="admin-user-card__avatar" aria-hidden="true">
               {getAdminInitials(adminName)}
-            </div>
-            <div className="admin-user-card__meta">
+            </span>
+            <article className="admin-user-card__meta">
               <p className="admin-user-card__name">{adminName}</p>
               <p className="admin-user-card__email">{adminEmail}</p>
-            </div>
-          </div>
+            </article>
+          </article>
           {onSignOut && (
             <button
               className="admin-signout-btn"
@@ -823,12 +823,12 @@ export default function AdminDashboard({
 
       <main className="admin-main">
         <header className="admin-hero">
-          <div className="admin-hero__copy">
+          <section className="admin-hero__copy">
             <p className="admin-hero__eyebrow">Admin workspace</p>
             <h2 className="admin-hero__title">{activeNavItem.label}</h2>
             <p className="admin-hero__subtitle">{activeNavItem.subtitle}</p>
-          </div>
-          <div className="admin-hero__meta">
+          </section>
+          <section className="admin-hero__meta">
             <span className="admin-hero__badge">CampusXChange operations</span>
             <p className="admin-hero__date">
               {formatAdminDate(new Date(), {
@@ -838,7 +838,7 @@ export default function AdminDashboard({
                 year: "numeric",
               })}
             </p>
-          </div>
+          </section>
         </header>
 
         <section className="admin-kpi-grid" aria-label="Admin overview metrics">
@@ -854,7 +854,7 @@ export default function AdminDashboard({
           ))}
         </section>
 
-        <div className="admin-main__content">
+        <section className="admin-main__content">
           {activeTab === "facilities" && <FacilitiesManagementPanel />}
           {activeTab === "reports" && <ReportsPanel />}
           {activeTab === "staff" && <StaffManagementPanel />}
@@ -866,23 +866,23 @@ export default function AdminDashboard({
               onModerateListing={onModerateListing}
             />
           )}
-        </div>
+        </section>
       </main>
 
       <aside className="admin-utility" aria-label="Admin utilities">
         <section className="utility-card utility-card--calendar">
           <header className="utility-card__header">
-            <div className="utility-card__title-group">
+            <article className="utility-card__title-group">
               <DashboardIcon name="calendar" className="utility-card__icon" />
-              <div>
+              <section>
                 <h3 className="utility-card__title">Calendar</h3>
                 <p className="utility-card__subtitle">
                   {formatAdminDate(new Date(), { month: "long", year: "numeric" })}
                 </p>
-              </div>
-            </div>
+              </section>
+            </article>
           </header>
-          <div className="utility-calendar">
+          <section className="utility-calendar">
             {weekdayLabels.map((day) => (
               <span key={day} className="utility-calendar__weekday">{day}</span>
             ))}
@@ -894,27 +894,27 @@ export default function AdminDashboard({
                 {cell.label}
               </span>
             ))}
-          </div>
+          </section>
         </section>
 
         <section className="utility-card">
           <header className="utility-card__header">
-            <div className="utility-card__title-group">
+            <article className="utility-card__title-group">
               <DashboardIcon name="notifications" className="utility-card__icon" />
-              <div>
+              <section>
                 <h3 className="utility-card__title">Quick insights</h3>
                 <p className="utility-card__subtitle">Operational watchpoints</p>
-              </div>
-            </div>
+              </section>
+            </article>
           </header>
           <ul className="utility-list" role="list">
             {moderationAlerts.map((alert) => (
               <li key={alert.title} className="utility-list__item">
                 <span className={`utility-list__dot utility-list__dot--${alert.tone}`} />
-                <div>
+                <section>
                   <p className="utility-list__title">{alert.title}</p>
                   <p className="utility-list__meta">{alert.detail}</p>
-                </div>
+                </section>
               </li>
             ))}
           </ul>
@@ -922,13 +922,13 @@ export default function AdminDashboard({
 
         <section className="utility-card">
           <header className="utility-card__header">
-            <div className="utility-card__title-group">
+            <article className="utility-card__title-group">
               <DashboardIcon name="pulse" className="utility-card__icon" />
-              <div>
+              <section>
                 <h3 className="utility-card__title">Weekly focus</h3>
                 <p className="utility-card__subtitle">Suggested admin cadence</p>
-              </div>
-            </div>
+              </section>
+            </article>
           </header>
           <ul className="utility-list utility-list--stacked" role="list">
             {operationalNotes.map((note) => (

@@ -217,10 +217,10 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--page-bg, #f9fafb)", padding: "32px 40px", fontFamily: "var(--font)", maxWidth: 600, margin: "0 auto" }}>
+    <section style={{ minHeight: "100vh", background: "var(--page-bg, #f9fafb)", padding: "32px 40px", fontFamily: "var(--font)", maxWidth: 600, margin: "0 auto" }}>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
+      <section style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
         <button
           onClick={onBack}
           style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 9, padding: "8px 16px", cursor: "pointer", fontSize: 14, color: "var(--gray-800)", fontFamily: "var(--font)" }}
@@ -228,7 +228,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
           ← Back
         </button>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--gray-900)", margin: 0 }}>Settings</h1>
-      </div>
+      </section>
 
       {/* ── Change Password ── */}
       <section style={sectionStyle}>
@@ -239,8 +239,8 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
             You must be logged in to change your password.
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div>
+          <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <section>
               <label style={labelStyle}>New password</label>
               <input
                 type="password"
@@ -249,8 +249,8 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
-            </div>
-            <div>
+            </section>
+            <section>
               <label style={labelStyle}>Confirm new password</label>
               <input
                 type="password"
@@ -259,7 +259,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
-            </div>
+            </section>
 
             {/* Each failed rule shown as its own line */}
             {passwordErrors.length > 0 && (
@@ -281,7 +281,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
             >
               {passwordLoading ? "Updating…" : "Update password"}
             </button>
-          </div>
+          </section>
         )}
       </section>
 
@@ -289,13 +289,13 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
       <section style={sectionStyle}>
         <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "var(--gray-900)" }}>Notification Preferences</h2>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <section style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
+          <section style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <section>
               <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "var(--gray-900)" }}>New messages</p>
               <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "2px 0 0" }}>Get notified when someone messages you</p>
-            </div>
+            </section>
             <button
               style={toggleStyle(notifMessages)}
               onClick={() => setNotifMessages((prev) => !prev)}
@@ -303,13 +303,13 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
             >
               <span style={toggleKnobStyle(notifMessages)} />
             </button>
-          </div>
+          </section>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
+          <section style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <section>
               <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "var(--gray-900)" }}>Listing activity</p>
               <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "2px 0 0" }}>Get notified when someone views or messages about your listing</p>
-            </div>
+            </section>
             <button
               style={toggleStyle(notifListingActivity)}
               onClick={() => setNotifListingActivity((prev) => !prev)}
@@ -317,7 +317,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
             >
               <span style={toggleKnobStyle(notifListingActivity)} />
             </button>
-          </div>
+          </section>
 
           {notifSaved && <p style={{ color: "var(--green)", fontSize: 13, margin: 0 }}>Preferences saved!</p>}
           {notifPermissionMsg && <p style={{ color: "var(--gray-600)", fontSize: 13, margin: 0 }}>{notifPermissionMsg}</p>}
@@ -328,18 +328,18 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
           >
             Save preferences
           </button>
-        </div>
+        </section>
       </section>
 
       {/* ── Appearance ── */}
       <section style={sectionStyle}>
         <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "var(--gray-900)" }}>Appearance</h2>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
+        <section style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <section>
             <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: "var(--gray-900)" }}>Dark mode</p>
             <p style={{ fontSize: 12, color: "var(--gray-600)", margin: "2px 0 0" }}>Switch between light and dark theme</p>
-          </div>
+          </section>
           <button
             style={toggleStyle(darkMode)}
             onClick={() => handleDarkMode(!darkMode)}
@@ -347,7 +347,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
           >
             <span style={toggleKnobStyle(darkMode)} />
           </button>
-        </div>
+        </section>
       </section>
 
       {/* ── Delete Account ── */}
@@ -369,7 +369,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
             Delete my account
           </button>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-800)", margin: 0 }}>
               Type <strong>DELETE</strong> to confirm:
             </p>
@@ -381,7 +381,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
               onChange={(e) => setDeleteConfirmText(e.target.value)}
             />
             {deleteError && <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>⚠️ {deleteError}</p>}
-            <div style={{ display: "flex", gap: 10 }}>
+            <section style={{ display: "flex", gap: 10 }}>
               <button
                 onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); setDeleteError(null); }}
                 style={{ padding: "10px 20px", borderRadius: 9, border: "1px solid #e5e7eb", background: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "var(--font)" }}
@@ -395,11 +395,11 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
               >
                 {deleteLoading ? "Deleting…" : "Permanently delete"}
               </button>
-            </div>
-          </div>
+            </section>
+          </section>
         )}
       </section>
 
-    </div>
+    </section>
   );
 }
