@@ -410,10 +410,10 @@ function ListingPriceCheck({ item }) {
 
   return (
     <section className={`item-modal-price-check item-modal-price-check--${fairness.tone}`}>
-      <div className="item-modal-price-check__top">
+      <section className="item-modal-price-check__top">
         <strong>{fairness.label}</strong>
         <span>{confidenceLevel} confidence</span>
-      </div>
+      </section>
       <p>{fairness.message}</p>
       {fairness.showRange && (
         <p>
@@ -688,18 +688,18 @@ function ListingDetailsModal({
 
   return (
     <>
-      <div className="item-modal-overlay" onClick={onClose}>
+      <section className="item-modal-overlay" onClick={onClose}>
         <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Close item details" type="button">x</button>
 
-        <div className="item-modal-scroll">
-          <div className="item-modal-scroll-inner">
+        <section className="item-modal-scroll">
+          <section className="item-modal-scroll-inner">
             <section className="item-modal-layout">
-              <div className="item-modal-right-column item-modal-right-column--full">
-                <div className="item-modal-top-card">
-                  <div className="item-modal-top-main">
-                    <div className="item-modal-carousel">
-                      <div className="item-modal-carousel__frame">
+              <section className="item-modal-right-column item-modal-right-column--full">
+                <article className="item-modal-top-card">
+                  <section className="item-modal-top-main">
+                    <section className="item-modal-carousel">
+                      <section className="item-modal-carousel__frame">
                         {images.length > 1 && (
                           <>
                             <button type="button" className="item-modal-carousel__nav item-modal-carousel__nav--prev" onClick={showPreviousImage} aria-label="Show previous image">{"<"}</button>
@@ -710,12 +710,12 @@ function ListingDetailsModal({
                         {activeImage ? (
                           <img src={activeImage} alt={item.title || "Listing image"} className="item-modal-top-image" />
                         ) : (
-                          <div className="item-modal-top-placeholder"><span>{item.emoji || "No Image"}</span></div>
+                          <span className="item-modal-top-placeholder"><span>{item.emoji || "No Image"}</span></span>
                         )}
-                      </div>
+                      </section>
 
                       {images.length > 1 && (
-                        <div className="item-modal-carousel__dots" aria-label="Image navigation">
+                        <span className="item-modal-carousel__dots" aria-label="Image navigation">
                           {images.map((image, index) => (
                             <button
                               key={`${image}-${index}`}
@@ -726,12 +726,12 @@ function ListingDetailsModal({
                               aria-pressed={index === currentImageIndex}
                             />
                           ))}
-                        </div>
+                        </span>
                       )}
-                    </div>
+                    </section>
 
-                    <div className="item-modal-top-bottom">
-                      <div className="item-modal-top-text">
+                    <section className="item-modal-top-bottom">
+                      <section className="item-modal-top-text">
                         <h2 className="item-modal-title">{item.title || "Untitled listing"}</h2>
 
                         {item.status === "flagged" && (
@@ -740,7 +740,7 @@ function ListingDetailsModal({
                           </p>
                         )}
 
-                        <div className="item-modal-summary">
+                        <section className="item-modal-summary">
                           <p className="item-modal-price">
                             {item.pricePrefix && <span className="item-modal-price-prefix">{item.pricePrefix} </span>}
                             {item.price || "Price not available"}
@@ -749,7 +749,7 @@ function ListingDetailsModal({
                           {tradeBadgeLabel && (
                             <span className={tradeBadgeClassName}>{tradeBadgeLabel}</span>
                           )}
-                        </div>
+                        </section>
 
                         {user && onToggleWishlist && (
                           <button
@@ -762,28 +762,28 @@ function ListingDetailsModal({
                             {wishlisted ? "Saved" : "Save to Wishlist"}
                           </button>
                         )}
-                      </div>
+                      </section>
 
-                      <div className="item-modal-description-card">
+                      <article className="item-modal-description-card">
                         <h3>Description</h3>
                         <p>{item.description?.trim() || "No description provided."}</p>
                         <ListingPriceCheck item={item} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                      </article>
+                    </section>
+                  </section>
+                </article>
 
-                <div className="item-modal-bottom-card">
-                  <div className="item-modal-info">
-                    <div className="item-modal-meta">
+                <article className="item-modal-bottom-card">
+                  <section className="item-modal-info">
+                    <section className="item-modal-meta">
                       <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
                       <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
                       <p><strong>Joined since:</strong> {joinedLabel}</p>
                       {item.category && <p><strong>Category:</strong> {item.category}</p>}
-                    </div>
-                  </div>
+                    </section>
+                  </section>
 
-                  <div className="item-modal-contact">
+                  <section className="item-modal-contact">
                     <h3>Message seller</h3>
                     {!user ? (
                       <p className="item-modal-error">Please <strong>log in</strong> to message this seller.</p>
@@ -792,7 +792,7 @@ function ListingDetailsModal({
                         <textarea className="item-modal-textarea" value={message} onChange={(e) => setMessage(e.target.value)} rows={4} />
                         {sendError && <p className="item-modal-error">{sendError}</p>}
                         {sendSuccess && <p className="item-modal-success">{sendSuccess}</p>}
-                        <div className="item-modal-actions">
+                        <section className="item-modal-actions">
                           <button type="button" className="item-modal-send-btn" onClick={handleSendMessage} disabled={sending}>
                             {sending ? "Sending..." : "Send message"}
                           </button>
@@ -818,17 +818,17 @@ function ListingDetailsModal({
                           >
                             Send Offer
                           </button>
-                        </div>
+                        </section>
                       </>
                     )}
-                  </div>
-                </div>
-              </div>
+                  </section>
+                </article>
+              </section>
             </section>
-          </div>
-        </div>
+          </section>
+        </section>
         </article>
-      </div>
+      </section>
       {flaggedWarningItem && (
         <aside
           role="alertdialog"
@@ -851,7 +851,7 @@ function ListingDetailsModal({
           <p style={{ margin: "0 0 16px" }}>
             <strong>Reason:</strong> {flaggedWarningItem.flag_reason?.trim() || "No reason was provided."}
           </p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+          <section style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
             <button
               type="button"
               className="item-modal-send-btn item-modal-send-btn--secondary"
@@ -869,7 +869,7 @@ function ListingDetailsModal({
             >
               Continue
             </button>
-          </div>
+          </section>
         </aside>
       )}
     </>
@@ -890,35 +890,35 @@ function ModerationModal({
   const moderationReasonLength = moderationReason.length;
 
   return (
-    <div className="item-modal-overlay" onClick={onClose}>
+    <section className="item-modal-overlay" onClick={onClose}>
       <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Close moderation panel" type="button">x</button>
 
-        <div className="item-modal-scroll">
-          <div className="item-modal-scroll-inner">
+        <section className="item-modal-scroll">
+          <section className="item-modal-scroll-inner">
             <section className="item-modal-layout">
-              <div className="item-modal-right-column item-modal-right-column--full">
-                <div className="item-modal-top-card">
-                  <div className="item-modal-top-text">
+              <section className="item-modal-right-column item-modal-right-column--full">
+                <article className="item-modal-top-card">
+                  <section className="item-modal-top-text">
                     <h2 className="item-modal-title">Review moderation</h2>
-                    <div className="item-modal-description-card">
+                    <article className="item-modal-description-card">
                       <p>
                         Moderate listing safety for <strong>{item.title}</strong>. Use <strong>Flag listing</strong> to warn buyers that this listing needs caution, or <strong>Remove listing</strong> to take it down entirely.
                       </p>
-                    </div>
-                  </div>
-                </div>
+                    </article>
+                  </section>
+                </article>
 
-                <div className="item-modal-bottom-card">
-                  <div className="item-modal-info">
-                    <div className="item-modal-meta">
+                <article className="item-modal-bottom-card">
+                  <section className="item-modal-info">
+                    <section className="item-modal-meta">
                       <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
                       <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
                       <p><strong>Status:</strong> {item.status || "active"}</p>
-                    </div>
-                  </div>
+                    </section>
+                  </section>
 
-                  <div className="item-modal-contact">
+                  <section className="item-modal-contact">
                     <h3>Moderation actions</h3>
                     <label className="profile-field" style={{ display: "block", marginBottom: 14 }}>
                       <span style={{ display: "block", fontWeight: 700, marginBottom: 8 }}>Flag reason</span>
@@ -949,7 +949,7 @@ function ModerationModal({
                     </label>
                     {actionState.error && <p className="item-modal-error">{actionState.error}</p>}
                     {actionState.success && <p className="item-modal-success">{actionState.success}</p>}
-                    <div className="item-modal-actions">
+                    <section className="item-modal-actions">
                       <button
                         type="button"
                         className="item-modal-send-btn"
@@ -966,15 +966,15 @@ function ModerationModal({
                       >
                         {actionState.loading === "remove" ? "Removing..." : "Remove listing"}
                       </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                    </section>
+                  </section>
+                </article>
+              </section>
             </section>
-          </div>
-        </div>
+          </section>
+        </section>
       </article>
-    </div>
+    </section>
   );
 }
 
@@ -1003,14 +1003,14 @@ function FlaggedListingWarningToast({ item, onClose, onContinue }) {
       <p style={{ margin: "0 0 16px" }}>
         <strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}
       </p>
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+      <section style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
         <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={onClose}>
           Cancel
         </button>
         <button type="button" className="item-modal-send-btn" onClick={onContinue}>
           Continue
         </button>
-      </div>
+      </section>
     </aside>
   );
 }
@@ -1710,9 +1710,9 @@ useEffect(() => {
 
   if (loading || (user && !profileChecked)) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font)", color: "var(--gray-600)" }}>
+      <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font)", color: "var(--gray-600)" }}>
         Loading…
-      </div>
+      </section>
     );
   }
 
@@ -2033,15 +2033,15 @@ useEffect(() => {
         <Navbar {...navbarProps} />
 
         {successMessage && (
-          <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "var(--gray-900)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", whiteSpace: "nowrap" }}>
+          <section style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "var(--gray-900)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", whiteSpace: "nowrap" }}>
             {successMessage}
-          </div>
+          </section>
         )}
 
         {messageNoticeToast}
 
         {showForm && (
-          <div
+          <aside
             className="listing-modal-overlay"
             role="dialog"
             aria-modal="true"
@@ -2052,7 +2052,7 @@ useEffect(() => {
               <button className="modal-close" onClick={() => setShowForm(false)} aria-label="Close modal" type="button">×</button>
               <ListingForm onCancel={() => setShowForm(false)} onSuccess={handleListingSuccess} />
             </article>
-          </div>
+          </aside>
         )}
 
         <ListingDetailsModal
@@ -2128,7 +2128,7 @@ useEffect(() => {
             />
           </aside>
 
-          <div className="marketplace-shell__results" ref={listingsSectionRef}>
+          <section className="marketplace-shell__results" ref={listingsSectionRef}>
             {listingsError ? (
               <p style={{ padding: "24px 40px", color: "crimson" }}>{listingsError}</p>
             ) : listingsLoading ? (
@@ -2152,7 +2152,7 @@ useEffect(() => {
                 user={user}
               />
             )}
-          </div>
+          </section>
         </section>
       </main>
 

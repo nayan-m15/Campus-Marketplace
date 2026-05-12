@@ -61,8 +61,8 @@ export default function LoginPage({ onNavigate }) {
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
+    <section className="auth-page">
+      <article className="auth-card">
         <button
           className="auth-back-btn"
           type="button"
@@ -71,12 +71,12 @@ export default function LoginPage({ onNavigate }) {
           {"<-"}
         </button>
 
-        <div className="auth-logo">
+        <section className="auth-logo">
           <span className="auth-logo__icon">
             <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="navbar__logo-img" />
           </span>
           <span className="auth-logo__text">CAMPUSXCHANGE</span>
-        </div>
+        </section>
 
         <h1 className="auth-title">Welcome back</h1>
         <p className="auth-subtitle">
@@ -102,9 +102,9 @@ export default function LoginPage({ onNavigate }) {
               {googleLoading ? "Redirecting..." : "Continue with Google"}
             </button>
 
-            <div className="auth-divider">
+            <span className="auth-divider">
               <span>or sign in with email</span>
-            </div>
+            </span>
           </>
         )}
 
@@ -116,7 +116,7 @@ export default function LoginPage({ onNavigate }) {
           className="auth-form"
           noValidate
         >
-          <div className="auth-field">
+          <section className="auth-field">
             <label htmlFor="login-email">Email address</label>
             <input
               id="login-email"
@@ -127,13 +127,13 @@ export default function LoginPage({ onNavigate }) {
               required
               autoComplete="email"
             />
-          </div>
+          </section>
 
           {!showForgotPassword && (
             <>
-              <div className="auth-field">
+              <section className="auth-field">
                 <label htmlFor="login-password">Password</label>
-                <div className="auth-password-control">
+                <section className="auth-password-control">
                   <input
                     id="login-password"
                     type={showPassword ? "text" : "password"}
@@ -166,8 +166,8 @@ export default function LoginPage({ onNavigate }) {
                       {showPassword && <path d="M4 20 20 4" />}
                     </svg>
                   </button>
-                </div>
-              </div>
+                </section>
+              </section>
 
               <button
                 type="button"
@@ -214,7 +214,7 @@ export default function LoginPage({ onNavigate }) {
             Sign up free
           </button>
         </p>
-      </div>
-    </div>
+      </article>
+    </section>
   );
 }

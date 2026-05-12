@@ -86,9 +86,9 @@ export default function SignupPage({ onNavigate }) {
 
   if (success) {
     return (
-      <div className="auth-page">
-        <div className="auth-card auth-card--success">
-          <div className="auth-success-icon">✉️</div>
+      <section className="auth-page">
+        <article className="auth-card auth-card--success">
+          <span className="auth-success-icon">✉️</span>
           <h1 className="auth-title">Check your email</h1>
           <p className="auth-subtitle">
             We've sent a confirmation link to <strong>{email}</strong>.
@@ -97,14 +97,14 @@ export default function SignupPage({ onNavigate }) {
           <button className="btn-primary auth-submit" onClick={() => onNavigate("login")}>
             Back to Sign In
           </button>
-        </div>
-      </div>
+        </article>
+      </section>
     );
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
+    <section className="auth-page">
+      <article className="auth-card">
         <button
           className="auth-back-btn"
           type="button"
@@ -114,12 +114,12 @@ export default function SignupPage({ onNavigate }) {
         </button>
 
         {/* Logo */}
-        <div className="auth-logo">
+        <section className="auth-logo">
           <span className="auth-logo__icon">
             <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="navbar__logo-img" />
           </span>
           <span className="auth-logo__text">CAMPUSXCHANGE</span>
-        </div>
+        </section>
 
         <h1 className="auth-title">Create your account</h1>
         <p className="auth-subtitle">Join the campus marketplace — free for students</p>
@@ -140,9 +140,9 @@ export default function SignupPage({ onNavigate }) {
           {googleLoading ? "Redirecting…" : "Sign up with Google"}
         </button>
 
-        <div className="auth-divider">
+        <span className="auth-divider">
           <span>or sign up with email</span>
-        </div>
+        </span>
 
         {/* Validation errors — each rule shown separately */}
         {errors.length > 0 && (
@@ -154,7 +154,7 @@ export default function SignupPage({ onNavigate }) {
         )}
 
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
-          <div className="auth-field">
+          <section className="auth-field">
             <label htmlFor="signup-email">Email address</label>
             <input
               id="signup-email"
@@ -165,11 +165,11 @@ export default function SignupPage({ onNavigate }) {
               required
               autoComplete="email"
             />
-          </div>
+          </section>
 
-          <div className="auth-field">
+          <section className="auth-field">
             <label htmlFor="signup-password">Password</label>
-            <div className="auth-password-control">
+            <section className="auth-password-control">
               <input
                 id="signup-password"
                 type={showPassword ? "text" : "password"}
@@ -202,12 +202,12 @@ export default function SignupPage({ onNavigate }) {
                   {showPassword && <path d="M4 20 20 4" />}
                 </svg>
               </button>
-            </div>
-          </div>
+            </section>
+          </section>
 
-          <div className="auth-field">
+          <section className="auth-field">
             <label htmlFor="signup-confirm">Confirm password</label>
-            <div className="auth-password-control">
+            <section className="auth-password-control">
               <input
                 id="signup-confirm"
                 type={showConfirm ? "text" : "password"}
@@ -240,8 +240,8 @@ export default function SignupPage({ onNavigate }) {
                   {showConfirm && <path d="M4 20 20 4" />}
                 </svg>
               </button>
-            </div>
-          </div>
+            </section>
+          </section>
 
           <button type="submit" className="btn-primary auth-submit" disabled={loading}>
             {loading ? "Creating account…" : "Create Account →"}
@@ -254,7 +254,7 @@ export default function SignupPage({ onNavigate }) {
             Sign in
           </button>
         </p>
-      </div>
-    </div>
+      </article>
+    </section>
   );
 }

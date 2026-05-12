@@ -78,7 +78,7 @@
   border-top: 1px solid var(--border);
   text-align: left;
 
-  & > div {
+  & > section {
     flex: 1 1 0;
     padding: 32px;
     @media (max-width: 1024px) {

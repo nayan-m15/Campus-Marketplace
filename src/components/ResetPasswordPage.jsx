@@ -66,14 +66,14 @@ export default function ResetPasswordPage({ onComplete, autoContinueDelayMs = 15
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-card auth-card--success">
-        <div className="auth-logo">
+    <section className="auth-page">
+      <article className="auth-card auth-card--success">
+        <section className="auth-logo">
           <span className="auth-logo__icon">
             <img src={`${import.meta.env.BASE_URL}favicon.png`} alt="CAMPUSXCHANGE Logo" className="navbar__logo-img" />
           </span>
           <span className="auth-logo__text">CAMPUSXCHANGE</span>
-        </div>
+        </section>
 
         <h1 className="auth-title">Reset your password</h1>
         <p className="auth-subtitle">Choose a new password for your account.</p>
@@ -95,9 +95,9 @@ export default function ResetPasswordPage({ onComplete, autoContinueDelayMs = 15
           </>
         ) : (
           <form onSubmit={handleSubmit} className="auth-form" noValidate>
-            <div className="auth-field">
+            <section className="auth-field">
               <label htmlFor="reset-password">New password</label>
-              <div className="auth-password-control">
+              <section className="auth-password-control">
                 <input
                   id="reset-password"
                   type={showPassword ? "text" : "password"}
@@ -130,12 +130,12 @@ export default function ResetPasswordPage({ onComplete, autoContinueDelayMs = 15
                     {showPassword && <path d="M4 20 20 4" />}
                   </svg>
                 </button>
-              </div>
-            </div>
+              </section>
+            </section>
 
-            <div className="auth-field">
+            <section className="auth-field">
               <label htmlFor="reset-password-confirm">Confirm new password</label>
-              <div className="auth-password-control">
+              <section className="auth-password-control">
                 <input
                   id="reset-password-confirm"
                   type={showConfirmPassword ? "text" : "password"}
@@ -168,15 +168,15 @@ export default function ResetPasswordPage({ onComplete, autoContinueDelayMs = 15
                     {showConfirmPassword && <path d="M4 20 20 4" />}
                   </svg>
                 </button>
-              </div>
-            </div>
+              </section>
+            </section>
 
             <button type="submit" className="btn-primary auth-submit" disabled={loading}>
               {loading ? "Updating password..." : "Update password"}
             </button>
           </form>
         )}
-      </div>
-    </div>
+      </article>
+    </section>
   );
 }

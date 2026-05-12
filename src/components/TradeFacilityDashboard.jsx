@@ -537,35 +537,35 @@ function OverviewSection({ transactions, bookings }) {
         </header>
 
         <section className="operations-snapshot" aria-label="Operations snapshot metrics">
-          <div className="operations-snapshot__primary" role="list">
-            <div role="listitem">
+          <section className="operations-snapshot__primary" role="list">
+            <article role="listitem">
               <StatCard icon="settings" value={managed} label="Active in Manage" subLabel="Transactions currently in motion across the facility workflow" />
-            </div>
-            <div role="listitem">
+            </article>
+            <article role="listitem">
               <StatCard icon="table" value={pendingRequests} label="Scheduled Bookings" subLabel="Confirmed staff appointments that still need physical handling" />
-            </div>
-            <div role="listitem">
+            </article>
+            <article role="listitem">
               <StatCard icon="receipt" value={`R ${totalValue.toLocaleString("en-ZA")}`} label="Processed Value" subLabel="Combined trade value represented in the live ledger" />
-            </div>
-          </div>
+            </article>
+          </section>
 
-          <div className="operations-snapshot__secondary" role="list">
-            <div role="listitem">
+          <section className="operations-snapshot__secondary" role="list">
+            <article role="listitem">
               <StatCard icon="arrow-down" value={awaitingDropoff} label="Awaiting Drop-off" subLabel="Seller arrival still pending" />
-            </div>
-            <div role="listitem">
+            </article>
+            <article role="listitem">
               <StatCard icon="package" value={itemReceivedCount} label="Item Received" subLabel="Items checked in and waiting for buyer action" />
-            </div>
-            <div role="listitem">
+            </article>
+            <article role="listitem">
               <StatCard icon="arrow-up" value={awaitingCollection} label="Ready for Collection" subLabel="Buyers can arrive for handover" />
-            </div>
-            <div role="listitem">
+            </article>
+            <article role="listitem">
               <StatCard icon="handoff" value={itemReleasedCount} label="Item Released" subLabel="Collected and nearing closure" />
-            </div>
-            <div role="listitem">
+            </article>
+            <article role="listitem">
               <StatCard icon="check-circle" value={completedAll} label="Completed Transactions" subLabel="Closed handovers and archived trades" />
-            </div>
-          </div>
+            </article>
+          </section>
         </section>
       </article>
 
@@ -579,7 +579,7 @@ function OverviewSection({ transactions, bookings }) {
             </section>
           </header>
 
-          <div className="flow-list" role="list">
+          <section className="flow-list" role="list">
             {[
               { key: "awaiting_dropoff", count: awaitingDropoff },
               { key: "item_received", count: transactions.filter((transaction) => transaction.status === "item_received").length },
@@ -587,21 +587,21 @@ function OverviewSection({ transactions, bookings }) {
               { key: "item_released", count: transactions.filter((transaction) => transaction.status === "item_released").length },
               { key: "completed", count: completedAll },
             ].map((item) => (
-              <div className="flow-item" key={item.key} role="listitem">
-                <div className="flow-item__meta">
+              <article className="flow-item" key={item.key} role="listitem">
+                <article className="flow-item__meta">
                   <StatusBadge status={item.key} />
                   <span className="flow-item__count">{item.count}</span>
-                </div>
-                <div className="flow-item__bar">
+                </article>
+                <article className="flow-item__bar">
                   <span
                     style={{
                       width: `${transactions.length ? Math.max((item.count / transactions.length) * 100, item.count ? 6 : 0) : 0}%`,
                     }}
                   />
-                </div>
-              </div>
+                </article>
+              </article>
             ))}
-          </div>
+          </section>
         </article>
 
         <article className="panel">
@@ -620,14 +620,14 @@ function OverviewSection({ transactions, bookings }) {
               {latestTransactions.map((transaction) => (
                 <li key={transaction.id} className="activity-item">
                   <span className={`activity-item__dot activity-item__dot--${transaction.status}`} />
-                  <div className="activity-item__content">
+                  <article className="activity-item__content">
                     <p className="activity-item__text">
                       <strong>{transaction.item}</strong> for <em>R {Number(transaction.price || 0).toLocaleString("en-ZA")}</em>
                     </p>
                     <p className="activity-item__meta">
                       {transaction.seller.name} to {transaction.buyer.name} · {formatDate(transaction.createdAt?.slice(0, 10) || "")}
                     </p>
-                  </div>
+                  </article>
                   <StatusBadge status={transaction.status} />
                 </li>
               ))}
@@ -933,7 +933,7 @@ function TransactionsSection({
                       </td>
                       <td className="txn-price">R {Number(transaction.price || 0).toLocaleString("en-ZA")}</td>
                       <td>
-                        <div className="txn-status-stack">
+                        <span className="txn-status-stack">
                           <StatusBadge status={transaction.status} />
                           <label className="status-select-wrap">
                             <span className="sr-only">Update transaction status</span>
@@ -948,7 +948,7 @@ function TransactionsSection({
                               ))}
                             </select>
                           </label>
-                        </div>
+                        </span>
                       </td>
                       <td>
                         {dropoff ? (
@@ -1001,20 +1001,20 @@ function UtilityRail({ transactions, bookings, activeView }) {
           </section>
         </header>
 
-        <div className="utility-metrics">
-          <div className="utility-metric">
+        <section className="utility-metrics">
+          <section className="utility-metric">
             <span className="utility-metric__label">Today's bookings</span>
             <strong className="utility-metric__value">{todayBookings.length}</strong>
-          </div>
-          <div className="utility-metric">
+          </section>
+          <section className="utility-metric">
             <span className="utility-metric__label">In-progress trades</span>
             <strong className="utility-metric__value">{nextActions.length}</strong>
-          </div>
-          <div className="utility-metric">
+          </section>
+          <section className="utility-metric">
             <span className="utility-metric__label">Completion rate</span>
             <strong className="utility-metric__value">{completionRate}%</strong>
-          </div>
-        </div>
+          </section>
+        </section>
       </article>
 
       <article className="panel utility-panel">
@@ -1032,11 +1032,11 @@ function UtilityRail({ transactions, bookings, activeView }) {
           <ul className="schedule-list" role="list">
             {todayBookings.map((booking) => (
               <li key={booking.id} className="schedule-item">
-                <div className="schedule-item__time">{booking.scheduledTime}</div>
-                <div className="schedule-item__content">
+                <article className="schedule-item__time">{booking.scheduledTime}</article>
+                <article className="schedule-item__content">
                   <p className="schedule-item__title">{booking.personName}</p>
                   <p className="schedule-item__item">{booking.itemName}</p>
-                </div>
+                </article>
                 <BookingStatusBadge status={booking.status} />
               </li>
             ))}
@@ -1060,14 +1060,14 @@ function UtilityRail({ transactions, bookings, activeView }) {
             {nextActions.map((transaction) => (
               <li key={transaction.id} className="activity-item">
                 <span className={`activity-item__dot activity-item__dot--${transaction.status}`} />
-                <div className="activity-item__content">
+                <article className="activity-item__content">
                   <p className="activity-item__text">
                     <strong>{transaction.item}</strong>
                   </p>
                   <p className="activity-item__meta">
                     {STATUS_META[transaction.status]?.label || transaction.status}
                   </p>
-                </div>
+                </article>
                 <StatusBadge status={transaction.status} />
               </li>
             ))}
@@ -1441,7 +1441,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
   return (
     <section className="staff-dashboard-shell">
-      <div className={`staff-dashboard-backdrop ${isNavOpen ? "staff-dashboard-backdrop--visible" : ""}`} onClick={() => setIsNavOpen(false)} aria-hidden="true" />
+      <span className={`staff-dashboard-backdrop ${isNavOpen ? "staff-dashboard-backdrop--visible" : ""}`} onClick={() => setIsNavOpen(false)} aria-hidden="true" />
 
       <aside className={`sidebar ${isNavOpen ? "sidebar--open" : ""}`}>
         <header className="sidebar__brand">
@@ -1499,15 +1499,15 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
       <main className="dashboard-main" id="main-content">
         <header className="dashboard-topbar">
           <section className="topbar-left">
-            <div className="topbar-row">
+            <header className="topbar-row">
               <button type="button" className="topbar-menu-btn" onClick={() => setIsNavOpen(true)} aria-label="Open navigation">
                 <Icon name="menu" className="topbar-menu-btn__icon" />
               </button>
-              <div>
+              <section>
                 <p className="topbar-eyebrow">Staff Workspace</p>
                 <h1 className="topbar-title">{viewTitles[activeView]}</h1>
-              </div>
-            </div>
+              </section>
+            </header>
             <p className="topbar-date">{dateLabel}</p>
             <p className="topbar-description">{viewDescriptions[activeView]}</p>
           </section>
@@ -1524,8 +1524,8 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
           </section>
         </header>
 
-        {loading ? <div className="panel panel--feedback">Loading facility activity...</div> : null}
-        {!loading && error ? <div className="panel panel--feedback">{error}</div> : null}
+        {loading ? <section className="panel panel--feedback">Loading facility activity...</section> : null}
+        {!loading && error ? <section className="panel panel--feedback">{error}</section> : null}
 
         {!loading && !error && activeView === "overview" ? (
           <OverviewSection transactions={transactions} bookings={bookings} />

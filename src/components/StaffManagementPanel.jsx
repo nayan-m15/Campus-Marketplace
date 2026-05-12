@@ -207,12 +207,12 @@ export default function StaffManagementPanel() {
   return (
     <>
       {showToast && (
-        <div
+        <section
           className={`save-toast save-toast--visible ${toastType === "error" ? "save-toast--error" : ""}`}
         >
           <span className="save-toast__icon">{toastType === "error" ? "!" : "OK"}</span>
           {toastMessage}
-        </div>
+        </section>
       )}
 
       <section className="panel" aria-labelledby="staff-heading">
@@ -308,7 +308,7 @@ export default function StaffManagementPanel() {
               </ul>
             </fieldset>
 
-            <div className="report-actions">
+            <section className="report-actions">
               <button
                 type="button"
                 className="btn-export"
@@ -326,12 +326,12 @@ export default function StaffManagementPanel() {
                   "Create Staff Account"
                 )}
               </button>
-            </div>
+            </section>
           </form>
         )}
 
-        <div className="staff-toolbar">
-          <div className="staff-search">
+        <article className="staff-toolbar">
+          <article className="staff-search">
             <input
               type="text"
               placeholder="Search staff by name or email..."
@@ -339,41 +339,41 @@ export default function StaffManagementPanel() {
               onChange={(event) => setSearchTerm(event.target.value)}
               className="field-input"
             />
-          </div>
-          <div className="staff-stats">
+          </article>
+          <article className="staff-stats">
             <span className="staff-stat">
               Total Staff: <strong>{staff.length}</strong>
             </span>
             <span className="staff-stat">
               Active: <strong>{staff.filter((member) => member.status !== "inactive").length}</strong>
             </span>
-          </div>
-        </div>
+          </article>
+        </article>
 
         {loading && staff.length === 0 ? (
-          <div className="report-loading">
+          <section className="report-loading">
             <span className="report-loading__bar" />
-          </div>
+          </section>
         ) : filteredStaff.length === 0 ? (
-          <div className="moderation-empty">
-            <div className="moderation-empty__icon">SM</div>
+          <section className="moderation-empty">
+            <span className="moderation-empty__icon">SM</span>
             <h3 className="moderation-empty__title">
               {searchTerm ? "No staff members found" : "No staff members yet"}
             </h3>
             <p className="moderation-empty__subtitle">
               {searchTerm ? "Try adjusting your search terms" : "Add your first staff member to get started"}
             </p>
-          </div>
+          </section>
         ) : (
           <ul className="staff-list" role="list">
             {filteredStaff.map((member) => (
               <li key={member.id} className="staff-card">
-                <div className="staff-card__header">
-                  <div className="staff-avatar">{member.display_name?.[0] || member.name?.[0] || "S"}</div>
-                  <div className="staff-info">
+                <header className="staff-card__header">
+                  <article className="staff-avatar">{member.display_name?.[0] || member.name?.[0] || "S"}</article>
+                  <article className="staff-info">
                     <h3 className="staff-name">{member.display_name || member.name || "Unknown"}</h3>
                     <p className="staff-email">{member.email}</p>
-                    <div className="staff-meta">
+                    <article className="staff-meta">
                       <span className={`staff-role ${member.role}`}>{member.role}</span>
                       <span className={`staff-status ${member.status || "active"}`}>
                         {member.status === "inactive" ? "Inactive" : "Active"}
@@ -381,9 +381,9 @@ export default function StaffManagementPanel() {
                       <span className="staff-date">
                         Joined {new Date(member.created_at).toLocaleDateString()}
                       </span>
-                    </div>
-                  </div>
-                  <div className="staff-actions">
+                    </article>
+                  </article>
+                  <article className="staff-actions">
                     <button
                       className={`staff-toggle ${member.status === "inactive" ? "staff-toggle--disabled" : ""}`}
                       onClick={() => handleToggleStatus(member.id, member.status)}
@@ -402,12 +402,12 @@ export default function StaffManagementPanel() {
                     >
                       Delete
                     </button>
-                  </div>
-                </div>
+                  </article>
+                </header>
                 {member.phone_number && (
-                  <div className="staff-details">
+                  <article className="staff-details">
                     <span className="staff-phone">{member.phone_number}</span>
-                  </div>
+                  </article>
                 )}
               </li>
             ))}
@@ -415,9 +415,9 @@ export default function StaffManagementPanel() {
         )}
 
         {confirmDelete && (
-          <div className="modal-overlay">
-            <div className="modal">
-              <div className="modal__header">
+          <section className="modal-overlay">
+            <section className="modal">
+              <header className="modal__header">
                 <h3 className="modal__title">Confirm Deletion</h3>
                 <button
                   className="modal__close"
@@ -426,13 +426,13 @@ export default function StaffManagementPanel() {
                 >
                   x
                 </button>
-              </div>
-              <div className="modal__body">
+              </header>
+              <section className="modal__body">
                 <p>
                   Are you sure you want to delete this staff member? This action cannot be undone and will remove their access to the system.
                 </p>
-              </div>
-              <div className="modal__actions">
+              </section>
+              <section className="modal__actions">
                 <button
                   className="btn-export"
                   onClick={() => setConfirmDelete(null)}
@@ -455,9 +455,9 @@ export default function StaffManagementPanel() {
                     "Delete Staff Member"
                   )}
                 </button>
-              </div>
-            </div>
-          </div>
+              </section>
+            </section>
+          </section>
         )}
       </section>
     </>

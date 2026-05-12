@@ -9,8 +9,8 @@ import "../styles/ProfilePage.css";
 // ── Star display (read-only) ─────────────────────────────────
 function StarDisplay({ average = 0, count = 0 }) {
   return (
-    <div className="pub-rating__display">
-      <div className="pub-rating__stars">
+    <section className="pub-rating__display">
+      <section className="pub-rating__stars">
         {[1, 2, 3, 4, 5].map((i) => {
           const filled = average >= i;
           const half = !filled && average >= i - 0.5;
@@ -23,13 +23,13 @@ function StarDisplay({ average = 0, count = 0 }) {
             </span>
           );
         })}
-      </div>
+      </section>
       <span className="pub-rating__label">
         {count > 0
           ? `${average} (${count} review${count !== 1 ? "s" : ""})`
           : "No reviews yet"}
       </span>
-    </div>
+    </section>
   );
 }
 
@@ -37,7 +37,7 @@ function StarDisplay({ average = 0, count = 0 }) {
 function StarPicker({ value, onChange }) {
   const [hovered, setHovered] = useState(0);
   return (
-    <div className="pub-rating__picker">
+    <section className="pub-rating__picker">
       {[1, 2, 3, 4, 5].map((i) => (
         <button
           key={i}
@@ -51,7 +51,7 @@ function StarPicker({ value, onChange }) {
           ★
         </button>
       ))}
-    </div>
+    </section>
   );
 }
 
@@ -212,7 +212,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
   // ── Loading / error states ────────────────────────────────────
   if (loading) {
     return (
-      <div
+      <section
         style={{
           minHeight: "60vh",
           display: "flex",
@@ -223,20 +223,20 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
         }}
       >
         Loading profile…
-      </div>
+      </section>
     );
   }
 
   if (error || !profile) {
     return (
-      <div className="profile-page">
-        <div className="profile-page__inner">
+      <article className="profile-page">
+        <article className="profile-page__inner">
           <button className="profile-page__back" onClick={onBack}>← Back</button>
           <p style={{ color: "rgba(255,255,255,0.4)", marginTop: 16 }}>
             {error || "Profile not found."}
           </p>
-        </div>
-      </div>
+        </article>
+      </article>
     );
   }
 
@@ -260,16 +260,16 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <div className="profile-page">
-      {ratingToast && <div className="profile-toast">{ratingToast}</div>}
+    <article className="profile-page">
+      {ratingToast && <article className="profile-toast">{ratingToast}</article>}
 
-      <div className="profile-page__inner">
+      <article className="profile-page__inner">
         <button className="profile-page__back" onClick={onBack}>← Back</button>
 
-        <div className="profile-card">
+        <article className="profile-card">
           {/* Avatar header */}
-          <div className="profile-card__avatar-section">
-            <div className="profile-card__avatar-wrap">
+          <article className="profile-card__avatar-section">
+            <article className="profile-card__avatar-wrap">
               {profile.avatar_url ? (
                 <img
                   src={profile.avatar_url}
@@ -277,15 +277,15 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
                   className="profile-card__avatar"
                 />
               ) : (
-                <div className="profile-card__avatar-placeholder">{initials}</div>
+                <article className="profile-card__avatar-placeholder">{initials}</article>
               )}
-            </div>
+            </article>
 
-            <div className="profile-card__avatar-info">
-              <div className="pub-profile__name-row">
+            <article className="profile-card__avatar-info">
+              <article className="pub-profile__name-row">
                 <h2>{displayName}</h2>
                 <StarDisplay average={ratingAvg} count={ratingCount} />
-              </div>
+              </article>
               {memberSince && <p>🗓 Member since {memberSince}</p>}
               {onMessageSeller && (
                 <button
@@ -297,11 +297,11 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
                   💬 Message
                 </button>
               )}
-            </div>
-          </div>
+            </article>
+          </article>
 
           {/* Read-only profile body */}
-          <div className="profile-card__body">
+          <article className="profile-card__body">
 
             {profile.about && (
               <>
@@ -315,46 +315,46 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
             {(profile.sex || profile.birthdate) && (
               <>
                 <p className="profile-section-title">Details</p>
-                <div className="profile-field-row">
+                <article className="profile-field-row">
                   {profile.sex && (
-                    <div className="profile-field">
+                    <article className="profile-field">
                       <label>Sex</label>
-                      <div className="profile-public-value">{profile.sex}</div>
-                    </div>
+                      <article className="profile-public-value">{profile.sex}</article>
+                    </article>
                   )}
                   {profile.birthdate && (
-                    <div className="profile-field">
+                    <article className="profile-field">
                       <label>Date of birth</label>
-                      <div className="profile-public-value">
+                      <article className="profile-public-value">
                         {new Date(profile.birthdate).toLocaleDateString("en-ZA", {
                           day:   "2-digit",
                           month: "long",
                           year:  "numeric",
                         })}
-                      </div>
-                    </div>
+                      </article>
+                    </article>
                   )}
-                </div>
+                </article>
               </>
             )}
 
             {(profile.province || profile.institution) && (
               <>
                 <p className="profile-section-title">Location & Institution</p>
-                <div className="profile-field-row">
+                <article className="profile-field-row">
                   {profile.province && (
-                    <div className="profile-field">
+                    <article className="profile-field">
                       <label>Province</label>
-                      <div className="profile-public-value">{profile.province}</div>
-                    </div>
+                      <article className="profile-public-value">{profile.province}</article>
+                    </article>
                   )}
                   {profile.institution && (
-                    <div className="profile-field">
+                    <article className="profile-field">
                       <label>University / College</label>
-                      <div className="profile-public-value">{profile.institution}</div>
-                    </div>
+                      <article className="profile-public-value">{profile.institution}</article>
+                    </article>
                   )}
-                </div>
+                </article>
               </>
             )}
 
@@ -362,8 +362,8 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
             {user && user.id !== userId && rateableListings.length > 0 && (
               <>
                 <p className="profile-section-title">Rate this user</p>
-                <div className="pub-rating__form">
-                  <div className="profile-field">
+                <section className="pub-rating__form">
+                  <article className="profile-field">
                     <label>Select a listing you sold/bought</label>
                     <select
                       value={selectedListing}
@@ -381,14 +381,14 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
                       </option>
                     ))}
                     </select>
-                  </div>
+                  </article>
 
                 {/* Show rating picker only if this listing hasn't been rated yet */}
                 {selectedListingData && !selectedListingData.existingRating && (
-                  <div className="profile-field">
+                  <article className="profile-field">
                     <label>Your rating</label>
                     <StarPicker value={selectedStars} onChange={setSelectedStars} />
-                  </div>
+                  </article>
                 )}
 
           {selectedListingData?.existingRating ? (
@@ -408,13 +408,13 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
             {submitting ? "Submitting…" : "Submit Rating"}
           </button>
         )}
-    </div>
+    </section>
   </>
 )}
 
-          </div>
-        </div>
-      </div>
-    </div>
+          </article>
+        </article>
+      </article>
+    </article>
   );
 }

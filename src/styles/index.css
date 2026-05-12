@@ -529,7 +529,7 @@ html.dark .msg-offer-modal__cancel:hover {
   background: #4b5563;
 }
 /* ── Page wrappers ── */
-html.dark > body > div#root > div,
+html.dark > body > section#root > section,
 html.dark [style*="min-height: 100vh"],
 html.dark [style*="minHeight"] {
   background: #111827 !important;

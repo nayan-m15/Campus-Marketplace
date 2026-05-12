@@ -77,12 +77,12 @@ function Avatar({ url, name, size = 40 }) {
   return url ? (
     <img src={url} alt={name} className="msg-avatar" style={{ width: size, height: size }} />
   ) : (
-    <div
+    <span
       className="msg-avatar msg-avatar--placeholder"
       style={{ width: size, height: size, fontSize: size * 0.36 }}
     >
       {initials}
-    </div>
+    </span>
   );
 }
 
@@ -973,7 +973,7 @@ export default function MessagesPage({
   if (!user) return null;
 
   return (
-    <div className="msg-page">
+    <section className="msg-page">
 
       {/* ── Sidebar ── */}
       <aside className={`msg-sidebar ${activeId ? "msg-sidebar--hidden-mobile" : ""}`}>
@@ -982,7 +982,7 @@ export default function MessagesPage({
           <h2 className="msg-sidebar__title">Messages</h2>
         </header>
 
-        <div className="msg-search-wrap">
+        <section className="msg-search-wrap">
           <svg className="msg-search-icon" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
@@ -992,7 +992,7 @@ export default function MessagesPage({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-        </div>
+        </section>
 
         <ul className="msg-conv-list">
           {convsLoading && (
@@ -1019,16 +1019,16 @@ export default function MessagesPage({
                   type="button"
                 >
                   <Avatar url={conv.profile?.avatar_url} name={peerName(conv.profile)} size={46} />
-                  <div className="msg-conv-item__body">
-                    <div className="msg-conv-item__top">
+                  <section className="msg-conv-item__body">
+                    <section className="msg-conv-item__top">
                       <span className={`msg-conv-item__name ${unread > 0 && !isActive ? "msg-conv-item__name--unread" : ""}`}>
                         {threadTitle}
                       </span>
                       {conv.lastMsg && (
                         <span className="msg-conv-item__time">{timeLabel(conv.lastMsg.created_at)}</span>
                       )}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                    </section>
+                    <section style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
                       {conv.lastMsg && (
                         <span className={`msg-conv-item__preview ${unread > 0 && !isActive ? "msg-conv-item__preview--unread" : ""}`}>
                           {conv.lastMsg.sender_id === user.id ? "You: " : ""}
@@ -1056,8 +1056,8 @@ export default function MessagesPage({
                           {unread > 99 ? "99+" : unread}
                         </span>
                       )}
-                    </div>
-                  </div>
+                    </section>
+                  </section>
                 </button>
                 <button
                   className="msg-conv-delete"
@@ -1086,11 +1086,11 @@ export default function MessagesPage({
       {/* ── Chat Pane ── */}
       <section className={`msg-chat ${!activeId ? "msg-chat--empty-state" : ""}`}>
         {!activeId ? (
-          <div className="msg-chat__empty">
-            <div className="msg-chat__empty-icon">💬</div>
+          <section className="msg-chat__empty">
+            <span className="msg-chat__empty-icon">💬</span>
             <h3>Your Messages</h3>
             <p>Select a conversation or tap <strong>Message Seller</strong> on any listing.</p>
-          </div>
+          </section>
         ) : (
           <>
             <header className="msg-chat__header">
@@ -1098,22 +1098,22 @@ export default function MessagesPage({
               {activePeer && (
                 <>
                   <Avatar url={activePeer.avatar_url} name={peerName(activePeer)} size={38} />
-                  <div className="msg-chat__header-info">
+                  <header className="msg-chat__header-info">
                     <button className="msg-chat__header-name msg-chat__header-name--link" onClick={() => onViewProfile?.(activePeer.id)} type="button">
                       {conversationListing?.title ? `${peerName(activePeer)} - ${conversationListing.title}` : peerName(activePeer)}
                     </button>
                     {activePeer.institution && (
                       <span className="msg-chat__header-sub">{activePeer.institution}</span>
                     )}
-                  </div>
+                  </header>
                 </>
               )}
             </header>
 
             {/* ── Buyer Info Banner (shown to lister only) ── */}
             {conversationListing && activePeer && (
-              <div className="msg-buyer-banner">
-                <div className="msg-buyer-banner__listing-row">
+              <section className="msg-buyer-banner">
+                <article className="msg-buyer-banner__listing-row">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
                     <line x1="3" y1="6" x2="21" y2="6"/>
@@ -1124,16 +1124,16 @@ export default function MessagesPage({
                       ? <>{listingOwnerLabel} · <strong>{conversationListing.title}</strong>{conversationListing.price != null ? <> · <em>R{Number(conversationListing.price).toLocaleString("en-ZA")}</em></> : null}</>
                       : "Marketplace listing"}
                   </span>
-                </div>
-                <div className="msg-buyer-banner__card">
+                </article>
+                <article className="msg-buyer-banner__card">
                   <Avatar url={activePeer.avatar_url} name={peerName(activePeer)} size={38} />
-                  <div className="msg-buyer-banner__card-info">
+                  <article className="msg-buyer-banner__card-info">
                     <span className="msg-buyer-banner__card-name">{peerName(activePeer)}</span>
                     {activePeer.institution && (
                       <span className="msg-buyer-banner__card-sub">{activePeer.institution}</span>
                     )}
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  </article>
+                  <section style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     <button
                       className="msg-buyer-banner__btn msg-buyer-banner__btn--offer"
                       onClick={() => { if (!hasAcceptedOffer) { setShowOfferModal(true); setOfferError(""); setOfferAmount(""); } }}
@@ -1150,20 +1150,20 @@ export default function MessagesPage({
                     >
                       {profileActionLabel}
                     </button>
-                  </div>
-                </div>
-              </div>
+                  </section>
+                </article>
+              </section>
             )}
 
             {/* ── Send Offer Modal ── */}
             {showOfferModal && conversationListing && (
-              <div className="msg-offer-modal-overlay" onClick={() => setShowOfferModal(false)}>
-                <div className="msg-offer-modal" onClick={(e) => e.stopPropagation()}>
+              <section className="msg-offer-modal-overlay" onClick={() => setShowOfferModal(false)}>
+                <section className="msg-offer-modal" onClick={(e) => e.stopPropagation()}>
                   <h3 className="msg-offer-modal__title">Send an Offer</h3>
                   <p className="msg-offer-modal__sub">
                     Listing price: <strong>R{Number(conversationListing.price).toLocaleString("en-ZA")}</strong>
                   </p>
-                  <div className="msg-offer-modal__input-wrap">
+                  <section className="msg-offer-modal__input-wrap">
                     <span className="msg-offer-modal__currency">R</span>
                     <input
                       className="msg-offer-modal__input"
@@ -1175,22 +1175,22 @@ export default function MessagesPage({
                       onChange={(e) => { setOfferAmount(clampOfferAmount(e.target.value)); setOfferError(""); }}
                       autoFocus
                     />
-                  </div>
+                  </section>
                   {offerError && <p className="msg-offer-modal__error">{offerError}</p>}
-                  <div className="msg-offer-modal__actions">
+                  <section className="msg-offer-modal__actions">
                     <button className="msg-offer-modal__cancel" onClick={() => setShowOfferModal(false)} type="button">Cancel</button>
                     <button className="msg-offer-modal__send" onClick={sendOffer} disabled={offerSending} type="button">
                       {offerSending ? "Sending…" : "Send Offer"}
                     </button>
-                  </div>
-                </div>
-              </div>
+                  </section>
+                </section>
+              </section>
             )}
 
             {deleteConfirmOpen && (
-              <div className="msg-offer-modal-overlay" onClick={() => !deletingConversation && setDeleteConfirmOpen(false)}>
-                <div className="msg-delete-modal" onClick={(e) => e.stopPropagation()}>
-                  <div className="msg-delete-modal__icon" aria-hidden="true">
+              <section className="msg-offer-modal-overlay" onClick={() => !deletingConversation && setDeleteConfirmOpen(false)}>
+                <section className="msg-delete-modal" onClick={(e) => e.stopPropagation()}>
+                  <span className="msg-delete-modal__icon" aria-hidden="true">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 6h18" />
                       <path d="M8 6V4h8v2" />
@@ -1198,13 +1198,13 @@ export default function MessagesPage({
                       <path d="M10 11v5" />
                       <path d="M14 11v5" />
                     </svg>
-                  </div>
+                  </span>
                   <h3 className="msg-offer-modal__title">Delete this chat?</h3>
                   <p className="msg-delete-modal__copy">
                     This will permanently remove the messages and offers in this conversation.
                   </p>
                   {deleteError && <p className="msg-offer-modal__error">{deleteError}</p>}
-                  <div className="msg-offer-modal__actions">
+                  <section className="msg-offer-modal__actions">
                     <button
                       className="msg-offer-modal__cancel"
                       onClick={() => setDeleteConfirmOpen(false)}
@@ -1221,9 +1221,9 @@ export default function MessagesPage({
                     >
                       {deletingConversation ? "Deleting..." : "Delete chat"}
                     </button>
-                  </div>
-                </div>
-              </div>
+                  </section>
+                </section>
+              </section>
             )}
 
             {flaggedWarningOpen && conversationListing?.status === "flagged" && (
@@ -1253,7 +1253,7 @@ export default function MessagesPage({
                 <p style={{ margin: "0 0 16px" }}>
                   <strong>Reason:</strong> {conversationListing.flag_reason?.trim() || "No reason was provided."}
                 </p>
-                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                <section style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
                   <button
                     className="msg-offer-modal__cancel"
                     onClick={() => {
@@ -1283,20 +1283,20 @@ export default function MessagesPage({
                   >
                     Continue
                   </button>
-                </div>
+                </section>
               </aside>
             )}
 
-            <div className="msg-chat__body">
+            <section className="msg-chat__body">
               {msgsLoading && (
-                <div className="msg-chat__loading"><span className="msg-spinner" /></div>
+                <section className="msg-chat__loading"><span className="msg-spinner" /></section>
               )}
 
               {!msgsLoading && messages.length === 0 && (
-                <div className="msg-chat__no-msgs">
+                <section className="msg-chat__no-msgs">
                   <span>👋</span>
                   <p>Say hello! This is the start of your conversation.</p>
-                </div>
+                </section>
               )}
 
               {(() => {
@@ -1315,8 +1315,8 @@ export default function MessagesPage({
                 }
 
                 return Object.entries(groups).map(([date, items]) => (
-                  <div key={date}>
-                    <div className="msg-date-divider"><span>{dateLabel(date)}</span></div>
+                  <section key={date}>
+                    <span className="msg-date-divider"><span>{dateLabel(date)}</span></span>
                     {items.map((item) => {
                       if (item._type === "offer") {
                         const iMadeOffer = item.sender_id === user.id;
@@ -1326,37 +1326,37 @@ export default function MessagesPage({
                         // Tick status for offers I sent: read if receiver has opened the chat
                         const offerTickStatus = item.is_read ? "read" : "sent";
                         return (
-                          <div key={`offer-${item.id}`} className={`msg-offer-card-wrap ${iMadeOffer ? "msg-offer-card-wrap--mine" : "msg-offer-card-wrap--theirs"}`}>
+                          <article key={`offer-${item.id}`} className={`msg-offer-card-wrap ${iMadeOffer ? "msg-offer-card-wrap--mine" : "msg-offer-card-wrap--theirs"}`}>
                             {!iMadeOffer && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
-                            <div className={`msg-offer-card ${iMadeOffer ? "msg-offer-card--mine" : "msg-offer-card--theirs"} ${isAccepted ? "msg-offer-card--accepted" : isDeclined ? "msg-offer-card--declined" : item.status === "cancelled" ? "msg-offer-card--declined" : ""}`}>
-                              <div className="msg-offer-card__header">
+                            <article className={`msg-offer-card ${iMadeOffer ? "msg-offer-card--mine" : "msg-offer-card--theirs"} ${isAccepted ? "msg-offer-card--accepted" : isDeclined ? "msg-offer-card--declined" : item.status === "cancelled" ? "msg-offer-card--declined" : ""}`}>
+                              <header className="msg-offer-card__header">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                                 </svg>
                                 <span className="msg-offer-card__label">
                                   {iMadeOffer ? `You offered ${peerName(activePeer)}` : `${peerName(activePeer)} offered you`}
                                 </span>
-                              </div>
+                              </header>
                               <p className="msg-offer-card__note">
                                 This offer only records the agreed price. Payment and collection are arranged later in chat.
                               </p>
-                              <div className="msg-offer-card__amount">
+                              <article className="msg-offer-card__amount">
                                 R{Number(item.amount).toLocaleString("en-ZA")}
-                              </div>
+                              </article>
                               {isPending && !iMadeOffer && (
-                                <div className="msg-offer-card__actions">
+                                <article className="msg-offer-card__actions">
                                   <button className="msg-offer-card__decline" onClick={() => respondToOffer(item.id, false)} type="button">Decline</button>
                                   <button className="msg-offer-card__accept" onClick={() => respondToOffer(item.id, true)} type="button">Accept</button>
-                                </div>
+                                </article>
                               )}
                               {isPending && iMadeOffer && (
-                                <div className="msg-offer-card__actions">
+                                <article className="msg-offer-card__actions">
                                   <p className="msg-offer-card__status msg-offer-card__status--pending" style={{ margin: 0 }}>Waiting for response…</p>
                                   <button className="msg-offer-card__cancel-offer" onClick={() => cancelOffer(item.id)} type="button">Cancel Offer</button>
-                                </div>
+                                </article>
                               )}
                               {isAccepted && (
-                                <div className="msg-offer-card__accepted-block">
+                                <article className="msg-offer-card__accepted-block">
                                   <p className="msg-offer-card__status msg-offer-card__status--accepted" style={{ margin: 0 }}>✓ Offer accepted</p>
                                   <p className="msg-offer-card__accepted-note">
                                     Book a drop-off or collection slot to complete this transaction.
@@ -1368,7 +1368,7 @@ export default function MessagesPage({
                                   >
                                     Go to My Bookings →
                                   </button>
-                                </div>
+                                </article>
                               )}
                               {isDeclined && (
                                 <p className="msg-offer-card__status msg-offer-card__status--declined">✕ Offer declined</p>
@@ -1379,12 +1379,12 @@ export default function MessagesPage({
 
                               {/* Read ticks — only shown on offers I sent */}
                               {iMadeOffer && (
-                                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+                                <section style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
                                   <ReadTicks status={offerTickStatus} />
-                                </div>
+                                </section>
                               )}
-                            </div>
-                          </div>
+                            </article>
+                          </article>
                         );
                       }
 
@@ -1392,41 +1392,41 @@ export default function MessagesPage({
                       const mine = item.sender_id === user.id;
                       const tickStatus = !item.id ? "sending" : item.is_read ? "read" : "sent";
                       return (
-                        <div key={item.id} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
+                        <section key={item.id} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
                           {!mine && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
-                          <div className={`msg-bubble ${mine ? "msg-bubble--mine" : "msg-bubble--theirs"}`}>
+                          <section className={`msg-bubble ${mine ? "msg-bubble--mine" : "msg-bubble--theirs"}`}>
                             <p>{item.content}</p>
                             <span className="msg-bubble__time" style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
                               {new Date(item.created_at).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
                               {mine && <ReadTicks status={tickStatus} />}
                             </span>
-                          </div>
-                        </div>
+                          </section>
+                        </section>
                       );
                     })}
-                  </div>
+                  </section>
                 ));
               })()}
-              <div ref={bottomRef} />
-            </div>
+              <section ref={bottomRef} />
+            </section>
 
             {/* ── Accepted Offer Confirmation Banner ───────────── */}
             {acceptedOfferBanner && (
-              <div className="msg-offer-card-wrap msg-offer-card-wrap--theirs msg-accepted-banner-wrap">
-                <div className="msg-offer-card msg-offer-card--theirs msg-offer-card--accepted msg-accepted-banner">
-                  <div className="msg-offer-card__header">
+              <article className="msg-offer-card-wrap msg-offer-card-wrap--theirs msg-accepted-banner-wrap">
+                <article className="msg-offer-card msg-offer-card--theirs msg-offer-card--accepted msg-accepted-banner">
+                  <header className="msg-offer-card__header">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                     <span className="msg-offer-card__label" style={{ color: "var(--green)" }}>Offer Accepted!</span>
-                  </div>
-                  <div className="msg-offer-card__amount">
+                  </header>
+                  <article className="msg-offer-card__amount">
                     R{Number(acceptedOfferBanner.amount).toLocaleString("en-ZA")}
-                  </div>
+                  </article>
                   <p className="msg-offer-card__note" style={{ color: "rgba(255,255,255,0.6)" }}>
                     You accepted the offer for <strong style={{ color: "#fff" }}>{acceptedOfferBanner.listingTitle}</strong>. Book a drop-off or collection slot to complete the transaction.
                   </p>
-                  <div className="msg-offer-card__actions">
+                  <article className="msg-offer-card__actions">
                     <button
                       className="msg-offer-card__accept msg-accepted-banner__bookings-btn"
                       onClick={() => onGoToBookings?.()}
@@ -1442,14 +1442,14 @@ export default function MessagesPage({
                     >
                       Dismiss
                     </button>
-                  </div>
-                </div>
-              </div>
+                  </article>
+                </article>
+              </article>
             )}
 
             <footer className="msg-composer">
               {showSellerQuickReplies && (
-                <div className="msg-composer__quick-replies" aria-label="Seller quick replies">
+                <section className="msg-composer__quick-replies" aria-label="Seller quick replies">
                   {SELLER_QUICK_REPLIES.map((reply) => (
                     <button
                       key={reply}
@@ -1461,9 +1461,9 @@ export default function MessagesPage({
                       {reply}
                     </button>
                   ))}
-                </div>
+                </section>
               )}
-              <div className="msg-composer__row">
+              <section className="msg-composer__row">
                 <textarea
                   ref={textareaRef}
                   className="msg-composer__input"
@@ -1485,11 +1485,11 @@ export default function MessagesPage({
                     <polygon points="22 2 15 22 11 13 2 9 22 2" />
                   </svg>
                 </button>
-              </div>
+              </section>
             </footer>
           </>
         )}
       </section>
-    </div>
+    </section>
   );
 }

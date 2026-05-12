@@ -107,7 +107,7 @@ export default function Navbar({
   return (
     <>
       {/* Keeps page content from sliding under the fixed navbar. */}
-      <div className="navbar-spacer" aria-hidden="true" />
+      <span className="navbar-spacer" aria-hidden="true" />
       <header
         ref={headerRef}
         className={`navbar${searchOpen ? " navbar--mobile-search-open" : ""}${!user ? " navbar--logged-out" : ""}`}
@@ -116,7 +116,7 @@ export default function Navbar({
           // Mobile-only search state:
           // when search is open, we swap out the normal compact mobile navbar
           // for a dedicated overlay row with the full search field and close button.
-          <div className="navbar__mobile-search-shell">
+          <nav className="navbar__mobile-search-shell">
             <form className="navbar__search navbar__search--mobile-overlay" role="search" onSubmit={(e) => e.preventDefault()}>
               {searchField}
             </form>
@@ -131,7 +131,7 @@ export default function Navbar({
                 <path d="m6 6 12 12" />
               </svg>
             </button>
-          </div>
+          </nav>
         ) : (
           <>
             {/* Shared brand button.
@@ -189,12 +189,12 @@ export default function Navbar({
               />
             </form>
 
-            <div className="navbar__actions">
+            <nav className="navbar__actions">
               {/* Compact mobile controls.
                   This area is intentionally different from desktop:
                   mobile gets a wider "Search..." trigger, and desktop keeps the
                   full search bar visible all the time. */}
-              <div className="navbar__mobile-actions" aria-label="Quick actions">
+              <nav className="navbar__mobile-actions" aria-label="Quick actions">
                 <button
                   className="navbar__mobile-search-trigger"
                   type="button"
@@ -244,7 +244,7 @@ export default function Navbar({
                     </button>
                   </>
                 )}
-              </div>
+              </nav>
 
               {/* Desktop/tablet navigation stays grouped here.
                   These links are hidden on mobile so we can keep mobile behavior
@@ -322,7 +322,7 @@ export default function Navbar({
               {/* The hamburger remains available for the side menu.
                   It sits outside the desktop links so the menu logic is shared,
                   even though the visible layout differs by screen size. */}
-              <div className="navbar__hamburger-wrap">
+              <nav className="navbar__hamburger-wrap">
                 <button
                   className="navbar__hamburger"
                   aria-label="Open menu"
@@ -337,7 +337,7 @@ export default function Navbar({
                 {menuOpen && (
                   <>
                     {/* Backdrop lets the user tap away without hunting for a close control. */}
-                    <div className="navbar__menu-backdrop" onClick={() => setMenuOpen(false)} />
+                    <nav className="navbar__menu-backdrop" onClick={() => setMenuOpen(false)} />
                     {/* The side menu stays shared so we do not duplicate the account actions. */}
                     <nav className="navbar__menu" aria-label="Side menu">
                       <ul>
@@ -429,8 +429,8 @@ export default function Navbar({
                     </nav>
                   </>
                 )}
-              </div>
-            </div>
+              </nav>
+            </nav>
           </>
         )}
       </header>

@@ -68,15 +68,15 @@ export default function ReceiptModal({
 
   return (
     <dialog ref={dialogRef} className="receipt-dialog" onClose={handleClose}>
-      <div className="receipt-dialog__inner">
+      <article className="receipt-dialog__inner">
         <header className="receipt-dialog__header">
-          <div>
+          <section>
             <p className="receipt-dialog__eyebrow">CampusXchange</p>
             <h2 className="receipt-dialog__title">Generate Transaction Receipt</h2>
             <p className="receipt-dialog__subtitle">
               Search the ledger, choose one transaction, then download a styled PDF receipt.
             </p>
-          </div>
+          </section>
           <button
             type="button"
             className="receipt-dialog__close"
@@ -88,8 +88,8 @@ export default function ReceiptModal({
           </button>
         </header>
 
-        <div className="receipt-dialog__body">
-          <div className="receipt-dialog__toolbar">
+        <article className="receipt-dialog__body">
+          <article className="receipt-dialog__toolbar">
             <label htmlFor="receipt-transaction-search" className="sr-only">
               Search transactions
             </label>
@@ -104,14 +104,14 @@ export default function ReceiptModal({
             <span className="receipt-dialog__results">
               {filteredTransactions.length} result{filteredTransactions.length === 1 ? "" : "s"}
             </span>
-          </div>
+          </article>
 
-          <div className="receipt-dialog__content">
+          <article className="receipt-dialog__content">
             <section className="receipt-dialog__list" aria-label="Transactions available for receipt generation">
               {filteredTransactions.length === 0 ? (
-                <div className="receipt-dialog__empty">
+                <article className="receipt-dialog__empty">
                   No matching transactions found. Try a different search term.
-                </div>
+                </article>
               ) : (
                 filteredTransactions.map((transaction) => {
                   const isSelected = selectedId === transaction.id;
@@ -125,12 +125,12 @@ export default function ReceiptModal({
                         setError("");
                       }}
                     >
-                      <div className="receipt-option__top">
+                      <article className="receipt-option__top">
                         <span className="txn-id-chip">{transaction.id}</span>
                         <span className="receipt-option__price">
                           R {Number(transaction.totalAmount ?? transaction.price ?? 0).toLocaleString("en-ZA")}
                         </span>
-                      </div>
+                      </article>
                       <p className="receipt-option__item">{transaction.item}</p>
                       <p className="receipt-option__meta">
                         Seller: {transaction.seller?.name || "Unknown"} | Buyer: {transaction.buyer?.name || "Unknown"}
@@ -150,30 +150,30 @@ export default function ReceiptModal({
                 <>
                   <h3 className="receipt-preview__title">{selectedTransaction.item}</h3>
                   <dl className="receipt-preview__details">
-                    <div>
+                    <section>
                       <dt>Transaction ID</dt>
                       <dd>{selectedTransaction.id}</dd>
-                    </div>
-                    <div>
+                    </section>
+                    <section>
                       <dt>Buyer</dt>
                       <dd>{selectedTransaction.buyer?.name || "Unknown"}</dd>
-                    </div>
-                    <div>
+                    </section>
+                    <section>
                       <dt>Seller</dt>
                       <dd>{selectedTransaction.seller?.name || "Unknown"}</dd>
-                    </div>
-                    <div>
+                    </section>
+                    <section>
                       <dt>Amount</dt>
                       <dd>R {Number(selectedTransaction.totalAmount ?? selectedTransaction.price ?? 0).toLocaleString("en-ZA")}</dd>
-                    </div>
-                    <div>
+                    </section>
+                    <section>
                       <dt>Status</dt>
                       <dd>{selectedTransaction.status}</dd>
-                    </div>
-                    <div>
+                    </section>
+                    <section>
                       <dt>Has image</dt>
                       <dd>{selectedTransaction.itemImageUrl ? "Yes" : "No"}</dd>
-                    </div>
+                    </section>
                   </dl>
                   <p className="receipt-preview__description">
                     {selectedTransaction.itemDescription || "No stored description is available for this item."}
@@ -185,10 +185,10 @@ export default function ReceiptModal({
                 </p>
               )}
             </aside>
-          </div>
+          </article>
 
           {error ? <p className="receipt-dialog__error" role="alert">{error}</p> : null}
-        </div>
+        </article>
 
         <footer className="receipt-dialog__footer">
           <button type="button" className="btn-export" onClick={handleClose} disabled={Boolean(generatingId)}>
@@ -198,7 +198,7 @@ export default function ReceiptModal({
             {generatingId ? "Generating..." : "Download Receipt"}
           </button>
         </footer>
-      </div>
+      </article>
     </dialog>
   );
 }

@@ -15,10 +15,10 @@ export default function WishlistPage({
   if (loading) {
     return (
       <main className="wl__wrapper">
-        <div className="wl__loading">
+        <section className="wl__loading">
           <span className="wl__spinner" />
           <p>Loading your wishlist…</p>
-        </div>
+        </section>
       </main>
     );
   }
@@ -85,7 +85,7 @@ function WishlistCard({ item, onClick, onRemove }) {
         {item.image_url ? (
           <img src={item.image_url} alt={item.title} className="wl__img" />
         ) : (
-          <div className="wl__img-placeholder">📦</div>
+          <span className="wl__img-placeholder">📦</span>
         )}
         {/* Remove from wishlist button */}
         <button
@@ -101,7 +101,7 @@ function WishlistCard({ item, onClick, onRemove }) {
 
       <section className="wl__card-body">
         <h3 className="wl__card-title">{item.title}</h3>
-        <div className="wl__card-meta">
+        <article className="wl__card-meta">
           <span
             className="wl__condition"
             style={{ background: conditionColor + "22", color: conditionColor }}
@@ -109,7 +109,7 @@ function WishlistCard({ item, onClick, onRemove }) {
             {item.condition}
           </span>
           <span className="wl__price">{formatZAR(item.price)}</span>
-        </div>
+        </article>
       </section>
     </li>
   );

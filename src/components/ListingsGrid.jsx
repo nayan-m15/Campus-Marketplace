@@ -36,14 +36,14 @@ export default function ListingsGrid({
   return (
     <section className="listings-section">
       <header className="listings-section__header">
-        <div className="listings-section__heading-block">
+        <article className="listings-section__heading-block">
           <h2 className="listings-section__title">{heading}</h2>
           <p className="listings-section__count">
             {listings.length} item{listings.length !== 1 ? "s" : ""} available near you
           </p>
-        </div>
+        </article>
 
-        <div className="listings-section__sort-area">
+        <article className="listings-section__sort-area">
           <label className="listings-section__sort-label" htmlFor="listings-sort">
             <span className="listings-section__sort-text">Sort by</span>
             <select
@@ -138,7 +138,7 @@ export default function ListingsGrid({
               )}
             </fieldset>
           )}
-        </div>
+        </article>
       </header>
 
       {listings.length === 0 ? (
