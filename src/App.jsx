@@ -40,6 +40,7 @@ import RatingPromptModal from "./components/RatingPromptModal";
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 const DEBUG_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEBUG_AUTH === "true";
 const POST_LOGIN_REDIRECT_KEY = "campusxchange:post-login-redirect";
+const STATIC_HOST_REDIRECT_KEY = "campusxchange:static-host-redirect";
 const PAGE_PATHS = {
   home: "/",
   login: "/login",
@@ -100,6 +101,33 @@ function getPageForPath(pathname) {
   const appPath = stripBasePath(pathname);
   const matchedRoute = Object.entries(PAGE_PATHS).find(([, path]) => path === appPath);
   return matchedRoute?.[0] ?? "home";
+}
+
+function restoreStaticHostRedirect() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const savedPath = window.sessionStorage.getItem(STATIC_HOST_REDIRECT_KEY);
+    if (!savedPath) return null;
+
+    window.sessionStorage.removeItem(STATIC_HOST_REDIRECT_KEY);
+
+    const restoredUrl = new URL(savedPath, window.location.origin);
+    const basePath = normalizeBasePath();
+
+    if (
+      restoredUrl.origin !== window.location.origin ||
+      (basePath !== "/" && !restoredUrl.pathname.startsWith(basePath))
+    ) {
+      return null;
+    }
+
+    const nextUrl = `${restoredUrl.pathname}${restoredUrl.search}${restoredUrl.hash}`;
+    window.history.replaceState({ ...(window.history.state || {}) }, "", nextUrl);
+    return restoredUrl.pathname;
+  } catch {
+    return null;
+  }
 }
 
 function getPageForAppPath(appPath) {
@@ -1026,9 +1054,10 @@ function AppInner() {
     lastAuthEvent,
   } = useAuth();
 
-  const [page, setPage] = useState(() =>
-    typeof window === "undefined" ? "home" : getPageForPath(window.location.pathname)
-  );
+  const [page, setPage] = useState(() => {
+    if (typeof window === "undefined") return "home";
+    return getPageForPath(restoreStaticHostRedirect() || window.location.pathname);
+  });
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [activeCondition, setActiveCondition] = useState("All Conditions");
   const [priceSort, setPriceSort] = useState("");
