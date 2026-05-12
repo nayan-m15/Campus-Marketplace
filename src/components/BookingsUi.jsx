@@ -435,6 +435,9 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
 function TransactionBookingCard({ transaction, userId, onBook }) {
   const userIsSeller = transaction.seller_id === userId;
   const userIsBuyer = transaction.buyer_id === userId;
+  const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
+  const sellerItem = transaction.requested_item || transaction.item;
+  const buyerItem = transaction.offered_item || "Offered item";
   const canBookDropoff = userIsSeller && !transaction.dropoff_booking && ["pending", "awaiting_dropoff"].includes(transaction.status);
   const collectionRequestReady =
     canBookCollectionForStatus(transaction.status) ||
@@ -447,6 +450,11 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
         <section>
           <p className="bookings-page-card__eyebrow">Transaction</p>
           <h3>{transaction.item}</h3>
+          {isItemTrade && (
+            <p className="bookings-page-card__id">
+              {sellerItem} for {buyerItem}
+            </p>
+          )}
           <p className="bookings-page-card__id">{transaction.id}</p>
         </section>
         <span className={`bookings-page-status bookings-page-status--${transaction.status}`}>
@@ -464,8 +472,8 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
           <p>{transaction.buyer_profile?.display_name || transaction.buyer_profile?.name || transaction.buyer_id}</p>
         </section>
         <section>
-          <p className="bookings-page-card__label">Price</p>
-          <p>R {Number(transaction.price || 0).toLocaleString("en-ZA")}</p>
+          <p className="bookings-page-card__label">{isItemTrade ? "Trade" : "Price"}</p>
+          <p>{isItemTrade ? "Item for item" : `R ${Number(transaction.price || 0).toLocaleString("en-ZA")}`}</p>
         </section>
         <section>
           <p className="bookings-page-card__label">Created</p>
@@ -475,7 +483,7 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
 
       <article className="bookings-page-card__bookings">
         <section className="bookings-page-card__booking">
-          <p className="bookings-page-card__label">Drop-off</p>
+          <p className="bookings-page-card__label">{isItemTrade ? "Seller item drop-off" : "Drop-off"}</p>
           {transaction.dropoff_booking ? (
             <p>
               {transaction.dropoff_booking.location} · {formatTimestampDate(transaction.dropoff_booking.scheduled_time)} at{" "}
@@ -486,13 +494,13 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
           )}
           {canBookDropoff && (
             <button className="btn-primary bookings-page-card__action" onClick={() => onBook(transaction, "dropoff")}>
-              Book drop-off
+              {isItemTrade ? "Book item drop-off" : "Book drop-off"}
             </button>
           )}
         </section>
 
         <section className="bookings-page-card__booking">
-          <p className="bookings-page-card__label">Collection</p>
+          <p className="bookings-page-card__label">{isItemTrade ? "Buyer item handover" : "Collection"}</p>
           {transaction.collection_booking ? (
             <p>
               {transaction.collection_booking.location} · {formatTimestampDate(transaction.collection_booking.scheduled_time)} at{" "}
@@ -503,7 +511,7 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
           )}
           {canBookCollection && (
             <button className="btn-primary bookings-page-card__action" onClick={() => onBook(transaction, "collection")}>
-              Book collection
+              {isItemTrade ? "Book swap handover" : "Book collection"}
             </button>
           )}
         </section>
@@ -596,7 +604,7 @@ export function StudentBookingsPage({ user, onBack }) {
           <p className="bookings-page__eyebrow">Trade Facility</p>
           <h1>My Bookings</h1>
           <p className="bookings-page__intro">
-            Book your drop-off and collection slots once a transaction is ready. Sellers book drop-off first, then buyers book collection after the item is received.
+            Book facility slots once a transaction is ready. For item trades, the listed-item owner books the first drop-off, then the other student books the final swap handover after staff receives it.
           </p>
         </section>
       </header>

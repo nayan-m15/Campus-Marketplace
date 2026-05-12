@@ -845,7 +845,7 @@ function ListingDetailsModal({
                               onSendOffer?.(latestItem);
                             }}
                           >
-                            Send Offer
+                            {tradeBadgeLabel ? "Send Trade Offer" : "Send Offer"}
                           </button>
                         </section>
                       </>
@@ -1549,8 +1549,15 @@ useEffect(() => {
       return;
     }
 
+    const listingType = String(latestItem?.listing_type || "sale").toLowerCase();
+    const isTradeListing =
+      latestItem?.status === "for_trade" ||
+      ["trade", "trade_only", "sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
+
     openMessagesForListing(latestItem, {
-      initialDraft: `Hello, I'd like to send an offer for "${latestItem.title}".`,
+      initialDraft: isTradeListing
+        ? `Hello, I'd like to send an item trade offer for "${latestItem.title}".`
+        : `Hello, I'd like to send an offer for "${latestItem.title}".`,
       initialAction: "offer",
     });
   }
@@ -2018,9 +2025,15 @@ useEffect(() => {
             if (!item) return;
 
             if (item.__pendingAction === "offer") {
+              const listingType = String(item?.listing_type || "sale").toLowerCase();
+              const isTradeListing =
+                item?.status === "for_trade" ||
+                ["trade", "trade_only", "sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
               openMessagesForListing(item, {
                 acknowledged: true,
-                initialDraft: `Hello, I'd like to send an offer for "${item.title}".`,
+                initialDraft: isTradeListing
+                  ? `Hello, I'd like to send an item trade offer for "${item.title}".`
+                  : `Hello, I'd like to send an offer for "${item.title}".`,
                 initialAction: "offer",
               });
               return;
@@ -2112,9 +2125,15 @@ useEffect(() => {
             if (!item) return;
 
             if (item.__pendingAction === "offer") {
+              const listingType = String(item?.listing_type || "sale").toLowerCase();
+              const isTradeListing =
+                item?.status === "for_trade" ||
+                ["trade", "trade_only", "sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
               openMessagesForListing(item, {
                 acknowledged: true,
-                initialDraft: `Hello, I'd like to send an offer for "${item.title}".`,
+                initialDraft: isTradeListing
+                  ? `Hello, I'd like to send an item trade offer for "${item.title}".`
+                  : `Hello, I'd like to send an offer for "${item.title}".`,
                 initialAction: "offer",
               });
               return;

@@ -1065,3 +1065,46 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+
+
+.msg-trade-picker {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.msg-trade-picker__item {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.msg-trade-picker__item:hover,
+.msg-trade-picker__item--selected {
+  border-color: rgba(83, 215, 105, 0.75);
+  background: rgba(83, 215, 105, 0.12);
+}
+
+.msg-trade-picker__title,
+.msg-trade-picker__meta {
+  display: block;
+}
+
+.msg-trade-picker__title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.msg-trade-picker__meta {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+}

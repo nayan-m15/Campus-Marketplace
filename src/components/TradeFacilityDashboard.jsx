@@ -317,16 +317,17 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
   const { status } = transaction;
   const dropoffBooking = bookings.find((booking) => booking.id === transaction.dropoffId);
   const collectionBooking = bookings.find((booking) => booking.id === transaction.collectionId);
+  const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
 
   const getAction = () => {
     switch (status) {
       case "awaiting_dropoff":
         return {
-          label: "Mark Item Received",
+          label: isItemTrade ? "Mark First Item Received" : "Mark Item Received",
           icon: "package",
           cls: "btn-action--receipt",
           next: "item_received",
-          hint: "Confirm the seller has handed the item over.",
+          hint: isItemTrade ? "Confirm the listed item has been handed over." : "Confirm the seller has handed the item over.",
         };
       case "item_received":
         return null;
@@ -336,7 +337,7 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
           icon: "handoff",
           cls: "btn-action--release",
           next: "item_released",
-          hint: "Confirm the buyer has collected the item.",
+          hint: isItemTrade ? "Confirm the final swap handover is complete." : "Confirm the buyer has collected the item.",
         };
       case "item_released":
         return {
@@ -359,6 +360,11 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
         <section className="booking-card__header-left">
           <section className="booking-card__person-info">
             <p className="booking-card__person-name">{transaction.item}</p>
+            {isItemTrade ? (
+              <p className="booking-card__person-meta">
+                {transaction.requested_item || "Listed item"} for {transaction.offered_item || "offered item"}
+              </p>
+            ) : null}
             <p className="booking-card__person-meta booking-card__txn-id">{transaction.id}</p>
           </section>
         </section>
@@ -378,9 +384,9 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
             <span className="booking-card__detail-value">{transaction.buyer.name}</span>
           </li>
           <li className="booking-card__detail">
-            <span className="booking-card__detail-label">Value</span>
+            <span className="booking-card__detail-label">{isItemTrade ? "Trade" : "Value"}</span>
             <span className="booking-card__detail-value">
-              R {Number(transaction.price || 0).toLocaleString("en-ZA")}
+              {isItemTrade ? "Item for item" : `R ${Number(transaction.price || 0).toLocaleString("en-ZA")}`}
             </span>
           </li>
           {dropoffBooking ? (
@@ -405,7 +411,7 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
             <li className="booking-card__detail booking-card__detail--full">
               <span className="booking-card__detail-label">Next step</span>
               <span className="booking-card__detail-value managed-card__hint">
-                Waiting for the buyer to book a collection slot.
+                {isItemTrade ? "Waiting for the other student to book the swap handover slot." : "Waiting for the buyer to book a collection slot."}
               </span>
             </li>
           ) : null}
@@ -905,6 +911,7 @@ function TransactionsSection({
                 {filtered.map((transaction) => {
                   const dropoff = bookings.find((booking) => booking.id === transaction.dropoffId);
                   const collection = bookings.find((booking) => booking.id === transaction.collectionId);
+                  const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
 
                   return (
                     <tr key={transaction.id}>
@@ -912,7 +919,14 @@ function TransactionsSection({
                         <span className="txn-id-chip">{transaction.id}</span>
                         <p className="txn-date">{formatDate(transaction.createdAt?.slice(0, 10) || "")}</p>
                       </td>
-                      <td className="txn-item">{transaction.item}</td>
+                      <td className="txn-item">
+                        {transaction.item}
+                        {isItemTrade ? (
+                          <p className="txn-date">
+                            {transaction.requested_item || "Listed item"} for {transaction.offered_item || "offered item"}
+                          </p>
+                        ) : null}
+                      </td>
                       <td>
                         <section className="txn-person">
                           <Avatar name={transaction.seller.name} size="sm" />
@@ -931,7 +945,7 @@ function TransactionsSection({
                           </section>
                         </section>
                       </td>
-                      <td className="txn-price">R {Number(transaction.price || 0).toLocaleString("en-ZA")}</td>
+                      <td className="txn-price">{isItemTrade ? "Item trade" : `R ${Number(transaction.price || 0).toLocaleString("en-ZA")}`}</td>
                       <td>
                         <span className="txn-status-stack">
                           <StatusBadge status={transaction.status} />
@@ -1162,7 +1176,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
         return {
           ...transaction,
-          listing_id: matchedListing?.id || null,
+          listing_id: transaction.listing_id || transaction.requested_listing_id || matchedListing?.id || null,
           dropoffId: transaction.dropoff_id,
           collectionId: transaction.collection_id,
           createdAt: transaction.created_at,

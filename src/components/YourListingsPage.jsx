@@ -542,7 +542,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
         .order("created_at", { ascending: false }),
       supabase
         .from("transactions")
-        .select("listing_id")
+        .select("listing_id, requested_listing_id, offered_listing_id")
         .eq("status", "completed")
         .or(`seller_id.eq.${user.id},buyer_id.eq.${user.id}`),
     ]);
@@ -552,7 +552,11 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
 
     // Build a Set of listing IDs that were part of a completed transaction
     // so the UI can block the Relist button for those items.
-    const ids = new Set((txnData || []).map((t) => t.listing_id).filter(Boolean));
+    const ids = new Set(
+      (txnData || [])
+        .flatMap((t) => [t.listing_id, t.requested_listing_id, t.offered_listing_id])
+        .filter(Boolean)
+    );
     setCompletedListingIds(ids);
     setLoading(false);
   }, [user]);
@@ -574,12 +578,12 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
 
   async function handleMarkSold(id, currentStatus) {
     const wasSold = currentStatus === "sold";
+    const listing = listings.find((l) => l.id === id);
     // Prevent relisting items that were sold through a completed trade transaction.
-    if (wasSold && completedListingIds.has(id)) {
+    if (wasSold && (completedListingIds.has(id) || listing?.traded_at || listing?.traded_transaction_id)) {
       setError("This item was sold through a completed trade transaction and cannot be relisted.");
       return;
     }
-    const listing = listings.find((l) => l.id === id);
     const hasFlagReason = Boolean(listing?.flag_reason?.trim());
     const newStatus = wasSold ? (hasFlagReason ? "flagged" : "active") : "sold";
     const { error } = await supabase
@@ -761,6 +765,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
         {listings.map((item) => {
           const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
           const isSold = item.status === "sold";
+          const isTraded = Boolean(item.traded_at || item.traded_transaction_id);
           const isTradeOnly = item.listing_type === "trade";
           const isFlagged = item.status === "flagged";
           // Prefer the saved cover, but still render listings that only have the
@@ -778,7 +783,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   color: "#fff", borderRadius: 8, padding: "4px 10px",
                   fontSize: 12, fontWeight: 700
               }}>
-                {item.status === "sold" ? "SOLD" : isTradeOnly ? "FOR TRADE ONLY" : "FOR TRADE"}
+                {item.status === "sold" ? (isTraded ? "TRADED" : "SOLD") : isTradeOnly ? "FOR TRADE ONLY" : "FOR TRADE"}
               </section>
             )}
 
@@ -873,16 +878,16 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
                   <button
                     className="your-listings-btn"
                     onClick={() => handleMarkSold(item.id, item.status)}
-                    disabled={item.status === "sold" && completedListingIds.has(item.id)}
-                    title={item.status === "sold" && completedListingIds.has(item.id) ? "This item was sold through a completed trade transaction" : undefined}
+                    disabled={item.status === "sold" && (completedListingIds.has(item.id) || isTraded)}
+                    title={item.status === "sold" && (completedListingIds.has(item.id) || isTraded) ? "This item was sold through a completed trade transaction" : undefined}
                     style={{
                       flex: 1, padding: "8px 12px", borderRadius: 9, border: "1px solid #e5e7eb",
                       background: item.status === "sold" ? "#f0fdf4" : "#fff",
                       fontSize: 13, fontWeight: 600,
-                      cursor: item.status === "sold" && completedListingIds.has(item.id) ? "not-allowed" : "pointer",
+                      cursor: item.status === "sold" && (completedListingIds.has(item.id) || isTraded) ? "not-allowed" : "pointer",
                       fontFamily: "var(--font)",
                       color: item.status === "sold" ? "var(--green)" : "var(--gray-800)",
-                      opacity: item.status === "sold" && completedListingIds.has(item.id) ? 0.45 : 1,
+                      opacity: item.status === "sold" && (completedListingIds.has(item.id) || isTraded) ? 0.45 : 1,
                     }}
 
                   >

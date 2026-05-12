@@ -115,6 +115,7 @@ export default function ReceiptModal({
               ) : (
                 filteredTransactions.map((transaction) => {
                   const isSelected = selectedId === transaction.id;
+                  const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
                   return (
                     <button
                       key={transaction.id}
@@ -128,7 +129,7 @@ export default function ReceiptModal({
                       <article className="receipt-option__top">
                         <span className="txn-id-chip">{transaction.id}</span>
                         <span className="receipt-option__price">
-                          R {Number(transaction.totalAmount ?? transaction.price ?? 0).toLocaleString("en-ZA")}
+                          {isItemTrade ? "Item trade" : `R ${Number(transaction.totalAmount ?? transaction.price ?? 0).toLocaleString("en-ZA")}`}
                         </span>
                       </article>
                       <p className="receipt-option__item">{transaction.item}</p>
@@ -163,8 +164,12 @@ export default function ReceiptModal({
                       <dd>{selectedTransaction.seller?.name || "Unknown"}</dd>
                     </section>
                     <section>
-                      <dt>Amount</dt>
-                      <dd>R {Number(selectedTransaction.totalAmount ?? selectedTransaction.price ?? 0).toLocaleString("en-ZA")}</dd>
+                      <dt>{selectedTransaction.transaction_type === "item_trade" ? "Trade" : "Amount"}</dt>
+                      <dd>
+                        {selectedTransaction.transaction_type === "item_trade"
+                          ? `${selectedTransaction.requested_item || "Listed item"} for ${selectedTransaction.offered_item || "offered item"}`
+                          : `R ${Number(selectedTransaction.totalAmount ?? selectedTransaction.price ?? 0).toLocaleString("en-ZA")}`}
+                      </dd>
                     </section>
                     <section>
                       <dt>Status</dt>

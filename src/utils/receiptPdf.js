@@ -83,6 +83,7 @@ export async function generateTransactionReceiptPdf(transaction) {
   const quantity = Number(transaction.quantity || 1);
   const unitPrice = Number(transaction.price || 0);
   const totalAmount = Number(transaction.totalAmount ?? unitPrice);
+  const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
 
   doc.setFillColor(21, 91, 68);
   doc.roundedRect(margin, margin, contentWidth, 26, 6, 6, "F");
@@ -107,7 +108,7 @@ export async function generateTransactionReceiptPdf(transaction) {
   cursorY = drawWrappedValue(doc, "Transaction ID", transaction.id || "Not recorded", margin + 10, cursorY, 110);
   cursorY = drawWrappedValue(doc, "Date & Time", formatDateTime(transaction.createdAt), margin + 10, cursorY + 2, 110);
   cursorY = drawWrappedValue(doc, "Status", transaction.status || "Not recorded", margin + 10, cursorY + 2, 110);
-  cursorY = drawWrappedValue(doc, "Payment", transaction.paymentMethod || "Not recorded", margin + 10, cursorY + 2, 110);
+  cursorY = drawWrappedValue(doc, "Payment", isItemTrade ? "Item trade" : transaction.paymentMethod || "Not recorded", margin + 10, cursorY + 2, 110);
 
   cursorY += 8;
   drawSectionTitle(doc, "People", margin + 6, cursorY, contentWidth - 12);
@@ -136,10 +137,22 @@ export async function generateTransactionReceiptPdf(transaction) {
   const detailStartY = cursorY;
   const textWidth = imageDataUrl ? 105 : contentWidth - 24;
   cursorY = drawWrappedValue(doc, "Item", transaction.item || "Not recorded", margin + 10, cursorY, textWidth);
+  if (isItemTrade) {
+    cursorY = drawWrappedValue(
+      doc,
+      "Swap",
+      `${transaction.requested_item || "Listed item"} for ${transaction.offered_item || "offered item"}`,
+      margin + 10,
+      cursorY + 2,
+      textWidth,
+    );
+  }
   cursorY = drawWrappedValue(doc, "Description", transaction.itemDescription || "Not recorded", margin + 10, cursorY + 2, textWidth);
-  cursorY = drawWrappedValue(doc, "Price", formatCurrency(unitPrice), margin + 10, cursorY + 2, textWidth);
-  cursorY = drawWrappedValue(doc, "Quantity", String(quantity), margin + 10, cursorY + 2, textWidth);
-  cursorY = drawWrappedValue(doc, "Total", formatCurrency(totalAmount), margin + 10, cursorY + 2, textWidth);
+  cursorY = drawWrappedValue(doc, isItemTrade ? "Value" : "Price", isItemTrade ? "Item for item" : formatCurrency(unitPrice), margin + 10, cursorY + 2, textWidth);
+  if (!isItemTrade) {
+    cursorY = drawWrappedValue(doc, "Quantity", String(quantity), margin + 10, cursorY + 2, textWidth);
+    cursorY = drawWrappedValue(doc, "Total", formatCurrency(totalAmount), margin + 10, cursorY + 2, textWidth);
+  }
 
   if (imageDataUrl) {
     const imageBoxWidth = 56;

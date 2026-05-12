@@ -127,6 +127,7 @@ export async function fetchListings(currentUserId = null) {
       .from("listings")
       .select(LISTING_SELECT)
       .neq("status", "sold")
+      .neq("status", "traded")
       .order("created_at", { ascending: false });
 
     if (currentUserId) {

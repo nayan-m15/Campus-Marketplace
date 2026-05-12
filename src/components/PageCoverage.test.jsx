@@ -842,6 +842,57 @@ test("MessagesPage creates a transaction when an offer is accepted", async () =>
   );
 });
 
+test("MessagesPage creates an item-trade transaction when a trade offer is accepted", async () => {
+  transactions.splice(0, transactions.length);
+  offers.splice(
+    0,
+    offers.length,
+    {
+      id: "offer-trade-1",
+      created_at: new Date("2026-04-18T10:00:00.000Z").toISOString(),
+      sender_id: "seller-1",
+      receiver_id: "user-1",
+      listing_id: "listing-1",
+      requested_listing_id: "listing-1",
+      offered_listing_id: "listing-3",
+      offer_type: "item_trade",
+      amount: null,
+      status: "pending",
+    }
+  );
+
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingId="listing-1"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  fireEvent.click(await screen.findByRole("button", { name: /accept/i }));
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "transactions",
+    expect.objectContaining({
+      item: "Desk Lamp for Ball",
+      requested_item: "Desk Lamp",
+      offered_item: "Ball",
+      requested_listing_id: "listing-1",
+      offered_listing_id: "listing-3",
+      transaction_type: "item_trade",
+      price: 0,
+      status: "awaiting_dropoff",
+    })
+  ));
+
+  expect(mocks.update).toHaveBeenCalledWith(
+    "listings",
+    expect.objectContaining({ status: "sold", sold_price: null })
+  );
+});
+
 test("MessagesPage shows seller quick replies and sends the selected response", async () => {
   listingRecords["listing-2"] = {
     ...listingRecords["listing-2"],
