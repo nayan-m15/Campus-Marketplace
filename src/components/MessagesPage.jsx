@@ -34,6 +34,28 @@ const SELLER_QUICK_REPLIES = [
 
 const OFFER_PRICE_MAX_DIGITS = 8;
 const OFFER_PRICE_MAX_CHARS = OFFER_PRICE_MAX_DIGITS + 3;
+const TRADE_CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"];
+const TRADE_OFFER_IMAGE_ACCEPT = "image/*";
+
+function isItemTradeOffer(offer) {
+  return offer?.offer_type === "item_trade" || offer?.offer_type === "trade_offer";
+}
+
+function getOfferedItemTitle(offer, fallback = "offered item") {
+  return offer?.offered_listing?.title || offer?.offered_item_title || fallback;
+}
+
+function getOfferedItemDescription(offer) {
+  return offer?.offered_listing?.description || offer?.offered_item_description || offer?.description || "";
+}
+
+function getOfferedItemCondition(offer) {
+  return offer?.offered_listing?.condition || offer?.offered_item_condition || "";
+}
+
+function getOfferedItemImageUrl(offer) {
+  return offer?.offered_listing?.image_url || offer?.offered_item_image_url || offer?.image_url || "";
+}
 
 // Small prep work happens in this helper before the UI uses the result.
 // It keeps lookup, formatting, or data shaping out of the render path.
@@ -45,7 +67,7 @@ function buildConversationKey(peerId, listingId = null) {
 // It keeps lookup, formatting, or data shaping out of the render path.
 function buildOfferPreview(offer, currentUserId) {
   if (!offer) return "";
-  const isTrade = offer.offer_type === "trade_offer";
+  const isTrade = isItemTradeOffer(offer);
   const sentByMe = offer.sender_id === currentUserId;
 
   if (isTrade) {
@@ -193,7 +215,13 @@ export default function MessagesPage({
   const [offerMode, setOfferMode] = useState("cash"); // "cash" | "trade"
   const [tradeImage, setTradeImage] = useState(null);
   const [tradeImagePreview, setTradeImagePreview] = useState(null);
+  const [tradeTitle, setTradeTitle] = useState("");
   const [tradeDescription, setTradeDescription] = useState("");
+  const [tradeCondition, setTradeCondition] = useState("");
+  const [tradeOfferMode, setTradeOfferMode] = useState("listing");
+  const [myTradeListings, setMyTradeListings] = useState([]);
+  const [selectedTradeListingId, setSelectedTradeListingId] = useState("");
+  const [tradeListingsLoading, setTradeListingsLoading] = useState(false);
   const [tradeError, setTradeError] = useState("");
 
   const bottomRef = useRef(null);
@@ -218,6 +246,34 @@ export default function MessagesPage({
     return `${whole}.${cents}`.slice(0, OFFER_PRICE_MAX_CHARS);
   }
 
+  function resetTradeOfferDetails() {
+    setTradeImage(null);
+    setTradeImagePreview(null);
+    setTradeTitle("");
+    setTradeDescription("");
+    setTradeCondition("");
+    setSelectedTradeListingId("");
+    setTradeOfferMode("listing");
+  }
+
+  const loadMyTradeListings = useCallback(async () => {
+    if (!user) return;
+    setTradeListingsLoading(true);
+    const { data } = await supabase
+      .from("listings")
+      .select("id, title, description, price, condition, category, image_url, user_id, status")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
+
+    const rows = (data || []).filter((listing) => String(listing.id) !== String(conversationListing?.id));
+    setMyTradeListings(rows);
+    if (!selectedTradeListingId && rows.length > 0) {
+      setSelectedTradeListingId(String(rows[0].id));
+    }
+    setTradeListingsLoading(false);
+  }, [user, conversationListing?.id, selectedTradeListingId]);
+
   // ── Notify parent of total unread count ──────────────────
   useEffect(() => {
     const total = Object.values(unreadByPeer).reduce((sum, n) => sum + n, 0);
@@ -237,7 +293,7 @@ export default function MessagesPage({
 
     const { data: offerRows } = await supabase
       .from("offers")
-      .select("id, created_at, sender_id, receiver_id, amount, status, listing_id, is_read, offer_type, image_url, description")
+      .select("id, created_at, sender_id, receiver_id, amount, status, listing_id, requested_listing_id, offered_listing_id, offered_item_title, offered_item_description, offered_item_condition, offered_item_image_url, is_read, offer_type, image_url, description")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
@@ -336,6 +392,11 @@ export default function MessagesPage({
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
+  useEffect(() => {
+    if (!showOfferModal || offerMode !== "trade") return;
+    loadMyTradeListings();
+  }, [showOfferModal, offerMode, loadMyTradeListings]);
+
   // ── Auto-open chat from listing ───────────────────────────
   useEffect(() => {
     if (!initialRecipientId || !user) return;
@@ -352,6 +413,7 @@ export default function MessagesPage({
         setTradeError("");
         setOfferAmount("");
         setOfferMode("cash");
+        resetTradeOfferDetails();
         setSendDraftBeforeOffer(true);
         setShowOfferModal(true);
       }
@@ -412,9 +474,7 @@ export default function MessagesPage({
     setAcceptedOfferBanner(null);
     setDraft("");
     setOfferMode("cash");
-    setTradeImage(null);
-    setTradeImagePreview(null);
-    setTradeDescription("");
+    resetTradeOfferDetails();
     setTradeError("");
 
     const { data: profile } = await supabase
@@ -694,9 +754,7 @@ export default function MessagesPage({
     setShowOfferModal(false);
     setAcceptedOfferBanner(null);
     setOfferMode("cash");
-    setTradeImage(null);
-    setTradeImagePreview(null);
-    setTradeDescription("");
+    resetTradeOfferDetails();
     setTradeError("");
   };
 
@@ -825,17 +883,18 @@ export default function MessagesPage({
         .eq("sender_id", user.id)
         .eq("receiver_id", activeId)
         .eq("status", "pending")
-        .eq("offer_type", "sale_offer");
+        .eq("offer_type", "cash");
 
       const { data: newOffer, error } = await supabase
         .from("offers")
         .insert({
           listing_id: offerListingId,
+          requested_listing_id: String(offerListingId),
           sender_id: user.id,
           receiver_id: activeId,
           amount,
           status: "pending",
-          offer_type: "sale_offer",
+          offer_type: "cash",
         })
         .select()
         .single();
@@ -844,7 +903,7 @@ export default function MessagesPage({
 
       setOffers((prev) => [
         ...prev.map((o) =>
-          o.sender_id === user.id && o.receiver_id === activeId && o.status === "pending" && !o.offer_type
+          o.sender_id === user.id && o.receiver_id === activeId && o.status === "pending" && !isItemTradeOffer(o)
             ? { ...o, status: "declined" }
             : o
         ),
@@ -857,9 +916,17 @@ export default function MessagesPage({
     }
 
     // ── Trade offer ─────────────────────────────────────────
-    if (!tradeImage) { setTradeError("Please upload an image for your trade offer."); return; }
-    if (!tradeDescription.trim()) { setTradeError("Please add a description."); return; }
     if (!conversationListing?.id || !activeId) return;
+    const useCustomTradeItem = tradeOfferMode === "custom" || myTradeListings.length === 0;
+    const selectedTradeListing = myTradeListings.find((listing) => String(listing.id) === String(selectedTradeListingId));
+    if (!useCustomTradeItem && !selectedTradeListing) {
+      setTradeError("Please choose one of your listings to offer.");
+      return;
+    }
+    if (useCustomTradeItem && !tradeTitle.trim()) { setTradeError("Please add a title for your offered item."); return; }
+    if (useCustomTradeItem && !tradeCondition) { setTradeError("Please choose the condition of your offered item."); return; }
+    if (useCustomTradeItem && !tradeDescription.trim()) { setTradeError("Please add a description."); return; }
+    if (useCustomTradeItem && !tradeImage) { setTradeError("Please upload an image for your trade offer."); return; }
     setOfferSending(true);
     setTradeError("");
 
@@ -876,33 +943,47 @@ export default function MessagesPage({
       .eq("listing_id", offerListingId)
       .eq("sender_id", user.id)
       .eq("receiver_id", activeId)
-      .eq("offer_type", "trade_offer")
+      .eq("offer_type", "item_trade")
       .eq("status", "pending");
 
     let imageUrl = null;
-    if (tradeImage) {
+    if (useCustomTradeItem && tradeImage) {
       const ext = tradeImage.name.split(".").pop();
       const path = `${user.id}/trade-offers/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("listing-images")
         .upload(path, tradeImage, { upsert: true });
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage.from("listing-images").getPublicUrl(path);
-        imageUrl = urlData?.publicUrl || null;
+      if (uploadError) {
+        setTradeError("Failed to upload the trade item photo.");
+        setOfferSending(false);
+        return;
       }
+      const { data: urlData } = supabase.storage.from("listing-images").getPublicUrl(path);
+      imageUrl = urlData?.publicUrl || null;
     }
+
+    const offeredItemTitle = useCustomTradeItem ? tradeTitle.trim() : selectedTradeListing.title;
+    const offeredItemDescription = useCustomTradeItem ? tradeDescription.trim() : selectedTradeListing.description || "";
+    const offeredItemCondition = useCustomTradeItem ? tradeCondition : selectedTradeListing.condition || "";
+    const offeredItemImageUrl = useCustomTradeItem ? imageUrl : selectedTradeListing.image_url || null;
 
     const { data: newTradeOffer, error } = await supabase
       .from("offers")
       .insert({
         listing_id: offerListingId,
+        requested_listing_id: String(offerListingId),
+        offered_listing_id: useCustomTradeItem ? null : String(selectedTradeListing.id),
         sender_id: user.id,
         receiver_id: activeId,
-        amount: 0,
+        amount: null,
         status: "pending",
-        offer_type: "trade_offer",
-        image_url: imageUrl,
-        description: tradeDescription.trim(),
+        offer_type: "item_trade",
+        image_url: offeredItemImageUrl,
+        description: offeredItemDescription,
+        offered_item_title: offeredItemTitle,
+        offered_item_description: offeredItemDescription,
+        offered_item_condition: offeredItemCondition,
+        offered_item_image_url: offeredItemImageUrl,
       })
       .select()
       .single();
@@ -916,17 +997,18 @@ export default function MessagesPage({
 
     setOffers((prev) => [
       ...prev.map((o) =>
-        o.offer_type === "trade_offer" && o.sender_id === user.id && o.status === "pending"
+        isItemTradeOffer(o) && o.sender_id === user.id && o.status === "pending"
           ? { ...o, status: "cancelled" }
           : o
       ),
-      newTradeOffer,
+      {
+        ...newTradeOffer,
+        offered_listing: useCustomTradeItem ? null : selectedTradeListing,
+      },
     ]);
 
     setShowOfferModal(false);
-    setTradeImage(null);
-    setTradeImagePreview(null);
-    setTradeDescription("");
+    resetTradeOfferDetails();
     setOfferSending(false);
   };
 
@@ -944,6 +1026,93 @@ export default function MessagesPage({
   };
 
   // ── Respond to Offer ──────────────────────────────────────
+  const finalizeItemTradeOffer = async (updatedOffer) => {
+    const requestedListingId = updatedOffer.requested_listing_id || updatedOffer.listing_id || conversationListing?.id;
+    const offeredListingId = updatedOffer.offered_listing_id || null;
+    if (!requestedListingId) return;
+
+    const { data: requestedListing } = await supabase
+      .from("listings")
+      .select("id, title, description, user_id, image_url, condition")
+      .eq("id", String(requestedListingId))
+      .single();
+
+    let offeredListing = null;
+    if (offeredListingId) {
+      const { data } = await supabase
+        .from("listings")
+        .select("id, title, description, user_id, image_url, condition")
+        .eq("id", String(offeredListingId))
+        .single();
+      offeredListing = data || null;
+    }
+
+    const requestedTitle = requestedListing?.title || conversationListing?.title || "Listed item";
+    const offeredTitle = offeredListing?.title || updatedOffer.offered_item_title || "Offered item";
+    const sellerId = requestedListing?.user_id || conversationListing?.user_id || activeId;
+    const buyerId = updatedOffer.sender_id === sellerId ? updatedOffer.receiver_id : updatedOffer.sender_id;
+    const transactionItem = `${requestedTitle} for ${offeredTitle}`;
+
+    const { data: existingTransactions } = await supabase
+      .from("transactions")
+      .select("id, status, dropoff_id")
+      .eq("seller_id", sellerId)
+      .eq("buyer_id", buyerId)
+      .eq("item", transactionItem)
+      .order("created_at", { ascending: false });
+
+    const activeTransaction = (existingTransactions || []).find(
+      (t) => !["item_released", "completed", "cancelled"].includes(t.status)
+    );
+
+    const transactionId = activeTransaction?.id || buildTradeTransactionId();
+    const updatePayload = {
+      item: transactionItem,
+      requested_item: requestedTitle,
+      offered_item: offeredTitle,
+      seller_id: sellerId,
+      buyer_id: buyerId,
+      price: 0,
+      listing_id: String(requestedListingId),
+      requested_listing_id: String(requestedListingId),
+      offered_listing_id: offeredListingId ? String(offeredListingId) : null,
+      transaction_type: "item_trade",
+      offered_item_description: offeredListing?.description || updatedOffer.offered_item_description || updatedOffer.description || "",
+      offered_item_condition: offeredListing?.condition || updatedOffer.offered_item_condition || "",
+      offered_item_image_url: offeredListing?.image_url || updatedOffer.offered_item_image_url || updatedOffer.image_url || null,
+    };
+
+    const transactionRequest = activeTransaction
+      ? supabase.from("transactions").update(updatePayload).eq("id", activeTransaction.id)
+      : supabase.from("transactions").insert({ ...updatePayload, id: transactionId, status: "awaiting_dropoff" });
+
+    const listingUpdate = {
+      sold_price: null,
+      status: "sold",
+      traded_at: new Date().toISOString(),
+      traded_transaction_id: transactionId,
+    };
+    const requests = [
+      transactionRequest,
+      supabase.from("listings").update(listingUpdate).eq("id", String(requestedListingId)),
+    ];
+
+    if (offeredListingId) {
+      requests.push(supabase.from("listings").update(listingUpdate).eq("id", String(offeredListingId)));
+    }
+
+    requests.push(
+      supabase
+        .from("offers")
+        .update({ status: "declined", responded_at: new Date().toISOString() })
+        .eq("listing_id", String(requestedListingId))
+        .eq("offer_type", "item_trade")
+        .eq("status", "pending")
+    );
+
+    await Promise.allSettled(requests);
+  };
+
   const respondToOffer = async (offerId, accept) => {
     const newStatus = accept ? "accepted" : "declined";
     const { data: updatedOffer, error } = await supabase
@@ -957,7 +1126,12 @@ export default function MessagesPage({
     setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
 
     // Trade offers accepted — no transaction/listing update needed (no cash)
-    if (accept && updatedOffer && updatedOffer.offer_type !== "trade_offer") {
+    if (accept && updatedOffer && isItemTradeOffer(updatedOffer)) {
+      await finalizeItemTradeOffer(updatedOffer);
+      return;
+    }
+
+    if (accept && updatedOffer && !isItemTradeOffer(updatedOffer)) {
       const { data: listing } = await supabase
         .from("listings")
         .select("id, title, user_id")
@@ -1223,9 +1397,7 @@ export default function MessagesPage({
                           setOfferError("");
                           setTradeError("");
                           setOfferAmount("");
-                          setTradeImage(null);
-                          setTradeImagePreview(null);
-                          setTradeDescription("");
+                          resetTradeOfferDetails();
                           setShowOfferModal(true);
                         }
                       }}
@@ -1253,6 +1425,15 @@ export default function MessagesPage({
               const isSaleAndTrade = lt === "sale_and_trade";
               const isTradeOnly = lt === "trade";
               const isCashMode = offerMode === "cash";
+              const useCustomTradeItem = tradeOfferMode === "custom" || myTradeListings.length === 0;
+              const customTradeReady = Boolean(
+                tradeTitle.trim() &&
+                tradeDescription.trim() &&
+                tradeCondition &&
+                tradeImage
+              );
+              const listingTradeReady = Boolean(selectedTradeListingId) && !tradeListingsLoading;
+              const canSendTradeOffer = isCashMode ? true : (useCustomTradeItem ? customTradeReady : listingTradeReady);
 
               return (
                 <section className="msg-offer-modal-overlay" onClick={() => setShowOfferModal(false)}>
@@ -1315,23 +1496,83 @@ export default function MessagesPage({
                     {/* Trade offer fields */}
                     {(!isCashMode || isTradeOnly) && (
                       <>
-                        <p className="msg-offer-modal__sub">Describe what you're offering in exchange:</p>
-                        <textarea
-                          className="msg-offer-modal__input"
+                        <p className="msg-offer-modal__sub">Choose what you're offering in exchange:</p>
+                        <section className="msg-trade-mode-toggle" aria-label="Trade offer type">
+                          <button
+                            className={`msg-trade-mode-toggle__btn ${!useCustomTradeItem ? "msg-trade-mode-toggle__btn--active" : ""}`}
+                            onClick={() => { setTradeOfferMode("listing"); setTradeError(""); loadMyTradeListings(); }}
+                            disabled={tradeListingsLoading}
+                            type="button"
+                          >
+                            My listing
+                          </button>
+                          <button
+                            className={`msg-trade-mode-toggle__btn ${useCustomTradeItem ? "msg-trade-mode-toggle__btn--active" : ""}`}
+                            onClick={() => { setTradeOfferMode("custom"); setTradeError(""); }}
+                            type="button"
+                          >
+                            Another item
+                          </button>
+                        </section>
+                        {!useCustomTradeItem && (
+                          <section className="msg-trade-listing-picker">
+                            {tradeListingsLoading && <p className="msg-trade-listing-picker__empty">Loading your listings...</p>}
+                            {!tradeListingsLoading && myTradeListings.length === 0 && (
+                              <p className="msg-trade-listing-picker__empty">You do not have an active listing to offer. Add another item instead.</p>
+                            )}
+                            {!tradeListingsLoading && myTradeListings.map((listing) => (
+                              <button
+                                key={listing.id}
+                                className={`msg-trade-listing-option ${String(selectedTradeListingId) === String(listing.id) ? "msg-trade-listing-option--selected" : ""}`}
+                                onClick={() => { setSelectedTradeListingId(String(listing.id)); setTradeError(""); }}
+                                type="button"
+                              >
+                                {listing.image_url ? (
+                                  <img src={listing.image_url} alt="" className="msg-trade-listing-option__image" />
+                                ) : (
+                                  <span className="msg-trade-listing-option__image msg-trade-listing-option__image--empty" />
+                                )}
+                                <span className="msg-trade-listing-option__body">
+                                  <strong>{listing.title}</strong>
+                                  <small>{listing.condition || "Condition not set"}</small>
+                                </span>
+                              </button>
+                            ))}
+                          </section>
+                        )}
+                        {useCustomTradeItem && (
+                          <section className="msg-custom-trade-form">
+                            <input
+                              className="msg-custom-trade-form__input"
+                              placeholder="Item title"
+                              value={tradeTitle}
+                              onChange={(e) => { setTradeTitle(e.target.value); setTradeError(""); }}
+                              autoFocus={isTradeOnly}
+                            />
+                            <select
+                              className="msg-custom-trade-form__input"
+                              value={tradeCondition}
+                              onChange={(e) => { setTradeCondition(e.target.value); setTradeError(""); }}
+                            >
+                              <option value="">Condition</option>
+                              {TRADE_CONDITIONS.map((condition) => (
+                                <option key={condition} value={condition}>{condition}</option>
+                              ))}
+                            </select>
+                            <textarea
+                              className="msg-custom-trade-form__textarea"
                           placeholder="e.g. iPhone 13 in good condition, includes charger…"
-                          value={tradeDescription}
-                          onChange={(e) => { setTradeDescription(e.target.value); setTradeError(""); }}
-                          rows={3}
-                          autoFocus={isTradeOnly}
-                          style={{ width: "100%", resize: "vertical", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border, #e0e0e0)", fontSize: 14, boxSizing: "border-box" }}
+                              value={tradeDescription}
+                              onChange={(e) => { setTradeDescription(e.target.value); setTradeError(""); }}
+                              rows={3}
                         />
-                        <label style={{ display: "block", marginTop: 12, cursor: "pointer" }}>
+                            <label className="msg-custom-trade-form__upload">
                           <span style={{ fontSize: 13, color: "var(--text-muted, #888)", display: "block", marginBottom: 6 }}>
                             📷 Attach a photo
                           </span>
                           <input
                             type="file"
-                            accept="image/*"
+                            accept={TRADE_OFFER_IMAGE_ACCEPT}
                             style={{ display: "none" }}
                             onChange={(e) => {
                               const file = e.target.files?.[0];
@@ -1364,13 +1605,15 @@ export default function MessagesPage({
                             </output>
                           )}
                         </label>
+                          </section>
+                        )}
                         {tradeError && <p className="msg-offer-modal__error">{tradeError}</p>}
                       </>
                     )}
 
                     <section className="msg-offer-modal__actions" style={{ marginTop: 16 }}>
                       <button className="msg-offer-modal__cancel" onClick={() => setShowOfferModal(false)} type="button">Cancel</button>
-                      <button className="msg-offer-modal__send" onClick={sendOffer} disabled={offerSending} type="button">
+                      <button className="msg-offer-modal__send" onClick={sendOffer} disabled={offerSending || !canSendTradeOffer} type="button">
                         {offerSending ? "Sending…" : "Send Offer"}
                       </button>
                     </section>
@@ -1506,7 +1749,11 @@ export default function MessagesPage({
                         const isAccepted = item.status === "accepted";
                         const isDeclined = item.status === "declined";
                         const isCancelled = item.status === "cancelled";
-                        const isTrade = item.offer_type === "trade_offer";
+                        const isTrade = isItemTradeOffer(item);
+                        const offeredItemTitle = getOfferedItemTitle(item);
+                        const offeredItemDescription = getOfferedItemDescription(item);
+                        const offeredItemCondition = getOfferedItemCondition(item);
+                        const offeredItemImageUrl = getOfferedItemImageUrl(item);
                         const offerTickStatus = item.is_read ? "read" : "sent";
 
                         return (
@@ -1526,18 +1773,29 @@ export default function MessagesPage({
                                     {isCancelled && <span style={{ marginLeft: "auto", fontSize: 11, color: "#ff6b6b", fontWeight: 700 }}>✕ Cancelled</span>}
                                   </header>
 
-                                  {item.image_url && (
+                                  <section style={{ padding: "10px 12px 8px" }}>
+                                    <strong style={{ display: "block", fontSize: 14, color: "#fff", lineHeight: 1.3 }}>
+                                      {offeredItemTitle}
+                                    </strong>
+                                    {offeredItemCondition && (
+                                      <span style={{ display: "inline-block", marginTop: 5, fontSize: 11, color: "rgba(255,255,255,0.62)" }}>
+                                        Condition: {offeredItemCondition}
+                                      </span>
+                                    )}
+                                  </section>
+
+                                  {offeredItemImageUrl && (
                                     <img
-                                      src={item.image_url}
+                                      src={offeredItemImageUrl}
                                       alt="Trade offer item"
                                       style={{ width: "100%", display: "block", objectFit: "contain", maxHeight: 240 }}
                                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                                     />
                                   )}
 
-                                  {item.description && (
+                                  {offeredItemDescription && (
                                     <p style={{ margin: 0, padding: "10px 12px", fontSize: 14, lineHeight: 1.4, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#fff" }}>
-                                      {item.description}
+                                      {offeredItemDescription}
                                     </p>
                                   )}
 

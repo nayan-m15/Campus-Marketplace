@@ -922,6 +922,119 @@
 .msg-offer-modal__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .msg-offer-modal__input[type=number] { -moz-appearance: textfield; }
 
+.msg-trade-mode-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.msg-trade-mode-toggle__btn {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.68);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 10px;
+}
+
+.msg-trade-mode-toggle__btn--active {
+  background: rgba(31, 107, 82, 0.22);
+  border-color: rgba(31, 107, 82, 0.65);
+  color: #fff;
+}
+
+.msg-trade-listing-picker,
+.msg-custom-trade-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.msg-trade-listing-picker__empty {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.msg-trade-listing-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+  padding: 8px;
+  text-align: left;
+}
+
+.msg-trade-listing-option--selected {
+  border-color: rgba(31, 107, 82, 0.75);
+  background: rgba(31, 107, 82, 0.18);
+}
+
+.msg-trade-listing-option__image {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.msg-trade-listing-option__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.msg-trade-listing-option__body strong,
+.msg-trade-listing-option__body small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msg-trade-listing-option__body small {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+}
+
+.msg-custom-trade-form__input,
+.msg-custom-trade-form__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 14px;
+  outline: none;
+  padding: 10px 12px;
+}
+
+.msg-custom-trade-form__textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.msg-custom-trade-form__upload input {
+  display: none;
+}
+
+.msg-custom-trade-form__upload {
+  display: block;
+  cursor: pointer;
+}
+
 .msg-offer-modal__error {
   font-size: 12px;
   color: #ef4444;
