@@ -1021,6 +1021,11 @@
   padding: 10px 12px;
 }
 
+.msg-custom-trade-form__input option {
+  background: #1f2937;
+  color: #fff;
+}
+
 .msg-custom-trade-form__textarea {
   min-height: 86px;
   resize: vertical;

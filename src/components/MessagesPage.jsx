@@ -1461,7 +1461,7 @@ export default function MessagesPage({
                           style={{
                             flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer",
                             background: !isCashMode ? "var(--primary, #6c47ff)" : "var(--surface-2, #f0f0f0)",
-                            color: "#fff",
+                            color: !isCashMode ? "#fff" : "inherit",
                             fontWeight: 600, fontSize: 14,
                           }}
                         >
@@ -1554,14 +1554,14 @@ export default function MessagesPage({
                               value={tradeCondition}
                               onChange={(e) => { setTradeCondition(e.target.value); setTradeError(""); }}
                             >
-                              <option value="">Condition</option>
+                              <option value="" disabled>Condition</option>
                               {TRADE_CONDITIONS.map((condition) => (
                                 <option key={condition} value={condition}>{condition}</option>
                               ))}
                             </select>
                             <textarea
                               className="msg-custom-trade-form__textarea"
-                          placeholder="e.g. iPhone 13 in good condition, includes charger…"
+                              placeholder="Describe the item - age, any wear, what's included, reason for trade..."
                               value={tradeDescription}
                               onChange={(e) => { setTradeDescription(e.target.value); setTradeError(""); }}
                               rows={3}
