@@ -139,6 +139,21 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   }, []);
 
   useEffect(() => {
+    if (bookingType !== "collection") return;
+    if (!facilities.length) return;
+
+    const dropoffLocation = transaction.dropoff_booking?.location;
+    if (!dropoffLocation) return;
+
+    const matched = facilities.find(
+      (f) => f.name === dropoffLocation
+    );
+    if (matched) {
+      setFacilityId(String(matched.id));
+    }
+  }, [bookingType, facilities, transaction.dropoff_booking?.location]);
+
+  useEffect(() => {
     let active = true;
     setLoadingFacilities(true);
     loadFacilitiesWithHours()
@@ -234,6 +249,14 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   async function handleSubmit() {
     if (!selectedFacility || !selectedDate || !selectedTime) return;
 
+    if (bookingType === "collection") {
+      const dropoffLocation = transaction.dropoff_booking?.location;
+      if (selectedFacility.name !== dropoffLocation) {
+        setError("Collection must be at the same facility as the drop-off.");
+        return;
+      }
+    }
+
     setSubmitting(true);
     setError("");
 
@@ -299,22 +322,33 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
               <section className="brm-body">
                 <section className="brm-field">
                   <label className="brm-label" htmlFor="booking-facility">Facility</label>
-                  <select
-                    id="booking-facility"
-                    className="brm-select"
-                    value={facilityId}
-                    onChange={(event) => setFacilityId(event.target.value)}
-                    disabled={loadingFacilities}
-                  >
-                    <option value="">Select a facility...</option>
-                    {facilities.map((facility) => (
-                      <option key={facility.id} value={facility.id}>
-                        {facility.name} ({facility.capacity} per slot)
-                      </option>
-                    ))}
-                  </select>
+                    {bookingType === "collection" ? (
+                      <>
+                        <p className="brm-input" style={{ margin: 0, padding: "0.5rem 0.75rem", background: "var(--color-surface-2, #f3f4f6)", borderRadius: "var(--radius, 6px)", color: "var(--color-text, inherit)" }}>
+                          {transaction.dropoff_booking?.location ?? "—"}
+                        </p>
+                      <p className="brm-hint">Collection must be at the same facility as the drop-off.</p>
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        id="booking-facility"
+                        className="brm-select"
+                        value={facilityId}
+                        onChange={(event) => setFacilityId(event.target.value)}
+                        disabled={loadingFacilities}
+                      >
+                      <option value="">Select a facility...</option>
+                        {facilities.map((facility) => (
+                        <option key={facility.id} value={facility.id}>
+                          {facility.name} ({facility.capacity} per slot)
+                        </option>
+                        ))}
+                    </select>
                   {loadingFacilities && <p className="brm-hint">Loading facilities...</p>}
-                </section>
+                  </>
+                )}
+              </section>
 
                 {selectedFacility && (
                   <section className="brm-field">
