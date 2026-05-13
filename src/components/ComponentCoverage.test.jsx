@@ -583,6 +583,9 @@ test("ListingForm validates required fields and publishes a completed listing", 
   expect(await screen.findByAltText(/upload 1/i)).toHaveAttribute("src", readerResult);
 
   fireEvent.change(screen.getByLabelText(/item name/i), { target: { value: "Lamp" } });
+  fireEvent.change(screen.getByLabelText(/description/i), {
+    target: { value: "Bright desk lamp in good condition." },
+  });
   fireEvent.change(screen.getByLabelText(/asking price/i), { target: { value: "250.75" } });
   fireEvent.change(screen.getByLabelText(/category/i), { target: { value: "Furniture" } });
   expect(screen.getByLabelText(/asking price/i)).toHaveValue("250.75");
@@ -592,6 +595,7 @@ test("ListingForm validates required fields and publishes a completed listing", 
 
   await waitFor(() => expect(insert).toHaveBeenCalledWith(expect.objectContaining({
     title: "Lamp",
+    description: "Bright desk lamp in good condition.",
     price: 250.75,
     condition: "Good",
     listing_type: "sale_and_trade",
