@@ -268,11 +268,12 @@ export default function MessagesPage({
 
     const rows = (data || []).filter((listing) => String(listing.id) !== String(conversationListing?.id));
     setMyTradeListings(rows);
-    if (!selectedTradeListingId && rows.length > 0) {
-      setSelectedTradeListingId(String(rows[0].id));
-    }
+    setSelectedTradeListingId((prev) => {
+      if (!prev && rows.length > 0) return String(rows[0].id);
+      return prev;
+    });
     setTradeListingsLoading(false);
-  }, [user, conversationListing?.id, selectedTradeListingId]);
+  }, [user, conversationListing?.id]);
 
   // ── Notify parent of total unread count ──────────────────
   useEffect(() => {
@@ -1767,7 +1768,7 @@ export default function MessagesPage({
                                 <>
                                   <header style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px 6px", borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
                                     <span style={{ fontSize: 14 }}>🔄</span>
-                                    <span style={{ fontWeight: 700, fontSize: 13 }}>Trade offer</span>
+                                    <span style={{ fontWeight: 700, fontSize: 13, color: "#fff" }}>Trade offer</span>
                                     {isAccepted && <span style={{ marginLeft: "auto", fontSize: 11, color: "#53d769", fontWeight: 700 }}>✓ Accepted</span>}
                                     {isDeclined && <span style={{ marginLeft: "auto", fontSize: 11, color: "#ff6b6b", fontWeight: 700 }}>✕ Declined</span>}
                                     {isCancelled && <span style={{ marginLeft: "auto", fontSize: 11, color: "#ff6b6b", fontWeight: 700 }}>✕ Cancelled</span>}
