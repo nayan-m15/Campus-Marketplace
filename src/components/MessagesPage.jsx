@@ -1890,18 +1890,32 @@ export default function MessagesPage({
                       // Regular message bubble
                       const mine = item.sender_id === user.id;
                       const tickStatus = !item.id ? "sending" : item.is_read ? "read" : "sent";
+                      const isCollectionReadyMsg =
+                        !mine &&
+                        typeof item.content === "string" &&
+                        item.content.includes("You can now book your collection slot in My Bookings.");
                       return (
                         <section key={item.id ?? `opt-${item.created_at}`} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
                           {!mine && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
                           <section className={`msg-bubble ${mine ? "msg-bubble--mine" : "msg-bubble--theirs"}`}>
                             <p>{item.content}</p>
-                            <span className="msg-bubble__time" style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
-                              {new Date(item.created_at).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
-                              {mine && <ReadTicks status={tickStatus} />}
-                            </span>
-                          </section>
+                            {isCollectionReadyMsg && (
+                              <button
+                                className="msg-offer-card__bookings-btn"
+                                onClick={() => onGoToBookings?.()}
+                                type="button"
+                                style={{ marginTop: 8, width: "100%" }}
+                              >
+                                Go to My Bookings →
+                              </button>
+                            )}
+                          <span className="msg-bubble__time" style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
+                            {new Date(item.created_at).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
+                            {mine && <ReadTicks status={tickStatus} />}
+                          </span>
                         </section>
-                      );
+                      </section>
+                    );
                     })}
                   </section>
                 ));
