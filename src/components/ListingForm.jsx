@@ -313,8 +313,8 @@ function PriceSuggestionPanel({ suggestion, loading, error, hasEnoughDetail }) {
       <section className="lf__suggestion-panel lf__suggestion-panel--muted">
         <strong>Suggested price will appear here</strong>
         <p>
-          Add the item name, description, condition, and category first. More specific details
-          like a model number or brand help make the estimate more accurate.
+          Add the item name, a description (at least 8 characters), condition, and category first.
+          More specific details like a model number or brand help make the estimate more accurate.
         </p>
       </section>
     );
@@ -457,7 +457,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
     name.trim().length >= 2 &&
     condition &&
     category &&
-    (description.trim().length >= 8 || name.trim().split(/\s+/).length >= 2);
+    (description.trim().length >= 8);
 
   useEffect(() => {
     if (!hasEnoughPriceSuggestionDetail) {
@@ -512,6 +512,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
 
     if (images.length === 0) next.image = "Please add at least one photo.";
     if (!name.trim()) next.name = "Item name is required.";
+    if (description.trim().length < 8) next.description = "Description must be at least 8 characters.";
 
     if (!price || Number.isNaN(Number(price)) || Number(price) <= 0) {
       next.price = "Enter a valid price greater than zero.";
@@ -594,6 +595,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
   const isReady =
     images.length > 0 &&
     name.trim() &&
+    description.trim().length >= 8 &&
     price &&
     Number(price) > 0 &&
     Number(price) <= LISTING_PRICE_MAX_VALUE &&
@@ -644,7 +646,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
           <label className="lf__label" htmlFor="lf-description">
             Description{" "}
             <span style={{ fontWeight: 400, color: "var(--gray-400)", textTransform: "none", letterSpacing: 0 }}>
-              (optional)
+              (min. 8 characters)
             </span>
           </label>
           <textarea
@@ -667,6 +669,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
           <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--gray-500)" }}>
             {description.length}/{LISTING_DESCRIPTION_MAX} characters
           </p>
+          {errors.description && <p className="lf__error" role="alert">{errors.description}</p>}
         </section>
 
         <section className="lf__section">

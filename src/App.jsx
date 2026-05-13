@@ -332,6 +332,7 @@ function ListingPriceCheck({ item }) {
     Boolean(item?.title?.trim()) &&
     Boolean(item?.condition) &&
     Boolean(item?.category);
+    String(item?.description || "").trim().length >= 8;
 
   useEffect(() => {
     if (!item?.id || !hasEnoughDetail || !listingPrice || isFlagged) {
