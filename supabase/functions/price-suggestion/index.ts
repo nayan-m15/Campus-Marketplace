@@ -4,6 +4,7 @@ const SERPAPI_URL = "https://serpapi.com/search.json";
 const DEFAULT_LOCATION = "Johannesburg, South Africa";
 const DEFAULT_CONDITION = "Good";
 const CACHE_VERSION = "v3";
+const IMAGE_SEARCH_TIMEOUT_MS = 5_000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -259,26 +260,67 @@ async function getImageSearchContext({
     safe: "active",
   });
 
-  const lensResponse = await fetch(`${SERPAPI_URL}?${params.toString()}`);
-  const lensData = await lensResponse.json();
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-  if (!lensResponse.ok || lensData.error) {
-    console.error("Google Lens image search failed:", lensData.error || lensResponse.statusText);
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        controller.abort();
+        reject(new Error("Image search timed out."));
+      }, IMAGE_SEARCH_TIMEOUT_MS);
+    });
+
+    const { lensResponse, lensData } = await Promise.race([
+      (async () => {
+        const lensResponse = await fetch(`${SERPAPI_URL}?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        const lensData = await lensResponse.json();
+
+        return { lensResponse, lensData };
+      })(),
+      timeoutPromise,
+    ]);
+
+    if (!lensResponse.ok || lensData.error) {
+      console.error("Google Lens image search failed:", lensData.error || lensResponse.statusText);
+      return {
+        used: true,
+        terms: [] as string[],
+        sourceTitles: [] as string[],
+        error: lensData.error || "Image search failed.",
+      };
+    }
+
+    const { terms, sourceTitles } = extractLensTerms(lensData, originalTokens);
+
+    return {
+      used: true,
+      terms,
+      sourceTitles,
+    };
+  } catch (error) {
+    const timedOut = error instanceof Error &&
+      (error.name === "AbortError" || error.message === "Image search timed out.");
+
+    if (timedOut) {
+      console.error(`Google Lens image search timed out after ${IMAGE_SEARCH_TIMEOUT_MS}ms.`);
+    } else {
+      console.error("Google Lens image search failed:", error);
+    }
+
     return {
       used: true,
       terms: [] as string[],
       sourceTitles: [] as string[],
-      error: lensData.error || "Image search failed.",
+      error: timedOut ? "Image search timed out." : "Image search failed.",
     };
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
   }
-
-  const { terms, sourceTitles } = extractLensTerms(lensData, originalTokens);
-
-  return {
-    used: true,
-    terms,
-    sourceTitles,
-  };
 }
 
 function resultMatchesListing(result: ShoppingResult, tokens: string[]) {
@@ -368,6 +410,50 @@ function withCacheMeta(response: Record<string, unknown>, hit: boolean, cacheKey
       key: cacheKey,
     },
   };
+}
+
+function cacheRequestMatchesBase(
+  request: unknown,
+  {
+    baseFingerprint,
+    query,
+    description,
+    category,
+    condition,
+    location,
+    imageUrl,
+    baseSearchQuery,
+  }: {
+    baseFingerprint: string;
+    query: string;
+    description: string;
+    category: string;
+    condition: string;
+    location: string;
+    imageUrl: string;
+    baseSearchQuery: string;
+  },
+) {
+  if (!request || typeof request !== "object") return false;
+
+  const cacheRequest = request as Record<string, unknown>;
+
+  if (
+    cacheRequest.fingerprint === baseFingerprint ||
+    cacheRequest.baseFingerprint === baseFingerprint
+  ) {
+    return true;
+  }
+
+  return (
+    normaliseText(cacheRequest.query) === query &&
+    normaliseText(cacheRequest.description) === description &&
+    normaliseText(cacheRequest.category) === category &&
+    normaliseText(cacheRequest.condition) === condition &&
+    normaliseText(cacheRequest.location) === location &&
+    normaliseImageUrl(cacheRequest.imageUrl) === imageUrl &&
+    normaliseText(cacheRequest.baseSearchQuery) === baseSearchQuery
+  );
 }
 
 async function upsertCache(
@@ -567,26 +653,18 @@ Deno.serve(async (req) => {
   const listingText = `${query} ${category} ${description}`;
   const modelSignals = findModelSignals(listingText);
   const brandSignals = findBrandSignals(listingText);
-  const shouldUseImageSearch =
-    imageUrl &&
-    (modelSignals.length === 0 || brandSignals.length === 0 || baseMeaningfulTokens.length < 3);
-  const imageSearch = shouldUseImageSearch
-    ? await getImageSearchContext({
-        serpApiKey,
-        imageUrl,
-        searchQuery: baseSearchQuery,
-        originalTokens: baseMeaningfulTokens,
-      })
-    : { used: false, terms: [] as string[], sourceTitles: [] as string[] };
-  const searchQuery = dedupeWords(
-    [baseSearchQuery, ...imageSearch.terms].filter(Boolean).join(" "),
-  );
-  const requestFingerprint = await buildRequestFingerprint({ searchQuery, condition, location, imageUrl });
-  const searchCacheKey = `search:${CACHE_VERSION}:${requestFingerprint}`;
-  const cacheKey = listingId ? `listing:${CACHE_VERSION}:${listingId}` : searchCacheKey;
-  const cacheRequest = {
+  const baseFingerprint = await buildRequestFingerprint({
+    searchQuery: baseSearchQuery,
+    condition,
+    location,
+    imageUrl,
+  });
+  const baseSearchCacheKey = `search:${CACHE_VERSION}:${baseFingerprint}`;
+  const listingCacheKey = listingId ? `listing:${CACHE_VERSION}:${listingId}` : baseSearchCacheKey;
+  const baseCacheRequest = {
     version: CACHE_VERSION,
-    fingerprint: requestFingerprint,
+    fingerprint: baseFingerprint,
+    baseFingerprint,
     listingId: listingId || null,
     query,
     description,
@@ -594,26 +672,16 @@ Deno.serve(async (req) => {
     condition,
     location,
     imageUrl: imageUrl || null,
-    searchQuery,
+    searchQuery: baseSearchQuery,
     baseSearchQuery,
-    imageSearch,
+    imageSearch: { used: false, terms: [] as string[], sourceTitles: [] as string[] },
   };
-  const params = new URLSearchParams({
-    engine: "google_shopping",
-    q: searchQuery,
-    api_key: serpApiKey,
-    gl: "za",
-    hl: "en",
-    google_domain: "google.co.za",
-    location,
-    num: "20",
-  });
 
   try {
     const { data: cachedSuggestion, error: cacheReadError } = await adminClient
       .from("price_suggestion_cache")
       .select("request, response")
-      .eq("cache_key", cacheKey)
+      .eq("cache_key", listingCacheKey)
       .maybeSingle();
 
     if (cacheReadError) {
@@ -622,12 +690,115 @@ Deno.serve(async (req) => {
 
     if (
       cachedSuggestion?.response &&
-      (!listingId || cachedSuggestion.request?.fingerprint === requestFingerprint)
+      (!listingId ||
+        cacheRequestMatchesBase(cachedSuggestion.request, {
+          baseFingerprint,
+          query,
+          description,
+          category,
+          condition,
+          location,
+          imageUrl,
+          baseSearchQuery,
+        }))
+    ) {
+      return jsonResponse(withCacheMeta(cachedSuggestion.response, true, listingCacheKey));
+    }
+
+    if (listingId) {
+      const { data: cachedBaseSearchSuggestion, error: baseSearchCacheReadError } = await adminClient
+        .from("price_suggestion_cache")
+        .select("request, response")
+        .eq("cache_key", baseSearchCacheKey)
+        .maybeSingle();
+
+      if (baseSearchCacheReadError) {
+        console.error(
+          "Failed to read base search price suggestion cache:",
+          baseSearchCacheReadError.message,
+        );
+      }
+
+      if (
+        cachedBaseSearchSuggestion?.response &&
+        cacheRequestMatchesBase(cachedBaseSearchSuggestion.request, {
+          baseFingerprint,
+          query,
+          description,
+          category,
+          condition,
+          location,
+          imageUrl,
+          baseSearchQuery,
+        })
+      ) {
+        await upsertCache(adminClient, {
+          cacheKey: listingCacheKey,
+          listingId,
+          request: baseCacheRequest,
+          response: cachedBaseSearchSuggestion.response,
+        });
+
+        return jsonResponse(withCacheMeta(cachedBaseSearchSuggestion.response, true, listingCacheKey));
+      }
+    }
+
+    const shouldUseImageSearch =
+      imageUrl &&
+      (modelSignals.length === 0 || brandSignals.length === 0 || baseMeaningfulTokens.length < 3);
+    const imageSearch = shouldUseImageSearch
+      ? await getImageSearchContext({
+          serpApiKey,
+          imageUrl,
+          searchQuery: baseSearchQuery,
+          originalTokens: baseMeaningfulTokens,
+        })
+      : { used: false, terms: [] as string[], sourceTitles: [] as string[] };
+    const searchQuery = dedupeWords(
+      [baseSearchQuery, ...imageSearch.terms].filter(Boolean).join(" "),
+    );
+    const requestFingerprint = await buildRequestFingerprint({
+      searchQuery,
+      condition,
+      location,
+      imageUrl,
+    });
+    const searchCacheKey = `search:${CACHE_VERSION}:${requestFingerprint}`;
+    const cacheKey = listingId ? listingCacheKey : searchCacheKey;
+    const cacheRequest = {
+      version: CACHE_VERSION,
+      fingerprint: requestFingerprint,
+      baseFingerprint,
+      listingId: listingId || null,
+      query,
+      description,
+      category,
+      condition,
+      location,
+      imageUrl: imageUrl || null,
+      searchQuery,
+      baseSearchQuery,
+      imageSearch,
+    };
+    const params = new URLSearchParams({
+      engine: "google_shopping",
+      q: searchQuery,
+      api_key: serpApiKey,
+      gl: "za",
+      hl: "en",
+      google_domain: "google.co.za",
+      location,
+      num: "20",
+    });
+
+    if (
+      cachedSuggestion?.response &&
+      cachedSuggestion.request?.fingerprint === requestFingerprint
     ) {
       return jsonResponse(withCacheMeta(cachedSuggestion.response, true, cacheKey));
     }
 
-    if (listingId) {
+    if (searchCacheKey !== baseSearchCacheKey) {
       const { data: cachedSearchSuggestion, error: searchCacheReadError } = await adminClient
         .from("price_suggestion_cache")
         .select("request, response")
@@ -642,12 +813,27 @@ Deno.serve(async (req) => {
         cachedSearchSuggestion?.response &&
         cachedSearchSuggestion.request?.fingerprint === requestFingerprint
       ) {
-        await upsertCache(adminClient, {
-          cacheKey,
-          listingId,
-          request: cacheRequest,
-          response: cachedSearchSuggestion.response,
-        });
+        if (listingId) {
+          await upsertCache(adminClient, {
+            cacheKey,
+            listingId,
+            request: cacheRequest,
+            response: cachedSearchSuggestion.response,
+          });
+        }
+
+        if (baseSearchCacheKey !== searchCacheKey) {
+          await upsertCache(adminClient, {
+            cacheKey: baseSearchCacheKey,
+            listingId: null,
+            request: {
+              ...cacheRequest,
+              fingerprint: baseFingerprint,
+              searchQuery: baseSearchQuery,
+            },
+            response: cachedSearchSuggestion.response,
+          });
+        }
 
         return jsonResponse(withCacheMeta(cachedSearchSuggestion.response, true, cacheKey));
       }
@@ -768,21 +954,33 @@ Deno.serve(async (req) => {
       generatedAt: new Date().toISOString(),
     };
 
-    const { error: cacheWriteError } = await adminClient
-      .from("price_suggestion_cache")
-      .upsert(
-        {
-          cache_key: cacheKey,
-          listing_id: listingId || null,
-          request: cacheRequest,
-          response: responseBody,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "cache_key" },
-      );
+    await upsertCache(adminClient, {
+      cacheKey,
+      listingId: listingId || null,
+      request: cacheRequest,
+      response: responseBody,
+    });
 
-    if (cacheWriteError) {
-      console.error("Failed to write price suggestion cache:", cacheWriteError.message);
+    if (searchCacheKey !== cacheKey) {
+      await upsertCache(adminClient, {
+        cacheKey: searchCacheKey,
+        listingId: null,
+        request: cacheRequest,
+        response: responseBody,
+      });
+    }
+
+    if (baseSearchCacheKey !== cacheKey && baseSearchCacheKey !== searchCacheKey) {
+      await upsertCache(adminClient, {
+        cacheKey: baseSearchCacheKey,
+        listingId: null,
+        request: {
+          ...cacheRequest,
+          fingerprint: baseFingerprint,
+          searchQuery: baseSearchQuery,
+        },
+        response: responseBody,
+      });
     }
 
     return jsonResponse(withCacheMeta(responseBody, false, cacheKey));
