@@ -9,8 +9,7 @@ import "../styles/Auth.css";
 
 const EMAIL_REGISTERED_MESSAGE = "Email is already registered. Try signing in instead.";
 
-// Quick guard logic sits here for this decision point.
-// The check keeps the rest of the flow cleaner to read.
+/*This function returns whether email already registered.*/
 function isEmailAlreadyRegistered({ data, error }) {
   const message = error?.message?.toLowerCase() || "";
 
@@ -37,6 +36,7 @@ export default function SignupPage({ onNavigate }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  /*This function handles form submission.*/
   async function handleSubmit(e) {
     e.preventDefault();
     setErrors([]);
@@ -75,6 +75,7 @@ export default function SignupPage({ onNavigate }) {
     setSuccess(true);
   }
 
+  /*This function handles Google sign in.*/
   async function handleGoogle() {
     setErrors([]);
     setGoogleLoading(true);

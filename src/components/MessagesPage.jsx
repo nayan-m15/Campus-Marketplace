@@ -8,6 +8,7 @@ import { insertMessage } from "../utils/messageDelivery";
 import { buildTradeTransactionId } from "../utils/tradeWorkflow";
 import "../styles/Messages.css";
 
+/*This function builds the flagged warning toast style object.*/
 function flaggedWarningToastStyle() {
   return {
     position: "fixed",
@@ -37,34 +38,37 @@ const OFFER_PRICE_MAX_CHARS = OFFER_PRICE_MAX_DIGITS + 3;
 const TRADE_CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"];
 const TRADE_OFFER_IMAGE_ACCEPT = "image/*";
 
+/*This function returns whether item trade offer.*/
 function isItemTradeOffer(offer) {
   return offer?.offer_type === "item_trade" || offer?.offer_type === "trade_offer";
 }
 
+/*This function returns the offered item title.*/
 function getOfferedItemTitle(offer, fallback = "offered item") {
   return offer?.offered_listing?.title || offer?.offered_item_title || fallback;
 }
 
+/*This function returns the offered item description.*/
 function getOfferedItemDescription(offer) {
   return offer?.offered_listing?.description || offer?.offered_item_description || offer?.description || "";
 }
 
+/*This function returns the offered item condition.*/
 function getOfferedItemCondition(offer) {
   return offer?.offered_listing?.condition || offer?.offered_item_condition || "";
 }
 
+/*This function returns the offered item image url.*/
 function getOfferedItemImageUrl(offer) {
   return offer?.offered_listing?.image_url || offer?.offered_item_image_url || offer?.image_url || "";
 }
 
-// Small prep work happens in this helper before the UI uses the result.
-// It keeps lookup, formatting, or data shaping out of the render path.
+/*This function builds the conversation key.*/
 function buildConversationKey(peerId, listingId = null) {
   return `${peerId}::${listingId || "general"}`;
 }
 
-// Small prep work happens in this helper before the UI uses the result.
-// It keeps lookup, formatting, or data shaping out of the render path.
+/*This function builds the offer preview.*/
 function buildOfferPreview(offer, currentUserId) {
   if (!offer) return "";
   const isTrade = isItemTradeOffer(offer);
@@ -84,7 +88,7 @@ function buildOfferPreview(offer, currentUserId) {
   return sentByMe ? `You offered ${amount}` : `Offer received: ${amount}`;
 }
 
-// ── Helpers ────────────────────────────────────────────────
+/*This function formats a short time label for a message.*/
 function timeLabel(iso) {
   const d = new Date(iso);
   const now = new Date();
@@ -96,8 +100,7 @@ function timeLabel(iso) {
   return d.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
 }
 
-// Supporting logic for the avatar flow is kept here.
-// Breaking it out makes the file easier to scan and maintain.
+/*This function renders the avatar component.*/
 function Avatar({ url, name, size = 40 }) {
   const initials = (name || "?")
     .split(" ")
@@ -117,8 +120,7 @@ function Avatar({ url, name, size = 40 }) {
   );
 }
 
-// ── Read Ticks ─────────────────────────────────────────────
-// status: "sending" | "sent" | "read"
+/*This function renders the read ticks component.*/
 function ReadTicks({ status }) {
   if (status === "sending") {
     return (
@@ -229,6 +231,7 @@ export default function MessagesPage({
   const realtimeRef = useRef(null);
   const initialDraftAppliedRef = useRef(false);
 
+  /*This function clamps the offer amount.*/
   function clampOfferAmount(value) {
     const cleaned = String(value ?? "").replace(",", ".").replace(/[^0-9.]/g, "");
     const dotIndex = cleaned.indexOf(".");
@@ -246,6 +249,7 @@ export default function MessagesPage({
     return `${whole}.${cents}`.slice(0, OFFER_PRICE_MAX_CHARS);
   }
 
+  /*This function resets the trade offer details.*/
   function resetTradeOfferDetails() {
     setTradeImage(null);
     setTradeImagePreview(null);
@@ -256,6 +260,7 @@ export default function MessagesPage({
     setTradeOfferMode("listing");
   }
 
+  /*This function loads my trade listings.*/
   const loadMyTradeListings = useCallback(async () => {
     if (!user) return;
     setTradeListingsLoading(true);
@@ -281,7 +286,7 @@ export default function MessagesPage({
     onUnreadChange?.(total);
   }, [unreadByPeer, onUnreadChange]);
 
-  // ── Load conversations + unread counts ───────────────────
+  /*This function loads the conversations.*/
   const loadConversations = useCallback(async () => {
     if (!user) return;
     setConvsLoading(true);
@@ -401,6 +406,7 @@ export default function MessagesPage({
   // ── Auto-open chat from listing ───────────────────────────
   useEffect(() => {
     if (!initialRecipientId || !user) return;
+    /*This function opens the initial chat.*/
     async function openInitialChat() {
       setActiveListingId(initialListingId || null);
       await openChat(initialRecipientId, initialListingId || null);
@@ -423,7 +429,7 @@ export default function MessagesPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRecipientId, initialListingId, user]);
 
-  // ── Mark messages AND offers as read ─────────────────────
+  /*This function marks the as read.*/
   const markAsRead = useCallback(async (peerId, listingId = null) => {
     if (!peerId || !user) return;
 
@@ -453,7 +459,7 @@ export default function MessagesPage({
     });
   }, [user]);
 
-  // ── Open a chat ───────────────────────────────────────────
+  /*This function opens the chat.*/
   const openChat = useCallback(async (peerId, listingId = null) => {
     if (!peerId) return;
     const conversationKey = buildConversationKey(peerId, listingId);
@@ -704,7 +710,7 @@ export default function MessagesPage({
     }
   }, [draft]);
 
-  // ── Send ──────────────────────────────────────────────────
+  /*This function sends the message now.*/
   const sendMessageNow = async (messageText = draft, { listingId = activeListingId } = {}) => {
     const text = messageText.trim();
     if (!text || !activeId || sending) return;
@@ -743,6 +749,7 @@ export default function MessagesPage({
     await loadConversations();
   };
 
+  /*This function clears the active conversation.*/
   const clearActiveConversation = () => {
     setActiveId(null);
     setActiveConversationKey(null);
@@ -759,12 +766,14 @@ export default function MessagesPage({
     setTradeError("");
   };
 
+  /*This function handles the request delete conversation.*/
   const requestDeleteConversation = (conversation) => {
     setDeleteTarget(conversation);
     setDeleteError("");
     setDeleteConfirmOpen(true);
   };
 
+  /*This function handles the delete conversation.*/
   const deleteConversation = async () => {
     const target = deleteTarget || (
       activeId
@@ -811,6 +820,7 @@ export default function MessagesPage({
     }
   };
 
+  /*This function resolves the listing before sending a message.*/
   const resolveConversationListingForSend = async () => {
     if (!conversationListing?.id) return conversationListing;
 
@@ -837,6 +847,7 @@ export default function MessagesPage({
     }
   };
 
+  /*This function sends the message.*/
   const sendMessage = async (messageText = draft, options = {}) => {
     const text = messageText.trim();
     if (!text || !activeId || sending) return;
@@ -856,11 +867,12 @@ export default function MessagesPage({
     await sendMessageNow(text, options);
   };
 
+  /*This function handles keyboard input.*/
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-  // ── Send Offer ────────────────────────────────────────────
+  /*This function sends the offer.*/
   const sendOffer = async () => {
     // ── Cash offer ──────────────────────────────────────────
     if (offerMode === "cash") {
@@ -1013,7 +1025,7 @@ export default function MessagesPage({
     setOfferSending(false);
   };
 
-  // ── Cancel Offer ──────────────────────────────────────────
+  /*This function returns whether cel offer.*/
   const cancelOffer = async (offerId) => {
     const { data: updatedOffer, error } = await supabase
       .from("offers")
@@ -1026,7 +1038,7 @@ export default function MessagesPage({
     setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
   };
 
-  // ── Respond to Offer ──────────────────────────────────────
+  /*This function finalizes the item trade offer.*/
   const finalizeItemTradeOffer = async (updatedOffer) => {
     const requestedListingId = updatedOffer.requested_listing_id || updatedOffer.listing_id || conversationListing?.id;
     const offeredListingId = updatedOffer.offered_listing_id || null;
@@ -1114,6 +1126,7 @@ export default function MessagesPage({
     await Promise.allSettled(requests);
   };
 
+  /*This function responds to the to offer.*/
   const respondToOffer = async (offerId, accept) => {
     const newStatus = accept ? "accepted" : "declined";
     const { data: updatedOffer, error } = await supabase
@@ -1192,6 +1205,7 @@ export default function MessagesPage({
     }
   };
 
+  /*This function returns the display name for a profile.*/
   const peerName = (profile) => profile?.display_name || profile?.name || "Unknown User";
 
   const filteredConvs = conversations.filter((c) => {
@@ -1211,6 +1225,7 @@ export default function MessagesPage({
   const profileActionLabel = iAmTheLister ? "View buyer" : "View seller";
   const hasAcceptedOffer = offers.some((o) => o.status === "accepted");
 
+  /*This function formats the date label.*/
   const dateLabel = (dateStr) => {
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 86400000).toDateString();

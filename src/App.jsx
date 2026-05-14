@@ -65,12 +65,14 @@ const PROTECTED_PAGES = new Set([
 ]);
 const priceSuggestionCache = new Map();
 
+/*This function normalizes the base path.*/
 function normalizeBasePath(basePath = import.meta.env.BASE_URL || "/") {
   if (!basePath) return "/";
   const normalized = basePath.startsWith("/") ? basePath : `/${basePath}`;
   return normalized.endsWith("/") ? normalized : `${normalized}/`;
 }
 
+/*This function removes the base path.*/
 function stripBasePath(pathname, basePath = normalizeBasePath()) {
   if (!pathname) return "/";
   const normalizedBase = normalizeBasePath(basePath);
@@ -83,6 +85,7 @@ function stripBasePath(pathname, basePath = normalizeBasePath()) {
   return pathname || "/";
 }
 
+/*This function builds the app path.*/
 function buildAppPath(appPath, basePath = normalizeBasePath()) {
   const normalizedBase = normalizeBasePath(basePath);
   const normalizedPath = appPath === "/" ? "/" : appPath.replace(/\/+$/, "");
@@ -97,12 +100,14 @@ function buildAppPath(appPath, basePath = normalizeBasePath()) {
     : `${baseWithoutTrailingSlash}${normalizedPath}`;
 }
 
+/*This function returns the page for path.*/
 function getPageForPath(pathname) {
   const appPath = stripBasePath(pathname);
   const matchedRoute = Object.entries(PAGE_PATHS).find(([, path]) => path === appPath);
   return matchedRoute?.[0] ?? "home";
 }
 
+/*This function restores the static host redirect.*/
 function restoreStaticHostRedirect() {
   if (typeof window === "undefined") return null;
 
@@ -130,54 +135,59 @@ function restoreStaticHostRedirect() {
   }
 }
 
+/*This function returns the page for app path.*/
 function getPageForAppPath(appPath) {
   const matchedRoute = Object.entries(PAGE_PATHS).find(([, path]) => path === appPath);
   return matchedRoute?.[0] ?? "home";
 }
 
+/*This function returns the path for page.*/
 function getPathForPage(page) {
   return PAGE_PATHS[page] || PAGE_PATHS.home;
 }
 
+/*This function returns whether protected page.*/
 function isProtectedPage(page) {
   return PROTECTED_PAGES.has(page);
 }
 
+/*This function stores the post login redirect.*/
 function persistPostLoginRedirect(path) {
   if (typeof window === "undefined" || !path || path === PAGE_PATHS.login) return;
   window.sessionStorage.setItem(POST_LOGIN_REDIRECT_KEY, path);
 }
 
+/*This function reads the post login redirect.*/
 function readPostLoginRedirect() {
   if (typeof window === "undefined") return null;
   return window.sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
 }
 
+/*This function clears the post login redirect.*/
 function clearPostLoginRedirect() {
   if (typeof window === "undefined") return;
   window.sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
 }
 
-// Quick guard logic sits here for this decision point.
-// The check keeps the rest of the flow cleaner to read.
+/*This function returns whether profile complete.*/
 function isProfileComplete(profile) {
   if (!profile) return false;
   return REQUIRED_PROFILE_FIELDS.every((f) => !!profile[f]);
 }
 
-// ── Unread message count hook ──────────────────────────────
+/*This function returns whether use browser notifications.*/
 function canUseBrowserNotifications() {
   return typeof window !== "undefined" && "Notification" in window;
 }
 
-// Small prep work happens in this helper before the UI uses the result.
-// It keeps lookup, formatting, or data shaping out of the render path.
+/*This function shows the browser notification.*/
 function showBrowserNotification(title, options) {
   if (!canUseBrowserNotifications() || window.Notification.permission !== "granted") return false;
   new window.Notification(title, options);
   return true;
 }
 
+/*This function builds the warning toast style object.*/
 function warningToastStyle(top = 20) {
   return {
     position: "fixed",
@@ -196,6 +206,7 @@ function warningToastStyle(top = 20) {
   };
 }
 
+/*This function parses the listing price value.*/
 function parseListingPriceValue(price) {
   if (typeof price === "number") return Number.isFinite(price) ? price : null;
   const numericText = String(price ?? "")
@@ -208,6 +219,7 @@ function parseListingPriceValue(price) {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
+/*This function returns the price suggestion error message.*/
 function getPriceSuggestionErrorMessage(error) {
   const message = error?.message || "";
   const lowerMessage = message.toLowerCase();
@@ -239,6 +251,7 @@ function getPriceSuggestionErrorMessage(error) {
   return "Price check is unavailable right now.";
 }
 
+/*This function calculates the listing price fairness summary.*/
 function getPriceFairness(listingPrice, suggestion, item) {
   const suggestedPrice = Number(suggestion?.suggestedPrice || 0);
   const rangeMin = Number(suggestion?.suggestedRange?.min || suggestedPrice * 0.9);
@@ -310,6 +323,7 @@ function getPriceFairness(listingPrice, suggestion, item) {
   };
 }
 
+/*This function renders the listing price check component.*/
 function ListingPriceCheck({ item }) {
   const [priceCheck, setPriceCheck] = useState(null);
   const [priceCheckLoading, setPriceCheckLoading] = useState(false);
@@ -454,6 +468,7 @@ function ListingPriceCheck({ item }) {
   );
 }
 
+/*This function builds the notification details for an incoming message.*/
 async function buildIncomingMessageNotice(message) {
   let senderName = "Someone";
   let listingTitle = null;
@@ -483,6 +498,7 @@ async function buildIncomingMessageNotice(message) {
   };
 }
 
+/*This function fetches the notification prefs.*/
 async function fetchNotificationPrefs(userId, fallback) {
   const { data } = await supabase
     .from("profiles")
@@ -498,8 +514,7 @@ async function fetchNotificationPrefs(userId, fallback) {
   };
 }
 
-// Related state and side effects are grouped in this hook.
-// That keeps the surrounding component easier to follow.
+/*This function manages unread count state and behavior.*/
 function useUnreadCount(user, onIncomingMessage) {
   const [unreadCount, setUnreadCount] = useState(0);
   const notificationPrefsRef = useRef({
@@ -592,7 +607,7 @@ function useUnreadCount(user, onIncomingMessage) {
   return [unreadCount, setUnreadCount];
 }
 
-// ── Item Details Modal ─────────────────────────────────────
+/*This function renders the listing details modal component.*/
 function ListingDetailsModal({
   item,
   onClose,
@@ -620,8 +635,7 @@ function ListingDetailsModal({
   }, [item?.id]);
 
   useEffect(() => {
-    // User-driven changes pass through this handler first.
-    // State updates and follow-up UI actions are triggered here.
+    /*This function handles escape key behavior.*/
     function handleEscape(e) {
       if (e.key === "Escape") onClose();
     }
@@ -664,20 +678,19 @@ function ListingDetailsModal({
       ? "item-modal-trade-badge item-modal-trade-badge--only"
       : "item-modal-trade-badge";
 
-  // Small prep work happens in this helper before the UI uses the result.
-  // It keeps lookup, formatting, or data shaping out of the render path.
+  /*This function shows the previous image.*/
   function showPreviousImage() {
     if (images.length <= 1) return;
     setCurrentImageIndex((index) => (index === 0 ? images.length - 1 : index - 1));
   }
 
-  // Small prep work happens in this helper before the UI uses the result.
-  // It keeps lookup, formatting, or data shaping out of the render path.
+  /*This function shows the next image.*/
   function showNextImage() {
     if (images.length <= 1) return;
     setCurrentImageIndex((index) => (index === images.length - 1 ? 0 : index + 1));
   }
 
+  /*This function performs the message send flow.*/
   async function performSendMessage({ acknowledged = false } = {}) {
     if (!message.trim()) { setSendError("Please enter a message."); setSendSuccess(""); return; }
     if (!user) { setSendError("You must be logged in to send a message."); setSendSuccess(""); return; }
@@ -706,6 +719,7 @@ function ListingDetailsModal({
     }
   }
 
+  /*This function handles send message.*/
   async function handleSendMessage() {
     const latestItem = await resolveListingForMessaging?.(item) || item;
     if (latestItem?.status === "flagged") {
@@ -906,6 +920,7 @@ function ListingDetailsModal({
   );
 }
 
+/*This function renders the moderation modal component.*/
 function ModerationModal({
   item,
   actionState,
@@ -1008,6 +1023,7 @@ function ModerationModal({
   );
 }
 
+/*This function renders the flagged listing warning toast component.*/
 function FlaggedListingWarningToast({ item, onClose, onContinue }) {
   if (!item) return null;
 
@@ -1044,8 +1060,7 @@ function FlaggedListingWarningToast({ item, onClose, onContinue }) {
     </aside>
   );
 }
-// Component entry point for this part of the interface.
-// Rendering and feature-specific behavior are coordinated here.
+/*This function renders the app inner component.*/
 function AppInner() {
   const {
     user,
@@ -1099,7 +1114,7 @@ function AppInner() {
   const [pendingRatings, setPendingRatings] = useState([]);
   const [showRatingModal, setShowRatingModal] = useState(false);
 
-  // ── Unread message count for navbar badge ─────────────────
+  /*This function handles incoming messages.*/
   const handleIncomingMessage = useCallback((notice) => {
     setMessageNotice(notice);
     setTimeout(() => setMessageNotice(null), 5000);
@@ -1112,8 +1127,7 @@ function AppInner() {
   const filterBarRef = useRef(null);
   const listingsSectionRef = useRef(null);
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function scrolls to the listings section.*/
   function handleScrollToListings() {
     if (!filterBarRef.current || !listingsSectionRef.current) return;
 
@@ -1156,6 +1170,7 @@ function AppInner() {
     };
   }, [showForm]);
 
+  /*This function navigates to the selected page.*/
   const navigateToPage = useCallback((nextPage, options = {}) => {
     if (typeof window === "undefined") {
       setPage(nextPage);
@@ -1176,6 +1191,7 @@ function AppInner() {
     setPage((currentPage) => (currentPage === nextPage ? currentPage : nextPage));
   }, []);
 
+  /*This function redirects the user to the login page.*/
   const redirectToLogin = useCallback((requestedPage = page) => {
     const requestedPath = getPathForPage(requestedPage);
 
@@ -1193,6 +1209,7 @@ function AppInner() {
     navigateToPage("login", { replace: true });
   }, [navigateToPage, page]);
 
+  /*This function handles sign out.*/
   const handleSignOut = useCallback(async () => {
     clearPostLoginRedirect();
     navigateToPage("home", { replace: true });
@@ -1211,6 +1228,7 @@ function AppInner() {
       window.history.replaceState({ ...(window.history.state || {}), page }, "", currentUrl);
     }
 
+    /*This function handles browser history changes.*/
     function handlePopState() {
       setPage(getPageForPath(window.location.pathname));
     }
@@ -1312,7 +1330,7 @@ function AppInner() {
     }
   }, [loading, user, profileChecked, page, isAdmin, isStaff, needsSetup, redirectToLogin, navigateToPage]);
 
-  // ── Rating prompt ──────────────────────────────────────────────────────────
+/*This function checks the pending ratings.*/
 const checkPendingRatings = useCallback(async () => {
   if (!user) return;
 
@@ -1398,14 +1416,14 @@ useEffect(() => {
     .subscribe();
   return () => supabase.removeChannel(channel);
 }, [user, checkPendingRatings]);
-  // Small prep work happens in this helper before the UI uses the result.
-  // It keeps lookup, formatting, or data shaping out of the render path.
+  /*This function returns the numeric price for a listing.*/
   function numericPrice(item) {
     if (!item?.price) return 0;
     const n = parseFloat(String(item.price).replace(/[^0-9.]/g, ""));
     return isNaN(n) ? 0 : n;
   }
 
+  /*This function filters listings based on the current view.*/
   const filteredListings = (() => {
     const validPriceRange =
       priceSort === "custom" ? getValidPriceRange(priceRange) : { min: "", max: "" };
@@ -1447,23 +1465,20 @@ useEffect(() => {
     return result;
   })();
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles category changes.*/
   function handleCategoryChange(category) {
     setActiveCategory(category);
     setSearchQuery("");
   }
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles clear filters.*/
   function handleClearFilters() {
     setActiveCondition("All Conditions");
     setPriceRange({ min: "", max: "" });
     setPriceSort("");
   }
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles auth navigate.*/
   function handleAuthNavigate(target) {
     if (target === "home" || target === "signup" || target === "login") {
       clearPostLoginRedirect();
@@ -1471,8 +1486,7 @@ useEffect(() => {
     navigateToPage(target === "home" ? "home" : target);
   }
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles listing success.*/
   function handleListingSuccess() {
     setShowForm(false);
     setSuccessMessage("🎉 Your listing has been published!");
@@ -1482,8 +1496,7 @@ useEffect(() => {
       .catch((err) => setListingsError(err.message));
   }
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function opens the messages for listing.*/
   function openMessagesForListing(
     item,
     { acknowledged = false, initialDraft = null, initialAction = null, suppressDraft = false } = {},
@@ -1506,6 +1519,7 @@ useEffect(() => {
     navigateToPage("messages");
   }
 
+  /*This function resolves the listing used for messaging.*/
   async function resolveListingForMessaging(item) {
     if (!item?.id) return item;
 
@@ -1529,6 +1543,7 @@ useEffect(() => {
     }
   }
 
+  /*This function handles message seller.*/
   async function handleMessageSeller(item, { acknowledged = false, suppressDraft = false } = {}) {
     const latestItem = await resolveListingForMessaging(item);
     if (latestItem?.status === "flagged" && !acknowledged) {
@@ -1538,6 +1553,7 @@ useEffect(() => {
     openMessagesForListing(latestItem, { acknowledged, suppressDraft });
   }
 
+  /*This function handles send offer.*/
   async function handleSendOffer(item) {
     if (!user) {
       redirectToLogin("messages");
@@ -1563,8 +1579,7 @@ useEffect(() => {
     });
   }
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles seller click.*/
   function handleSellerClick(sellerId) {
     if (user && sellerId === user.id) {
       navigateToPage("profile");
@@ -1575,22 +1590,19 @@ useEffect(() => {
     navigateToPage("publicProfile");
   }
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles profile setup completion.*/
   function handleSetupComplete() {
     setNeedsSetup(false);
     navigateToPage(isAdmin ? "admin" : "home", { replace: true });
   }
 
-  // Supporting logic for the go home flow is kept here.
-  // Breaking it out makes the file easier to scan and maintain.
+  /*This function returns the app to the home page.*/
   function goHome() {
     navigateToPage("home");
     setSearchQuery("");
   }
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function resets app state after account deletion.*/
   function handleAccountDeleted() {
     navigateToPage("home", { replace: true });
     setSearchQuery("");
@@ -1606,6 +1618,7 @@ useEffect(() => {
     window.location.assign(getAppBaseUrl());
   }
 
+  /*This function dismisses the current rating prompt.*/
   function dismissRating(txnId, wasSubmitted = false) {
     // not when they skip — skipped ones should still appear on the public profile.
     if (txnId && user?.id) {
@@ -1623,22 +1636,26 @@ useEffect(() => {
     });
   }
 
+  /*This function finishes the password reset flow.*/
   function handlePasswordResetComplete() {
     clearPasswordRecovery();
     navigateToPage("home", { replace: true });
   }
 
+  /*This function opens the moderation modal for a listing.*/
   function handleOpenModeration(item) {
     setModerationListing(item);
     setModerationReason(limitModerationReason(item.flag_reason || ""));
     setModerationState({ loading: "", success: "", error: "" });
   }
 
+  /*This function refreshes the marketplace listings.*/
   async function refreshListings() {
     const listings = await fetchListings(isAdmin ? null : user?.id);
     setAllListings(listings);
   }
 
+  /*This function handles flag listing.*/
   async function handleFlagListing(item) {
     const reason = normalizeModerationReason(moderationReason);
     const reasonError = getModerationReasonError(reason);
@@ -1676,6 +1693,7 @@ useEffect(() => {
     }
   }
 
+  /*This function handles listing removal.*/
   async function handleRemoveListing(item) {
     setModerationState({ loading: "remove", success: "", error: "" });
 

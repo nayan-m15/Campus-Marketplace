@@ -58,8 +58,7 @@ export default function WishlistPage({
   );
 }
 
-// Small prep work happens in this helper before the UI uses the result.
-// It keeps lookup, formatting, or data shaping out of the render path.
+/*This function formats the zar.*/
 function formatZAR(value) {
   const num = Number(String(value).replace(/[^0-9.]/g, ""));
   if (isNaN(num)) return "R 0";
@@ -71,8 +70,7 @@ function formatZAR(value) {
   }).format(num);
 }
 
-// Supporting logic for the wishlist card flow is kept here.
-// Breaking it out makes the file easier to scan and maintain.
+/*This function renders the wishlist card component.*/
 function WishlistCard({ item, onClick, onRemove }) {
   const conditionColor = CONDITION_COLORS[item.condition] || "#6b7280";
 

@@ -7,14 +7,17 @@ const PHONE_PATTERN = /(?:\+?\d[\s().-]*){8,}/;
 const LETTER_PATTERN = /[a-z]/i;
 const REPEATED_CHARACTER_PATTERN = /(.)\1{9,}/;
 
+/*This function limits the moderation reason.*/
 export function limitModerationReason(value) {
   return String(value ?? "").slice(0, MODERATION_REASON_MAX_LENGTH);
 }
 
+/*This function normalizes the moderation reason.*/
 export function normalizeModerationReason(value) {
   return String(value ?? "").trim().replace(/\s+/g, " ");
 }
 
+/*This function returns the moderation reason error message.*/
 export function getModerationReasonError(value) {
   const reason = normalizeModerationReason(value);
 

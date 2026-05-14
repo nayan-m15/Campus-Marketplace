@@ -147,28 +147,24 @@ const MIN_BIRTHDATE = "1900-01-01";
 const PROFILE_NAME_MAX = 80;
 const PROFILE_DISPLAY_NAME_MAX = 40;
 
-// Small prep work happens in this helper before the UI uses the result.
-// It keeps lookup, formatting, or data shaping out of the render path.
+/*This function returns today's date in input format.*/
 function getTodayDate() {
   return new Date().toISOString().split("T")[0];
 }
 
-// A focused piece of component behavior is handled here.
-// Keeping it separate makes the main flow less crowded.
+/*This function clamps the length.*/
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
-// Small prep work happens in this helper before the UI uses the result.
-// It keeps lookup, formatting, or data shaping out of the render path.
+/*This function parses the birthdate.*/
 function parseBirthdate(value) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-// Small prep work happens in this helper before the UI uses the result.
-// It keeps lookup, formatting, or data shaping out of the render path.
+/*This function returns the birthdate error.*/
 function getBirthdateError(value) {
   if (!value) return "Please enter your date of birth.";
 
@@ -187,7 +183,7 @@ function getBirthdateError(value) {
   return null;
 }
 
-// ── Step indicator ───────────────────────────────────────────
+/*This function renders the step dots component.*/
 function StepDots({ current, total }) {
   return (
     <section className="setup-steps">
@@ -220,13 +216,13 @@ export default function ProfileSetupPage({ onComplete }) {
     institution: "",
   });
 
+  /*This function updates a form field value.*/
   const set = (key, val) => {
     setError("");
     setForm((f) => ({ ...f, [key]: val }));
   };
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles province selection changes.*/
   const handleProvinceChange = (val) => {
     setError("");
     setForm((f) => ({ ...f, province: val, institution: "" }));
@@ -241,7 +237,7 @@ export default function ProfileSetupPage({ onComplete }) {
       ]
     : [];
 
-  // ── Validation per step ──────────────────────────────────
+  /*This function validates the step.*/
   const validateStep = () => {
     if (step === 0) {
       if (!form.name.trim()) return "Please enter your full name.";
@@ -258,8 +254,7 @@ export default function ProfileSetupPage({ onComplete }) {
     return null;
   };
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles next step navigation.*/
   const handleNext = () => {
     const err = validateStep();
     if (err) { setError(err); return; }
@@ -267,15 +262,13 @@ export default function ProfileSetupPage({ onComplete }) {
     setStep((s) => s + 1);
   };
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles back navigation.*/
   const handleBack = () => {
     setError("");
     setStep((s) => s - 1);
   };
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles completion.*/
   const handleFinish = async () => {
     const err = validateStep();
     if (err) { setError(err); return; }

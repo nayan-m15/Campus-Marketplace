@@ -8,6 +8,7 @@ export const DEFAULT_FACILITY_END_TIME = "17:00";
 export const DEFAULT_SESSION_DURATION = 60;
 export const FACILITY_STATUS_VALUES = new Set(["active", "inactive"]);
 
+/*This function returns empty hours.*/
 export function emptyHours() {
   return DAYS.reduce((acc, day) => {
     acc[day] = {
@@ -19,6 +20,7 @@ export function emptyHours() {
   }, {});
 }
 
+/*This function normalizes the optional text.*/
 export function normalizeOptionalText(value) {
   if (value === null || value === undefined) return null;
 
@@ -26,10 +28,12 @@ export function normalizeOptionalText(value) {
   return trimmedValue === "" ? null : trimmedValue;
 }
 
+/*This function normalizes the required text.*/
 export function normalizeRequiredText(value) {
   return String(value ?? "").trim();
 }
 
+/*This function normalizes the positive integer.*/
 export function normalizePositiveInteger(value, fallback = null) {
   const normalizedValue = Number.parseInt(String(value ?? ""), 10);
 
@@ -40,6 +44,7 @@ export function normalizePositiveInteger(value, fallback = null) {
   return normalizedValue;
 }
 
+/*This function serializes the supabase error.*/
 export function serializeSupabaseError(error) {
   if (!error) return null;
 
@@ -51,6 +56,7 @@ export function serializeSupabaseError(error) {
   };
 }
 
+/*This function validates the facility form data.*/
 export function validateFacilityFormData(formData) {
   const normalizedName = normalizeRequiredText(formData?.name);
   const normalizedCapacity = normalizePositiveInteger(formData?.capacity);
@@ -77,6 +83,7 @@ export function validateFacilityFormData(formData) {
   }
 }
 
+/*This function builds the facility payload.*/
 export function buildFacilityPayload(formData) {
   validateFacilityFormData(formData);
 
@@ -94,6 +101,7 @@ export function buildFacilityPayload(formData) {
   };
 }
 
+/*This function builds the facility hours payload.*/
 export function buildFacilityHoursPayload(facilityId, hours) {
   if (!facilityId) {
     throw new Error("A valid facility ID is required for operating hours.");

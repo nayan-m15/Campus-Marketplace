@@ -2,22 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { normaliseListing } from "../data/listings";
 
-/**
- * useWishlist — manages wishlist state for the current user.
- *
- * Returns:
- *   wishlistIds   — Set of listing IDs the user has wishlisted
- *   wishlistItems — Full listing objects for the wishlist page
- *   isWishlisted  — (listingId) => boolean
- *   toggleWishlist — (listingId) => Promise<void>  adds or removes
- *   loading       — boolean
- */
+/*This function manages wishlist state and behavior.*/
 export function useWishlist(user) {
   const [wishlistIds, setWishlistIds] = useState(new Set());
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch all wishlist entries (with joined listing data) for current user
+  /*This function fetches the wishlist.*/
   const fetchWishlist = useCallback(async () => {
     if (!user) {
       setWishlistIds(new Set());

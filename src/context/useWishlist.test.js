@@ -20,6 +20,7 @@ vi.mock("../data/listings", () => ({
   normaliseListing: (...args) => mocks.normaliseListing(...args),
 }));
 
+/*This function creates the wishlist list query.*/
 function makeWishlistListQuery({ data, error }) {
   const query = {
     select: vi.fn(() => query),
@@ -30,6 +31,7 @@ function makeWishlistListQuery({ data, error }) {
   return query;
 }
 
+/*This function creates the profiles query.*/
 function makeProfilesQuery({ data, error }) {
   const query = {
     select: vi.fn(() => query),

@@ -40,12 +40,14 @@ const COLUMN_PRIORITY = [
   "total",
 ];
 
+/*This function normalizes the key.*/
 function normalizeKey(value) {
   return String(value ?? "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 }
 
+/*This function formats the key for display.*/
 function humanizeKey(key) {
   return String(key ?? "")
     .replace(/[_-]+/g, " ")
@@ -54,6 +56,7 @@ function humanizeKey(key) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+/*This function converts the title case.*/
 function toTitleCase(value) {
   return String(value ?? "")
     .replace(/[_-]+/g, " ")
@@ -62,14 +65,17 @@ function toTitleCase(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+/*This function returns whether a value is a finite number.*/
 function isFiniteNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+/*This function returns whether a value is a numeric string.*/
 function isNumericString(value) {
   return typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value));
 }
 
+/*This function returns whether a value looks like a date.*/
 function looksLikeDate(value) {
   if (typeof value !== "string") return false;
   const trimmed = value.trim();
@@ -77,24 +83,29 @@ function looksLikeDate(value) {
   return /^\d{4}-\d{2}-\d{2}/.test(trimmed) || trimmed.includes("T");
 }
 
+/*This function returns whether format as currency.*/
 function shouldFormatAsCurrency(key, value) {
   if (!(isFiniteNumber(value) || isNumericString(value))) return false;
   return /(price|amount|revenue|total|value|cost)/i.test(String(key ?? ""));
 }
 
+/*This function returns whether format as date time.*/
 function shouldFormatAsDateTime(key, value) {
   if (!looksLikeDate(value)) return false;
   return /(date|time|period|created|updated|scheduled|timestamp|day|month|week)/i.test(String(key ?? ""));
 }
 
+/*This function returns whether format as status.*/
 function shouldFormatAsStatus(key) {
   return /(status|state)/i.test(String(key ?? ""));
 }
 
+/*This function returns whether format as boolean.*/
 function shouldFormatAsBoolean(value) {
   return typeof value === "boolean";
 }
 
+/*This function formats the currency.*/
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-ZA", {
     style: "currency",
@@ -104,10 +115,12 @@ function formatCurrency(value) {
   }).format(Number(value));
 }
 
+/*This function formats the number.*/
 function formatNumber(value) {
   return new Intl.NumberFormat("en-ZA").format(Number(value));
 }
 
+/*This function formats the date value.*/
 function formatDateValue(value, key) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
@@ -128,6 +141,7 @@ function formatDateValue(value, key) {
     });
 }
 
+/*This function formats the report value.*/
 export function formatReportValue(value, key, options = {}) {
   if (value === null || value === undefined || value === "") return options.emptyLabel || "N/A";
 
@@ -158,6 +172,7 @@ export function formatReportValue(value, key, options = {}) {
   return String(value);
 }
 
+/*This function returns the ordered columns.*/
 export function getOrderedColumns(rows = []) {
   const columns = Object.keys(rows[0] || {});
 
@@ -176,16 +191,19 @@ export function getOrderedColumns(rows = []) {
   });
 }
 
+/*This function returns the export rows.*/
 export function getExportRows(rows = [], columns = getOrderedColumns(rows)) {
   return rows.map((row) =>
     columns.map((column) => formatReportValue(row[column], column)),
   );
 }
 
+/*This function formats the column labels.*/
 export function formatColumnLabels(columns = []) {
   return columns.map((column) => humanizeKey(column));
 }
 
+/*This function formats the export date time.*/
 export function formatExportDateTime(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
   return date.toLocaleString("en-ZA", {
@@ -197,10 +215,12 @@ export function formatExportDateTime(value = new Date()) {
   });
 }
 
+/*This function formats the date range.*/
 export function formatDateRange(from, to) {
   return `${formatDateValue(from, "date")} to ${formatDateValue(to, "date")}`;
 }
 
+/*This function escapes a value for CSV output.*/
 function csvEscape(value) {
   const stringValue = String(value ?? "");
   if (/[",\n]/.test(stringValue)) {
@@ -209,6 +229,7 @@ function csvEscape(value) {
   return stringValue;
 }
 
+/*This function builds the CSV content for a report export.*/
 export function buildCsvContent({
   reportTitle,
   dateFrom,
@@ -234,6 +255,7 @@ export function buildCsvContent({
   ].join("\n");
 }
 
+/*This function downloads the csv report.*/
 export function downloadCsvReport({
   fileName,
   reportTitle,
@@ -260,6 +282,7 @@ export function downloadCsvReport({
   URL.revokeObjectURL(url);
 }
 
+/*This function draws the header.*/
 function drawHeader(doc, reportTitle, dateFrom, dateTo, generatedAt) {
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -277,6 +300,7 @@ function drawHeader(doc, reportTitle, dateFrom, dateTo, generatedAt) {
   doc.text(`Generated: ${formatExportDateTime(generatedAt)}`, pageWidth - 72, 37);
 }
 
+/*This function draws the footer.*/
 function drawFooter(doc) {
   const pageCount = doc.getNumberOfPages();
 
@@ -295,6 +319,7 @@ function drawFooter(doc) {
   }
 }
 
+/*This function draws the section band.*/
 function drawSectionBand(doc, label, y) {
   doc.setFillColor(240, 247, 244);
   doc.roundedRect(14, y, doc.internal.pageSize.getWidth() - 28, 10, 3, 3, "F");
@@ -304,6 +329,7 @@ function drawSectionBand(doc, label, y) {
   doc.text(label, 18, y + 6.5);
 }
 
+/*This function draws the summary grid.*/
 function drawSummaryGrid(doc, summaryLines, startY) {
   if (!summaryLines.length) return startY;
 
@@ -340,6 +366,7 @@ function drawSummaryGrid(doc, summaryLines, startY) {
   return y + 24;
 }
 
+/*This function draws the insights.*/
 function drawInsights(doc, insightLines, startY) {
   if (!insightLines.length) return startY;
 
@@ -378,6 +405,7 @@ function drawInsights(doc, insightLines, startY) {
   return y;
 }
 
+/*This function downloads the pdf report.*/
 export function downloadPdfReport({
   fileName,
   reportTitle,

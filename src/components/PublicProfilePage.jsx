@@ -6,7 +6,7 @@ import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import "../styles/ProfilePage.css";
 
-// ── Star display (read-only) ─────────────────────────────────
+/*This function renders the star display component.*/
 function StarDisplay({ average = 0, count = 0 }) {
   return (
     <section className="pub-rating__display">
@@ -33,7 +33,7 @@ function StarDisplay({ average = 0, count = 0 }) {
   );
 }
 
-// ── Interactive star picker ──────────────────────────────────
+/*This function renders the star picker component.*/
 function StarPicker({ value, onChange }) {
   const [hovered, setHovered] = useState(0);
   return (
@@ -101,6 +101,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
   useEffect(() => {
     if (!user || !userId || user.id === userId) return;
 
+    /*This function loads the rateable listings.*/
     async function loadRateableListings() {
       // Source 1: listings the user messaged the seller about
       const { data: msgData } = await supabase
@@ -158,12 +159,13 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
     loadRateableListings();
   }, [user, userId]);
 
-  // ── Helpers ──────────────────────────────────────────────────
+  /*This function shows the toast.*/
   function showToast(msg) {
     setRatingToast(msg);
     setTimeout(() => setRatingToast(null), 3000);
   }
 
+  /*This function handles submit rating.*/
   async function handleSubmitRating() {
     if (!selectedListing) { showToast("Please select a listing first."); return; }
     if (!selectedStars)    { showToast("Please select a star rating.");   return; }

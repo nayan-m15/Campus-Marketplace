@@ -58,6 +58,7 @@ export default function Navbar({
   useEffect(() => {
     if (!searchOpen) return undefined;
 
+    /*This function handles pointer down.*/
     function handlePointerDown(event) {
       if (!headerRef.current?.contains(event.target)) {
         setSearchOpen(false);
@@ -71,8 +72,7 @@ export default function Navbar({
     };
   }, [searchOpen]);
 
-  // Shared fallback avatar so the no-photo state looks intentional
-  // on both desktop and mobile instead of each view inventing its own version.
+  /*This function renders the fallback avatar.*/
   const renderFallbackAvatar = (className) => (
     <span className={className} aria-hidden="true">
       <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">

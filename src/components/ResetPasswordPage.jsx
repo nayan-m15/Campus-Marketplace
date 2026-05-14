@@ -23,6 +23,7 @@ export default function ResetPasswordPage({ onComplete, autoContinueDelayMs = 15
     };
   }, []);
 
+  /*This function handles the complete reset flow.*/
   function completeResetFlow() {
     if (autoContinueTimeoutRef.current) {
       clearTimeout(autoContinueTimeoutRef.current);
@@ -32,6 +33,7 @@ export default function ResetPasswordPage({ onComplete, autoContinueDelayMs = 15
     onComplete();
   }
 
+  /*This function handles form submission.*/
   async function handleSubmit(e) {
     e.preventDefault();
     setErrors([]);

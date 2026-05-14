@@ -47,6 +47,7 @@ const MOCK_LISTINGS = [
   },
 ];
 
+/*This function formats the price.*/
 function formatPrice(price) {
   if (price === null || price === undefined) return "R 0";
   const num = Number(price);
@@ -57,17 +58,20 @@ function formatPrice(price) {
   }).replace(/,/g, " ")}`;
 }
 
+/*This function returns the category emoji.*/
 function getCategoryEmoji(category) {
   const match = CATEGORIES.find((c) => c.label === category);
   return match ? match.emoji : "📦";
 }
 
+/*This function returns the joined year.*/
 function getJoinedYear(createdAt) {
   if (!createdAt) return null;
   const date = new Date(createdAt);
   return Number.isNaN(date.getTime()) ? null : date.getFullYear();
 }
 
+/*This function returns the joined label.*/
 function getJoinedLabel(createdAt) {
   if (!createdAt) return "";
   const date = new Date(createdAt);
@@ -79,6 +83,7 @@ function getJoinedLabel(createdAt) {
   }).format(date);
 }
 
+/*This function returns the seller name.*/
 function getSellerName(profile, userId) {
   if (profile?.display_name?.trim()) return profile.display_name;
   if (profile?.name?.trim()) return profile.name;
@@ -86,6 +91,7 @@ function getSellerName(profile, userId) {
   return "Unknown";
 }
 
+/*This function normalizes the listing.*/
 export function normaliseListing(listing, profile) {
   const category = listing.category ?? "Other";
   const imageUrls = Array.isArray(listing.image_urls)
@@ -121,6 +127,7 @@ export function normaliseListing(listing, profile) {
   };
 }
 
+/*This function fetches the listings.*/
 export async function fetchListings(currentUserId = null) {
   try {
     let query = supabase
@@ -166,6 +173,7 @@ export async function fetchListings(currentUserId = null) {
   }
 }
 
+/*This function fetches the listing by id.*/
 export async function fetchListingById(id) {
   const { data: listing, error } = await supabase
     .from("listings")

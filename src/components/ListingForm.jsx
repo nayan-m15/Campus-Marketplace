@@ -25,10 +25,12 @@ const LISTING_CATEGORIES = [
   { label: "Other", emoji: "📦" },
 ];
 
+/*This function clamps the length.*/
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
+/*This function clamps the price input.*/
 function clampPriceInput(value) {
   const cleaned = String(value ?? "")
     .replace(",", ".")
@@ -50,11 +52,13 @@ function clampPriceInput(value) {
   return `${whole}.${cents}`;
 }
 
+/*This function renders the image scroll strip component.*/
 function ImageScrollStrip({ images, onChange }) {
   const libraryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const [draggingOver, setDraggingOver] = useState(false);
 
+  /*This function handles selected files.*/
   const handleFiles = useCallback((files) => {
     const remaining = MAX_IMAGES - images.length;
     if (remaining <= 0) return;
@@ -72,6 +76,7 @@ function ImageScrollStrip({ images, onChange }) {
     });
   }, [images.length, onChange]);
 
+  /*This function removes the image.*/
   function removeImage(index) {
     onChange((prev) => prev.filter((_, imageIndex) => imageIndex !== index));
   }
@@ -265,6 +270,7 @@ function ImageScrollStrip({ images, onChange }) {
   );
 }
 
+/*This function renders the condition selector component.*/
 function ConditionSelector({ value, onChange }) {
   return (
     <section className="lf__condition-row" role="radiogroup" aria-label="Item condition">
@@ -293,6 +299,7 @@ function ConditionSelector({ value, onChange }) {
   );
 }
 
+/*This function returns the price suggestion error message.*/
 function getPriceSuggestionErrorMessage(error) {
   const message = error?.message || "";
 
@@ -307,6 +314,7 @@ function getPriceSuggestionErrorMessage(error) {
   return message || "We could not compare Google Shopping prices for this item yet. You can still enter your own price.";
 }
 
+/*This function renders the price suggestion panel component.*/
 function PriceSuggestionPanel({ suggestion, loading, error, hasEnoughDetail }) {
   if (!hasEnoughDetail) {
     return (
@@ -387,6 +395,7 @@ function PriceSuggestionPanel({ suggestion, loading, error, hasEnoughDetail }) {
   );
 }
 
+/*This function renders the listing type selector component.*/
 function ListingTypeSelector({ value, onChange }) {
   const options = [
     {
@@ -507,6 +516,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
     };
   }, [name, description, category, condition, hasEnoughPriceSuggestionDetail]);
 
+  /*This function handles the validate.*/
   function validate() {
     const next = {};
 
@@ -526,6 +536,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
     return next;
   }
 
+  /*This function handles form submission.*/
   async function handleSubmit() {
     const nextErrors = validate();
     if (Object.keys(nextErrors).length > 0) {

@@ -37,8 +37,7 @@ export default function ListingCard({
         ? " listing-card__institution--long"
         : "";
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles keyboard input.*/
   function handleKeyDown(e) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -46,14 +45,14 @@ export default function ListingCard({
     }
   }
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles wishlist click.*/
   function handleWishlistClick(e) {
     e.stopPropagation();
     if (!user) return;
     onToggleWishlist?.(item.id);
   }
 
+  /*This function handles moderate click.*/
   function handleModerateClick(e) {
     e.stopPropagation();
     onModerate?.(item);

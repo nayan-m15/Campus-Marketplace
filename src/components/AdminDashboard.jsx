@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { id: "moderate", label: "Moderation", subtitle: "Listings review and marketplace safety" },
 ];
 
+/*This function renders the dashboard icon component.*/
 function DashboardIcon({ name, className = "" }) {
   const paths = {
     facilities: (
@@ -134,10 +135,12 @@ function DashboardIcon({ name, className = "" }) {
   );
 }
 
+/*This function formats the admin date.*/
 function formatAdminDate(date = new Date(), options = {}) {
   return new Intl.DateTimeFormat("en-ZA", options).format(date);
 }
 
+/*This function returns the admin initials.*/
 function getAdminInitials(name) {
   const parts = String(name || "Admin User")
     .trim()
@@ -147,6 +150,7 @@ function getAdminInitials(name) {
   return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "AU";
 }
 
+/*This function builds the calendar matrix.*/
 function buildCalendarMatrix(referenceDate = new Date()) {
   const year = referenceDate.getFullYear();
   const month = referenceDate.getMonth();
@@ -177,6 +181,7 @@ function buildCalendarMatrix(referenceDate = new Date()) {
   return cells;
 }
 
+/*This function renders the reports panel component.*/
 function ReportsPanel() {
   const [reportType, setReportType] = useState("executive");
   const [dateFrom, setDateFrom] = useState("2026-01-01");
@@ -186,11 +191,13 @@ function ReportsPanel() {
   const [generated, setGenerated] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  /*This function normalizes the key.*/
   const normalizeKey = (value) =>
     String(value ?? "")
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "");
 
+  /*This function finds the value.*/
   const findValue = (row, candidates = []) => {
     if (!row) return null;
 
@@ -209,6 +216,7 @@ function ReportsPanel() {
     return null;
   };
 
+  /*This function formats the value.*/
   const formatValue = (value, options = {}) => {
     if (value === null || value === undefined || value === "") return "N/A";
     if (typeof value === "number") {
@@ -224,6 +232,7 @@ function ReportsPanel() {
     return String(value);
   };
 
+  /*This function returns the report summary.*/
   const getReportSummary = (type, data) => {
     if (!data.length) return [];
 
@@ -342,6 +351,7 @@ function ReportsPanel() {
     }
   };
 
+  /*This function generates the insights.*/
   const generateInsights = (type, data) => {
     if (!data.length) return [];
 
@@ -372,11 +382,13 @@ function ReportsPanel() {
     }
   };
 
+  /*This function returns the summary lines.*/
   const getSummaryLines = (type, data) =>
     getReportSummary(type, data)
       .filter((item) => item.value !== null && item.value !== undefined && item.value !== "")
       .map((item) => `${item.label}: ${formatValue(item.value, { currency: item.currency })}`);
 
+  /*This function fetches the report.*/
   const fetchReport = async () => {
     let query;
     switch (reportType) {
@@ -410,6 +422,7 @@ function ReportsPanel() {
     setGenerated(true);
   };
 
+  /*This function handles generate.*/
   const handleGenerate = async () => {
     setLoading(true);
     setGenerated(false);
@@ -417,6 +430,7 @@ function ReportsPanel() {
     setLoading(false);
   };
 
+  /*This function downloads the csv.*/
   const downloadCSV = () => {
     if (!reportData.length) return;
 
@@ -434,6 +448,7 @@ function ReportsPanel() {
     });
   };
 
+  /*This function downloads the pdf.*/
   const downloadPDF = () => {
     if (!reportData.length) return;
 
@@ -453,6 +468,7 @@ function ReportsPanel() {
     });
   };
 
+  /*This function handles download.*/
   const handleDownload = () => {
     if (format === "csv") downloadCSV();
     if (format === "pdf") downloadPDF();

@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 
+/*This function formats the currency.*/
 function formatCurrency(amount) {
   return `R ${Number(amount || 0).toLocaleString("en-ZA", {
     minimumFractionDigits: 2,
@@ -7,6 +8,7 @@ function formatCurrency(amount) {
   })}`;
 }
 
+/*This function formats the date time.*/
 function formatDateTime(value) {
   if (!value) return "Not recorded";
   return new Date(value).toLocaleString("en-ZA", {
@@ -18,12 +20,14 @@ function formatDateTime(value) {
   });
 }
 
+/*This function detects the image format from a data URL.*/
 function detectImageFormat(dataUrl) {
   if (dataUrl.startsWith("data:image/png")) return "PNG";
   if (dataUrl.startsWith("data:image/webp")) return "WEBP";
   return "JPEG";
 }
 
+/*This function converts a blob to a data URL.*/
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -33,6 +37,7 @@ function blobToDataUrl(blob) {
   });
 }
 
+/*This function converts an image URL to a data URL.*/
 async function imageUrlToDataUrl(imageUrl) {
   if (!imageUrl) return null;
 
@@ -50,6 +55,7 @@ async function imageUrlToDataUrl(imageUrl) {
   }
 }
 
+/*This function draws the section title.*/
 function drawSectionTitle(doc, label, x, y, width) {
   doc.setFillColor(240, 247, 244);
   doc.roundedRect(x, y - 6, width, 10, 3, 3, "F");
@@ -59,6 +65,7 @@ function drawSectionTitle(doc, label, x, y, width) {
   doc.text(label, x + 4, y);
 }
 
+/*This function draws the wrapped value.*/
 function drawWrappedValue(doc, label, value, x, y, width) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
@@ -72,6 +79,7 @@ function drawWrappedValue(doc, label, value, x, y, width) {
   return y + (wrapped.length * 5);
 }
 
+/*This function generates the receipt PDF for a transaction.*/
 export async function generateTransactionReceiptPdf(transaction) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();

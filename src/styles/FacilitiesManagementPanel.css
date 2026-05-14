@@ -4,7 +4,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
-/* ----- MAIN PANEL LAYOUT ----- */
+/*Main panel layout*/
 .facilities-management-panel {
   background: var(--surface-muted);
   border-radius: 16px;
@@ -90,7 +90,7 @@
   padding: 28px;
 }
 
-/* ----- BUTTON STYLES ----- */
+/*Button styles*/
 .btn {
   padding: 10px 20px;
   border-radius: 40px;
@@ -186,7 +186,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* ----- STATE DISPLAYS ----- */
+/*State displays*/
 .loading-state,
 .error-state,
 .empty-state {
@@ -219,7 +219,7 @@
   margin-bottom: 8px;
 }
 
-/* ----- FACILITIES GRID ----- */
+/*Facilities grid*/
 .facilities-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
@@ -238,7 +238,7 @@
   }
 }
 
-/* ----- FACILITY CARD ----- */
+/*Facility card*/
 .facility-management-card {
   background: var(--surface-muted);
   border: 1px solid var(--gray-200);
@@ -421,7 +421,7 @@
   justify-content: center;
 }
 
-/* ----- MODAL STYLES ----- */
+/*Modal styles*/
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -488,7 +488,7 @@
   border-top: 1px solid var(--surface-strong);
 }
 
-/* ----- FORM STYLES ----- */
+/*Form styles*/
 .facility-form {
   padding: 0 28px;
 }
@@ -588,7 +588,7 @@
   margin-top: 8px;
 }
 
-/* ----- HOURS MANAGEMENT ----- */
+/*Hours management*/
 .hours-grid {
   display: grid;
   gap: 12px;
@@ -685,7 +685,7 @@
   font-weight: 500;
 }
 
-/* ----- TOAST NOTIFICATIONS ----- */
+/*Toast notifications*/
 .toast {
   position: fixed;
   bottom: 28px;
@@ -725,7 +725,7 @@
   margin: 0;
 }
 
-/* ----- RESPONSIVE DESIGN ----- */
+/*Responsive design*/
 @media (max-width: 880px) {
   .header-content {
     flex-direction: column;

@@ -23,8 +23,7 @@ const LISTING_TYPE_OPTIONS = [
   { value: "sale_and_trade", label: "For Sale & Trade", color: "#2563eb", background: "#eff6ff" },
 ];
 
-// A focused piece of component behavior is handled here.
-// Keeping it separate makes the main flow less crowded.
+/*This function clamps the price input.*/
 function clampPriceInput(value) {
   const cleaned = String(value ?? "")
     .replace(",", ".")
@@ -45,8 +44,7 @@ function clampPriceInput(value) {
   return `${whole}.${cents}`;
 }
 
-// Small prep work happens in this helper before the UI uses the result.
-// It keeps lookup, formatting, or data shaping out of the render path.
+/*This function formats the zar.*/
 function formatZAR(value) {
   const num = Number(String(value).replace(/[^0-9.]/g, ""));
   if (isNaN(num)) return "R 0";
@@ -57,14 +55,12 @@ function formatZAR(value) {
   }).replace(/,/g, " ")}`;
 }
 
-// A focused piece of component behavior is handled here.
-// Keeping it separate makes the main flow less crowded.
+/*This function clamps the length.*/
 function clampLength(value, maxLength) {
   return String(value ?? "").slice(0, maxLength);
 }
 
-// Builds the editable photo list from both the legacy cover column and the
-// multi-image column, keeping the current cover as the first thumbnail.
+/*This function returns the listing images.*/
 function getListingImages(item) {
   const imageUrls = Array.isArray(item?.image_urls)
     ? item.image_urls.filter(Boolean)
@@ -82,11 +78,12 @@ function getListingImages(item) {
   }));
 }
 
-// Cards and edit state both treat image_url as the preferred cover fallback.
+/*This function returns the listing cover.*/
 function getListingCover(item) {
   return item?.image_url || (Array.isArray(item?.image_urls) ? item.image_urls.find(Boolean) : "");
 }
 
+/*This function returns the editable listing type.*/
 function getEditableListingType(item) {
   const listingType = String(item?.listing_type || "sale").toLowerCase();
   if (listingType === "trade") return "trade";
@@ -94,7 +91,7 @@ function getEditableListingType(item) {
   return "sale";
 }
 
-// Reorders thumbnails without mutating React state in place.
+/*This function moves the array item.*/
 function moveArrayItem(items, fromIndex, toIndex) {
   if (toIndex < 0 || toIndex >= items.length) return items;
   const next = [...items];
@@ -103,8 +100,7 @@ function moveArrayItem(items, fromIndex, toIndex) {
   return next;
 }
 
-// Storage paths cannot safely use arbitrary file names, so user-provided
-// pieces are reduced to short URL/path-friendly segments before upload.
+/*This function sanitizes a value for safe storage paths.*/
 function safeStorageSegment(value) {
   return String(value ?? "image")
     .toLowerCase()
@@ -113,8 +109,7 @@ function safeStorageSegment(value) {
     .slice(0, 80) || "image";
 }
 
-// Small prep work happens in this helper before the UI uses the result.
-// It keeps lookup, formatting, or data shaping out of the render path.
+/*This function formats the edit price.*/
 function formatEditPrice(value) {
   const price = clampPriceInput(value);
 
@@ -128,6 +123,7 @@ function formatEditPrice(value) {
   }).replace(/,/g, " ")}`;
 }
 
+/*This function returns the price suggestion error message.*/
 function getPriceSuggestionErrorMessage(error) {
   const message = error?.message || "";
   const lowerMessage = message.toLowerCase();
@@ -152,6 +148,7 @@ function getPriceSuggestionErrorMessage(error) {
   return "Price suggestion is unavailable right now.";
 }
 
+/*This function renders the edit price suggestion component.*/
 function EditPriceSuggestion({ suggestion, loading, error, hasEnoughDetail }) {
   if (!hasEnoughDetail) {
     return (
@@ -200,6 +197,7 @@ function EditPriceSuggestion({ suggestion, loading, error, hasEnoughDetail }) {
   );
 }
 
+/*This function returns the edit price suggestion cache key.*/
 function getEditPriceSuggestionCacheKey(item) {
   if (!item?.id) return "";
 
@@ -212,15 +210,13 @@ function getEditPriceSuggestionCacheKey(item) {
   });
 }
 
-// Photo editor used inside the listing edit modal. Existing URLs and newly
-// selected files share one ordered thumbnail strip so the first item is cover.
+/*This function renders the edit image strip component.*/
 function EditImageStrip({ images, onChange }) {
   const libraryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const [draggingOver, setDraggingOver] = useState(false);
 
-  // Reads selected or dropped files into previews, while preserving the File
-  // object for upload when the user saves the listing.
+  /*This function handles selected files.*/
   function handleFiles(files) {
     const remaining = MAX_IMAGES - images.length;
     if (remaining <= 0) return;
@@ -394,6 +390,7 @@ function EditImageStrip({ images, onChange }) {
   );
 }
 
+/*This function renders the edit listing type selector component.*/
 function EditListingTypeSelector({ value, onChange }) {
   return (
     <section style={{ display: "flex", gap: 8, width: "100%" }} role="radiogroup" aria-label="Listing type">
@@ -529,8 +526,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     editHasEnoughPriceSuggestionDetail,
   ]);
 
-  // Memoized so the effect can fetch the owner's listings without tripping the
-  // hook dependency rule when the signed-in user changes.
+  /*This function fetches the user listings.*/
   const fetchUserListings = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -567,6 +563,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     void Promise.resolve().then(fetchUserListings);
   }, [fetchUserListings]);
 
+  /*This function handles deletion.*/
   async function handleDelete(id) {
     const { error } = await supabase.from("listings").delete().eq("id", id);
     if (error) { setError(error.message); return; }
@@ -576,6 +573,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     onListingChanged?.();
   }
 
+  /*This function handles marking a listing as sold.*/
   async function handleMarkSold(id, currentStatus) {
     const wasSold = currentStatus === "sold";
     const listing = listings.find((l) => l.id === id);
@@ -598,6 +596,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     onListingChanged?.();
   }
 
+  /*This function handles saving listing edits.*/
   async function handleEditSave(e) {
     e?.preventDefault?.();
     const { id, title, price, condition, description, category } = editingItem;
@@ -710,8 +709,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     onListingChanged?.();
   }
 
-  // Small prep work happens in this helper before the UI uses the result.
-  // It keeps lookup, formatting, or data shaping out of the render path.
+  /*This function shows the success.*/
   function showSuccess(msg) {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(""), 3000);

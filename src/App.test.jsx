@@ -212,8 +212,7 @@ vi.mock("./data/listings", () => ({
   },
 }));
 
-// Supporting logic for the render app flow is kept here.
-// Breaking it out makes the file easier to scan and maintain.
+/*This function renders the app for tests.*/
 function renderApp() {
   render(<App />);
 }
@@ -235,8 +234,7 @@ beforeEach(() => {
   window.history.replaceState({}, "", "/");
 });
 
-// Supporting logic for the mock listings scroll targets flow is kept here.
-// Breaking it out makes the file easier to scan and maintain.
+/*This function sets up mock scroll targets for app tests.*/
 function mockListingsScrollTargets(listingsHeading, filterBarTop = 120, listingsTop = 420) {
   const innerListingsSection = listingsHeading.closest("section");
   const listingsScrollSection = innerListingsSection?.parentElement;

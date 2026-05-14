@@ -41,6 +41,7 @@ export default function FilterBar({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    /*This function handles escape key behavior.*/
     function handleEscape(event) {
       if (event.key === "Escape") {
         setMobilePanel(null);
@@ -55,7 +56,7 @@ export default function FilterBar({
     };
   }, [mobilePanel]);
 
-  // One clear action resets both the filter values and any mobile sort choice.
+  /*This function handles clearing the current state.*/
   function handleClear() {
     onCategoryChange("All Items");
     onConditionChange("All Conditions");
@@ -65,9 +66,7 @@ export default function FilterBar({
     }
   }
 
-  // Desktop still uses a select for sorting.
-  // We keep the actual state change in one helper so desktop and mobile
-  // both use the same sorting logic.
+  /*This function handles sort change.*/
   function handleSortChange(value) {
     onPriceSortChange?.(value);
     if (value !== "custom") {
@@ -75,8 +74,7 @@ export default function FilterBar({
     }
   }
 
-  // The same category/condition fields are rendered in two places:
-  // inline on desktop, and inside the mobile filter panel.
+  /*This function renders the filter fields.*/
   function renderFilterFields(prefix) {
     const categoryId = `${fieldIdBase}-${prefix}-category`;
     const conditionId = `${fieldIdBase}-${prefix}-condition`;
@@ -118,8 +116,7 @@ export default function FilterBar({
     );
   }
 
-  // Desktop keeps the classic select dropdown.
-  // Mobile gets a button list instead, so people can tap a sort option directly.
+  /*This function renders the sort fields.*/
   function renderSortFields(prefix, enabled) {
     if (!enabled) return null;
 

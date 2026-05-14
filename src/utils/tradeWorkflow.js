@@ -9,10 +9,12 @@ export const TRANSACTION_STATUS_META = {
   cancelled: "Cancelled",
 };
 
+/*This function builds the trade transaction id.*/
 export function buildTradeTransactionId(prefix = "TXN") {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}`;
 }
 
+/*This function returns whether collection booking is allowed for the status.*/
 export function canBookCollectionForStatus(status) {
   // `collection_pending_approval` is a legacy UI alias; it should never be
   // written to `transactions.status`, but we still recognize it defensively.
@@ -23,6 +25,7 @@ export function canBookCollectionForStatus(status) {
   ].includes(status);
 }
 
+/*This function derives the booking status.*/
 export function deriveBookingStatus(type, transactionStatus) {
   if (transactionStatus === "cancelled") return "cancelled";
   if (type === "dropoff") {

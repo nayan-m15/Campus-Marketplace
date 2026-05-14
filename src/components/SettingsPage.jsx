@@ -32,8 +32,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
   const [deleteError, setDeleteError] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // User-driven changes pass through this handler first.
-  // State updates and follow-up UI actions are triggered here.
+  /*This function handles dark mode changes.*/
   function handleDarkMode(val) {
     setDarkMode(val);
     if (val) {
@@ -65,6 +64,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
     }
   }, []);
 
+  /*This function handles password changes.*/
   async function handleChangePassword() {
     setPasswordMsg(null);
     setPasswordErrors([]);
@@ -94,6 +94,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
     }
   }
 
+  /*This function handles notification preference changes.*/
   async function handleSaveNotifications() {
     if (!user) return;
     setNotifPermissionMsg("");
@@ -130,6 +131,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
     }, 3000);
   }
 
+  /*This function handles account deletion.*/
   async function handleDeleteAccount() {
     if (!user) {
       setDeleteError("You must be logged in to delete your account.");
@@ -188,8 +190,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
     display: "block",
   };
 
-  // A focused piece of component behavior is handled here.
-  // Keeping it separate makes the main flow less crowded.
+  /*This function converts the ggle style.*/
   const toggleStyle = (active) => ({
     width: 44,
     height: 24,
@@ -202,8 +203,7 @@ export default function SettingsPage({ onBack, onSignOut, onAccountDeleted }) {
     flexShrink: 0,
   });
 
-  // A focused piece of component behavior is handled here.
-  // Keeping it separate makes the main flow less crowded.
+  /*This function converts the ggle knob style.*/
   const toggleKnobStyle = (active) => ({
     position: "absolute",
     top: 3,
