@@ -52,6 +52,20 @@ function submitPayfastForm(action, fields) {
   form.submit();
 }
 
+function getFunctionErrorMessage(error) {
+  const contextMessage = error?.context?.error_description || error?.context?.message || error?.context?.error;
+  const message = contextMessage || error?.message || "";
+
+  if (/failed to send a request to the edge function/i.test(message)) {
+    return "Could not reach the PayFast checkout function. Check that create-payfast-checkout is deployed in Supabase and your local VITE_SUPABASE_URL points to that project.";
+  }
+  if (/non-2xx status code/i.test(message)) {
+    return "The PayFast checkout function returned an error. Open Supabase Edge Function logs for create-payfast-checkout to see the exact cause.";
+  }
+
+  return message || "Unable to start PayFast sandbox checkout.";
+}
+
 function StepIndicator({ step }) {
   return (
     <section className="brm-steps" role="list" aria-label="Booking steps">
@@ -456,8 +470,10 @@ function TransactionBookingCard({ transaction, userId, onBook, onPay, payingId }
   const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
   const sellerItem = transaction.requested_item || transaction.item;
   const buyerItem = transaction.offered_item || "Offered item";
-  const needsPayment = !isItemTrade && transaction.status === "awaiting_payment";
-  const canPay = userIsBuyer && needsPayment && transaction.payment_status !== "paid";
+  const paymentStatus = transaction.payment_status || "unpaid";
+  const isClosed = ["cancelled", "completed", "item_released"].includes(transaction.status);
+  const needsPayment = !isItemTrade && !isClosed && paymentStatus !== "paid";
+  const canPay = userIsBuyer && needsPayment;
   const canBookDropoff = userIsSeller && !transaction.dropoff_booking && ["pending", "awaiting_dropoff"].includes(transaction.status);
   const collectionRequestReady =
     canBookCollectionForStatus(transaction.status) ||
@@ -498,7 +514,7 @@ function TransactionBookingCard({ transaction, userId, onBook, onPay, payingId }
         {!isItemTrade && (
           <section>
             <p className="bookings-page-card__label">Payment</p>
-            <p>{transaction.payment_status === "paid" ? "Paid with PayFast sandbox" : "PayFast sandbox pending"}</p>
+            <p>{paymentStatus === "paid" ? "Paid with PayFast sandbox" : "PayFast sandbox pending"}</p>
           </section>
         )}
         <section>
@@ -575,6 +591,7 @@ export function StudentBookingsPage({ user, onBack }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paymentNotice, setPaymentNotice] = useState("");
   const [activeBooking, setActiveBooking] = useState(null);
   const [payingId, setPayingId] = useState("");
 
@@ -627,6 +644,44 @@ export function StudentBookingsPage({ user, onBack }) {
   }, [loadTransactions]);
 
   useEffect(() => {
+    if (!user?.id || typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get("payment");
+    const transactionId = params.get("transaction_id");
+
+    if (!payment) return;
+
+    async function handlePaymentReturn() {
+      if (payment === "cancelled") {
+        setPaymentNotice("PayFast sandbox payment was cancelled. You can try again when ready.");
+        return;
+      }
+
+      if (payment !== "success" || !transactionId) return;
+
+      setPaymentNotice("Confirming PayFast sandbox payment...");
+      try {
+        const { error: functionError } = await supabase.functions.invoke("confirm-payfast-sandbox-return", {
+          body: { transactionId },
+        });
+
+        if (functionError) throw functionError;
+
+        setPaymentNotice("PayFast sandbox payment confirmed. The seller can now book drop-off.");
+        await loadTransactions();
+      } catch (err) {
+        setPaymentNotice(getFunctionErrorMessage(err));
+      }
+    }
+
+    void handlePaymentReturn();
+
+    const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
+    window.history.replaceState(window.history.state, "", cleanUrl);
+  }, [loadTransactions, user?.id]);
+
+  useEffect(() => {
     if (!user?.id) return;
 
     const channel = supabase
@@ -669,7 +724,7 @@ export function StudentBookingsPage({ user, onBack }) {
 
       submitPayfastForm(data.action, data.fields);
     } catch (err) {
-      setError(err.message || "Unable to start PayFast sandbox checkout.");
+      setError(getFunctionErrorMessage(err));
       setPayingId("");
     }
   }
@@ -689,6 +744,8 @@ export function StudentBookingsPage({ user, onBack }) {
 
       {loading ? (
         <article className="bookings-page__empty">Loading your transactions...</article>
+      ) : paymentNotice ? (
+        <article className="bookings-page__notice">{paymentNotice}</article>
       ) : error ? (
         <article className="bookings-page__empty bookings-page__empty--error">{error}</article>
       ) : transactions.length === 0 ? (

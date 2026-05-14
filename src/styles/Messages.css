@@ -774,6 +774,18 @@
 .msg-offer-card__status--accepted { color: var(--green); }
 .msg-offer-card__status--declined { color: rgba(255, 255, 255, 0.3); }
 
+.msg-offer-action-error {
+  margin: 12px auto;
+  max-width: min(520px, calc(100% - 24px));
+  padding: 10px 12px;
+  border: 1px solid rgba(199, 91, 74, 0.28);
+  border-radius: 10px;
+  background: rgba(199, 91, 74, 0.12);
+  color: #fca5a5;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 /* Cancel offer button (lister side, inside pending offer card) */
 .msg-offer-card__cancel-offer {
   padding: 7px 14px;

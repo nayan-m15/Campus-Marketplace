@@ -211,6 +211,7 @@ export default function MessagesPage({
   const [acceptedOfferBanner, setAcceptedOfferBanner] = useState(null);
   const [offerSending, setOfferSending] = useState(false);
   const [offerError, setOfferError] = useState("");
+  const [offerActionError, setOfferActionError] = useState("");
   const [sendDraftBeforeOffer, setSendDraftBeforeOffer] = useState(false);
   const [offerMode, setOfferMode] = useState("cash"); // "cash" | "trade"
   const [tradeImage, setTradeImage] = useState(null);
@@ -1115,6 +1116,40 @@ export default function MessagesPage({
   };
 
   const respondToOffer = async (offerId, accept) => {
+    setOfferActionError("");
+
+    const existingOffer = offers.find((offer) => offer.id === offerId);
+    if (accept && existingOffer && !isItemTradeOffer(existingOffer)) {
+      const { data, error } = await supabase.rpc("accept_cash_offer_for_payment", {
+        p_offer_id: String(offerId),
+      });
+
+      if (error) {
+        console.error(error.message);
+        setOfferActionError(error.message || "Could not prepare the PayFast payment transaction.");
+        return;
+      }
+
+      const accepted = Array.isArray(data) ? data[0] : data;
+      setOffers((prev) =>
+        prev.map((offer) =>
+          offer.id === offerId
+            ? { ...offer, status: "accepted", responded_at: new Date().toISOString() }
+            : offer.listing_id === existingOffer.listing_id && offer.status === "pending"
+              ? { ...offer, status: "declined", responded_at: new Date().toISOString() }
+              : offer
+        )
+      );
+
+      if (iAmTheLister) {
+        setAcceptedOfferBanner({
+          amount: accepted?.amount ?? existingOffer.amount,
+          listingTitle: accepted?.listing_title || conversationListing?.title || "Marketplace item",
+        });
+      }
+      return;
+    }
+
     const newStatus = accept ? "accepted" : "declined";
     const { data: updatedOffer, error } = await supabase
       .from("offers")
@@ -1123,7 +1158,11 @@ export default function MessagesPage({
       .select()
       .single();
 
-    if (error) { console.error(error.message); return; }
+    if (error) {
+      console.error(error.message);
+      setOfferActionError(error.message || "Could not update this offer.");
+      return;
+    }
     setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
 
     // Trade offers accepted — no transaction/listing update needed (no cash)
@@ -1675,6 +1714,11 @@ export default function MessagesPage({
             )}
 
             <section className="msg-chat__body">
+              {offerActionError && (
+                <article className="msg-offer-action-error" role="alert">
+                  {offerActionError}
+                </article>
+              )}
               {msgsLoading && (
                 <section className="msg-chat__loading"><span className="msg-spinner" /></section>
               )}

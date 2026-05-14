@@ -542,6 +542,16 @@
   border-color: rgba(180, 35, 24, 0.18);
 }
 
+.bookings-page__notice {
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(31, 107, 82, 0.18);
+  border-radius: 16px;
+  background: rgba(31, 107, 82, 0.08);
+  color: var(--green-dark);
+  font-weight: 700;
+}
+
 .bookings-page-card {
   padding: 24px;
   border-radius: 22px;

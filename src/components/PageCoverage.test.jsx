@@ -797,7 +797,7 @@ test("MessagesPage keeps offer-only threads tied to a specific listing", async (
   expect(screen.getAllByText(/offer accepted/i).length).toBeGreaterThan(0);
 });
 
-test("MessagesPage creates a transaction when an offer is accepted", async () => {
+test("MessagesPage prepares a PayFast payment transaction when a cash offer is accepted", async () => {
   transactions.splice(0, transactions.length);
   offers.splice(
     0,
@@ -825,18 +825,9 @@ test("MessagesPage creates a transaction when an offer is accepted", async () =>
 
   fireEvent.click(await screen.findByRole("button", { name: /accept/i }));
 
-  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
-    "transactions",
-    expect.objectContaining({
-      item: "Textbook",
-      seller_id: "seller-1",
-      buyer_id: "user-1",
-      price: 500,
-      status: "awaiting_payment",
-      payment_status: "unpaid",
-      payment_provider: "payfast",
-      payment_method: "payfast_sandbox",
-    })
+  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
+    "accept_cash_offer_for_payment",
+    { p_offer_id: "offer-pending-1" }
   ));
 });
 
