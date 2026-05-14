@@ -1428,7 +1428,20 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     month: "long",
     day: "numeric",
   });
-  const isDarkMode = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  const [isDarkMode, setIsDarkMode] = useState(
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+  );
+
+  function handleDarkMode(val) {
+    setIsDarkMode(val);
+    if (val) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }
 
   const badgeFor = (key) => {
     if (key === "dropoffs") return pendingDropoffs;
@@ -1531,10 +1544,15 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
               <span className="facility-open-dot" aria-hidden="true" />
               Facility Open
             </span>
-            <span className="topbar-theme-chip">
-              <Icon name={isDarkMode ? "moon" : "sun"} className="topbar-theme-chip__icon" />
+            <button
+              type="button"
+              className="topbar-theme-chip"
+              onClick={() => handleDarkMode(!isDarkMode)}
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+            <Icon name={isDarkMode ? "moon" : "sun"} className="topbar-theme-chip__icon" />
               {isDarkMode ? "Dark mode" : "Light mode"}
-            </span>
+            </button>
           </section>
         </header>
 
