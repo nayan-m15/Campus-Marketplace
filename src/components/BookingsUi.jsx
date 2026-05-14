@@ -34,6 +34,24 @@ function getBookingErrorMessage(error) {
   return message || "Unable to save the booking.";
 }
 
+function submitPayfastForm(action, fields) {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = action;
+  form.style.display = "none";
+
+  Object.entries(fields || {}).forEach(([name, value]) => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = String(value ?? "");
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+}
+
 function StepIndicator({ step }) {
   return (
     <section className="brm-steps" role="list" aria-label="Booking steps">
@@ -432,12 +450,14 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   );
 }
 
-function TransactionBookingCard({ transaction, userId, onBook }) {
+function TransactionBookingCard({ transaction, userId, onBook, onPay, payingId }) {
   const userIsSeller = transaction.seller_id === userId;
   const userIsBuyer = transaction.buyer_id === userId;
   const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
   const sellerItem = transaction.requested_item || transaction.item;
   const buyerItem = transaction.offered_item || "Offered item";
+  const needsPayment = !isItemTrade && transaction.status === "awaiting_payment";
+  const canPay = userIsBuyer && needsPayment && transaction.payment_status !== "paid";
   const canBookDropoff = userIsSeller && !transaction.dropoff_booking && ["pending", "awaiting_dropoff"].includes(transaction.status);
   const collectionRequestReady =
     canBookCollectionForStatus(transaction.status) ||
@@ -475,11 +495,42 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
           <p className="bookings-page-card__label">{isItemTrade ? "Trade" : "Price"}</p>
           <p>{isItemTrade ? "Item for item" : `R ${Number(transaction.price || 0).toLocaleString("en-ZA")}`}</p>
         </section>
+        {!isItemTrade && (
+          <section>
+            <p className="bookings-page-card__label">Payment</p>
+            <p>{transaction.payment_status === "paid" ? "Paid with PayFast sandbox" : "PayFast sandbox pending"}</p>
+          </section>
+        )}
         <section>
           <p className="bookings-page-card__label">Created</p>
           <p>{formatTimestampDate(transaction.created_at)}</p>
         </section>
       </article>
+
+      {needsPayment && (
+        <article className="bookings-page-card__payment">
+          <section>
+            <p className="bookings-page-card__label">Sandbox payment required</p>
+            <p>
+              PayFast sandbox uses test money only. The seller can book drop-off after the sandbox payment is confirmed.
+            </p>
+          </section>
+          {canPay ? (
+            <button
+              className="btn-primary bookings-page-card__action"
+              onClick={() => onPay(transaction)}
+              disabled={payingId === transaction.id}
+              type="button"
+            >
+              {payingId === transaction.id ? "Opening PayFast..." : "Pay with PayFast Sandbox"}
+            </button>
+          ) : (
+            <p className="bookings-page-card__payment-note">
+              Waiting for the buyer to complete PayFast sandbox payment.
+            </p>
+          )}
+        </article>
+      )}
 
       <article className="bookings-page-card__bookings">
         <section className="bookings-page-card__booking">
@@ -525,6 +576,7 @@ export function StudentBookingsPage({ user, onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeBooking, setActiveBooking] = useState(null);
+  const [payingId, setPayingId] = useState("");
 
   const loadTransactions = useCallback(async () => {
     if (!user?.id) return;
@@ -596,6 +648,32 @@ export function StudentBookingsPage({ user, onBack }) {
     };
   }, [loadTransactions, user?.id]);
 
+  async function handlePay(transaction) {
+    if (!transaction?.id) return;
+    setPayingId(transaction.id);
+    setError("");
+
+    try {
+      if (!supabase.functions?.invoke) {
+        throw new Error("Supabase Edge Functions are not available in this environment.");
+      }
+
+      const { data, error: functionError } = await supabase.functions.invoke("create-payfast-checkout", {
+        body: { transactionId: transaction.id },
+      });
+
+      if (functionError) throw functionError;
+      if (!data?.action || !data?.fields) {
+        throw new Error("PayFast checkout did not return a payment form.");
+      }
+
+      submitPayfastForm(data.action, data.fields);
+    } catch (err) {
+      setError(err.message || "Unable to start PayFast sandbox checkout.");
+      setPayingId("");
+    }
+  }
+
   return (
     <section className="bookings-page">
       <header className="bookings-page__header">
@@ -623,6 +701,8 @@ export function StudentBookingsPage({ user, onBack }) {
               transaction={transaction}
               userId={user.id}
               onBook={(selectedTransaction, bookingType) => setActiveBooking({ transaction: selectedTransaction, bookingType })}
+              onPay={handlePay}
+              payingId={payingId}
             />
           ))}
         </article>

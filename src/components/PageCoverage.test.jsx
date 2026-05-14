@@ -832,14 +832,12 @@ test("MessagesPage creates a transaction when an offer is accepted", async () =>
       seller_id: "seller-1",
       buyer_id: "user-1",
       price: 500,
-      status: "awaiting_dropoff",
+      status: "awaiting_payment",
+      payment_status: "unpaid",
+      payment_provider: "payfast",
+      payment_method: "payfast_sandbox",
     })
   ));
-
-  expect(mocks.update).toHaveBeenCalledWith(
-    "listings",
-    expect.objectContaining({ sold_price: 500, status: "sold" })
-  );
 });
 
 test("MessagesPage creates an item-trade transaction when a trade offer is accepted", async () => {

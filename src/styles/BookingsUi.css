@@ -590,6 +590,7 @@
 }
 
 .bookings-page-status--awaiting_dropoff,
+.bookings-page-status--awaiting_payment,
 .bookings-page-status--pending {
   background: #fff7e6;
   color: #9a6700;
@@ -641,6 +642,31 @@
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.bookings-page-card__payment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  margin: 0 0 20px;
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  background: #fff7e6;
+}
+
+.bookings-page-card__payment p {
+  margin: 4px 0 0;
+  color: #4b6356;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.bookings-page-card__payment-note {
+  max-width: 240px;
+  font-weight: 700;
+  text-align: right;
+}
+
 .bookings-page-card__booking {
   padding: 18px;
   border-radius: 16px;
@@ -667,5 +693,15 @@
 
   .bookings-page-card__header {
     flex-direction: column;
+  }
+
+  .bookings-page-card__payment {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bookings-page-card__payment-note {
+    max-width: none;
+    text-align: left;
   }
 }
