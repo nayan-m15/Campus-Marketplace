@@ -1092,14 +1092,13 @@ function TransactionsSection({
   }, []);
 
   return (
-    <section className="view-section" aria-labelledby="transactions-heading">
-      <h2 id="transactions-heading" className="sr-only">All Transactions</h2>
+    <section className="view-section" aria-label="Transactions ledger">
 
       <article className="panel">
         <header className="panel__header">
           <section>
             <p className="panel__eyebrow">Full Ledger</p>
-            <h3 className="panel__title">All Transactions</h3>
+            <h3 className="panel__title">Transaction Ledger</h3>
             <p className="panel__subtitle">Complete view of accepted offers across every handover stage.</p>
           </section>
           <p className="panel__count">{filtered.length} of {transactions.length} transactions</p>
