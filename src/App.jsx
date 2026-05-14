@@ -324,6 +324,7 @@ function ListingPriceCheck({ item }) {
         description: String(item.description || "").trim().toLowerCase(),
         category: String(item.category || "").trim().toLowerCase(),
         condition: String(item.condition || "").trim().toLowerCase(),
+        listingPrice,
         imageUrl,
       })
     : "";
@@ -371,6 +372,7 @@ function ListingPriceCheck({ item }) {
         description: item.description || "",
         category: item.category,
         condition: item.condition,
+        listingPrice,
         imageUrl,
       },
     }).then(({ data, error }) => {
@@ -436,6 +438,7 @@ function ListingPriceCheck({ item }) {
 
   const fairness = getPriceFairness(listingPrice, priceCheck, item);
   const confidenceLevel = priceCheck.confidence?.level || "Low";
+  const pricingBasisLabel = priceCheck.pricingBasis?.label || "Google Shopping SA prices";
 
   return (
     <section className={`item-modal-price-check item-modal-price-check--${fairness.tone}`}>
@@ -446,7 +449,7 @@ function ListingPriceCheck({ item }) {
       <p>{fairness.message}</p>
       {fairness.showRange && (
         <p>
-          Based on Google Shopping SA prices, adjusted for condition. Suggested range:{" "}
+          Based on {pricingBasisLabel}, adjusted for condition. Suggested range:{" "}
           {priceCheck.suggestedRange?.minFormatted} - {priceCheck.suggestedRange?.maxFormatted}.
         </p>
       )}
