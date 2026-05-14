@@ -227,12 +227,12 @@
 }
 
 .hero__stat-label {
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 
 .hero__stat-divider {
@@ -687,8 +687,8 @@
     width: 100%;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    padding: 18px;
+    gap: 4px;
+    padding: 14px 10px;
   }
 
   .hero__stat-group,
@@ -730,7 +730,7 @@
   }
 
   .hero__stat-value {
-    font-size: 22px;
+    font-size: 16px;
   }
 
   .sell-cta {
