@@ -68,6 +68,31 @@ html.dark {
   font-family: var(--font);
 }
 
+.admin-shell .panel__title,
+.admin-shell .panel-title,
+.admin-shell .staff-name,
+.admin-shell .report-preview__title,
+.admin-shell .modal__title,
+.admin-shell .modal-title,
+.admin-shell .moderation-empty__title {
+  color: var(--admin-text);
+}
+
+.admin-shell .panel__subtitle,
+.admin-shell .staff-email,
+.admin-shell .staff-phone {
+  color: var(--admin-text-muted);
+}
+
+.admin-shell .staff-role,
+.admin-shell .staff-status,
+.admin-shell .staff-date,
+.admin-shell .staff-stat,
+.admin-shell .staff-toggle,
+.admin-shell .staff-delete {
+  color: var(--admin-text);
+}
+
 .admin-mobile-toggle,
 .admin-sidebar__close {
   display: none;
