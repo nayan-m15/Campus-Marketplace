@@ -1767,6 +1767,7 @@ useEffect(() => {
       <>
         <AdminDashboard
           onSignOut={handleSignOut}
+          onOpenSettings={() => navigateToPage("settings")}
           onBackToMarketplace={goHome}
           listings={allListings}
           listingsLoading={listingsLoading}
