@@ -33,6 +33,7 @@ const NAV_ITEMS = [
   { key: "transactions", label: "All Transactions", icon: "table" },
 ];
 
+/*This function formats a date string for booking and transaction cards.*/
 function formatDate(dateStr) {
   if (!dateStr) return "-";
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-ZA", {
@@ -42,6 +43,7 @@ function formatDate(dateStr) {
   });
 }
 
+/*This function splits a timestamp into readable date and time labels.*/
 function formatDateTime(timestamp) {
   if (!timestamp) return { date: "-", time: "-" };
   const date = new Date(timestamp);
@@ -51,14 +53,17 @@ function formatDateTime(timestamp) {
   };
 }
 
+/*This function builds a short avatar label from a person's name.*/
 function initials(name) {
   return (name || "?").split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2);
 }
 
+/*This function builds a stable key used to match transactions with related listings.*/
 function buildListingMatchKey(userId, itemName) {
   return `${userId || ""}::${String(itemName || "").trim().toLowerCase()}`;
 }
 
+/*This function maps a booking approval to the matching transaction status change.*/
 function mapBookingStatusToTransactionStatus(type, bookingStatus, currentStatus) {
   if (bookingStatus !== "scheduled") return currentStatus;
   if (type === "dropoff") return "awaiting_dropoff";
@@ -66,6 +71,7 @@ function mapBookingStatusToTransactionStatus(type, bookingStatus, currentStatus)
   return currentStatus;
 }
 
+/*This function builds the booking records shown across the staff dashboard views.*/
 function buildBookings(transactions, profilesById, bookingsById) {
   const output = [];
 
@@ -117,6 +123,7 @@ function buildBookings(transactions, profilesById, bookingsById) {
   });
 }
 
+/*This function renders the shared icon set used throughout the staff dashboard.*/
 function Icon({ name, className = "", title }) {
   const icons = {
     grid: (
@@ -199,6 +206,7 @@ function Icon({ name, className = "", title }) {
   );
 }
 
+/*This function shows the current transaction status with the correct label and styling.*/
 function StatusBadge({ status }) {
   const meta = STATUS_META[status] || { label: status, cls: "", icon: "grid" };
   return (
@@ -209,11 +217,13 @@ function StatusBadge({ status }) {
   );
 }
 
+/*This function shows the current booking status with the correct label and styling.*/
 function BookingStatusBadge({ status }) {
   const meta = BOOKING_STATUS_META[status] || { label: status, cls: "" };
   return <span className={`booking-status-badge ${meta.cls}`}>{meta.label}</span>;
 }
 
+/*This function renders an initials-based avatar for a staff or student record.*/
 function Avatar({ name, size = "md" }) {
   return (
     <span className={`avatar avatar--${size}`} aria-hidden="true">
@@ -222,6 +232,7 @@ function Avatar({ name, size = "md" }) {
   );
 }
 
+/*This function shows an empty state when a dashboard section has no records to display.*/
 function EmptyState({ icon, title, description }) {
   return (
     <section className="empty-state" aria-label={title}>
@@ -234,6 +245,7 @@ function EmptyState({ icon, title, description }) {
   );
 }
 
+/*This function renders a compact summary card for the overview section.*/
 function StatCard({ icon, value, label, subLabel }) {
   return (
     <article className="stat-card">
@@ -251,6 +263,7 @@ function StatCard({ icon, value, label, subLabel }) {
   );
 }
 
+/*This function renders one booking card with participant, schedule, and transaction details.*/
 function BookingCard({ booking, transaction }) {
   const isDropoff = booking.type === "dropoff";
   const operationalHint = isDropoff
@@ -313,12 +326,14 @@ function BookingCard({ booking, transaction }) {
   );
 }
 
+/*This function renders a managed transaction card with the next available staff action.*/
 function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
   const { status } = transaction;
   const dropoffBooking = bookings.find((booking) => booking.id === transaction.dropoffId);
   const collectionBooking = bookings.find((booking) => booking.id === transaction.collectionId);
   const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
 
+  /*This function returns the next staff action that is valid for the current transaction status.*/
   const getAction = () => {
     switch (status) {
       case "awaiting_dropoff":
@@ -444,6 +459,7 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
   );
 }
 
+/*This function displays the confirmation dialog used for booking and transaction actions.*/
 function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
   const ref = useRef(null);
 
@@ -519,6 +535,7 @@ function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
   );
 }
 
+/*This function renders the overview section with headline metrics and activity summaries.*/
 function OverviewSection({ transactions, bookings }) {
   const pendingRequests = bookings.filter((booking) => booking.status === "scheduled").length;
   const managed = transactions.filter((transaction) => MANAGED_STATUSES.includes(transaction.status)).length;
@@ -645,6 +662,7 @@ function OverviewSection({ transactions, bookings }) {
   );
 }
 
+/*This function renders either the drop-off or collection booking review list for staff.*/
 function BookingsSection({ type, bookings, transactions }) {
   const [search, setSearch] = useState("");
   const label = type === "dropoff" ? "Drop-off" : "Collection";
@@ -725,6 +743,7 @@ function BookingsSection({ type, bookings, transactions }) {
   );
 }
 
+/*This function renders the transactions that still need manual staff progress updates.*/
 function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -826,6 +845,7 @@ function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) 
   );
 }
 
+/*This function renders the full transaction ledger and quick staff actions.*/
 function TransactionsSection({
   transactions,
   bookings,
@@ -994,6 +1014,7 @@ function TransactionsSection({
   );
 }
 
+/*This function renders the side rail with counts and recent operational activity.*/
 function UtilityRail({ transactions, bookings, activeView }) {
   const today = new Date().toISOString().slice(0, 10);
   const todayBookings = bookings.filter((booking) => booking.scheduledDate === today).slice(0, 5);
@@ -1098,6 +1119,7 @@ function UtilityRail({ transactions, bookings, activeView }) {
   );
 }
 
+/*This function renders the trade facility staff dashboard and coordinates its live data flows.*/
 export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   const [activeView, setActiveView] = useState("overview");
   const [transactions, setTransactions] = useState([]);
@@ -1113,12 +1135,14 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   const [isNavOpen, setIsNavOpen] = useState(false);
   const toastTimer = useRef(null);
 
+  /*This function shows a temporary toast message and resets the timer for follow-up updates.*/
   const showToast = useCallback((msg) => {
     setToast({ msg, visible: true });
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast({ msg: "", visible: false }), 3200);
   }, []);
 
+  /*This function loads transactions, bookings, profiles, and matching listings for the dashboard.*/
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -1231,6 +1255,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   useEffect(() => {
     if (!isNavOpen) return undefined;
 
+    /*This function closes the mobile navigation when the Escape key is pressed.*/
     const handleKeyDown = (event) => {
       if (event.key === "Escape") setIsNavOpen(false);
     };
@@ -1239,18 +1264,22 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isNavOpen]);
 
+  /*This function opens the approval dialog for a selected booking.*/
   const handleAccept = useCallback((booking, transaction) => {
     setDialog({ actionType: "accept_booking", booking, transaction });
   }, []);
 
+  /*This function opens the decline dialog for a selected booking.*/
   const handleDecline = useCallback((booking, transaction) => {
     setDialog({ actionType: "decline_booking", booking, transaction });
   }, []);
 
+  /*This function opens the confirmation dialog for a staff-managed transaction step.*/
   const handleManagedAction = useCallback((transaction, nextStatus) => {
     setDialog({ actionType: "managed_action", transaction, nextStatus });
   }, []);
 
+  /*This function updates one transaction status directly from the ledger view.*/
   const handleTransactionStatusChange = useCallback(async (transactionId, nextStatus) => {
     setSavingIds((prev) => ({ ...prev, [transactionId]: true }));
 
@@ -1281,10 +1310,12 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     }
   }, [loadDashboard, showToast]);
 
+  /*This function closes the confirmation dialog when no save is currently running.*/
   const handleDialogCancel = useCallback(() => {
     if (!saving) setDialog(null);
   }, [saving]);
 
+  /*This function generates a PDF receipt for the selected transaction.*/
   const handleGenerateReceipt = useCallback(async (transaction) => {
     if (!transaction?.id) {
       showToast("Please select a transaction before generating a receipt.");
@@ -1304,6 +1335,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     }
   }, [showToast]);
 
+  /*This function completes the confirmed booking or transaction action and refreshes the dashboard data.*/
   const handleDialogConfirm = useCallback(async () => {
     if (!dialog) return;
 
@@ -1432,6 +1464,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     typeof document !== "undefined" && document.documentElement.classList.contains("dark")
   );
 
+  /*This function applies the selected theme mode to the dashboard and document root.*/
   function handleDarkMode(val) {
     setIsDarkMode(val);
     if (val) {
@@ -1443,6 +1476,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     }
   }
 
+  /*This function returns the pending count shown beside a navigation item.*/
   const badgeFor = (key) => {
     if (key === "dropoffs") return pendingDropoffs;
     if (key === "collections") return pendingCollections;

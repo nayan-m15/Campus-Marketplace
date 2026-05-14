@@ -1,9 +1,3 @@
-/**
- * passwordValidation.js
- * Shared password validation rules for CAMPUSXCHANGE.
- * Import and use in SignupPage, SettingsPage, or any auth flow.
- */
-
 export const PASSWORD_RULES = [
   {
     id: "minLength",
@@ -27,11 +21,7 @@ export const PASSWORD_RULES = [
   },
 ];
 
-/**
- * Validates a password against all rules.
- * @param {string} password
- * @returns {{ valid: boolean, errors: string[] }}
- */
+/*This function checks a password against every shared rule and returns the failed messages.*/
 export function validatePassword(password) {
   const errors = PASSWORD_RULES
     .filter((rule) => !rule.test(password))

@@ -30,6 +30,7 @@ const DAY_ALIASES = {
   saturday: "Saturday",
 };
 
+/*This function formats a booking date string into a readable full date label.*/
 export function formatBookingDate(dateStr) {
   if (!dateStr) return "TBD";
 
@@ -41,6 +42,7 @@ export function formatBookingDate(dateStr) {
   });
 }
 
+/*This function formats a timestamp into a short date label for booking views.*/
 export function formatTimestampDate(timestamp) {
   if (!timestamp) return "TBD";
 
@@ -52,6 +54,7 @@ export function formatTimestampDate(timestamp) {
   });
 }
 
+/*This function formats a timestamp into a 24-hour time label for booking views.*/
 export function formatTimestampTime(timestamp) {
   if (!timestamp) return "TBD";
 
@@ -62,12 +65,15 @@ export function formatTimestampTime(timestamp) {
   });
 }
 
+/*This function converts a slot start time into a readable one-hour time range label.*/
 export function formatSlotLabel(slot) {
   if (!slot) return "";
 
   const [hour, minute] = slot.split(":").map(Number);
+  /*This function calculates the ending hour for the displayed slot range.*/
   const nextHour = (hour + 1) % 24;
 
+  /*This function formats a numeric hour value into a compact 12-hour label.*/
   const toLabel = (value) => {
     const suffix = value >= 12 ? "pm" : "am";
     const display = value % 12 === 0 ? 12 : value % 12;
@@ -80,6 +86,7 @@ export function formatSlotLabel(slot) {
   return `${toLabel(hour)} - ${toLabel(nextHour)}`;
 }
 
+/*This function builds hourly booking slots between the provided opening and closing times.*/
 export function generateTimeSlots(startTime, endTime) {
   if (!startTime || !endTime) return [];
 
@@ -106,12 +113,14 @@ export function generateTimeSlots(startTime, endTime) {
   return slots;
 }
 
+/*This function returns the weekday name for a date input value.*/
 export function getDateDayName(dateStr) {
   if (!dateStr) return "";
 
   return DAYS[new Date(`${dateStr}T00:00:00`).getDay()];
 }
 
+/*This function converts a Date into a local YYYY-MM-DD value for date inputs.*/
 export function toDateInputValue(date = new Date()) {
   const offset = date.getTimezoneOffset();
   const local = new Date(date.getTime() - offset * 60000);
@@ -119,10 +128,12 @@ export function toDateInputValue(date = new Date()) {
   return local.toISOString().slice(0, 10);
 }
 
+/*This function builds a simple booking identifier with the provided prefix.*/
 export function buildBookingId(prefix = "BK") {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}`;
 }
 
+/*This function normalizes facility day labels so different aliases map to the same day name.*/
 export function normalizeFacilityDay(day) {
   if (!day) return "";
 
@@ -132,6 +143,7 @@ export function normalizeFacilityDay(day) {
   );
 }
 
+/*This function groups facility hour records into a map keyed by normalized day names.*/
 export function mapHoursByDay(hours = []) {
   return new Map(
     hours.map((entry) => [
@@ -144,6 +156,7 @@ export function mapHoursByDay(hours = []) {
   );
 }
 
+/*This function checks whether a user is the buyer or seller on a transaction.*/
 export function isTransactionParty(transaction, userId) {
   return (
     transaction?.seller_id === userId ||
@@ -151,12 +164,5 @@ export function isTransactionParty(transaction, userId) {
   );
 }
 
-/**
- * NEW: Normalize any time input into strict HH:mm format
- * Examples:
- * "09:00:00 AM" -> "09:00"
- * "05:00:00 PM" -> "17:00"
- * "(09:00:00 AM)" -> "09:00"
- * "17:00:00" -> "17:00"
- */
+/*This function exposes the shared time normalizer for booking-related inputs.*/
 export const normalizeTimeValue = normalizeTime;

@@ -1,6 +1,3 @@
-// Main structure for the auth context feature lives here.
-// Shared UI pieces and page-level behavior are tied together in this file.
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { getAppBaseUrl, getPasswordRecoveryRedirectUrl } from "../utils/appUrl";
@@ -8,6 +5,7 @@ import { getAppBaseUrl, getPasswordRecoveryRedirectUrl } from "../utils/appUrl";
 const AuthContext = createContext(null);
 const DEBUG_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEBUG_AUTH === "true";
 
+/*This function checks whether the current URL is part of a password recovery flow.*/
 function getRecoveryTypeFromUrl() {
   if (typeof window === "undefined") return false;
 
@@ -17,6 +15,7 @@ function getRecoveryTypeFromUrl() {
   return searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery";
 }
 
+/*This function provides auth state and auth actions to the rest of the application.*/
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -67,6 +66,7 @@ export function AuthProvider({ children }) {
       }
     });
 
+    /*This function loads the current session when the auth provider starts.*/
     const initAuth = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
@@ -104,6 +104,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    /*This function loads the signed-in user's lightweight profile for shared UI state.*/
     const fetchProfile = async () => {
       if (!user?.id) {
         setProfile(null);
@@ -128,14 +129,17 @@ export function AuthProvider({ children }) {
     fetchProfile();
   }, [user]);
 
+  /*This function creates a new account with the supplied email, password, and options.*/
   const signUp = async (email, password, options = {}) => {
     return supabase.auth.signUp({ email, password, options });
   };
 
+  /*This function signs a user in with an email address and password.*/
   const signIn = async (email, password) => {
     return supabase.auth.signInWithPassword({ email, password });
   };
 
+  /*This function starts the Google sign-in flow and applies the correct redirect URL.*/
   const signInWithGoogle = async ({ redirectTo } = {}) => {
     const resolvedRedirect = redirectTo ?? getAppBaseUrl();
 
@@ -145,6 +149,7 @@ export function AuthProvider({ children }) {
     });
   };
 
+  /*This function sends a password reset email with the correct recovery redirect.*/
   const resetPassword = async (email, { redirectTo } = {}) => {
     const resolvedRedirect = redirectTo ?? getPasswordRecoveryRedirectUrl();
 
@@ -153,10 +158,12 @@ export function AuthProvider({ children }) {
     });
   };
 
+  /*This function clears the password recovery state after the flow is finished.*/
   const clearPasswordRecovery = () => {
     setIsPasswordRecovery(false);
   };
 
+  /*This function signs the user out and resets recovery state in the client.*/
   const signOut = async () => {
     setIsPasswordRecovery(false);
     return supabase.auth.signOut();
@@ -183,6 +190,7 @@ export function AuthProvider({ children }) {
   );
 }
 
+/*This function returns the auth context and throws if it is used outside the provider.*/
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");

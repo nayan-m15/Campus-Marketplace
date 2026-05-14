@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { id: "moderate", label: "Moderation", subtitle: "Listings review and marketplace safety" },
 ];
 
+/*This function renders the shared icon set used across the admin dashboard.*/
 function DashboardIcon({ name, className = "" }) {
   const paths = {
     facilities: (
@@ -134,10 +135,12 @@ function DashboardIcon({ name, className = "" }) {
   );
 }
 
+/*This function formats dates for admin dashboard labels and summaries.*/
 function formatAdminDate(date = new Date(), options = {}) {
   return new Intl.DateTimeFormat("en-ZA", options).format(date);
 }
 
+/*This function builds the initials shown for the signed-in admin user.*/
 function getAdminInitials(name) {
   const parts = String(name || "Admin User")
     .trim()
@@ -147,6 +150,7 @@ function getAdminInitials(name) {
   return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "AU";
 }
 
+/*This function builds the current month calendar grid for the utility panel.*/
 function buildCalendarMatrix(referenceDate = new Date()) {
   const year = referenceDate.getFullYear();
   const month = referenceDate.getMonth();
@@ -177,6 +181,7 @@ function buildCalendarMatrix(referenceDate = new Date()) {
   return cells;
 }
 
+/*This function renders the reporting workspace and handles report generation and export actions.*/
 function ReportsPanel() {
   const [reportType, setReportType] = useState("executive");
   const [dateFrom, setDateFrom] = useState("2026-01-01");
@@ -186,11 +191,13 @@ function ReportsPanel() {
   const [generated, setGenerated] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  /*This function normalizes report keys so different field names can be matched consistently.*/
   const normalizeKey = (value) =>
     String(value ?? "")
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "");
 
+  /*This function finds the first non-empty value from a list of possible field names.*/
   const findValue = (row, candidates = []) => {
     if (!row) return null;
 
@@ -209,6 +216,7 @@ function ReportsPanel() {
     return null;
   };
 
+  /*This function formats report values for cards, summaries, and insight text.*/
   const formatValue = (value, options = {}) => {
     if (value === null || value === undefined || value === "") return "N/A";
     if (typeof value === "number") {
@@ -224,6 +232,7 @@ function ReportsPanel() {
     return String(value);
   };
 
+  /*This function builds the summary cards shown for the selected report type.*/
   const getReportSummary = (type, data) => {
     if (!data.length) return [];
 
@@ -342,6 +351,7 @@ function ReportsPanel() {
     }
   };
 
+  /*This function generates short insight lines from the current report data.*/
   const generateInsights = (type, data) => {
     if (!data.length) return [];
 
@@ -372,11 +382,13 @@ function ReportsPanel() {
     }
   };
 
+  /*This function converts the report summary into export-ready text lines.*/
   const getSummaryLines = (type, data) =>
     getReportSummary(type, data)
       .filter((item) => item.value !== null && item.value !== undefined && item.value !== "")
       .map((item) => `${item.label}: ${formatValue(item.value, { currency: item.currency })}`);
 
+  /*This function calls the matching report procedure and stores the returned rows.*/
   const fetchReport = async () => {
     let query;
     switch (reportType) {
@@ -410,6 +422,7 @@ function ReportsPanel() {
     setGenerated(true);
   };
 
+  /*This function runs the selected report and updates the loading state around it.*/
   const handleGenerate = async () => {
     setLoading(true);
     setGenerated(false);
@@ -417,6 +430,7 @@ function ReportsPanel() {
     setLoading(false);
   };
 
+  /*This function exports the current report data as a CSV file.*/
   const downloadCSV = () => {
     if (!reportData.length) return;
 
@@ -434,6 +448,7 @@ function ReportsPanel() {
     });
   };
 
+  /*This function exports the current report data as a PDF file.*/
   const downloadPDF = () => {
     if (!reportData.length) return;
 
@@ -453,6 +468,7 @@ function ReportsPanel() {
     });
   };
 
+  /*This function sends the current report to the selected export format handler.*/
   const handleDownload = () => {
     if (format === "csv") downloadCSV();
     if (format === "pdf") downloadPDF();
@@ -629,6 +645,7 @@ function ReportsPanel() {
   );
 }
 
+/*This function renders the admin workspace and switches between operational panels.*/
 export default function AdminDashboard({
   onSignOut,
   listings = [],

@@ -12,12 +12,13 @@ import { normaliseListing } from "../data/listings";
  *   toggleWishlist — (listingId) => Promise<void>  adds or removes
  *   loading       — boolean
  */
+/*This function manages wishlist state and actions for the current signed-in user.*/
 export function useWishlist(user) {
   const [wishlistIds, setWishlistIds] = useState(new Set());
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch all wishlist entries (with joined listing data) for current user
+  /*This function loads the user's wishlist IDs and full listing details from the database.*/
   const fetchWishlist = useCallback(async () => {
     if (!user) {
       setWishlistIds(new Set());
@@ -51,7 +52,7 @@ export function useWishlist(user) {
       const ids = new Set(data.map((row) => row.listing_id));
       const rawListings = data
         .map((row) => row.listings)
-        .filter(Boolean); // remove nulls if a listing was deleted
+        .filter(Boolean);
 
       const userIds = [
         ...new Set(rawListings.map((listing) => listing.user_id).filter(Boolean)),
@@ -89,18 +90,19 @@ export function useWishlist(user) {
     fetchWishlist();
   }, [fetchWishlist]);
 
+  /*This function returns true when a listing ID is already saved in the wishlist.*/
   const isWishlisted = useCallback(
     (listingId) => wishlistIds.has(listingId),
     [wishlistIds]
   );
 
+  /*This function adds or removes a listing from the wishlist and refreshes the data when needed.*/
   const toggleWishlist = useCallback(
     async (listingId) => {
       if (!user) return;
 
       const alreadyWishlisted = wishlistIds.has(listingId);
 
-      // Optimistic update
       setWishlistIds((prev) => {
         const next = new Set(prev);
         alreadyWishlisted ? next.delete(listingId) : next.add(listingId);
@@ -109,7 +111,6 @@ export function useWishlist(user) {
 
       if (!alreadyWishlisted) {
         setWishlistItems((prev) => {
-          // We don't have full listing data here; the page re-fetch will fill it in
           return prev;
         });
       } else {
@@ -131,12 +132,10 @@ export function useWishlist(user) {
             .from("wishlists")
             .insert({ user_id: user.id, listing_id: listingId });
           if (error) throw error;
-          // Re-fetch to get the full listing object
           await fetchWishlist();
         }
       } catch (err) {
         console.error("Wishlist toggle failed:", err.message);
-        // Revert optimistic update on failure
         await fetchWishlist();
       }
     },

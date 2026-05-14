@@ -8,6 +8,7 @@ export const DEFAULT_FACILITY_END_TIME = "17:00";
 export const DEFAULT_SESSION_DURATION = 60;
 export const FACILITY_STATUS_VALUES = new Set(["active", "inactive"]);
 
+/*This function creates the default weekly operating hours structure for a new facility form.*/
 export function emptyHours() {
   return DAYS.reduce((acc, day) => {
     acc[day] = {
@@ -19,6 +20,7 @@ export function emptyHours() {
   }, {});
 }
 
+/*This function trims optional text values and returns null when no meaningful value remains.*/
 export function normalizeOptionalText(value) {
   if (value === null || value === undefined) return null;
 
@@ -26,10 +28,12 @@ export function normalizeOptionalText(value) {
   return trimmedValue === "" ? null : trimmedValue;
 }
 
+/*This function trims a required text value before it is saved or validated.*/
 export function normalizeRequiredText(value) {
   return String(value ?? "").trim();
 }
 
+/*This function converts a value to a positive integer and falls back when the value is invalid.*/
 export function normalizePositiveInteger(value, fallback = null) {
   const normalizedValue = Number.parseInt(String(value ?? ""), 10);
 
@@ -40,6 +44,7 @@ export function normalizePositiveInteger(value, fallback = null) {
   return normalizedValue;
 }
 
+/*This function reduces a Supabase error object to the fields that are safe to display or log.*/
 export function serializeSupabaseError(error) {
   if (!error) return null;
 
@@ -51,6 +56,7 @@ export function serializeSupabaseError(error) {
   };
 }
 
+/*This function validates the core facility form values before a save is attempted.*/
 export function validateFacilityFormData(formData) {
   const normalizedName = normalizeRequiredText(formData?.name);
   const normalizedCapacity = normalizePositiveInteger(formData?.capacity);
@@ -77,6 +83,7 @@ export function validateFacilityFormData(formData) {
   }
 }
 
+/*This function builds a cleaned facility payload after the form data passes validation.*/
 export function buildFacilityPayload(formData) {
   validateFacilityFormData(formData);
 
@@ -94,6 +101,7 @@ export function buildFacilityPayload(formData) {
   };
 }
 
+/*This function converts weekly hours into facility hour rows and validates each day before save.*/
 export function buildFacilityHoursPayload(facilityId, hours) {
   if (!facilityId) {
     throw new Error("A valid facility ID is required for operating hours.");

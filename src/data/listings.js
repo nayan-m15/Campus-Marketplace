@@ -47,6 +47,7 @@ const MOCK_LISTINGS = [
   },
 ];
 
+/*This function formats a listing price for card and detail views.*/
 function formatPrice(price) {
   if (price === null || price === undefined) return "R 0";
   const num = Number(price);
@@ -57,17 +58,20 @@ function formatPrice(price) {
   }).replace(/,/g, " ")}`;
 }
 
+/*This function returns the fallback emoji for a listing category.*/
 function getCategoryEmoji(category) {
   const match = CATEGORIES.find((c) => c.label === category);
   return match ? match.emoji : "📦";
 }
 
+/*This function extracts the joined year from a profile creation date.*/
 function getJoinedYear(createdAt) {
   if (!createdAt) return null;
   const date = new Date(createdAt);
   return Number.isNaN(date.getTime()) ? null : date.getFullYear();
 }
 
+/*This function formats the joined month and year shown on listing seller details.*/
 function getJoinedLabel(createdAt) {
   if (!createdAt) return "";
   const date = new Date(createdAt);
@@ -79,6 +83,7 @@ function getJoinedLabel(createdAt) {
   }).format(date);
 }
 
+/*This function chooses the best seller name to display for a listing.*/
 function getSellerName(profile, userId) {
   if (profile?.display_name?.trim()) return profile.display_name;
   if (profile?.name?.trim()) return profile.name;
@@ -86,6 +91,7 @@ function getSellerName(profile, userId) {
   return "Unknown";
 }
 
+/*This function converts a raw listing row and optional profile into the UI listing shape.*/
 export function normaliseListing(listing, profile) {
   const category = listing.category ?? "Other";
   const imageUrls = Array.isArray(listing.image_urls)
@@ -121,6 +127,7 @@ export function normaliseListing(listing, profile) {
   };
 }
 
+/*This function loads active listings and enriches them with seller profile details for the marketplace view.*/
 export async function fetchListings(currentUserId = null) {
   try {
     let query = supabase
@@ -166,6 +173,7 @@ export async function fetchListings(currentUserId = null) {
   }
 }
 
+/*This function loads one listing by ID and returns the normalized UI version of that record.*/
 export async function fetchListingById(id) {
   const { data: listing, error } = await supabase
     .from("listings")

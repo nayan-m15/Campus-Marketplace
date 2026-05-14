@@ -14,6 +14,7 @@ import {
 } from "../utils/bookingScheduling";
 import { canBookCollectionForStatus, TRANSACTION_STATUS_META } from "../utils/tradeWorkflow";
 
+/*This function converts booking errors into clear messages for the student booking flow.*/
 function getBookingErrorMessage(error) {
   const message = error?.message || "";
   if (/slot is no longer available/i.test(message)) {
@@ -34,6 +35,7 @@ function getBookingErrorMessage(error) {
   return message || "Unable to save the booking.";
 }
 
+/*This function shows the current step in the booking request flow.*/
 function StepIndicator({ step }) {
   return (
     <section className="brm-steps" role="list" aria-label="Booking steps">
@@ -55,6 +57,7 @@ function StepIndicator({ step }) {
   );
 }
 
+/*This function shows the success state after a booking slot has been saved.*/
 function SuccessView({ bookingType, facilityName, selectedDate, selectedTime, onClose }) {
   return (
     <section className="brm-success">
@@ -73,6 +76,7 @@ function SuccessView({ bookingType, facilityName, selectedDate, selectedTime, on
   );
 }
 
+/*This function loads facilities and attaches their operating hours for slot selection.*/
 async function loadFacilitiesWithHours() {
   const [{ data: facilitiesData, error: facilitiesError }, { data: hoursData, error: hoursError }] = await Promise.all([
     supabase.from("facilities").select("id, name, capacity").order("name"),
@@ -95,6 +99,7 @@ async function loadFacilitiesWithHours() {
   }));
 }
 
+/*This function counts active bookings for each slot on a selected date at a facility.*/
 async function fetchSlotUsage(location, selectedDate, excludeBookingId = null) {
   const start = `${selectedDate}T00:00:00`;
   const end = `${selectedDate}T23:59:59`;
@@ -117,6 +122,7 @@ async function fetchSlotUsage(location, selectedDate, excludeBookingId = null) {
   }, {});
 }
 
+/*This function manages the full drop-off or collection booking flow for one transaction.*/
 function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   const dialogRef = useRef(null);
 
@@ -231,6 +237,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
 
   const canProceedToStep2 = Boolean(selectedFacility && selectedDate && isDateOpen);
 
+  /*This function saves the selected slot and reports the completed booking back to the page.*/
   async function handleSubmit() {
     if (!selectedFacility || !selectedDate || !selectedTime) return;
 
@@ -432,6 +439,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   );
 }
 
+/*This function summarizes one transaction and shows the booking actions available to the current user.*/
 function TransactionBookingCard({ transaction, userId, onBook }) {
   const userIsSeller = transaction.seller_id === userId;
   const userIsBuyer = transaction.buyer_id === userId;
@@ -520,12 +528,14 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
   );
 }
 
+/*This function loads and displays the current student's transaction bookings and booking actions.*/
 export function StudentBookingsPage({ user, onBack }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeBooking, setActiveBooking] = useState(null);
 
+  /*This function loads the student's transactions together with their linked bookings and profile details.*/
   const loadTransactions = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);

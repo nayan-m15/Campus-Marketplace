@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 
+/*This function formats an amount as South African rand for the receipt output.*/
 function formatCurrency(amount) {
   return `R ${Number(amount || 0).toLocaleString("en-ZA", {
     minimumFractionDigits: 2,
@@ -7,6 +8,7 @@ function formatCurrency(amount) {
   })}`;
 }
 
+/*This function formats a timestamp for receipt sections and returns a fallback when the value is missing.*/
 function formatDateTime(value) {
   if (!value) return "Not recorded";
   return new Date(value).toLocaleString("en-ZA", {
@@ -18,12 +20,14 @@ function formatDateTime(value) {
   });
 }
 
+/*This function detects which image format should be passed to jsPDF for an embedded image.*/
 function detectImageFormat(dataUrl) {
   if (dataUrl.startsWith("data:image/png")) return "PNG";
   if (dataUrl.startsWith("data:image/webp")) return "WEBP";
   return "JPEG";
 }
 
+/*This function converts a Blob into a data URL so it can be embedded in the PDF.*/
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -33,6 +37,7 @@ function blobToDataUrl(blob) {
   });
 }
 
+/*This function fetches an image and returns it as a data URL, or null when embedding fails.*/
 async function imageUrlToDataUrl(imageUrl) {
   if (!imageUrl) return null;
 
@@ -50,6 +55,7 @@ async function imageUrlToDataUrl(imageUrl) {
   }
 }
 
+/*This function draws a section title bar inside the transaction receipt PDF.*/
 function drawSectionTitle(doc, label, x, y, width) {
   doc.setFillColor(240, 247, 244);
   doc.roundedRect(x, y - 6, width, 10, 3, 3, "F");
@@ -59,6 +65,7 @@ function drawSectionTitle(doc, label, x, y, width) {
   doc.text(label, x + 4, y);
 }
 
+/*This function writes a label and wrapped value pair and returns the next vertical position.*/
 function drawWrappedValue(doc, label, value, x, y, width) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
@@ -72,6 +79,7 @@ function drawWrappedValue(doc, label, value, x, y, width) {
   return y + (wrapped.length * 5);
 }
 
+/*This function generates and downloads a PDF receipt for a completed transaction record.*/
 export async function generateTransactionReceiptPdf(transaction) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
