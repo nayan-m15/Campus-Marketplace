@@ -342,6 +342,7 @@ function PriceSuggestionPanel({ suggestion, loading, error, hasEnoughDetail }) {
 
   const confidenceLevel = suggestion.confidence?.level || "Low";
   const confidenceClass = confidenceLevel.toLowerCase();
+  const pricingBasisLabel = suggestion.pricingBasis?.label || "Google Shopping";
   const warnings = suggestion.confidence?.warnings || [];
   const reasons = suggestion.confidence?.reasons || [];
 
@@ -349,7 +350,7 @@ function PriceSuggestionPanel({ suggestion, loading, error, hasEnoughDetail }) {
     <section className="lf__suggestion-panel">
       <header className="lf__suggestion-header">
         <span>
-          Suggested price based on Google Shopping
+          Suggested price based on {pricingBasisLabel}
         </span>
         <span className={`lf__confidence lf__confidence--${confidenceClass}`}>
           {confidenceLevel} confidence
@@ -484,6 +485,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
             description,
             category,
             condition,
+            listingPrice: price,
           },
         });
 
@@ -505,7 +507,7 @@ export default function ListingForm({ onCancel, onSuccess }) {
       ignore = true;
       clearTimeout(timer);
     };
-  }, [name, description, category, condition, hasEnoughPriceSuggestionDetail]);
+  }, [name, description, category, condition, price, hasEnoughPriceSuggestionDetail]);
 
   function validate() {
     const next = {};
