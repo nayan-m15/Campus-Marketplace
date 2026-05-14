@@ -1085,7 +1085,7 @@ export default function MessagesPage({
 
     const transactionRequest = activeTransaction
       ? supabase.from("transactions").update(updatePayload).eq("id", activeTransaction.id)
-      : supabase.from("transactions").insert({ ...updatePayload, id: transactionId, status: "awaiting_dropoff" });
+      : supabase.from("transactions").insert({ ...updatePayload, id: transactionId, status: "Awaiting Meetup" });
 
     const listingUpdate = {
       sold_price: null,
@@ -1828,7 +1828,7 @@ export default function MessagesPage({
                                     {isAccepted && (
                                       <section className="msg-offer-card__accepted-block">
                                         <p className="msg-offer-card__status msg-offer-card__status--accepted" style={{ margin: 0 }}>✓ Trade offer accepted</p>
-                                        <p className="msg-offer-card__accepted-note">Book a drop-off or collection slot to complete this transaction.</p>
+                                        <p className="msg-offer-card__accepted-note">Book a meetup slot in My Bookings. Both you and the other student need to show up at the same time and location for the swap.</p>
                                         <button className="msg-offer-card__bookings-btn" onClick={() => onGoToBookings?.()} type="button">Go to My Bookings →</button>
                                       </section>
                                     )}
@@ -1869,7 +1869,6 @@ export default function MessagesPage({
                                   {isAccepted && (
                                     <section className="msg-offer-card__accepted-block">
                                       <p className="msg-offer-card__status msg-offer-card__status--accepted" style={{ margin: 0 }}>✓ Offer accepted</p>
-                                      <p className="msg-offer-card__accepted-note">Book a drop-off or collection slot to complete this transaction.</p>
                                       <button className="msg-offer-card__bookings-btn" onClick={() => onGoToBookings?.()} type="button">Go to My Bookings →</button>
                                     </section>
                                   )}

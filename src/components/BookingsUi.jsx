@@ -61,7 +61,7 @@ function SuccessView({ bookingType, facilityName, selectedDate, selectedTime, on
       <span className="brm-success-icon" aria-hidden="true">✓</span>
       <h3 className="brm-success-title">Slot booked</h3>
       <p className="brm-success-body">
-        Your {bookingType === "dropoff" ? "drop-off" : "collection"} slot is now linked to the transaction.
+        Your {bookingType === "trade_meetup" ? "meetup" : bookingType === "dropoff" ? "drop-off" : "collection"} slot is now linked to the transaction.
       </p>
       <ul className="brm-success-details" role="list">
         <li><span>Facility</span><strong>{facilityName}</strong></li>
@@ -200,7 +200,10 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
 
     let active = true;
     setLoadingSlots(true);
-    const existingBookingId = bookingType === "dropoff" ? transaction.dropoff_id : transaction.collection_id;
+    const existingBookingId =
+      bookingType === "dropoff" ? transaction.dropoff_id
+      : bookingType === "collection" ? transaction.collection_id
+      : transaction.trade_meetup_id;
     fetchSlotUsage(selectedFacility.name, selectedDate, existingBookingId)
       .then((usage) => {
         if (!active) return;
@@ -262,12 +265,22 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
 
     const scheduledTime = `${selectedDate}T${selectedTime}:00`;
     try {
-      const { data, error: bookingError } = await supabase.rpc("book_transaction_slot", {
-        p_transaction_id: transaction.id,
-        p_booking_type: bookingType,
-        p_facility_id: String(selectedFacility.id),
-        p_scheduled_time: scheduledTime,
-      });
+      let data, bookingError;
+
+      if (bookingType === "trade_meetup") {
+        ({ data, error: bookingError } = await supabase.rpc("book_trade_meetup_slot", {
+          p_transaction_id: transaction.id,
+          p_facility_id: String(selectedFacility.id),
+          p_scheduled_time: scheduledTime,
+        }));
+      } else {
+        ({ data, error: bookingError } = await supabase.rpc("book_transaction_slot", {
+          p_transaction_id: transaction.id,
+          p_booking_type: bookingType,
+          p_facility_id: String(selectedFacility.id),
+          p_scheduled_time: scheduledTime,
+        }));
+      }
 
       if (bookingError) throw bookingError;
 
@@ -305,11 +318,13 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
           <>
             <header className="brm-header">
               <span className="brm-header-icon" aria-hidden="true">
-                {bookingType === "dropoff" ? "📥" : "📦"}
+                {bookingType === "trade_meetup" ? "🤝" : bookingType === "dropoff" ? "📥" : "📦"}
               </span>
               <header className="brm-header-text">
                 <h2 className="brm-title">
-                  Book {bookingType === "dropoff" ? "Drop-off" : "Collection"} Slot
+                  {bookingType === "trade_meetup"
+                  ? "Propose Meetup Slot"
+                  : `Book ${bookingType === "dropoff" ? "Drop-off" : "Collection"} Slot`}
                 </h2>
                 <p className="brm-subtitle">{transaction.item} · {transaction.id}</p>
               </header>
@@ -516,40 +531,106 @@ function TransactionBookingCard({ transaction, userId, onBook }) {
       </article>
 
       <article className="bookings-page-card__bookings">
-        <section className="bookings-page-card__booking">
-          <p className="bookings-page-card__label">{isItemTrade ? "Seller item drop-off" : "Drop-off"}</p>
-          {transaction.dropoff_booking ? (
-            <p>
-              {transaction.dropoff_booking.location} · {formatTimestampDate(transaction.dropoff_booking.scheduled_time)} at{" "}
-              {formatTimestampTime(transaction.dropoff_booking.scheduled_time)}
-            </p>
-          ) : (
+        {isItemTrade ? (
+        // ── Trade meetup flow ──
+          <section className="bookings-page-card__booking">
+            <p className="bookings-page-card__label">Swap Meetup</p>
+              {transaction.meetup_booking ? (
+                <>
+                  <p>
+                    {transaction.meetup_booking.location} ·{" "}
+                    {formatTimestampDate(transaction.meetup_booking.scheduled_time)} at{" "}
+                    {formatTimestampTime(transaction.meetup_booking.scheduled_time)}
+                  </p>
+                    {/* Show who booked it vs who still needs to confirm */}
+                  {transaction.meetup_booking.status === "scheduled" ? (
+              <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
+               ✓ Slot confirmed — both students should arrive at this time.
+                </p>
+              ) : (
+              <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
+                Slot proposed by{" "}
+                {transaction.meetup_booking_booker === userId ? "you" : "the other student"}.{" "}
+                {transaction.meetup_booking_booker !== userId
+                  ? "Go to My Bookings to confirm or choose a different time."
+                  : "Waiting for the other student to confirm."}
+                </p>
+              )}
+            </>
+            ) : (
             <p>Not booked yet</p>
-          )}
-          {canBookDropoff && (
-            <button className="btn-primary bookings-page-card__action" onClick={() => onBook(transaction, "dropoff")}>
-              {isItemTrade ? "Book item drop-off" : "Book drop-off"}
-            </button>
-          )}
-        </section>
+            )}
+          {/* Seller books first */}
+          {userIsSeller &&
+            !transaction.meetup_booking &&
+            transaction.status === "awaiting_meetup" && (
+              <button
+                className="btn-primary bookings-page-card__action"
+                onClick={() => onBook(transaction, "trade_meetup")}
+              >
+                Propose meetup slot
+              </button>
+                  )}
+                {/* Buyer confirms (or re-books) */}
+                {userIsBuyer &&
+                  transaction.meetup_booking &&
+                  transaction.meetup_booking.status !== "scheduled" &&
+                  transaction.status === "awaiting_meetup" && (
+                <button
+                  className="btn-primary bookings-page-card__action"
+                  onClick={() => onBook(transaction, "trade_meetup")}
+                >
+                Confirm or change meetup slot
+                </button>
+              )}
+            </section>
+            ) : (
+          // ── Existing cash sale flow ──
+          <>
+          <section className="bookings-page-card__booking">
+            <p className="bookings-page-card__label">Drop-off</p>
+            {transaction.dropoff_booking ? (
+              <p>
+                {transaction.dropoff_booking.location} ·{" "}
+                {formatTimestampDate(transaction.dropoff_booking.scheduled_time)} at{" "}
+                {formatTimestampTime(transaction.dropoff_booking.scheduled_time)}
+              </p>
+            ) : (
+              <p>Not booked yet</p>
+            )}
+            {canBookDropoff && (
+              <button
+                className="btn-primary bookings-page-card__action"
+                onClick={() => onBook(transaction, "dropoff")}
+              >
+                Book drop-off
+              </button>
+            )}
+          </section>
 
-        <section className="bookings-page-card__booking">
-          <p className="bookings-page-card__label">{isItemTrade ? "Buyer item handover" : "Collection"}</p>
-          {transaction.collection_booking ? (
-            <p>
-              {transaction.collection_booking.location} · {formatTimestampDate(transaction.collection_booking.scheduled_time)} at{" "}
-              {formatTimestampTime(transaction.collection_booking.scheduled_time)}
-            </p>
-          ) : (
+          <section className="bookings-page-card__booking">
+            <p className="bookings-page-card__label">Collection</p>
+            {transaction.collection_booking ? (
+              <p>
+                  {transaction.collection_booking.location} ·{" "}
+                  {formatTimestampDate(transaction.collection_booking.scheduled_time)} at{" "}
+                  {formatTimestampTime(transaction.collection_booking.scheduled_time)}
+              </p>
+              ) : (
             <p>Not booked yet</p>
           )}
           {canBookCollection && (
-            <button className="btn-primary bookings-page-card__action" onClick={() => onBook(transaction, "collection")}>
-              {isItemTrade ? "Book swap handover" : "Book collection"}
+            <button
+              className="btn-primary bookings-page-card__action"
+            onClick={() => onBook(transaction, "collection")}
+            >
+              Book collection
             </button>
           )}
-        </section>
-      </article>
+          </section>
+        </>
+      )}
+    </article>
     </article>
   );
 }
@@ -575,7 +656,7 @@ export function StudentBookingsPage({ user, onBack }) {
       if (transactionsError) throw transactionsError;
 
       const rows = transactionsData || [];
-      const bookingIds = rows.flatMap((transaction) => [transaction.dropoff_id, transaction.collection_id]).filter(Boolean);
+      const bookingIds = rows.flatMap((t) => [t.dropoff_id, t.collection_id, t.trade_meetup_id]).filter(Boolean);
       const profileIds = [...new Set(rows.flatMap((transaction) => [transaction.seller_id, transaction.buyer_id]).filter(Boolean))];
 
       const [{ data: bookingsData }, { data: profilesData }] = await Promise.all([
@@ -596,6 +677,8 @@ export function StudentBookingsPage({ user, onBack }) {
         collection_booking: transaction.collection_id ? bookingsById[transaction.collection_id] || null : null,
         seller_profile: profilesById[transaction.seller_id] || null,
         buyer_profile: profilesById[transaction.buyer_id] || null,
+        meetup_booking: transaction.trade_meetup_id ? bookingsById[transaction.trade_meetup_id] || null : null,
+        meetup_booking_booker: transaction.trade_meetup_proposed_by || null,
       })));
     } catch (err) {
       setError(err.message || "Failed to load your bookings.");
@@ -638,7 +721,7 @@ export function StudentBookingsPage({ user, onBack }) {
           <p className="bookings-page__eyebrow">Trade Facility</p>
           <h1>My Bookings</h1>
           <p className="bookings-page__intro">
-            Book facility slots once a transaction is ready. For item trades, the listed-item owner books the first drop-off, then the other student books the final swap handover after staff receives it.
+            Book facility slots once a transaction is ready. For item trades, both students shoudl agree upon a meetup time and location for the trade.
           </p>
         </section>
       </header>

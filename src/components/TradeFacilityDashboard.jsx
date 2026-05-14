@@ -14,6 +14,7 @@ const STATUS_META = {
   item_released:               { label: "Item Released", cls: "status--completed", icon: "handoff" },
   completed:                   { label: "Completed", cls: "status--completed", icon: "check-circle" },
   cancelled:                   { label: "Cancelled", cls: "status--cancelled", icon: "x-circle" },
+  awaiting_meetup:             { label: "Awaiting Meetup", cls: "status--awaiting-dropoff", icon: "users" },
 };
 
 const BOOKING_STATUS_META = {
@@ -23,7 +24,7 @@ const BOOKING_STATUS_META = {
   cancelled: { label: "Cancelled", cls: "bstatus--no-show" },
 };
 
-const MANAGED_STATUSES = ["awaiting_dropoff", "item_received", "awaiting_collection", "item_released"];
+const MANAGED_STATUSES = ["awaiting_dropoff", "item_received", "awaiting_collection", "item_released", "awaiting_meetup"];
 
 const NAV_ITEMS = [
   { key: "overview", label: "Overview", icon: "grid" },
@@ -31,6 +32,7 @@ const NAV_ITEMS = [
   { key: "collections", label: "Collection Bookings", icon: "arrow-up" },
   { key: "manage", label: "Manage Bookings", icon: "settings" },
   { key: "transactions", label: "All Transactions", icon: "table" },
+  { key: "meetups", label: "Trade Meetups", icon: "users" },
 ];
 
 function formatDate(dateStr) {
@@ -322,13 +324,22 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
   const getAction = () => {
     switch (status) {
       case "awaiting_dropoff":
-        return {
-          label: isItemTrade ? "Mark First Item Received" : "Mark Item Received",
-          icon: "package",
-          cls: "btn-action--receipt",
-          next: "item_received",
-          hint: isItemTrade ? "Confirm the listed item has been handed over." : "Confirm the seller has handed the item over.",
-        };
+      return {
+        label: "Mark Item Received",
+        icon: "package",
+        cls: "btn-action--receipt",
+        next: "item_received",
+        hint: "Confirm the seller has handed the item over.",
+      };
+      case "awaiting_meetup":
+      return {
+        label: "Confirm Swap Complete",
+        icon: "handoff",
+        cls: "btn-action--release",
+        next: "completed",
+        hint: "Both students are present. Confirm the swap has happened and close the transaction.",
+      };
+
       case "item_received":
         return null;
       case "awaiting_collection":
@@ -1132,7 +1143,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
       if (txErr) throw txErr;
 
       const rows = txRows || [];
-      const bookingIds = [...new Set(rows.flatMap((row) => [row.dropoff_id, row.collection_id]).filter(Boolean))];
+      const bookingIds = [...new Set(rows.flatMap((row) => [row.dropoff_id, row.collection_id, row.trade_meetup_id]).filter(Boolean))];
       const profileIds = [...new Set(rows.flatMap((row) => [row.seller_id, row.buyer_id]).filter(Boolean))];
       const sellerIds = [...new Set(rows.map((row) => row.seller_id).filter(Boolean))];
 
@@ -1389,21 +1400,49 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
             .eq("id", transaction.id);
         }
 
-        if (staffProfile?.id) {
-          const messages = {
-            item_received: { to: transaction.buyer_id, text: `Your item "${transaction.item}" has been checked in. You can now book your collection slot in My Bookings.` },
-            awaiting_collection: { to: transaction.buyer_id, text: `Your item "${transaction.item}" is ready for collection at the trade facility.` },
-            item_released: { to: transaction.seller_id, text: `Your item "${transaction.item}" has been collected by the buyer. The transaction is almost complete.` },
-            completed: { to: transaction.seller_id, text: `Transaction for "${transaction.item}" is now fully completed. Thank you for using CampusXChange!` },
-          };
+        if (nextStatus === "completed" && transaction.transaction_type === "item_trade" && staffProfile?.id) {
+        await Promise.all([
+          insertMessage({
+            sender_id: staffProfile.id,
+            receiver_id: transaction.seller_id,
+            content: `Your trade for "${transaction.item}" is complete. Thank you for using CampusXChange!`,
+          }),
+          insertMessage({
+            sender_id: staffProfile.id,
+            receiver_id: transaction.buyer_id,
+            content: `Your trade for "${transaction.item}" is complete. Thank you for using CampusXChange!`,
+          }),
+        ]);
+      }
 
-          const msg = messages[nextStatus];
-          if (msg) {
-            await insertMessage({
-              sender_id: staffProfile.id,
-              receiver_id: msg.to,
-              content: msg.text,
-            });
+        if (staffProfile?.id) {
+          const isTrade = transaction.transaction_type === "item_trade";
+
+          if (nextStatus === "completed" && isTrade) {
+            // Message both parties for trade completion
+            await Promise.all([
+              insertMessage({
+                sender_id: staffProfile.id,
+                receiver_id: transaction.seller_id,
+                content: `Your trade for "${transaction.item}" is complete. Thank you for using CampusXChange!`,
+              }),
+              insertMessage({
+                sender_id: staffProfile.id,
+                receiver_id: transaction.buyer_id,
+                content: `Your trade for "${transaction.item}" is complete. Thank you for using CampusXChange!`,
+              }),
+            ]);
+          } else {
+            const messages = {
+              item_received: { to: transaction.buyer_id, text: `Your item "${transaction.item}" has been checked in. You can now book your collection slot in My Bookings.` },
+              awaiting_collection: { to: transaction.buyer_id, text: `Your item "${transaction.item}" is ready for collection at the trade facility.` },
+              item_released: { to: transaction.seller_id, text: `Your item "${transaction.item}" has been collected by the buyer. The transaction is almost complete.` },
+              completed: { to: transaction.seller_id, text: `Transaction for "${transaction.item}" is now fully completed. Thank you for using CampusXChange!` },
+            };
+            const msg = messages[nextStatus];
+            if (msg?.to && msg?.text) {
+              await insertMessage({ sender_id: staffProfile.id, receiver_id: msg.to, content: msg.text });
+            }
           }
         }
 
@@ -1421,6 +1460,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
   const pendingDropoffs = bookings.filter((booking) => booking.type === "dropoff" && booking.status === "scheduled").length;
   const pendingCollections = bookings.filter((booking) => booking.type === "collection" && booking.status === "scheduled").length;
+  const pendingMeetups = transactions.filter((t) => t.status === "awaiting_meetup").length;
   const managedCount = transactions.filter((transaction) => MANAGED_STATUSES.includes(transaction.status)).length;
   const dateLabel = new Date().toLocaleDateString("en-ZA", {
     weekday: "long",
@@ -1434,6 +1474,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     if (key === "dropoffs") return pendingDropoffs;
     if (key === "collections") return pendingCollections;
     if (key === "manage") return managedCount;
+    if (key === "meetups") return pendingMeetups;
     return 0;
   };
 
@@ -1443,6 +1484,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     collections: "Collection Bookings",
     manage: "Manage Bookings",
     transactions: "All Transactions",
+    meetups: "Trade Meetups",
   };
 
   const viewDescriptions = {
@@ -1451,6 +1493,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     collections: "Review scheduled buyer pickups and keep collection handovers moving cleanly.",
     manage: "Advance accepted trades through physical receipt, release, and final completion.",
     transactions: "Audit the full staff ledger and adjust lifecycle statuses without leaving the dashboard.",
+    meetups: "Monitor scheduled item-for-item swaps and confirm completed meetups.",
   };
 
   return (
@@ -1583,6 +1626,15 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
             onTransactionStatusChange={handleTransactionStatusChange}
             statusSavingIds={savingIds}
             onOpenReceiptModal={() => setReceiptModalOpen(true)}
+          />
+        ) : null}
+
+        {!loading && !error && activeView === "meetups" ? (
+          <ManageBookingsSection
+            transactions={transactions.filter((t) => t.status === "awaiting_meetup")}
+            bookings={bookings}
+            onAction={handleManagedAction}
+            savingIds={savingIds}
           />
         ) : null}
       </main>
