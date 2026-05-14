@@ -1,14 +1,11 @@
-/*This function normalizes the url.*/
 function normalizeUrl(url) {
   return url.endsWith("/") ? url : `${url}/`;
 }
 
-/*This function returns whether the hostname is local.*/
 function isLocalHost(hostname) {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
 
-/*This function returns the current app base URL.*/
 export function getCurrentAppBaseUrl() {
   if (typeof window !== "undefined") {
     return new URL(import.meta.env.BASE_URL, window.location.origin).toString();
@@ -17,7 +14,6 @@ export function getCurrentAppBaseUrl() {
   return import.meta.env.BASE_URL || "/";
 }
 
-/*This function returns the app base URL.*/
 export function getAppBaseUrl() {
   if (typeof window !== "undefined" && isLocalHost(window.location.hostname)) {
     return getCurrentAppBaseUrl();
@@ -39,7 +35,6 @@ export function getAppBaseUrl() {
   return import.meta.env.BASE_URL || "/";
 }
 
-/*This function returns the password recovery redirect URL.*/
 export function getPasswordRecoveryRedirectUrl() {
   const url = new URL(getAppBaseUrl());
   url.searchParams.set("type", "recovery");

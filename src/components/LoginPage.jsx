@@ -19,7 +19,6 @@ export default function LoginPage({ onNavigate }) {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  /*This function handles form submission.*/
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -30,7 +29,6 @@ export default function LoginPage({ onNavigate }) {
     if (error) setError(error.message);
   }
 
-  /*This function handles Google sign in.*/
   async function handleGoogle() {
     setError("");
     setInfo("");
@@ -40,7 +38,6 @@ export default function LoginPage({ onNavigate }) {
     if (error) setError(error.message);
   }
 
-  /*This function handles forgot password.*/
   async function handleForgotPassword(e) {
     e.preventDefault();
     setError("");

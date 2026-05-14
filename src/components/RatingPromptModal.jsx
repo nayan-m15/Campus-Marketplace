@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 
-/*This function renders the single rating modal component.*/
 function SingleRatingModal({ transaction, currentUserId, onClose }) {
   const dialogRef = useRef(null);
   const [hovered, setHovered] = useState(0);
@@ -25,7 +24,6 @@ function SingleRatingModal({ transaction, currentUserId, onClose }) {
     }
   }, []);
 
-  /*This function handles form submission.*/
   async function handleSubmit() {
     if (!selected) return;
 
@@ -145,7 +143,6 @@ export default function RatingPromptModal({ pendingRatings, currentUserId, onDon
   const current = pendingRatings[index];
   if (!current) return null;
 
-  /*This function handles closing the view.*/
   function handleClose(txnId) {
     const wasSubmitted = txnId !== null;
     onDone(current.id, wasSubmitted);

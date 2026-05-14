@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-/*This function formats the receipt date.*/
 function formatReceiptDate(timestamp) {
   if (!timestamp) return "Date unavailable";
   return new Date(timestamp).toLocaleString("en-ZA", {
@@ -53,12 +52,10 @@ export default function ReceiptModal({
     [selectedId, transactions],
   );
 
-  /*This function handles closing the view.*/
   function handleClose() {
     if (!generatingId) onClose();
   }
 
-  /*This function handles receipt download requests.*/
   async function handleGenerateClick() {
     if (!selectedTransaction) {
       setError("Select a transaction before generating a receipt.");

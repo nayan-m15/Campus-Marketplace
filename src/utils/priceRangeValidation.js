@@ -2,7 +2,6 @@ const PRICE_INPUT_PATTERN = /^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/;
 export const PRICE_INTEGER_DIGIT_LIMIT = 10;
 export const PRICE_INPUT_LENGTH_LIMIT = PRICE_INTEGER_DIGIT_LIMIT + 3;
 
-/*This function limits the price input.*/
 export function limitPriceInput(value) {
   const text = String(value ?? "");
   const [integerPart = "", ...decimalParts] = text.split(".");
@@ -15,7 +14,6 @@ export function limitPriceInput(value) {
   return `${limitedInteger}.${decimalParts.join("").slice(0, 2)}`;
 }
 
-/*This function returns the price input error message.*/
 export function getPriceInputError(value, label = "Price") {
   const text = String(value ?? "").trim();
   if (!text) return "";
@@ -36,7 +34,6 @@ export function getPriceInputError(value, label = "Price") {
   return "";
 }
 
-/*This function validates the price range.*/
 export function validatePriceRange(range = {}) {
   const min = String(range.min ?? "").trim();
   const max = String(range.max ?? "").trim();
@@ -53,13 +50,11 @@ export function validatePriceRange(range = {}) {
   return errors;
 }
 
-/*This function returns whether price range errors.*/
 export function hasPriceRangeErrors(range = {}) {
   const errors = validatePriceRange(range);
   return Boolean(errors.min || errors.max || errors.range);
 }
 
-/*This function returns the valid price range.*/
 export function getValidPriceRange(range = {}) {
   if (hasPriceRangeErrors(range)) {
     return { min: "", max: "" };

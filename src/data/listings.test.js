@@ -11,7 +11,6 @@ vi.mock("../supabaseClient", () => ({
   },
 }));
 
-/*This function creates the listings query.*/
 function makeListingsQuery({ data, error }) {
   const query = {
     select: vi.fn(() => query),
@@ -24,7 +23,6 @@ function makeListingsQuery({ data, error }) {
   return query;
 }
 
-/*This function creates the profiles query.*/
 function makeProfilesQuery({ data, error }) {
   const query = {
     select: vi.fn(() => query),

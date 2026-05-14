@@ -159,7 +159,8 @@ const defaultListingRecords = {
 };
 const listingRecords = structuredClone(defaultListingRecords);
 
-/*This function returns mock results for a test query.*/
+// Supporting logic for the result for flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function resultFor(table, mode, filters = {}) {
   if (table === "listings" && mode === "count") {
     const excludedUserId = filters.__neq?.user_id;
@@ -247,7 +248,8 @@ function resultFor(table, mode, filters = {}) {
   return { data: [], error: null };
 }
 
-/*This function creates the query.*/
+// Supporting logic for the make query flow is kept here.
+// Breaking it out makes the file easier to scan and maintain.
 function makeQuery(table, mode = "list", filters = {}) {
   const query = {
     select: (_columns, options = {}) => {

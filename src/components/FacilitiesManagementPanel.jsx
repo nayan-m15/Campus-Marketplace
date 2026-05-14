@@ -43,7 +43,6 @@ const FACILITY_SELECT_FIELDS = `
   )
 `;
 
-/*This function logs Supabase responses for debugging.*/
 function logSupabaseResponse(operation, response, context = {}) {
   console.log(`${operation} response:`, {
     ...context,
@@ -52,7 +51,6 @@ function logSupabaseResponse(operation, response, context = {}) {
   });
 }
 
-/*This function converts the facility ui model.*/
 function toFacilityUiModel(facilityRow) {
   const hours = emptyHours();
 
@@ -73,7 +71,6 @@ function toFacilityUiModel(facilityRow) {
   };
 }
 
-/*This function returns the facility save error message.*/
 function getFacilitySaveErrorMessage(error) {
   const errorCode = error?.code;
   const message = error?.message || "";
@@ -117,7 +114,7 @@ function getFacilitySaveErrorMessage(error) {
   return message || "Failed to save facility. Please try again.";
 }
 
-/*This function renders the facility form modal component.*/
+// ── Facility Form Modal Component ───────────────────────────────
 function FacilityFormModal({ 
   facility = null, 
   isVisible, 
@@ -185,7 +182,6 @@ function FacilityFormModal({
     setErrors({});
   }, [facility]);
 
-  /*This function validates the form.*/
   const validateForm = useCallback(() => {
     const newErrors = {};
     
@@ -230,7 +226,6 @@ function FacilityFormModal({
     return Object.keys(newErrors).length === 0;
   }, [formData]);
 
-  /*This function handles form submission.*/
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
     if (validateForm()) {
@@ -238,7 +233,6 @@ function FacilityFormModal({
     }
   }, [formData, validateForm, onSave]);
 
-  /*This function updates the facility form data.*/
   const updateFormData = useCallback((field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -246,7 +240,6 @@ function FacilityFormModal({
     }
   }, [errors]);
 
-  /*This function updates facility hours for a day.*/
   const updateHours = useCallback((day, field, value) => {
     console.log(`Updating hours for ${day}.${field} = "${value}"`);
     
@@ -277,7 +270,6 @@ function FacilityFormModal({
     }
   }, [errors]);
 
-  /*This function converts the ggle day.*/
   const toggleDay = useCallback((day) => {
     setFormData(prev => ({
       ...prev,
@@ -505,7 +497,7 @@ function FacilityFormModal({
   );
 }
 
-/*This function renders the facility card component.*/
+// ── Facility Card Component ───────────────────────────────────────
 function FacilityCard({ facility, onEdit, onDelete, onToggleStatus }) {
   const [imageError, setImageError] = useState(false);
   const openDays = DAYS.filter(d => facility.hours[d].open).length;
@@ -620,7 +612,7 @@ export default function FacilitiesManagementPanel() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
 
-  /*This function fetches the facilities.*/
+  // Load facilities from Supabase
   const fetchFacilities = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -655,7 +647,7 @@ export default function FacilitiesManagementPanel() {
     fetchFacilities();
   }, [fetchFacilities]);
 
-  /*This function shows the toast.*/
+  // Show toast notification
   const showToast = useCallback((message, type = "success") => {
     setToast({ visible: true, message, type });
     setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
@@ -673,7 +665,7 @@ export default function FacilitiesManagementPanel() {
     return matchesSearch && matchesStatus;
   });
 
-  /*This function handles save facility.*/
+  // Save facility (create or update)
   const handleSaveFacility = useCallback(async (facilityData) => {
     setSaving(true);
     
@@ -811,7 +803,7 @@ export default function FacilitiesManagementPanel() {
     }
   }, [editingFacility, fetchFacilities, showToast]);
 
-  /*This function handles delete facility.*/
+  // Delete facility
   const handleDeleteFacility = useCallback(async (facility) => {
     if (!window.confirm(`Are you sure you want to delete "${facility.name}"? This action cannot be undone.`)) {
       return;
@@ -863,7 +855,7 @@ export default function FacilitiesManagementPanel() {
     }
   }, [fetchFacilities, showToast]);
 
-  /*This function handles status changes.*/
+  // Toggle facility status
   const handleToggleStatus = useCallback(async (facility) => {
     const newStatus = facility.status === "active" ? "inactive" : "active";
     
@@ -900,13 +892,13 @@ export default function FacilitiesManagementPanel() {
     }
   }, [fetchFacilities, showToast]);
 
-  /*This function handles edit facility.*/
+  // Edit facility
   const handleEditFacility = useCallback((facility) => {
     setEditingFacility(facility);
     setShowModal(true);
   }, []);
 
-  /*This function handles add facility.*/
+  // Add new facility
   const handleAddFacility = useCallback(() => {
     setEditingFacility(null);
     setShowModal(true);

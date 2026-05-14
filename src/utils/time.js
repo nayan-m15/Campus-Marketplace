@@ -2,7 +2,6 @@ const TWELVE_HOUR_TIME_REGEX = /^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i;
 const TWENTY_FOUR_HOUR_TIME_REGEX = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
 const NORMALIZED_TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-/*This function normalizes the time.*/
 export function normalizeTime(timeValue, fallback = "") {
   if (timeValue === null || timeValue === undefined || timeValue === "") {
     return fallback;
@@ -44,7 +43,6 @@ export function normalizeTime(timeValue, fallback = "") {
   return clean;
 }
 
-/*This function returns whether valid time format.*/
 export function isValidTimeFormat(timeValue) {
   return NORMALIZED_TIME_REGEX.test(String(timeValue ?? ""));
 }

@@ -27,7 +27,11 @@ export const PASSWORD_RULES = [
   },
 ];
 
-/*This function validates the password.*/
+/**
+ * Validates a password against all rules.
+ * @param {string} password
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
 export function validatePassword(password) {
   const errors = PASSWORD_RULES
     .filter((rule) => !rule.test(password))

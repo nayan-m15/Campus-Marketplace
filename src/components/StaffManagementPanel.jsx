@@ -21,7 +21,6 @@ export default function StaffManagementPanel() {
   });
   const [formErrors, setFormErrors] = useState({});
 
-  /*This function fetches the staff.*/
   const fetchStaff = async () => {
     setLoading(true);
     try {
@@ -52,7 +51,6 @@ export default function StaffManagementPanel() {
       member.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  /*This function validates the form.*/
   const validateForm = () => {
     const errors = {};
 
@@ -89,7 +87,6 @@ export default function StaffManagementPanel() {
     return Object.keys(errors).length === 0;
   };
 
-  /*This function handles input change.*/
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setFormData((previous) => ({ ...previous, [name]: value }));
@@ -99,7 +96,6 @@ export default function StaffManagementPanel() {
     }
   };
 
-  /*This function handles form submission.*/
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -155,7 +151,6 @@ export default function StaffManagementPanel() {
     }
   };
 
-  /*This function handles staff deletion.*/
   const handleDeleteStaff = async (staffId) => {
     setLoading(true);
     try {
@@ -177,7 +172,6 @@ export default function StaffManagementPanel() {
     }
   };
 
-  /*This function handles status changes.*/
   const handleToggleStatus = async (staffId, currentStatus) => {
     setLoading(true);
     try {
@@ -203,7 +197,6 @@ export default function StaffManagementPanel() {
     }
   };
 
-  /*This function shows the toast message.*/
   const showToastMessage = (message, type = "success") => {
     setToastMessage(message);
     setToastType(type);

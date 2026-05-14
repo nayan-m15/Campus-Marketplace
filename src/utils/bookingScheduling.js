@@ -30,7 +30,6 @@ const DAY_ALIASES = {
   saturday: "Saturday",
 };
 
-/*This function formats the booking date.*/
 export function formatBookingDate(dateStr) {
   if (!dateStr) return "TBD";
 
@@ -42,7 +41,6 @@ export function formatBookingDate(dateStr) {
   });
 }
 
-/*This function formats the timestamp date.*/
 export function formatTimestampDate(timestamp) {
   if (!timestamp) return "TBD";
 
@@ -54,7 +52,6 @@ export function formatTimestampDate(timestamp) {
   });
 }
 
-/*This function formats the timestamp time.*/
 export function formatTimestampTime(timestamp) {
   if (!timestamp) return "TBD";
 
@@ -65,14 +62,12 @@ export function formatTimestampTime(timestamp) {
   });
 }
 
-/*This function formats the slot label.*/
 export function formatSlotLabel(slot) {
   if (!slot) return "";
 
   const [hour, minute] = slot.split(":").map(Number);
   const nextHour = (hour + 1) % 24;
 
-  /*This function converts the label.*/
   const toLabel = (value) => {
     const suffix = value >= 12 ? "pm" : "am";
     const display = value % 12 === 0 ? 12 : value % 12;
@@ -85,7 +80,6 @@ export function formatSlotLabel(slot) {
   return `${toLabel(hour)} - ${toLabel(nextHour)}`;
 }
 
-/*This function generates the time slots.*/
 export function generateTimeSlots(startTime, endTime) {
   if (!startTime || !endTime) return [];
 
@@ -112,14 +106,12 @@ export function generateTimeSlots(startTime, endTime) {
   return slots;
 }
 
-/*This function returns the date day name.*/
 export function getDateDayName(dateStr) {
   if (!dateStr) return "";
 
   return DAYS[new Date(`${dateStr}T00:00:00`).getDay()];
 }
 
-/*This function converts the date input value.*/
 export function toDateInputValue(date = new Date()) {
   const offset = date.getTimezoneOffset();
   const local = new Date(date.getTime() - offset * 60000);
@@ -127,12 +119,10 @@ export function toDateInputValue(date = new Date()) {
   return local.toISOString().slice(0, 10);
 }
 
-/*This function builds the booking id.*/
 export function buildBookingId(prefix = "BK") {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}`;
 }
 
-/*This function normalizes the facility day.*/
 export function normalizeFacilityDay(day) {
   if (!day) return "";
 
@@ -142,7 +132,6 @@ export function normalizeFacilityDay(day) {
   );
 }
 
-/*This function maps the hours by day.*/
 export function mapHoursByDay(hours = []) {
   return new Map(
     hours.map((entry) => [
@@ -155,7 +144,6 @@ export function mapHoursByDay(hours = []) {
   );
 }
 
-/*This function returns whether transaction party.*/
 export function isTransactionParty(transaction, userId) {
   return (
     transaction?.seller_id === userId ||

@@ -45,7 +45,6 @@ type LensResult = {
   source?: string;
 };
 
-/*This function creates a JSON response.*/
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -53,12 +52,10 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-/*This function normalizes the text.*/
 function normaliseText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-/*This function normalizes the image url.*/
 function normaliseImageUrl(value: unknown) {
   const imageUrl = normaliseText(value);
   if (!imageUrl) return "";
@@ -71,7 +68,6 @@ function normaliseImageUrl(value: unknown) {
   }
 }
 
-/*This function returns whether h text.*/
 async function hashText(value: string) {
   const data = new TextEncoder().encode(value);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -81,7 +77,6 @@ async function hashText(value: string) {
     .join("");
 }
 
-/*This function builds the request fingerprint.*/
 async function buildRequestFingerprint({
   searchQuery,
   condition,
@@ -104,7 +99,6 @@ async function buildRequestFingerprint({
   return hashText(fingerprint);
 }
 
-/*This function removes duplicate words from the text.*/
 function dedupeWords(text: string) {
   const seen = new Set<string>();
 
@@ -121,7 +115,6 @@ function dedupeWords(text: string) {
     .join(" ");
 }
 
-/*This function builds the search query.*/
 function buildSearchQuery(query: string, category: string, description: string) {
   const descriptionSnippet = description
     .split(/\s+/)
@@ -132,13 +125,11 @@ function buildSearchQuery(query: string, category: string, description: string) 
   return dedupeWords([query, category, descriptionSnippet].filter(Boolean).join(" "));
 }
 
-/*This function finds the model signals.*/
 function findModelSignals(text: string) {
   const matches = text.match(/\b(?=[a-z0-9-]*\d)(?=[a-z0-9-]*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*\b/gi) || [];
   return [...new Set(matches.map((match) => match.toUpperCase()))].slice(0, 5);
 }
 
-/*This function finds the brand signals.*/
 function findBrandSignals(text: string) {
   const knownBrands = [
     "acer",
@@ -167,7 +158,6 @@ function findBrandSignals(text: string) {
     .map((brand) => brand.replace(/\b\w/g, (letter) => letter.toUpperCase()));
 }
 
-/*This function returns whether the text is specific enough.*/
 function hasSpecificText(text: string) {
   const usefulWords = text
     .toLowerCase()
@@ -177,7 +167,6 @@ function hasSpecificText(text: string) {
   return usefulWords.length >= 3;
 }
 
-/*This function returns meaningful search tokens.*/
 function getMeaningfulTokens(text: string) {
   const stopWords = new Set([
     "and",
@@ -210,7 +199,6 @@ function getMeaningfulTokens(text: string) {
   ].slice(0, 10);
 }
 
-/*This function extracts the lens terms.*/
 function extractLensTerms(lensData: Record<string, unknown>, originalTokens: string[]) {
   const resultGroups = [
     lensData.visual_matches,
@@ -241,7 +229,6 @@ function extractLensTerms(lensData: Record<string, unknown>, originalTokens: str
   };
 }
 
-/*This function returns the image search context.*/
 async function getImageSearchContext({
   serpApiKey,
   imageUrl,
@@ -294,7 +281,6 @@ async function getImageSearchContext({
   };
 }
 
-/*This function returns whether a result matches the listing.*/
 function resultMatchesListing(result: ShoppingResult, tokens: string[]) {
   if (tokens.length === 0) return true;
 
@@ -304,7 +290,6 @@ function resultMatchesListing(result: ShoppingResult, tokens: string[]) {
   return matchedTokens.length > 0;
 }
 
-/*This function parses the price.*/
 function parsePrice(result: ShoppingResult) {
   if (typeof result.extracted_price === "number" && result.extracted_price > 0) {
     return result.extracted_price;
@@ -323,13 +308,11 @@ function parsePrice(result: ShoppingResult) {
   return Number.isFinite(price) && price > 0 ? price : null;
 }
 
-/*This function returns whether a result uses rand pricing.*/
 function looksLikeRand(result: ShoppingResult) {
   const rawPrice = normaliseText(result.price).toLowerCase();
   return rawPrice.includes("r") || rawPrice.includes("zar") || rawPrice.includes("rand");
 }
 
-/*This function calculates a percentile from sorted values.*/
 function percentile(sortedValues: number[], ratio: number) {
   if (sortedValues.length === 0) return 0;
   const index = (sortedValues.length - 1) * ratio;
@@ -341,12 +324,10 @@ function percentile(sortedValues: number[], ratio: number) {
   return sortedValues[lower] + (sortedValues[upper] - sortedValues[lower]) * (index - lower);
 }
 
-/*This function calculates the median value.*/
 function median(values: number[]) {
   return percentile([...values].sort((a, b) => a - b), 0.5);
 }
 
-/*This function calculates the variation.*/
 function calculateVariation(values: number[], baseline: number) {
   if (values.length === 0 || baseline <= 0) return 1;
   const min = Math.min(...values);
@@ -355,7 +336,6 @@ function calculateVariation(values: number[], baseline: number) {
   return (max - min) / baseline;
 }
 
-/*This function removes the outliers.*/
 function removeOutliers(values: number[]) {
   if (values.length < 4) return values;
 
@@ -369,12 +349,10 @@ function removeOutliers(values: number[]) {
   return values.filter((value) => value >= lowerBound && value <= upperBound);
 }
 
-/*This function rounds the to nearest five.*/
 function roundToNearestFive(value: number) {
   return Math.round(value / 5) * 5;
 }
 
-/*This function formats the zar.*/
 function formatZar(value: number) {
   return `R ${value.toLocaleString("en-ZA", {
     minimumFractionDigits: 0,
@@ -382,7 +360,6 @@ function formatZar(value: number) {
   })}`;
 }
 
-/*This function adds cache metadata to a response.*/
 function withCacheMeta(response: Record<string, unknown>, hit: boolean, cacheKey: string) {
   return {
     ...response,
@@ -393,7 +370,6 @@ function withCacheMeta(response: Record<string, unknown>, hit: boolean, cacheKey
   };
 }
 
-/*This function saves a response in the cache.*/
 async function upsertCache(
   adminClient: ReturnType<typeof createClient>,
   {
@@ -426,7 +402,6 @@ async function upsertCache(
   }
 }
 
-/*This function returns the confidence score for a price suggestion.*/
 function getConfidence({
   query,
   description,

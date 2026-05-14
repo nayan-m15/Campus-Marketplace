@@ -2,14 +2,12 @@ import { useMemo, useState } from "react";
 import ListingCard from "./ListingCard";
 import { CATEGORIES, CONDITIONS } from "../data/listings";
 
-/*This function returns the numeric price for a listing.*/
 function numericPrice(item) {
   if (!item?.price) return 0;
   const value = parseFloat(String(item.price).replace(/[^0-9.]/g, ""));
   return Number.isNaN(value) ? 0 : value;
 }
 
-/*This function formats the listing date.*/
 function formatListingDate(value) {
   if (!value) return "Date unavailable";
 

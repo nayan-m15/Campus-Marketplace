@@ -8,7 +8,6 @@ import { getAppBaseUrl, getPasswordRecoveryRedirectUrl } from "../utils/appUrl";
 const AuthContext = createContext(null);
 const DEBUG_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEBUG_AUTH === "true";
 
-/*This function returns the recovery type from the URL.*/
 function getRecoveryTypeFromUrl() {
   if (typeof window === "undefined") return false;
 
@@ -18,7 +17,6 @@ function getRecoveryTypeFromUrl() {
   return searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery";
 }
 
-/*This function provides auth context.*/
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -69,7 +67,6 @@ export function AuthProvider({ children }) {
       }
     });
 
-    /*This function initializes auth state from the current session.*/
     const initAuth = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
@@ -107,7 +104,6 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    /*This function fetches the profile.*/
     const fetchProfile = async () => {
       if (!user?.id) {
         setProfile(null);
@@ -132,17 +128,14 @@ export function AuthProvider({ children }) {
     fetchProfile();
   }, [user]);
 
-  /*This function signs up a user with email and password.*/
   const signUp = async (email, password, options = {}) => {
     return supabase.auth.signUp({ email, password, options });
   };
 
-  /*This function signs in a user with email and password.*/
   const signIn = async (email, password) => {
     return supabase.auth.signInWithPassword({ email, password });
   };
 
-  /*This function starts Google sign in.*/
   const signInWithGoogle = async ({ redirectTo } = {}) => {
     const resolvedRedirect = redirectTo ?? getAppBaseUrl();
 
@@ -152,7 +145,6 @@ export function AuthProvider({ children }) {
     });
   };
 
-  /*This function resets the password.*/
   const resetPassword = async (email, { redirectTo } = {}) => {
     const resolvedRedirect = redirectTo ?? getPasswordRecoveryRedirectUrl();
 
@@ -161,12 +153,10 @@ export function AuthProvider({ children }) {
     });
   };
 
-  /*This function clears the password recovery.*/
   const clearPasswordRecovery = () => {
     setIsPasswordRecovery(false);
   };
 
-  /*This function signs out the current user.*/
   const signOut = async () => {
     setIsPasswordRecovery(false);
     return supabase.auth.signOut();
@@ -193,7 +183,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-/*This function manages auth state and behavior.*/
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
