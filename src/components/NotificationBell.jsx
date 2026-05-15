@@ -163,22 +163,28 @@ export default function NotificationBell() {
   }, [activeTab, notifications, unreadCount, visibleItems.length]);
 
   useEffect(() => {
-    if (!open || isMobile || !buttonRef.current) return undefined;
+    if (!open || !buttonRef.current) return undefined;
 
     const updatePosition = () => {
       const rect = buttonRef.current?.getBoundingClientRect();
       if (!rect) return;
 
-      const panelWidth = Math.min(388, window.innerWidth - 24);
+      const viewportPadding = isMobile ? 12 : 16;
+      const panelWidth = isMobile
+        ? Math.min(420, window.innerWidth - viewportPadding * 2)
+        : Math.min(396, window.innerWidth - viewportPadding * 2);
       const left = Math.min(
-        Math.max(12, rect.right - panelWidth),
-        window.innerWidth - panelWidth - 12,
+        Math.max(viewportPadding, rect.right - panelWidth),
+        window.innerWidth - panelWidth - viewportPadding,
       );
+      const top = Math.max(viewportPadding, rect.bottom + 10);
+      const maxHeight = Math.max(320, window.innerHeight - top - viewportPadding);
 
       setPanelStyle({
-        top: rect.bottom + 14,
+        top,
         left,
         width: panelWidth,
+        maxHeight,
       });
     };
 
@@ -196,7 +202,9 @@ export default function NotificationBell() {
     if (!open) return undefined;
 
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (isMobile) {
+      document.body.style.overflow = "hidden";
+    }
 
     const focusFrame = window.requestAnimationFrame(() => {
       closeButtonRef.current?.focus();
@@ -206,7 +214,7 @@ export default function NotificationBell() {
       document.body.style.overflow = previousOverflow;
       window.cancelAnimationFrame(focusFrame);
     };
-  }, [open]);
+  }, [isMobile, open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -305,9 +313,9 @@ export default function NotificationBell() {
             id={panelId}
             ref={panelRef}
             className={`notification-bell__panel${isMobile ? " notification-bell__panel--mobile" : ""}`}
-            style={isMobile ? undefined : panelStyle}
+            style={panelStyle ?? undefined}
             role="dialog"
-            aria-modal="true"
+            aria-modal={isMobile ? "true" : undefined}
             aria-label="Notifications"
           >
             <header className="notification-bell__header">
