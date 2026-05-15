@@ -641,12 +641,13 @@ function ListingDetailsModal({
   onClose,
   onMessageSeller,
   onSendOffer,
+  onFlaggedWarning,
   user,
   isWishlisted,
   onToggleWishlist,
   resolveListingForMessaging,
 }) {
-  const { addNotification, notifySuccess, notifyError } = useNotifications();
+  const { notifySuccess, notifyError } = useNotifications();
   const [message, setMessage] = useState(`Hi, is the ${item?.title || "item"} still available?`);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
@@ -759,18 +760,7 @@ function ListingDetailsModal({
   async function handleSendMessage() {
     const latestItem = await resolveListingForMessaging?.(item) || item;
     if (latestItem?.status === "flagged") {
-      addNotification({
-        title: "Flagged listing warning",
-        message: latestItem.flag_reason?.trim()
-          ? `Continue with caution. ${latestItem.flag_reason.trim()}`
-          : "This listing was flagged by an admin. Continue with caution.",
-        category: "warning",
-        type: "warning",
-        dedupeKey: `modal-flagged-${latestItem.id}-message`,
-        action: {
-          onClick: () => performSendMessage({ acknowledged: true }),
-        },
-      });
+      onFlaggedWarning?.(latestItem, () => performSendMessage({ acknowledged: true }));
       return;
     }
 
@@ -1088,6 +1078,7 @@ function AppInner() {
   const [msgListingId, setMsgListingId] = useState(null);
   const [msgInitialDraft, setMsgInitialDraft] = useState(null);
   const [msgInitialAction, setMsgInitialAction] = useState(null);
+  const [flaggedListingDialog, setFlaggedListingDialog] = useState(null);
 
   const [profileChecked, setProfileChecked] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
@@ -1680,6 +1671,17 @@ useEffect(() => {
     openMessagesForListing(item, { acknowledged: true });
   }
 
+  function openFlaggedListingWarning(item, onContinue) {
+    setFlaggedListingDialog({
+      item,
+      onContinue,
+    });
+  }
+
+  function closeFlaggedListingWarning() {
+    setFlaggedListingDialog(null);
+  }
+
   function notifyFlaggedListingWarning(item, pendingAction) {
     addNotification({
       title: "Flagged listing warning",
@@ -1693,6 +1695,10 @@ useEffect(() => {
         onClick: () => continueFlaggedListingFlow({ ...item, __pendingAction: pendingAction }),
       },
     });
+    openFlaggedListingWarning(
+      item,
+      () => continueFlaggedListingFlow({ ...item, __pendingAction: pendingAction }),
+    );
   }
 
   // User-driven changes pass through this handler first.
@@ -2229,11 +2235,68 @@ useEffect(() => {
           onClose={() => setSelectedListing(null)}
           onMessageSeller={handleMessageSeller}
           onSendOffer={handleSendOffer}
+          onFlaggedWarning={openFlaggedListingWarning}
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
           resolveListingForMessaging={resolveListingForMessaging}
           />
+        {flaggedListingDialog?.item && (
+          <aside
+            className="item-modal-overlay"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="flagged-listing-warning-title"
+            onClick={closeFlaggedListingWarning}
+          >
+            <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="modal-close"
+                onClick={closeFlaggedListingWarning}
+                aria-label="Close flagged listing warning"
+                type="button"
+              >
+                ×
+              </button>
+              <section className="item-modal-scroll">
+                <section className="item-modal-scroll-inner">
+                  <section className="item-modal-layout">
+                    <section className="item-modal-right-column item-modal-right-column--full">
+                      <article className="item-modal-card">
+                        <h2 id="flagged-listing-warning-title">Flagged listing warning</h2>
+                        <p>This listing has been flagged by an admin. Continue with caution.</p>
+                        <p>
+                          <strong>Reason:</strong>{" "}
+                          {flaggedListingDialog.item.flag_reason?.trim() || "No reason was provided."}
+                        </p>
+                        <section className="item-modal-actions">
+                          <button
+                            type="button"
+                            className="item-modal-send-btn item-modal-send-btn--secondary"
+                            onClick={closeFlaggedListingWarning}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="item-modal-send-btn"
+                            onClick={() => {
+                              const continueFlow = flaggedListingDialog.onContinue;
+                              closeFlaggedListingWarning();
+                              continueFlow?.();
+                            }}
+                          >
+                            Continue
+                          </button>
+                        </section>
+                      </article>
+                    </section>
+                  </section>
+                </section>
+              </section>
+            </article>
+          </aside>
+        )}
         <ModerationModal
           item={moderationListing}
           actionState={moderationState}
@@ -2295,11 +2358,68 @@ useEffect(() => {
           onClose={() => setSelectedListing(null)}
           onMessageSeller={handleMessageSeller}
           onSendOffer={handleSendOffer}
+          onFlaggedWarning={openFlaggedListingWarning}
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
           resolveListingForMessaging={resolveListingForMessaging}
         />
+        {flaggedListingDialog?.item && (
+          <aside
+            className="item-modal-overlay"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="flagged-listing-warning-title"
+            onClick={closeFlaggedListingWarning}
+          >
+            <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="modal-close"
+                onClick={closeFlaggedListingWarning}
+                aria-label="Close flagged listing warning"
+                type="button"
+              >
+                ×
+              </button>
+              <section className="item-modal-scroll">
+                <section className="item-modal-scroll-inner">
+                  <section className="item-modal-layout">
+                    <section className="item-modal-right-column item-modal-right-column--full">
+                      <article className="item-modal-card">
+                        <h2 id="flagged-listing-warning-title">Flagged listing warning</h2>
+                        <p>This listing has been flagged by an admin. Continue with caution.</p>
+                        <p>
+                          <strong>Reason:</strong>{" "}
+                          {flaggedListingDialog.item.flag_reason?.trim() || "No reason was provided."}
+                        </p>
+                        <section className="item-modal-actions">
+                          <button
+                            type="button"
+                            className="item-modal-send-btn item-modal-send-btn--secondary"
+                            onClick={closeFlaggedListingWarning}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="item-modal-send-btn"
+                            onClick={() => {
+                              const continueFlow = flaggedListingDialog.onContinue;
+                              closeFlaggedListingWarning();
+                              continueFlow?.();
+                            }}
+                          >
+                            Continue
+                          </button>
+                        </section>
+                      </article>
+                    </section>
+                  </section>
+                </section>
+              </section>
+            </article>
+          </aside>
+        )}
         <ModerationModal
           item={moderationListing}
           actionState={moderationState}

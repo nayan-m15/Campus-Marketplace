@@ -13,6 +13,11 @@ import SettingsPage from "./SettingsPage";
 import SignupPage from "./SignupPage";
 import WishlistPage from "./WishlistPage";
 import ListingForm from "./ListingForm";
+import { NotificationProvider } from "../context/NotificationContext";
+
+function renderWithNotifications(ui) {
+  return render(<NotificationProvider>{ui}</NotificationProvider>);
+}
 
 const authFns = {
   signIn: vi.fn(),
@@ -325,7 +330,7 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
   const onSignOut = vi.fn();
   const onAdminDashboard = vi.fn();
 
-  render(
+  renderWithNotifications(
     <Navbar
       searchQuery=""
       onSearchChange={vi.fn()}
@@ -370,7 +375,7 @@ test("Navbar opens the side menu and routes logged-in actions", () => {
 });
 
 test("Navbar prefers the profile display name over auth metadata and email prefix", () => {
-  render(
+  renderWithNotifications(
     <Navbar
       searchQuery=""
       onSearchChange={vi.fn()}
@@ -387,7 +392,7 @@ test("Navbar prefers the profile display name over auth metadata and email prefi
 });
 
 test("Navbar falls back to the full profile name when no display name exists", () => {
-  render(
+  renderWithNotifications(
     <Navbar
       searchQuery=""
       onSearchChange={vi.fn()}

@@ -12,6 +12,11 @@ import PublicProfilePage from "./PublicProfilePage";
 import TradeFacilityDashboard from "./TradeFacilityDashboard";
 import YourListingsPage from "./YourListingsPage";
 import { StudentBookingsPage } from "./BookingsUi";
+import { NotificationProvider } from "../context/NotificationContext";
+
+function renderWithNotifications(ui) {
+  return render(<NotificationProvider>{ui}</NotificationProvider>);
+}
 
 const mocks = vi.hoisted(() => ({
   upsert: vi.fn(),
@@ -462,7 +467,7 @@ test("ProfilePage loads profile, validates phone, and saves updates", async () =
   const onBack = vi.fn();
   const onNameChange = vi.fn();
 
-  render(<ProfilePage onBack={onBack} onNameChange={onNameChange} />);
+  renderWithNotifications(<ProfilePage onBack={onBack} onNameChange={onNameChange} />);
 
   expect(await screen.findByDisplayValue("Student User")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /back/i }));
@@ -490,7 +495,7 @@ test("ProfilePage loads profile, validates phone, and saves updates", async () =
 test("PublicProfilePage loads seller details and submits a rating", async () => {
   const onBack = vi.fn();
   const onMessageSeller = vi.fn();
-  const onView = render(
+  const onView = renderWithNotifications(
     <PublicProfilePage
       userId="seller-1"
       onBack={onBack}
@@ -524,7 +529,7 @@ test("PublicProfilePage loads seller details and submits a rating", async () => 
 test("YourListingsPage edits status and deletes a listing", async () => {
   const onBack = vi.fn();
   const onListingChanged = vi.fn();
-  render(<YourListingsPage onBack={onBack} onListingChanged={onListingChanged} />);
+  renderWithNotifications(<YourListingsPage onBack={onBack} onListingChanged={onListingChanged} />);
 
   expect(await screen.findByRole("heading", { name: /your listings/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /back/i }));
@@ -567,7 +572,7 @@ test("YourListingsPage edits status and deletes a listing", async () => {
 
 test("YourListingsPage updates listing photos in the edit modal", async () => {
   const onListingChanged = vi.fn();
-  render(<YourListingsPage onBack={vi.fn()} onListingChanged={onListingChanged} />);
+  renderWithNotifications(<YourListingsPage onBack={vi.fn()} onListingChanged={onListingChanged} />);
 
   // Open the existing listing and verify the current photo is loaded first.
   fireEvent.click(await screen.findByRole("button", { name: /edit/i }));
@@ -982,12 +987,18 @@ test("MessagesPage warns before sending a message for a flagged listing", async 
 
 test("AdminDashboard loads facilities, saves changes, and generates a report", async () => {
   const onSignOut = vi.fn();
-  render(<AdminDashboard onSignOut={onSignOut} />);
+  renderWithNotifications(<AdminDashboard onSignOut={onSignOut} />);
 
   expect(await screen.findByText(/main trade desk/i)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /edit/i }));
   fireEvent.click(screen.getByRole("button", { name: /update facility/i }));
-  expect(await screen.findByRole("status")).toHaveTextContent(/facility updated successfully/i);
+  await waitFor(() =>
+    expect(
+      mocks.update.mock.calls.some(
+        ([table, payload]) => table === "facilities" && payload?.name === "Main Trade Desk"
+      )
+    ).toBe(true)
+  );
 
   fireEvent.click(screen.getByRole("button", { name: /reports/i }));
   fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
@@ -1001,7 +1012,7 @@ test("AdminDashboard loads facilities, saves changes, and generates a report", a
 
 test("TradeFacilityDashboard renders navigation and sign out", () => {
   const onSignOut = vi.fn();
-  render(<TradeFacilityDashboard onSignOut={onSignOut} staffProfile={profile} />);
+  renderWithNotifications(<TradeFacilityDashboard onSignOut={onSignOut} staffProfile={profile} />);
 
   expect(screen.getByRole("heading", { name: /dashboard overview/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /drop-off bookings/i }));

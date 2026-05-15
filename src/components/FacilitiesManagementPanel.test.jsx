@@ -2,6 +2,11 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import FacilitiesManagementPanel from './FacilitiesManagementPanel';
+import { NotificationProvider } from "../context/NotificationContext";
+
+function renderWithNotifications(ui) {
+  return render(<NotificationProvider>{ui}</NotificationProvider>);
+}
 
 // Mock Supabase
 vi.mock('../supabaseClient', () => ({
@@ -22,7 +27,7 @@ vi.mock('../utils/bookingScheduling', () => ({
 
 describe('FacilitiesManagementPanel', () => {
   it('renders the facilities management panel', async () => {
-    render(<FacilitiesManagementPanel />);
+    renderWithNotifications(<FacilitiesManagementPanel />);
     
     expect(screen.getByText('Facilities Management')).toBeInTheDocument();
     expect(screen.getByText('Manage campus facilities, operating hours, and capacity settings')).toBeInTheDocument();
@@ -31,14 +36,14 @@ describe('FacilitiesManagementPanel', () => {
   });
 
   it('shows search and filter controls', () => {
-    render(<FacilitiesManagementPanel />);
+    renderWithNotifications(<FacilitiesManagementPanel />);
     
     expect(screen.getByPlaceholderText('Search facilities...')).toBeInTheDocument();
     expect(screen.getByText('All Status')).toBeInTheDocument();
   });
 
   it('displays empty state when no facilities', async () => {
-    render(<FacilitiesManagementPanel />);
+    renderWithNotifications(<FacilitiesManagementPanel />);
     
     expect(await screen.findByText('No facilities found')).toBeInTheDocument();
     expect(screen.getByText('Get started by adding your first facility.')).toBeInTheDocument();

@@ -179,6 +179,7 @@ function buildCalendarMatrix(referenceDate = new Date()) {
 }
 
 function ReportsPanel() {
+  const { notifyError, notifySuccess } = useNotifications();
   const [reportType, setReportType] = useState("executive");
   const [dateFrom, setDateFrom] = useState("2026-01-01");
   const [dateTo, setDateTo] = useState("2026-07-31");
