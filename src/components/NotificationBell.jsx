@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNotifications } from "../context/NotificationContext";
 import "../styles/NotificationBell.css";
 
+const NOTIFICATION_DEBUG = import.meta.env.DEV;
+
 function useMediaQuery(query) {
   const getMatch = () => {
     if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -103,7 +105,8 @@ const TAB_ITEMS = [
 ];
 
 function getTypeAccent(type) {
-  if (type === "success") return "primary";
+  if (type === "message" || type === "offer" || type === "success") return "primary";
+  if (type === "system") return "muted";
   if (type === "warning") return "warning";
   if (type === "error") return "danger";
   return "muted";
@@ -128,6 +131,7 @@ function formatNotificationTime(timestamp) {
 }
 
 function NotificationTypeIcon({ type }) {
+  if (type === "message" || type === "offer") return <BellIcon aria-hidden="true" />;
   if (type === "success") return <CheckIcon aria-hidden="true" />;
   if (type === "warning") return <SparkIcon aria-hidden="true" />;
   if (type === "error") return <CloseIcon aria-hidden="true" />;
@@ -160,6 +164,17 @@ export default function NotificationBell() {
     }
     return notifications;
   }, [activeTab, notifications]);
+
+  useEffect(() => {
+    if (!NOTIFICATION_DEBUG) return;
+    console.log("[notifications] bell render", {
+      total: notifications.length,
+      unreadCount,
+      activeTab,
+      visible: visibleItems.length,
+      latest: notifications[0] || null,
+    });
+  }, [activeTab, notifications, unreadCount, visibleItems.length]);
 
   useEffect(() => {
     if (!open || isMobile || !buttonRef.current) return undefined;

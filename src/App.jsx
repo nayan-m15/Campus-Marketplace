@@ -38,6 +38,7 @@ import { insertMessage } from "./utils/messageDelivery";
 import { StudentBookingsPage } from "./components/BookingsUi";
 import RatingPromptModal from "./components/RatingPromptModal";
 
+const NOTIFICATION_DEBUG = import.meta.env.DEV;
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 const DEBUG_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEBUG_AUTH === "true";
 const POST_LOGIN_REDIRECT_KEY = "campusxchange:post-login-redirect";
@@ -476,21 +477,6 @@ async function buildIncomingOfferNotice(offer) {
   };
 }
 
-async function fetchNotificationPrefs(userId, fallback) {
-  const { data } = await supabase
-    .from("profiles")
-    .select("notif_messages, notif_listing_activity")
-    .eq("id", userId)
-    .single();
-
-  if (!data) return fallback;
-
-  return {
-    notif_messages: data.notif_messages !== false,
-    notif_listing_activity: data.notif_listing_activity !== false,
-  };
-}
-
 // Related state and side effects are grouped in this hook.
 // That keeps the surrounding component easier to follow.
 function useUnreadCount(user, onIncomingMessage) {
@@ -512,66 +498,138 @@ function useUnreadCount(user, onIncomingMessage) {
         .eq("receiver_id", user.id)
         .eq("is_read", false),
     ]).then(([{ count: msgCount }, { count: offerCount }]) => {
+      if (NOTIFICATION_DEBUG) {
+        console.log("[notifications] initial unread count fetched", {
+          userId: user.id,
+          messageCount: msgCount || 0,
+          offerCount: offerCount || 0,
+        });
+      }
       setUnreadCount((msgCount || 0) + (offerCount || 0));
     });
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
+    if (NOTIFICATION_DEBUG) {
+      console.log("[notifications] subscribing to realtime channel", { userId: user.id });
+    }
     const channel = supabase
-      .channel("navbar-unread")
+      .channel(`navbar-unread:${user.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        if (NOTIFICATION_DEBUG) {
+          console.log("[notifications] incoming message payload", payload);
+        }
         if (payload.new.receiver_id === user.id) {
           setUnreadCount((prev) => prev + 1);
+          const dedupeKey = `message-${payload.new.id}`;
+
+          onIncomingMessage?.({
+            title: "New message",
+            body: payload.new.content || "Open Campus Marketplace to reply.",
+            category: "message",
+            type: "message",
+            dedupeKey,
+          });
 
           buildIncomingMessageNotice(payload.new)
             .then((notice) => {
+              if (NOTIFICATION_DEBUG) {
+                console.log("[notifications] enriched message notice", {
+                  dedupeKey,
+                  notice,
+                });
+              }
               onIncomingMessage?.({
                 title: notice.title,
                 body: notice.body,
                 category: "message",
-                type: "info",
-                dedupeKey: `message-${payload.new.id}`,
+                type: "message",
+                dedupeKey,
               });
             })
-            .catch(() => {
+            .catch((error) => {
+              if (NOTIFICATION_DEBUG) {
+                console.warn("[notifications] failed to enrich message notice", {
+                  dedupeKey,
+                  error,
+                });
+              }
               onIncomingMessage?.({
                 title: "New message",
                 body: payload.new.content || "Open Campus Marketplace to reply.",
                 category: "message",
-                type: "info",
-                dedupeKey: `message-${payload.new.id}`,
+                type: "message",
+                dedupeKey,
               });
             });
         }
       })
       // Also increment badge for incoming offers
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "offers" }, (payload) => {
+        if (NOTIFICATION_DEBUG) {
+          console.log("[notifications] incoming offer payload", payload);
+        }
         if (payload.new.receiver_id === user.id) {
           setUnreadCount((prev) => prev + 1);
+          const dedupeKey = `offer-${payload.new.id}`;
+
+          onIncomingMessage?.({
+            title: "Offer update",
+            body: "You received a new offer.",
+            category: "offer",
+            type: "offer",
+            dedupeKey,
+          });
+
           buildIncomingOfferNotice(payload.new)
             .then((notice) => {
+              if (NOTIFICATION_DEBUG) {
+                console.log("[notifications] enriched offer notice", {
+                  dedupeKey,
+                  notice,
+                });
+              }
               onIncomingMessage?.({
                 title: notice.title,
                 body: notice.body,
                 category: "offer",
-                type: "info",
-                dedupeKey: `offer-${payload.new.id}`,
+                type: "offer",
+                dedupeKey,
               });
             })
-            .catch(() => {
+            .catch((error) => {
+              if (NOTIFICATION_DEBUG) {
+                console.warn("[notifications] failed to enrich offer notice", {
+                  dedupeKey,
+                  error,
+                });
+              }
               onIncomingMessage?.({
                 title: "Offer update",
                 body: "You received a new offer.",
                 category: "offer",
-                type: "info",
-                dedupeKey: `offer-${payload.new.id}`,
+                type: "offer",
+                dedupeKey,
               });
             });
         }
       })
-      .subscribe();
-    return () => supabase.removeChannel(channel);
+      .subscribe((status) => {
+        if (NOTIFICATION_DEBUG) {
+          console.log("[notifications] realtime channel status", {
+            userId: user.id,
+            status,
+          });
+        }
+      });
+
+    return () => {
+      if (NOTIFICATION_DEBUG) {
+        console.log("[notifications] cleaning up realtime channel", { userId: user.id });
+      }
+      supabase.removeChannel(channel);
+    };
   }, [user, onIncomingMessage]);
 
   return [unreadCount, setUnreadCount];
@@ -1109,6 +1167,9 @@ function AppInner() {
 
   // ── Unread message count for navbar badge ─────────────────
   const handleIncomingMessage = useCallback((notice) => {
+    if (NOTIFICATION_DEBUG) {
+      console.log("[notifications] forwarding realtime notice to store", notice);
+    }
     addNotification({
       title: notice.title,
       message: notice.body,
@@ -1130,6 +1191,164 @@ function AppInner() {
 
   const [unreadCount, setUnreadCount] = useUnreadCount(user, handleIncomingMessage);
   const { wishlistItems, isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(user);
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    let cancelled = false;
+
+    async function hydrateNotifications() {
+      if (NOTIFICATION_DEBUG) {
+        console.log("[notifications] hydrating existing unread notifications", { userId: user.id });
+      }
+
+      try {
+        const [{ data: unreadMessages, error: messagesError }, { data: unreadOffers, error: offersError }] = await Promise.all([
+          supabase
+            .from("messages")
+            .select("id, content, created_at, sender_id, listing_id")
+            .eq("receiver_id", user.id)
+            .eq("is_read", false)
+            .eq("is_deleted", false)
+            .order("created_at", { ascending: false })
+            .limit(25),
+          supabase
+            .from("offers")
+            .select("id, created_at, sender_id")
+            .eq("receiver_id", user.id)
+            .eq("is_read", false)
+            .order("created_at", { ascending: false })
+            .limit(25),
+        ]);
+
+        if (messagesError) throw messagesError;
+        if (offersError) throw offersError;
+        if (cancelled) return;
+
+        const hydratedMessages = await Promise.all(
+          (unreadMessages || []).map(async (message) => {
+            try {
+              const notice = await buildIncomingMessageNotice(message);
+              return {
+                id: `message-${message.id}`,
+                title: notice.title,
+                message: notice.body,
+                category: "message",
+                type: "message",
+                timestamp: message.created_at,
+                unread: true,
+                dedupeKey: `message-${message.id}`,
+                action: {
+                  onClick: () => {
+                    setMsgRecipientId(null);
+                    setMsgListingTitle(null);
+                    setMsgListingId(null);
+                    setMsgInitialDraft(null);
+                    setMsgInitialAction(null);
+                    navigateToPage("messages");
+                  },
+                },
+              };
+            } catch {
+              return {
+                id: `message-${message.id}`,
+                title: "New message",
+                message: message.content || "Open Campus Marketplace to reply.",
+                category: "message",
+                type: "message",
+                timestamp: message.created_at,
+                unread: true,
+                dedupeKey: `message-${message.id}`,
+                action: {
+                  onClick: () => {
+                    setMsgRecipientId(null);
+                    setMsgListingTitle(null);
+                    setMsgListingId(null);
+                    setMsgInitialDraft(null);
+                    setMsgInitialAction(null);
+                    navigateToPage("messages");
+                  },
+                },
+              };
+            }
+          }),
+        );
+
+        const hydratedOffers = await Promise.all(
+          (unreadOffers || []).map(async (offer) => {
+            try {
+              const notice = await buildIncomingOfferNotice(offer);
+              return {
+                id: `offer-${offer.id}`,
+                title: notice.title,
+                message: notice.body,
+                category: "offer",
+                type: "offer",
+                timestamp: offer.created_at,
+                unread: true,
+                dedupeKey: `offer-${offer.id}`,
+                action: {
+                  onClick: () => {
+                    setMsgRecipientId(null);
+                    setMsgListingTitle(null);
+                    setMsgListingId(null);
+                    setMsgInitialDraft(null);
+                    setMsgInitialAction(null);
+                    navigateToPage("messages");
+                  },
+                },
+              };
+            } catch {
+              return {
+                id: `offer-${offer.id}`,
+                title: "Offer update",
+                message: "You received a new offer.",
+                category: "offer",
+                type: "offer",
+                timestamp: offer.created_at,
+                unread: true,
+                dedupeKey: `offer-${offer.id}`,
+                action: {
+                  onClick: () => {
+                    setMsgRecipientId(null);
+                    setMsgListingTitle(null);
+                    setMsgListingId(null);
+                    setMsgInitialDraft(null);
+                    setMsgInitialAction(null);
+                    navigateToPage("messages");
+                  },
+                },
+              };
+            }
+          }),
+        );
+
+        if (cancelled) return;
+
+        [...hydratedMessages, ...hydratedOffers]
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .forEach((notification) => addNotification(notification));
+
+        if (NOTIFICATION_DEBUG) {
+          console.log("[notifications] hydration completed", {
+            userId: user.id,
+            messageNotifications: hydratedMessages.length,
+            offerNotifications: hydratedOffers.length,
+          });
+        }
+      } catch (error) {
+        if (NOTIFICATION_DEBUG) {
+          console.warn("[notifications] hydration failed", { userId: user.id, error });
+        }
+      }
+    }
+
+    hydrateNotifications();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [addNotification, navigateToPage, user]);
 
   const redirectToLogin = useCallback((requestedPage = page) => {
     const requestedPath = getPathForPage(requestedPage);

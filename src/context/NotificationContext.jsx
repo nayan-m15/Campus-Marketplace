@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 const NOTIFICATION_STORAGE_KEY = "campusxchange:notifications";
 const MAX_NOTIFICATIONS = 80;
 const DUPLICATE_WINDOW_MS = 5000;
+const NOTIFICATION_DEBUG = import.meta.env.DEV;
 
 const NotificationContext = createContext(null);
 
@@ -40,6 +41,14 @@ export function NotificationProvider({ children }) {
   const newestTimersRef = useRef(new Map());
 
   useEffect(() => {
+    if (!NOTIFICATION_DEBUG) return;
+    console.log("[notifications] provider mounted", {
+      initialCount: notifications.length,
+      initialUnread: notifications.filter((item) => item.unread).length,
+    });
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
 
     const payload = notifications
@@ -47,6 +56,15 @@ export function NotificationProvider({ children }) {
       .slice(0, MAX_NOTIFICATIONS);
 
     window.localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(payload));
+  }, [notifications]);
+
+  useEffect(() => {
+    if (!NOTIFICATION_DEBUG) return;
+    console.log("[notifications] store updated", {
+      count: notifications.length,
+      unreadCount: notifications.filter((item) => item.unread).length,
+      latest: notifications[0] || null,
+    });
   }, [notifications]);
 
   useEffect(() => () => {
@@ -70,12 +88,19 @@ export function NotificationProvider({ children }) {
       isNew: true,
     };
 
+    if (NOTIFICATION_DEBUG) {
+      console.log("[notifications] dispatch", {
+        input,
+        normalized: notification,
+      });
+    }
+
     setNotifications((current) => {
       if (notification.dedupeKey) {
         const previous = duplicateMapRef.current.get(notification.dedupeKey);
         const existingIndex = current.findIndex((item) => item.dedupeKey === notification.dedupeKey);
 
-        if (existingIndex >= 0 && previous && now - previous < DUPLICATE_WINDOW_MS) {
+        if (existingIndex >= 0) {
           const next = [...current];
           const existing = next[existingIndex];
           next[existingIndex] = {
@@ -87,7 +112,11 @@ export function NotificationProvider({ children }) {
           return next.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         }
 
-        duplicateMapRef.current.set(notification.dedupeKey, now);
+        if (previous && now - previous < DUPLICATE_WINDOW_MS) {
+          duplicateMapRef.current.set(notification.dedupeKey, now);
+        } else {
+          duplicateMapRef.current.set(notification.dedupeKey, now);
+        }
       }
 
       return [notification, ...current].slice(0, MAX_NOTIFICATIONS);
