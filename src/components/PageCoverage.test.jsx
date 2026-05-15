@@ -644,7 +644,7 @@ test("Hero loads listings, opens help popup, and routes CTA clicks", async () =>
   expect(await screen.findByRole("heading", { name: /how it works/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /close/i }));
 
-  fireEvent.click((await screen.findAllByRole("button", { name: /view details/i }))[0]);
+  fireEvent.click(await screen.findByRole("button", { name: /open details for calculator/i }));
   expect(onListingClick).toHaveBeenCalledWith(expect.objectContaining({ id: "hero-1" }));
 
   fireEvent.click(screen.getByRole("button", { name: /start listing/i }));
