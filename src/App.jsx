@@ -332,7 +332,7 @@ function ListingPriceCheck({ item }) {
   const hasEnoughDetail =
     Boolean(item?.title?.trim()) &&
     Boolean(item?.condition) &&
-    Boolean(item?.category);
+    Boolean(item?.category) &&
     String(item?.description || "").trim().length >= 8;
 
   useEffect(() => {

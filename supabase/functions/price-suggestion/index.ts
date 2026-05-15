@@ -1158,23 +1158,9 @@ Deno.serve(async (req) => {
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const serpApiKey = Deno.env.get("SERPAPI_API_KEY");
-  const authHeader = req.headers.get("Authorization");
-
   if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey || !serpApiKey) {
     return jsonResponse({ error: "Missing required backend environment variables." }, 500);
   }
-
-  if (!authHeader) {
-    return jsonResponse({ error: "Missing authorization header." }, 401);
-  }
-
-  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        Authorization: authHeader,
-      },
-    },
-  });
 
   const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {
@@ -1182,15 +1168,6 @@ Deno.serve(async (req) => {
       autoRefreshToken: false,
     },
   });
-
-  const {
-    data: { user },
-    error: authError,
-  } = await userClient.auth.getUser();
-
-  if (authError || !user) {
-    return jsonResponse({ error: authError?.message || "User not authenticated." }, 401);
-  }
 
   let body: PriceSuggestionRequest;
 
