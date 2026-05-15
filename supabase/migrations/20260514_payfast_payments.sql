@@ -1,3 +1,80 @@
+-- Source: 20260514000100_add_payfast_sandbox_payments.sql
+BEGIN;
+
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'unpaid',
+  ADD COLUMN IF NOT EXISTS payment_provider TEXT,
+  ADD COLUMN IF NOT EXISTS payment_method TEXT,
+  ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS payfast_payment_id TEXT,
+  ADD COLUMN IF NOT EXISTS payfast_payment_reference TEXT;
+
+ALTER TABLE public.transactions
+  DROP CONSTRAINT IF EXISTS transactions_payment_status_check;
+
+ALTER TABLE public.transactions
+  ADD CONSTRAINT transactions_payment_status_check
+  CHECK (payment_status IN ('unpaid', 'pending', 'paid', 'failed', 'cancelled', 'refunded'));
+
+UPDATE public.transactions
+SET payment_status = CASE
+  WHEN transaction_type = 'item_trade' THEN 'unpaid'
+  WHEN status IN ('awaiting_dropoff', 'item_received', 'awaiting_collection', 'item_released', 'completed') THEN 'paid'
+  ELSE COALESCE(payment_status, 'unpaid')
+END
+WHERE payment_status IS NULL
+   OR payment_status = 'unpaid';
+
+CREATE INDEX IF NOT EXISTS idx_transactions_payment_status
+ON public.transactions (payment_status);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_payfast_reference
+ON public.transactions (payfast_payment_reference);
+
+COMMIT;
+
+
+
+-- Source: 20260514000200_allow_awaiting_payment_transaction_status.sql
+BEGIN;
+
+ALTER TABLE public.transactions
+  DROP CONSTRAINT IF EXISTS transactions_status_check;
+
+UPDATE public.transactions
+SET status = CASE
+  WHEN status IS NULL OR btrim(status) = '' THEN 'pending'
+  WHEN lower(btrim(status)) IN ('awaiting meetup', 'awaiting_meetup') THEN 'Awaiting Meetup'
+  WHEN lower(btrim(status)) IN ('dropped_off', 'dropped off') THEN 'item_received'
+  WHEN lower(btrim(status)) IN ('collection pending approval') THEN 'collection_pending_approval'
+  WHEN lower(btrim(status)) IN ('item released') THEN 'item_released'
+  WHEN lower(btrim(status)) IN ('awaiting dropoff', 'awaiting drop-off') THEN 'awaiting_dropoff'
+  WHEN lower(btrim(status)) IN ('awaiting payment') THEN 'awaiting_payment'
+  ELSE btrim(status)
+END;
+
+ALTER TABLE public.transactions
+  ADD CONSTRAINT transactions_status_check
+  CHECK (
+    status IN (
+      'pending',
+      'awaiting_payment',
+      'awaiting_dropoff',
+      'item_received',
+      'collection_pending_approval',
+      'awaiting_collection',
+      'item_released',
+      'completed',
+      'cancelled',
+      'Awaiting Meetup'
+    )
+  );
+
+COMMIT;
+
+
+
+-- Source: 20260514000300_add_cash_offer_payment_accept_rpc.sql
 BEGIN;
 
 CREATE OR REPLACE FUNCTION public.accept_cash_offer_for_payment(p_offer_id TEXT)
@@ -137,3 +214,6 @@ $$;
 GRANT EXECUTE ON FUNCTION public.accept_cash_offer_for_payment(TEXT) TO authenticated;
 
 COMMIT;
+
+
+

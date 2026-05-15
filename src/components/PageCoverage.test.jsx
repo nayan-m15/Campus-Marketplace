@@ -566,7 +566,7 @@ test("YourListingsPage edits status and deletes a listing", async () => {
   fireEvent.click(screen.getByRole("button", { name: /🗑|delete/i }));
   fireEvent.click(await screen.findByRole("button", { name: /^delete$/i }));
 
-  await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("listings"));
+  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith("listings", { status: "archived" }));
   expect(onListingChanged).toHaveBeenCalled();
 });
 

@@ -242,7 +242,7 @@ export default function Navbar({
                 )}
               </nav>
 
-              
+              {user && <span className="navbar__desktop-bell"><NotificationBell /></span>}
 
               {/* Desktop/tablet navigation stays grouped here.
                   These links are hidden on mobile so we can keep mobile behavior
