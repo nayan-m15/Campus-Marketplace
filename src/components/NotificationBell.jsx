@@ -104,6 +104,8 @@ const TAB_ITEMS = [
   { id: "system", icon: SparkIcon, label: "Show system and update notifications" },
 ];
 
+const PRIMARY_TAB_IDS = new Set(["all", "unread"]);
+
 function getTypeAccent(type) {
   if (type === "message" || type === "offer" || type === "success") return "primary";
   if (type === "system") return "muted";
@@ -326,11 +328,30 @@ export default function NotificationBell() {
           >
             <header className="notification-bell__header">
               <div className="notification-bell__header-main">
-                <div className="notification-bell__header-glyph" aria-hidden="true">
-                  <BellIcon />
+                <div className="notification-bell__header-copy">
+                  <div className="notification-bell__header-glyph" aria-hidden="true">
+                    <BellIcon />
+                  </div>
+
+                  <div className="notification-bell__header-text">
+                    <h2 className="notification-bell__title">Notifications</h2>
+                    <p className="notification-bell__subtitle">
+                      {unreadCount > 0 ? `${unreadCount} unread updates` : "You're all caught up"}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="notification-bell__header-actions">
+                  <button
+                    type="button"
+                    aria-pressed={activeTab === "system"}
+                    aria-label="Show system and update notifications"
+                    className={`notification-bell__tab notification-bell__tab--utility${activeTab === "system" ? " notification-bell__tab--active" : ""}`}
+                    onClick={() => setActiveTab("system")}
+                  >
+                    <SparkIcon aria-hidden="true" />
+                    <span>System</span>
+                  </button>
                   <button
                     type="button"
                     className="notification-bell__icon-button"
@@ -351,7 +372,7 @@ export default function NotificationBell() {
               </div>
 
               <div className="notification-bell__tabs" role="tablist" aria-label="Notification filters">
-                {TAB_ITEMS.map(({ id, icon: Icon, label }) => (
+                {TAB_ITEMS.filter(({ id }) => PRIMARY_TAB_IDS.has(id)).map(({ id, icon: Icon, label }) => (
                   <button
                     key={id}
                     type="button"
@@ -362,6 +383,7 @@ export default function NotificationBell() {
                     onClick={() => setActiveTab(id)}
                   >
                     <Icon aria-hidden="true" />
+                    <span>{id === "all" ? "All" : "Unread"}</span>
                   </button>
                 ))}
               </div>
