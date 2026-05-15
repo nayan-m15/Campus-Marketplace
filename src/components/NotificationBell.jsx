@@ -343,14 +343,8 @@ export default function NotificationBell() {
                   >
                     <SparkIcon aria-hidden="true" />
                     <span>System</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="notification-bell__icon-button"
-                    aria-label="Notification settings"
-                  >
-                    <SlidersIcon aria-hidden="true" />
-                  </button>
+                  </button>                 
+                  
                   <button
                     ref={closeButtonRef}
                     type="button"
