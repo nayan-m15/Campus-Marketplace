@@ -226,12 +226,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Transaction has an invalid amount." }, 400);
   }
 
-  const buyerEmail = authData.user.email || "";
-  const displayName =
-    String(authData.user.user_metadata?.display_name || authData.user.user_metadata?.name || "")
-      .trim();
-  const [firstName = "", ...lastNameParts] = displayName.split(/\s+/).filter(Boolean);
-  const lastName = lastNameParts.join(" ");
   const notifyBase = functionBaseUrl || `${supabaseUrl}/functions/v1`;
   const paymentReference = transaction.payfast_payment_reference || transaction.id;
   const returnParams = new URLSearchParams({
@@ -248,9 +242,6 @@ Deno.serve(async (req) => {
     return_url: `${appBaseUrl.replace(/\/$/, "")}/bookings?${returnParams.toString()}`,
     cancel_url: `${appBaseUrl.replace(/\/$/, "")}/bookings?${cancelParams.toString()}`,
     notify_url: `${notifyBase.replace(/\/$/, "")}/payfast-itn`,
-    name_first: firstName,
-    name_last: lastName,
-    email_address: buyerEmail,
     m_payment_id: paymentReference,
     amount: amount.toFixed(2),
     item_name: String(transaction.item || "CampusXchange item").slice(0, 100),

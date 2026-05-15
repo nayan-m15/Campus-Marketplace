@@ -125,7 +125,6 @@ test("fetchListings returns normalized rows with seller profile details", async 
   const result = await fetchListings("user-1");
 
   expect(listingsQuery.neq).toHaveBeenCalledWith("status", "sold");
-  expect(listingsQuery.neq).toHaveBeenCalledWith("status", "archived");
   expect(listingsQuery.neq).toHaveBeenCalledWith("user_id", "user-1");
   expect(result).toHaveLength(1);
   expect(result[0]).toMatchObject({

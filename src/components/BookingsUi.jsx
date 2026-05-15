@@ -470,7 +470,15 @@ function TransactionBookingCard({ transaction, userId, onBook, onPay, payingId }
   const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
   const sellerItem = transaction.requested_item || transaction.item;
   const buyerItem = transaction.offered_item || "Offered item";
-  const paymentStatus = transaction.payment_status || "unpaid";
+  const hasRecordedPaymentStatus = transaction.payment_status !== null && transaction.payment_status !== undefined;
+  const statusImpliesPaid = ["awaiting_dropoff", "item_received", "awaiting_collection", "item_released", "completed"].includes(
+    transaction.status
+  );
+  const paymentStatus = hasRecordedPaymentStatus
+    ? transaction.payment_status
+    : statusImpliesPaid
+      ? "paid"
+      : "unpaid";
   const isClosed = ["cancelled", "completed", "item_released"].includes(transaction.status);
   const needsPayment = !isItemTrade && !isClosed && paymentStatus !== "paid";
   const canPay = userIsBuyer && needsPayment;
@@ -479,6 +487,8 @@ function TransactionBookingCard({ transaction, userId, onBook, onPay, payingId }
     canBookCollectionForStatus(transaction.status) ||
     (transaction.status === "item_received" && Boolean(transaction.dropoff_booking));
   const canBookCollection = userIsBuyer && !transaction.collection_booking && collectionRequestReady;
+  const showAwaitingDropoffNote =
+    !isItemTrade && transaction.status === "awaiting_dropoff" && !transaction.dropoff_booking && paymentStatus === "paid";
 
   return (
     <article className="bookings-page-card">
@@ -545,6 +555,19 @@ function TransactionBookingCard({ transaction, userId, onBook, onPay, payingId }
               Waiting for the buyer to complete PayFast sandbox payment.
             </p>
           )}
+        </article>
+      )}
+
+      {showAwaitingDropoffNote && (
+        <article className="bookings-page-card__payment bookings-page-card__payment--ready">
+          <section>
+            <p className="bookings-page-card__label">Payment confirmed</p>
+            <p>
+              {userIsSeller
+                ? "Payment is confirmed. Use the drop-off section below to book a slot."
+                : "Waiting for the seller to book the drop-off slot."}
+            </p>
+          </section>
         </article>
       )}
 

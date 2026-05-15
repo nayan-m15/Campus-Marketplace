@@ -21,7 +21,7 @@ import WishlistPage from "./components/WishlistPage";
 import { fetchListings, CONDITIONS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
-import { supabase } from "./supabaseClient";
+import { isSupabaseConfigured, supabase } from "./supabaseClient";
 import TradeFacilityDashboard from "./components/TradeFacilityDashboard";
 import YourListingsPage from "./components/YourListingsPage";
 import { useWishlist } from "./context/useWishlist";
@@ -103,6 +103,12 @@ function getPageForPath(pathname) {
   const appPath = stripBasePath(pathname);
   const matchedRoute = Object.entries(PAGE_PATHS).find(([, path]) => path === appPath);
   return matchedRoute?.[0] ?? "home";
+}
+
+function hasPaymentReturnParams(search = "") {
+  if (!search) return false;
+  const params = new URLSearchParams(search);
+  return Boolean(params.get("payment") && params.get("transaction_id"));
 }
 
 function restoreStaticHostRedirect() {
@@ -304,7 +310,7 @@ function ListingPriceCheck({ item }) {
   const hasEnoughDetail =
     Boolean(item?.title?.trim()) &&
     Boolean(item?.condition) &&
-    Boolean(item?.category) &&
+    Boolean(item?.category);
     String(item?.description || "").trim().length >= 8;
 
   useEffect(() => {
@@ -1049,6 +1055,7 @@ function AppInner() {
 
   const [page, setPage] = useState(() => {
     if (typeof window === "undefined") return "home";
+    if (hasPaymentReturnParams(window.location.search)) return "bookings";
     return getPageForPath(restoreStaticHostRedirect() || window.location.pathname);
   });
   const [activeCategory, setActiveCategory] = useState("All Items");
@@ -2500,6 +2507,53 @@ useEffect(() => {
 // Component entry point for this part of the interface.
 // Rendering and feature-specific behavior are coordinated here.
 export default function App() {
+  if (!isSupabaseConfigured) {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          padding: "24px",
+          background: "#eef6f1",
+          color: "#10261a",
+          fontFamily: "Inter, system-ui, sans-serif",
+        }}
+      >
+        <section
+          style={{
+            width: "min(560px, 100%)",
+            padding: "28px",
+            borderRadius: "18px",
+            background: "#ffffff",
+            boxShadow: "0 18px 50px rgba(16, 38, 26, 0.12)",
+          }}
+        >
+          <p style={{ margin: "0 0 8px", color: "#116b55", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            Setup required
+          </p>
+          <h1 style={{ margin: "0 0 12px", fontSize: "28px" }}>Supabase environment variables are missing</h1>
+          <p style={{ margin: "0 0 18px", color: "#4b6356", lineHeight: 1.6 }}>
+            Create a local <code>.env</code> file from <code>.env.example</code>, then add your project values and restart the dev server.
+          </p>
+          <pre
+            style={{
+              margin: 0,
+              padding: "16px",
+              overflowX: "auto",
+              borderRadius: "12px",
+              background: "#f4f8f6",
+              color: "#10261a",
+              fontSize: "13px",
+              lineHeight: 1.6,
+            }}
+          >{`VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key`}</pre>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <AuthProvider>
       <NotificationProvider>

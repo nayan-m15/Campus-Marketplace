@@ -677,6 +677,11 @@
   text-align: right;
 }
 
+.bookings-page-card__payment--ready {
+  border-color: rgba(31, 107, 82, 0.18);
+  background: rgba(31, 107, 82, 0.08);
+}
+
 .bookings-page-card__booking {
   padding: 18px;
   border-radius: 16px;
