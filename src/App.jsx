@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider, useNotifications } from "./context/NotificationContext";
 import Navbar from "./components/NavBar";
 import Hero from "./components/Hero";
+import HowItWorksPage from "./components/HowItWorksPage";
 import CategoryBar from "./components/FilterBar.jsx";
 import ListingsGrid from "./components/ListingsGrid";
 import Footer from "./components/Footer";
@@ -51,6 +52,7 @@ const PAGE_PATHS = {
   publicProfile: "/profiles",
   messages: "/messages",
   admin: "/admin",
+  howItWorks: "/how-it-works",
   yourlistings: "/your-listings",
   bookings: "/bookings",
   wishlist: "/wishlist",
@@ -2063,6 +2065,7 @@ useEffect(() => {
       clearPostLoginRedirect();
       navigateToPage("signup");
     },
+    onHowItWorks: () => navigateToPage("howItWorks"),
     onShowListingForm: () => { goHome(); setShowForm(true); },
     onProfile: () => navigateToPage("profile"),
     onMessages: () => {
@@ -2326,6 +2329,21 @@ useEffect(() => {
   );
 }
 
+  if (page === "howItWorks") {
+    return (
+      <>
+        <header><Navbar {...navbarProps} /></header>
+        <HowItWorksPage
+          user={user}
+          onBrowseClick={goHome}
+          onSignupClick={() => navigateToPage("signup")}
+          onLoginClick={() => navigateToPage("login")}
+        />
+        <footer><Footer /></footer>
+      </>
+    );
+  }
+
   return (
     <>
       {showRatingModal && pendingRatings.length > 0 && (
@@ -2437,6 +2455,7 @@ useEffect(() => {
           <Hero
             onListingClick={setSelectedListing}
             onBrowseClick={handleScrollToListings}
+            onHowItWorksClick={() => navigateToPage("howItWorks")}
             onSignupClick={() => navigateToPage("signup")}
             onLoginClick={() => navigateToPage("login")}
             user={user}

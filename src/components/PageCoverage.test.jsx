@@ -619,9 +619,10 @@ test("YourListingsPage updates listing photos in the edit modal", async () => {
   vi.unstubAllGlobals();
 });
 
-test("Hero loads listings, opens help popup, and routes CTA clicks", async () => {
+test("Hero loads listings and routes CTA clicks", async () => {
   const onListingClick = vi.fn();
   const onBrowseClick = vi.fn();
+  const onHowItWorksClick = vi.fn();
   const onSignupClick = vi.fn();
   const onLoginClick = vi.fn();
 
@@ -629,6 +630,7 @@ test("Hero loads listings, opens help popup, and routes CTA clicks", async () =>
     <Hero
       onListingClick={onListingClick}
       onBrowseClick={onBrowseClick}
+      onHowItWorksClick={onHowItWorksClick}
       onSignupClick={onSignupClick}
       onLoginClick={onLoginClick}
       user={null}
@@ -641,8 +643,7 @@ test("Hero loads listings, opens help popup, and routes CTA clicks", async () =>
   expect(onBrowseClick).toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /how it works/i }));
-  expect(await screen.findByRole("heading", { name: /how it works/i })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: /close/i }));
+  expect(onHowItWorksClick).toHaveBeenCalled();
 
   fireEvent.click(await screen.findByRole("button", { name: /open details for calculator/i }));
   expect(onListingClick).toHaveBeenCalledWith(expect.objectContaining({ id: "hero-1" }));

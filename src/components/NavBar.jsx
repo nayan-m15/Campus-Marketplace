@@ -12,6 +12,7 @@ export default function Navbar({
   profileName,
   onLogin,
   onSignup,
+  onHowItWorks,
   onSignOut,
   onShowListingForm,
   onProfile,
@@ -251,6 +252,9 @@ export default function Navbar({
                   {user ? (
                     <>
                       <li>
+                        <button className="navbar__link" onClick={onHowItWorks}>How It Works</button>
+                      </li>
+                      <li>
                         <button className="navbar__link" onClick={onMessages} style={{ position: "relative" }}>
                           <span style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
                             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -305,6 +309,7 @@ export default function Navbar({
                     </>
                   ) : (
                     <>
+                      <li><button className="navbar__link" onClick={onHowItWorks}>How It Works</button></li>
                       <li><button className="navbar__link" onClick={onLogin}>Log In</button></li>
                       <li>
                         <button className="btn-primary navbar__list-btn" onClick={onSignup}>
@@ -340,6 +345,11 @@ export default function Navbar({
                       <ul>
                         {user && (
                           <>
+                            <li>
+                              <button onClick={() => { onHowItWorks?.(); setMenuOpen(false); }}>
+                                How It Works
+                              </button>
+                            </li>
                             <li>
                               <button onClick={() => { onMessages?.(); setMenuOpen(false); }}>
                                 Messages
@@ -396,6 +406,11 @@ export default function Navbar({
 
                         {!user && (
                           <>
+                            <li>
+                              <button onClick={() => { onHowItWorks?.(); setMenuOpen(false); }}>
+                                How It Works
+                              </button>
+                            </li>
                             <li>
                               <button onClick={() => { onLogin?.(); setMenuOpen(false); }}>
                                 Log In

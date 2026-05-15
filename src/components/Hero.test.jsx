@@ -75,6 +75,7 @@ test("opens hero listing details from the whole slide while carousel controls on
     <Hero
       onListingClick={onListingClick}
       onBrowseClick={vi.fn()}
+      onHowItWorksClick={vi.fn()}
       onSignupClick={vi.fn()}
       onLoginClick={vi.fn()}
       user={{ id: "user-1" }}

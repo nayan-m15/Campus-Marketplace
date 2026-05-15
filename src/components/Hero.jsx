@@ -36,6 +36,7 @@ function formatStatCount(value) {
 export default function Hero({
   onListingClick,
   onBrowseClick,
+  onHowItWorksClick,
   onSignupClick,
   onLoginClick,
   user,
@@ -43,7 +44,6 @@ export default function Hero({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef(null);
-  const [showPopup, setShowPopup] = useState(false);
 
   const [topListings, setTopListings] = useState([]);
   const [heroStats, setHeroStats] = useState([
@@ -197,31 +197,10 @@ export default function Hero({
             <button
               className="btn-outline"
               style={{ fontSize: 15, padding: "13px 28px" }}
-              onClick={() => setShowPopup(true)}
+              onClick={onHowItWorksClick}
             >
               How It Works
             </button>
-             {showPopup && (
-                <section className="popup-overlay" onClick={() => setShowPopup(false)}>
-                  <article
-                    className="popup-card"
-                    onClick={(e) => e.stopPropagation()} // prevents closing when clicking inside
-                  >
-                    <h3>How It Works</h3>
-                    <p>
-                      Browse listings, connect with sellers, and securely complete your
-                      transaction — all in one place.
-                    </p>
-
-                    <button
-                      className="btn-outline"
-                      onClick={() => setShowPopup(false)}
-                    >
-                      Close
-                    </button>
-                  </article>
-                </section>
-              )}
           </nav>
 
           <ul className="hero__badges">

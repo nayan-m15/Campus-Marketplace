@@ -145,9 +145,10 @@ vi.mock("./utils/messageDelivery", () => ({
 }));
 
 vi.mock("./components/Hero", () => ({
-  default: ({ onBrowseClick, onSignupClick, onLoginClick }) => (
+  default: ({ onBrowseClick, onHowItWorksClick, onSignupClick, onLoginClick }) => (
     <section aria-label="Hero">
       <button onClick={onBrowseClick}>Start Browsing</button>
+      <button onClick={onHowItWorksClick}>How It Works</button>
       <button onClick={onSignupClick}>Start listing</button>
       <button onClick={onLoginClick}>Already have an account? Sign in</button>
     </section>
@@ -794,6 +795,28 @@ test("returns to the home hero when the browser goes back from signup", async ()
   await waitFor(() => {
     expect(screen.getByRole("region", { name: /hero/i })).toBeInTheDocument();
   });
+});
+
+test("navigates to the How It Works page from the hero button without a refresh", async () => {
+  renderApp();
+
+  const hero = await screen.findByRole("region", { name: /hero/i });
+  fireEvent.click(within(hero).getByRole("button", { name: /how it works/i }));
+
+  expect(await screen.findByRole("heading", { name: /how it works/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /the student journey from discovery to handover/i })).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/how-it-works");
+});
+
+test("opens the How It Works page from desktop navigation", async () => {
+  renderApp();
+
+  const nav = await screen.findByRole("navigation", { name: /user navigation/i });
+  fireEvent.click(within(nav).getByRole("button", { name: /^how it works$/i }));
+
+  expect(await screen.findByText(/students can browse listings, save items, message sellers/i)).toBeInTheDocument();
+  expect(screen.getByText(/staff accounts work inside the trade facility workflow/i)).toBeInTheDocument();
+  expect(screen.getByText(/admins balance marketplace quality and operational control/i)).toBeInTheDocument();
 });
 
 test("shows the reset password page when the recovery link uses query params", async () => {
