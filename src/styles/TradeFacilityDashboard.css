@@ -394,6 +394,21 @@
   overflow: hidden;
 }
 
+.utility-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.utility-panel .schedule-list,
+.utility-panel .activity-feed {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 220px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--staff-border) transparent;
+}
+
 .panel--feedback {
   padding: 1.3rem 1.4rem;
 }

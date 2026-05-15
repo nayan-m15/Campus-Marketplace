@@ -1661,46 +1661,6 @@ export default function MessagesPage({
               );
             })()}
 
-            {/* ── Delete Confirm Modal ── */}
-            {deleteConfirmOpen && (
-              <section className="msg-offer-modal-overlay" onClick={() => !deletingConversation && setDeleteConfirmOpen(false)}>
-                <section className="msg-delete-modal" onClick={(e) => e.stopPropagation()}>
-                  <span className="msg-delete-modal__icon" aria-hidden="true">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 6h18" />
-                      <path d="M8 6V4h8v2" />
-                      <path d="M19 6l-1 14H6L5 6" />
-                      <path d="M10 11v5" />
-                      <path d="M14 11v5" />
-                    </svg>
-                  </span>
-                  <h3 className="msg-offer-modal__title">Delete this chat?</h3>
-                  <p className="msg-delete-modal__copy">
-                    This will permanently remove the messages and offers in this conversation.
-                  </p>
-                  {deleteError && <p className="msg-offer-modal__error">{deleteError}</p>}
-                  <section className="msg-offer-modal__actions">
-                    <button
-                      className="msg-offer-modal__cancel"
-                      onClick={() => setDeleteConfirmOpen(false)}
-                      disabled={deletingConversation}
-                      type="button"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="msg-delete-modal__confirm"
-                      onClick={deleteConversation}
-                      disabled={deletingConversation}
-                      type="button"
-                    >
-                      {deletingConversation ? "Deleting..." : "Delete chat"}
-                    </button>
-                  </section>
-                </section>
-              </section>
-            )}
-
             {/* ── Flagged Listing Warning ── */}
             {flaggedWarningOpen && conversationListing?.status === "flagged" && (
               <aside
@@ -2046,6 +2006,45 @@ export default function MessagesPage({
           </>
         )}
       </section>
+      {/* ── Delete Confirm Modal ── */}
+            {deleteConfirmOpen && (
+              <section className="msg-offer-modal-overlay" onClick={() => !deletingConversation && setDeleteConfirmOpen(false)}>
+                <section className="msg-delete-modal" onClick={(e) => e.stopPropagation()}>
+                  <span className="msg-delete-modal__icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4h8v2" />
+                      <path d="M19 6l-1 14H6L5 6" />
+                      <path d="M10 11v5" />
+                      <path d="M14 11v5" />
+                    </svg>
+                  </span>
+                  <h3 className="msg-offer-modal__title">Delete this chat?</h3>
+                  <p className="msg-delete-modal__copy">
+                    This will permanently remove the messages and offers in this conversation.
+                  </p>
+                  {deleteError && <p className="msg-offer-modal__error">{deleteError}</p>}
+                  <section className="msg-offer-modal__actions">
+                    <button
+                      className="msg-offer-modal__cancel"
+                      onClick={() => setDeleteConfirmOpen(false)}
+                      disabled={deletingConversation}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="msg-delete-modal__confirm"
+                      onClick={deleteConversation}
+                      disabled={deletingConversation}
+                      type="button"
+                    >
+                      {deletingConversation ? "Deleting..." : "Delete chat"}
+                    </button>
+                  </section>
+                </section>
+              </section>
+            )}
     </section>
   );
 }
