@@ -573,43 +573,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
 
   async function handleDelete(id) {
     const { error } = await supabase.from("listings").delete().eq("id", id);
-    if (error) {
-      if (/violates foreign key constraint|transactions_listing_id_fkey/i.test(error.message || "")) {
-        const { error: archiveError } = await supabase
-          .from("listings")
-          .update({ status: "archived" })
-          .eq("id", id);
-
-        if (archiveError) {
-          if (/listings_status_check/i.test(archiveError.message || "")) {
-            const { error: soldFallbackError } = await supabase
-              .from("listings")
-              .update({ status: "sold" })
-              .eq("id", id);
-
-            if (!soldFallbackError) {
-              setListings((prev) => prev.filter((l) => l.id !== id));
-              setDeleteConfirm(null);
-              showSuccess("Listing removed. Transaction history was kept.");
-              onListingChanged?.();
-              return;
-            }
-          }
-
-          setError(archiveError.message);
-          return;
-        }
-
-        setListings((prev) => prev.filter((l) => l.id !== id));
-        setDeleteConfirm(null);
-        showSuccess("Listing removed. Transaction history was kept.");
-        onListingChanged?.();
-        return;
-      }
-
-      setError(error.message);
-      return;
-    }
+    if (error) { setError(error.message); return; }
     setListings((prev) => prev.filter((l) => l.id !== id));
     setDeleteConfirm(null);
     showSuccess("Listing deleted.");
