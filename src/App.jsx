@@ -103,6 +103,12 @@ function getPageForPath(pathname) {
   return matchedRoute?.[0] ?? "home";
 }
 
+function hasPaymentReturnParams(search = "") {
+  if (!search) return false;
+  const params = new URLSearchParams(search);
+  return Boolean(params.get("payment") && params.get("transaction_id"));
+}
+
 function restoreStaticHostRedirect() {
   if (typeof window === "undefined") return null;
 
@@ -1079,6 +1085,7 @@ function AppInner() {
 
   const [page, setPage] = useState(() => {
     if (typeof window === "undefined") return "home";
+    if (hasPaymentReturnParams(window.location.search)) return "bookings";
     return getPageForPath(restoreStaticHostRedirect() || window.location.pathname);
   });
   const [activeCategory, setActiveCategory] = useState("All Items");
