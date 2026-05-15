@@ -1,2 +1,3 @@
 -- Placeholder for a migration version that already exists in remote Supabase history.
 -- The real schema changes now live in timestamped migrations with unique versions.
+SELECT 1;
