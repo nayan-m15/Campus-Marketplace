@@ -4,6 +4,7 @@ import { insertMessage } from "../utils/messageDelivery";
 import { deriveBookingStatus } from "../utils/tradeWorkflow";
 import ReceiptModal from "./ReceiptModal";
 import { generateTransactionReceiptPdf } from "../utils/receiptPdf";
+import { useNotifications } from "../context/NotificationContext";
 import "../styles/TradeFacilityDashboard.css";
 
 const STATUS_META = {
@@ -1703,6 +1704,7 @@ function UtilityRail({ transactions, bookings, activeView }) {
 }
 
 export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
+  const { notifySuccess, notifyError, notifyInfo } = useNotifications();
   const [activeView, setActiveView] = useState("overview");
   const [transactions, setTransactions] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -1713,15 +1715,23 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   const [savingIds, setSavingIds] = useState({});
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptGeneratingId, setReceiptGeneratingId] = useState("");
-  const [toast, setToast] = useState({ msg: "", visible: false });
   const [isNavOpen, setIsNavOpen] = useState(false);
-  const toastTimer = useRef(null);
 
   const showToast = useCallback((msg) => {
-    setToast({ msg, visible: true });
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast({ msg: "", visible: false }), 3200);
-  }, []);
+    const lower = String(msg || "").toLowerCase();
+
+    if (lower.includes("unable") || lower.includes("failed") || lower.includes("select a transaction")) {
+      notifyError("Trade facility update", msg, { category: "facility", dedupeKey: `trade-error-${msg}` });
+      return;
+    }
+
+    if (lower.includes("downloaded")) {
+      notifyInfo("Receipt ready", msg, { category: "sync", dedupeKey: `trade-info-${msg}` });
+      return;
+    }
+
+    notifySuccess("Trade facility update", msg, { category: "status", dedupeKey: `trade-success-${msg}` });
+  }, [notifyError, notifyInfo, notifySuccess]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -1829,8 +1839,6 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   useEffect(() => {
     setIsNavOpen(false);
   }, [activeView]);
-
-  useEffect(() => () => clearTimeout(toastTimer.current), []);
 
   useEffect(() => {
     if (!isNavOpen) return undefined;
@@ -2232,18 +2240,6 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
           }}
         />
       ) : null}
-
-      <aside
-        className={`save-toast ${toast.visible ? "save-toast--visible" : ""}`}
-        aria-live="polite"
-        aria-atomic="true"
-        role="status"
-      >
-        <span className="save-toast__icon" aria-hidden="true">
-          <Icon name="check-circle" className="save-toast__icon-svg" />
-        </span>
-        {toast.msg}
-      </aside>
     </section>
   );
 }

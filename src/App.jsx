@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { NotificationProvider, useNotifications } from "./context/NotificationContext";
 import Navbar from "./components/NavBar";
 import Hero from "./components/Hero";
 import CategoryBar from "./components/FilterBar.jsx";
@@ -37,6 +38,7 @@ import { insertMessage } from "./utils/messageDelivery";
 import { StudentBookingsPage } from "./components/BookingsUi";
 import RatingPromptModal from "./components/RatingPromptModal";
 
+const NOTIFICATION_DEBUG = import.meta.env.DEV;
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 const DEBUG_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEBUG_AUTH === "true";
 const POST_LOGIN_REDIRECT_KEY = "campusxchange:post-login-redirect";
@@ -166,36 +168,6 @@ function isProfileComplete(profile) {
 }
 
 // ── Unread message count hook ──────────────────────────────
-function canUseBrowserNotifications() {
-  return typeof window !== "undefined" && "Notification" in window;
-}
-
-// Small prep work happens in this helper before the UI uses the result.
-// It keeps lookup, formatting, or data shaping out of the render path.
-function showBrowserNotification(title, options) {
-  if (!canUseBrowserNotifications() || window.Notification.permission !== "granted") return false;
-  new window.Notification(title, options);
-  return true;
-}
-
-function warningToastStyle(top = 20) {
-  return {
-    position: "fixed",
-    top,
-    right: 20,
-    width: "min(420px, calc(100vw - 32px))",
-    textAlign: "left",
-    background: "#fff7ed",
-    color: "#7c2d12",
-    padding: "16px 18px",
-    borderRadius: 12,
-    border: "1px solid #fdba74",
-    zIndex: 10000,
-    boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
-    fontFamily: "var(--font)",
-  };
-}
-
 function parseListingPriceValue(price) {
   if (typeof price === "number") return Number.isFinite(price) ? price : null;
   const numericText = String(price ?? "")
@@ -486,18 +458,22 @@ async function buildIncomingMessageNotice(message) {
   };
 }
 
-async function fetchNotificationPrefs(userId, fallback) {
-  const { data } = await supabase
+async function buildIncomingOfferNotice(offer) {
+  let senderName = "Someone";
+
+  const { data: sender } = await supabase
     .from("profiles")
-    .select("notif_messages, notif_listing_activity")
-    .eq("id", userId)
+    .select("display_name, name")
+    .eq("id", offer.sender_id)
     .single();
 
-  if (!data) return fallback;
+  if (sender?.display_name || sender?.name) {
+    senderName = sender.display_name || sender.name;
+  }
 
   return {
-    notif_messages: data.notif_messages !== false,
-    notif_listing_activity: data.notif_listing_activity !== false,
+    title: "Offer update",
+    body: `${senderName} sent a new offer.`,
   };
 }
 
@@ -505,10 +481,6 @@ async function fetchNotificationPrefs(userId, fallback) {
 // That keeps the surrounding component easier to follow.
 function useUnreadCount(user, onIncomingMessage) {
   const [unreadCount, setUnreadCount] = useState(0);
-  const notificationPrefsRef = useRef({
-    notif_messages: true,
-    notif_listing_activity: true,
-  });
 
   useEffect(() => {
     if (!user) { setUnreadCount(0); return; }
@@ -526,70 +498,138 @@ function useUnreadCount(user, onIncomingMessage) {
         .eq("receiver_id", user.id)
         .eq("is_read", false),
     ]).then(([{ count: msgCount }, { count: offerCount }]) => {
+      if (NOTIFICATION_DEBUG) {
+        console.log("[notifications] initial unread count fetched", {
+          userId: user.id,
+          messageCount: msgCount || 0,
+          offerCount: offerCount || 0,
+        });
+      }
       setUnreadCount((msgCount || 0) + (offerCount || 0));
     });
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("notif_messages, notif_listing_activity")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (!data) return;
-        notificationPrefsRef.current = {
-          notif_messages: data.notif_messages !== false,
-          notif_listing_activity: data.notif_listing_activity !== false,
-        };
-      });
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
+    if (NOTIFICATION_DEBUG) {
+      console.log("[notifications] subscribing to realtime channel", { userId: user.id });
+    }
     const channel = supabase
-      .channel("navbar-unread")
+      .channel(`navbar-unread:${user.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        if (NOTIFICATION_DEBUG) {
+          console.log("[notifications] incoming message payload", payload);
+        }
         if (payload.new.receiver_id === user.id) {
           setUnreadCount((prev) => prev + 1);
+          const dedupeKey = `message-${payload.new.id}`;
 
-          fetchNotificationPrefs(user.id, notificationPrefsRef.current)
-            .then((prefs) => {
-              notificationPrefsRef.current = prefs;
-              const isListingMessage = Boolean(payload.new.listing_id);
-              const shouldNotify = isListingMessage
-                ? prefs.notif_listing_activity || prefs.notif_messages
-                : prefs.notif_messages;
+          onIncomingMessage?.({
+            title: "New message",
+            body: payload.new.content || "Open Campus Marketplace to reply.",
+            category: "message",
+            type: "message",
+            dedupeKey,
+          });
 
-              if (!shouldNotify) return null;
-              return buildIncomingMessageNotice(payload.new);
-            })
+          buildIncomingMessageNotice(payload.new)
             .then((notice) => {
-              if (!notice) return;
-              const shownInBrowser = showBrowserNotification(notice.title, {
+              if (NOTIFICATION_DEBUG) {
+                console.log("[notifications] enriched message notice", {
+                  dedupeKey,
+                  notice,
+                });
+              }
+              onIncomingMessage?.({
+                title: notice.title,
                 body: notice.body,
-                tag: `message-${payload.new.id}`,
+                category: "message",
+                type: "message",
+                dedupeKey,
               });
-              onIncomingMessage?.({ ...notice, browser: shownInBrowser });
             })
-            .catch(() => {
+            .catch((error) => {
+              if (NOTIFICATION_DEBUG) {
+                console.warn("[notifications] failed to enrich message notice", {
+                  dedupeKey,
+                  error,
+                });
+              }
               onIncomingMessage?.({
                 title: "New message",
                 body: payload.new.content || "Open Campus Marketplace to reply.",
-                browser: false,
+                category: "message",
+                type: "message",
+                dedupeKey,
               });
             });
         }
       })
       // Also increment badge for incoming offers
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "offers" }, (payload) => {
+        if (NOTIFICATION_DEBUG) {
+          console.log("[notifications] incoming offer payload", payload);
+        }
         if (payload.new.receiver_id === user.id) {
           setUnreadCount((prev) => prev + 1);
+          const dedupeKey = `offer-${payload.new.id}`;
+
+          onIncomingMessage?.({
+            title: "Offer update",
+            body: "You received a new offer.",
+            category: "offer",
+            type: "offer",
+            dedupeKey,
+          });
+
+          buildIncomingOfferNotice(payload.new)
+            .then((notice) => {
+              if (NOTIFICATION_DEBUG) {
+                console.log("[notifications] enriched offer notice", {
+                  dedupeKey,
+                  notice,
+                });
+              }
+              onIncomingMessage?.({
+                title: notice.title,
+                body: notice.body,
+                category: "offer",
+                type: "offer",
+                dedupeKey,
+              });
+            })
+            .catch((error) => {
+              if (NOTIFICATION_DEBUG) {
+                console.warn("[notifications] failed to enrich offer notice", {
+                  dedupeKey,
+                  error,
+                });
+              }
+              onIncomingMessage?.({
+                title: "Offer update",
+                body: "You received a new offer.",
+                category: "offer",
+                type: "offer",
+                dedupeKey,
+              });
+            });
         }
       })
-      .subscribe();
-    return () => supabase.removeChannel(channel);
+      .subscribe((status) => {
+        if (NOTIFICATION_DEBUG) {
+          console.log("[notifications] realtime channel status", {
+            userId: user.id,
+            status,
+          });
+        }
+      });
+
+    return () => {
+      if (NOTIFICATION_DEBUG) {
+        console.log("[notifications] cleaning up realtime channel", { userId: user.id });
+      }
+      supabase.removeChannel(channel);
+    };
   }, [user, onIncomingMessage]);
 
   return [unreadCount, setUnreadCount];
@@ -601,24 +641,24 @@ function ListingDetailsModal({
   onClose,
   onMessageSeller,
   onSendOffer,
+  onFlaggedWarning,
   user,
   isWishlisted,
   onToggleWishlist,
   resolveListingForMessaging,
 }) {
+  const { notifySuccess, notifyError } = useNotifications();
   const [message, setMessage] = useState(`Hi, is the ${item?.title || "item"} still available?`);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [flaggedWarningItem, setFlaggedWarningItem] = useState(null);
   const prevItemIdRef = useRef(null);
   useEffect(() => {
     if (item && item.id !== prevItemIdRef.current) {
       prevItemIdRef.current = item.id;
       setMessage(`Hi, is the ${item.title || "item"} still available?`);
       setCurrentImageIndex(0);
-      setFlaggedWarningItem(null);
     }
   }, [item?.id]);
 
@@ -701,9 +741,17 @@ function ListingDetailsModal({
       if (error) throw new Error(error.message);
       setMessage("");
       setSendSuccess("Message sent! Opening conversation...");
+      notifySuccess("Message sent", "Your message was delivered and the conversation is opening.", {
+        category: "message",
+        dedupeKey: `message-sent-${item.id}-${Date.now()}`,
+      });
       setTimeout(() => { onClose(); onMessageSeller(item, { acknowledged, suppressDraft: true }); }, 1000);
     } catch (err) {
       setSendError(err.message || "Failed to send message.");
+      notifyError("Message failed", err.message || "Failed to send message.", {
+        category: "error",
+        dedupeKey: `message-error-${item.id}-${err.message || "send"}`,
+      });
     } finally {
       setSending(false);
     }
@@ -712,7 +760,7 @@ function ListingDetailsModal({
   async function handleSendMessage() {
     const latestItem = await resolveListingForMessaging?.(item) || item;
     if (latestItem?.status === "flagged") {
-      setFlaggedWarningItem(latestItem);
+      onFlaggedWarning?.(latestItem, () => performSendMessage({ acknowledged: true }));
       return;
     }
 
@@ -862,49 +910,6 @@ function ListingDetailsModal({
         </section>
         </article>
       </section>
-      {flaggedWarningItem && (
-        <aside
-          role="alertdialog"
-          aria-labelledby="listing-flagged-warning-title"
-          aria-live="assertive"
-          style={warningToastStyle(24)}
-        >
-          <button
-            onClick={() => setFlaggedWarningItem(null)}
-            aria-label="Close flagged warning"
-            type="button"
-            style={{ position: "absolute", top: 10, right: 10, border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
-          >
-            x
-          </button>
-          <h2 id="listing-flagged-warning-title" style={{ margin: "0 28px 8px 0", fontSize: 20 }}>
-            Flagged listing warning
-          </h2>
-          <p style={{ margin: "0 0 8px" }}>This listing has been flagged by an admin.</p>
-          <p style={{ margin: "0 0 16px" }}>
-            <strong>Reason:</strong> {flaggedWarningItem.flag_reason?.trim() || "No reason was provided."}
-          </p>
-          <section style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="item-modal-send-btn item-modal-send-btn--secondary"
-              onClick={() => setFlaggedWarningItem(null)}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="item-modal-send-btn"
-              onClick={() => {
-                setFlaggedWarningItem(null);
-                performSendMessage({ acknowledged: true });
-              }}
-            >
-              Continue
-            </button>
-          </section>
-        </aside>
-      )}
     </>
   );
 }
@@ -1029,42 +1034,6 @@ function ModerationModal({
   );
 }
 
-function FlaggedListingWarningToast({ item, onClose, onContinue }) {
-  if (!item) return null;
-
-  return (
-    <aside
-      role="alertdialog"
-      aria-labelledby="flagged-listing-warning-title"
-      aria-live="assertive"
-      style={warningToastStyle()}
-    >
-      <button
-        onClick={onClose}
-        aria-label="Close flagged listing warning"
-        type="button"
-        style={{ position: "absolute", top: 10, right: 10, border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
-      >
-        x
-      </button>
-      <h2 id="flagged-listing-warning-title" style={{ margin: "0 28px 8px 0", fontSize: 20 }}>
-        Flagged listing warning
-      </h2>
-      <p style={{ margin: "0 0 8px" }}>This listing has been flagged by an admin.</p>
-      <p style={{ margin: "0 0 16px" }}>
-        <strong>Reason:</strong> {item.flag_reason?.trim() || "No reason was provided."}
-      </p>
-      <section style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
-        <button type="button" className="item-modal-send-btn item-modal-send-btn--secondary" onClick={onClose}>
-          Cancel
-        </button>
-        <button type="button" className="item-modal-send-btn" onClick={onContinue}>
-          Continue
-        </button>
-      </section>
-    </aside>
-  );
-}
 // Component entry point for this part of the interface.
 // Rendering and feature-specific behavior are coordinated here.
 function AppInner() {
@@ -1076,6 +1045,7 @@ function AppInner() {
     clearPasswordRecovery,
     lastAuthEvent,
   } = useAuth();
+  const { addNotification, notifySuccess } = useNotifications();
 
   const [page, setPage] = useState(() => {
     if (typeof window === "undefined") return "home";
@@ -1087,10 +1057,8 @@ function AppInner() {
   const [priceRange, setPriceRange] = useState({ min: "", max: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [successMessage, setSuccessMessage] = useState(null);
   const [selectedListing, setSelectedListing] = useState(null);
   const [moderationListing, setModerationListing] = useState(null);
-  const [flaggedListingPrompt, setFlaggedListingPrompt] = useState(null);
   const [acknowledgedFlaggedListingId, setAcknowledgedFlaggedListingId] = useState(null);
   const [moderationState, setModerationState] = useState({
     loading: "",
@@ -1110,7 +1078,7 @@ function AppInner() {
   const [msgListingId, setMsgListingId] = useState(null);
   const [msgInitialDraft, setMsgInitialDraft] = useState(null);
   const [msgInitialAction, setMsgInitialAction] = useState(null);
-  const [messageNotice, setMessageNotice] = useState(null);
+  const [flaggedListingDialog, setFlaggedListingDialog] = useState(null);
 
   const [profileChecked, setProfileChecked] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
@@ -1119,15 +1087,6 @@ function AppInner() {
   const [currentProfile, setCurrentProfile] = useState(null);
   const [pendingRatings, setPendingRatings] = useState([]);
   const [showRatingModal, setShowRatingModal] = useState(false);
-
-  // ── Unread message count for navbar badge ─────────────────
-  const handleIncomingMessage = useCallback((notice) => {
-    setMessageNotice(notice);
-    setTimeout(() => setMessageNotice(null), 5000);
-  }, []);
-
-  const [unreadCount, setUnreadCount] = useUnreadCount(user, handleIncomingMessage);
-  const { wishlistItems, isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(user);
 
   // ── Refs for the filter bar and listings section so CTA/search can scroll cleanly ──
   const filterBarRef = useRef(null);
@@ -1196,6 +1155,191 @@ function AppInner() {
 
     setPage((currentPage) => (currentPage === nextPage ? currentPage : nextPage));
   }, []);
+
+  // ── Unread message count for navbar badge ─────────────────
+  const handleIncomingMessage = useCallback((notice) => {
+    if (NOTIFICATION_DEBUG) {
+      console.log("[notifications] forwarding realtime notice to store", notice);
+    }
+    addNotification({
+      title: notice.title,
+      message: notice.body,
+      category: notice.category || "message",
+      type: notice.type || "info",
+      dedupeKey: notice.dedupeKey,
+      action: {
+        onClick: () => {
+          setMsgRecipientId(null);
+          setMsgListingTitle(null);
+          setMsgListingId(null);
+          setMsgInitialDraft(null);
+          setMsgInitialAction(null);
+          navigateToPage("messages");
+        },
+      },
+    });
+  }, [addNotification, navigateToPage]);
+
+  const [unreadCount, setUnreadCount] = useUnreadCount(user, handleIncomingMessage);
+  const { wishlistItems, isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(user);
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    let cancelled = false;
+
+    async function hydrateNotifications() {
+      if (NOTIFICATION_DEBUG) {
+        console.log("[notifications] hydrating existing unread notifications", { userId: user.id });
+      }
+
+      try {
+        const [{ data: unreadMessages, error: messagesError }, { data: unreadOffers, error: offersError }] = await Promise.all([
+          supabase
+            .from("messages")
+            .select("id, content, created_at, sender_id, listing_id")
+            .eq("receiver_id", user.id)
+            .eq("is_read", false)
+            .eq("is_deleted", false)
+            .order("created_at", { ascending: false })
+            .limit(25),
+          supabase
+            .from("offers")
+            .select("id, created_at, sender_id")
+            .eq("receiver_id", user.id)
+            .eq("is_read", false)
+            .order("created_at", { ascending: false })
+            .limit(25),
+        ]);
+
+        if (messagesError) throw messagesError;
+        if (offersError) throw offersError;
+        if (cancelled) return;
+
+        const hydratedMessages = await Promise.all(
+          (unreadMessages || []).map(async (message) => {
+            try {
+              const notice = await buildIncomingMessageNotice(message);
+              return {
+                id: `message-${message.id}`,
+                title: notice.title,
+                message: notice.body,
+                category: "message",
+                type: "message",
+                timestamp: message.created_at,
+                unread: true,
+                dedupeKey: `message-${message.id}`,
+                action: {
+                  onClick: () => {
+                    setMsgRecipientId(null);
+                    setMsgListingTitle(null);
+                    setMsgListingId(null);
+                    setMsgInitialDraft(null);
+                    setMsgInitialAction(null);
+                    navigateToPage("messages");
+                  },
+                },
+              };
+            } catch {
+              return {
+                id: `message-${message.id}`,
+                title: "New message",
+                message: message.content || "Open Campus Marketplace to reply.",
+                category: "message",
+                type: "message",
+                timestamp: message.created_at,
+                unread: true,
+                dedupeKey: `message-${message.id}`,
+                action: {
+                  onClick: () => {
+                    setMsgRecipientId(null);
+                    setMsgListingTitle(null);
+                    setMsgListingId(null);
+                    setMsgInitialDraft(null);
+                    setMsgInitialAction(null);
+                    navigateToPage("messages");
+                  },
+                },
+              };
+            }
+          }),
+        );
+
+        const hydratedOffers = await Promise.all(
+          (unreadOffers || []).map(async (offer) => {
+            try {
+              const notice = await buildIncomingOfferNotice(offer);
+              return {
+                id: `offer-${offer.id}`,
+                title: notice.title,
+                message: notice.body,
+                category: "offer",
+                type: "offer",
+                timestamp: offer.created_at,
+                unread: true,
+                dedupeKey: `offer-${offer.id}`,
+                action: {
+                  onClick: () => {
+                    setMsgRecipientId(null);
+                    setMsgListingTitle(null);
+                    setMsgListingId(null);
+                    setMsgInitialDraft(null);
+                    setMsgInitialAction(null);
+                    navigateToPage("messages");
+                  },
+                },
+              };
+            } catch {
+              return {
+                id: `offer-${offer.id}`,
+                title: "Offer update",
+                message: "You received a new offer.",
+                category: "offer",
+                type: "offer",
+                timestamp: offer.created_at,
+                unread: true,
+                dedupeKey: `offer-${offer.id}`,
+                action: {
+                  onClick: () => {
+                    setMsgRecipientId(null);
+                    setMsgListingTitle(null);
+                    setMsgListingId(null);
+                    setMsgInitialDraft(null);
+                    setMsgInitialAction(null);
+                    navigateToPage("messages");
+                  },
+                },
+              };
+            }
+          }),
+        );
+
+        if (cancelled) return;
+
+        [...hydratedMessages, ...hydratedOffers]
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .forEach((notification) => addNotification(notification));
+
+        if (NOTIFICATION_DEBUG) {
+          console.log("[notifications] hydration completed", {
+            userId: user.id,
+            messageNotifications: hydratedMessages.length,
+            offerNotifications: hydratedOffers.length,
+          });
+        }
+      } catch (error) {
+        if (NOTIFICATION_DEBUG) {
+          console.warn("[notifications] hydration failed", { userId: user.id, error });
+        }
+      }
+    }
+
+    hydrateNotifications();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [addNotification, navigateToPage, user]);
 
   const redirectToLogin = useCallback((requestedPage = page) => {
     const requestedPath = getPathForPage(requestedPage);
@@ -1496,11 +1640,65 @@ useEffect(() => {
   // State updates and follow-up UI actions are triggered here.
   function handleListingSuccess() {
     setShowForm(false);
-    setSuccessMessage("🎉 Your listing has been published!");
-    setTimeout(() => setSuccessMessage(null), 4000);
+    notifySuccess("Listing published", "Your listing is now live in the marketplace.", {
+      category: "listing",
+      dedupeKey: `listing-published-${Date.now()}`,
+    });
     fetchListings(user?.id)
       .then(setAllListings)
       .catch((err) => setListingsError(err.message));
+  }
+
+  function continueFlaggedListingFlow(item) {
+    if (!item) return;
+
+    if (item.__pendingAction === "offer") {
+      const listingType = String(item?.listing_type || "sale").toLowerCase();
+      const isTradeListing =
+        item?.status === "for_trade" ||
+        ["trade", "trade_only", "sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
+
+      openMessagesForListing(item, {
+        acknowledged: true,
+        initialDraft: isTradeListing
+          ? `Hello, I'd like to send an item trade offer for "${item.title}".`
+          : `Hello, I'd like to send an offer for "${item.title}".`,
+        initialAction: "offer",
+      });
+      return;
+    }
+
+    openMessagesForListing(item, { acknowledged: true });
+  }
+
+  function openFlaggedListingWarning(item, onContinue) {
+    setFlaggedListingDialog({
+      item,
+      onContinue,
+    });
+  }
+
+  function closeFlaggedListingWarning() {
+    setFlaggedListingDialog(null);
+  }
+
+  function notifyFlaggedListingWarning(item, pendingAction) {
+    addNotification({
+      title: "Flagged listing warning",
+      message: item.flag_reason?.trim()
+        ? `Continue with caution. ${item.flag_reason.trim()}`
+        : "This listing was flagged by an admin. Continue with caution.",
+      category: "warning",
+      type: "warning",
+      dedupeKey: `flagged-${item.id}-${pendingAction}`,
+      action: {
+        onClick: () => continueFlaggedListingFlow({ ...item, __pendingAction: pendingAction }),
+      },
+    });
+    openFlaggedListingWarning(
+      item,
+      () => continueFlaggedListingFlow({ ...item, __pendingAction: pendingAction }),
+    );
   }
 
   // User-driven changes pass through this handler first.
@@ -1553,7 +1751,7 @@ useEffect(() => {
   async function handleMessageSeller(item, { acknowledged = false, suppressDraft = false } = {}) {
     const latestItem = await resolveListingForMessaging(item);
     if (latestItem?.status === "flagged" && !acknowledged) {
-      setFlaggedListingPrompt({ ...latestItem, __pendingAction: "message" });
+      notifyFlaggedListingWarning(latestItem, "message");
       return;
     }
     openMessagesForListing(latestItem, { acknowledged, suppressDraft });
@@ -1567,7 +1765,7 @@ useEffect(() => {
 
     const latestItem = await resolveListingForMessaging(item);
     if (latestItem?.status === "flagged") {
-      setFlaggedListingPrompt({ ...latestItem, __pendingAction: "offer" });
+      notifyFlaggedListingWarning(latestItem, "offer");
       return;
     }
 
@@ -1887,26 +2085,6 @@ useEffect(() => {
     onAdminDashboard: () => navigateToPage("admin"),
   };
 
-  const messageNoticeToast = messageNotice && (
-    <button
-      type="button"
-      onClick={() => {
-        setMessageNotice(null);
-        setMsgRecipientId(null);
-        setMsgListingTitle(null);
-        setMsgListingId(null);
-        setMsgInitialDraft(null);
-        setMsgInitialAction(null);
-        navigateToPage("messages");
-      }}
-      style={{ position: "fixed", top: 20, right: 20, maxWidth: 320, textAlign: "left", background: "var(--gray-900)", color: "#fff", padding: "12px 16px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", cursor: "pointer", fontFamily: "var(--font)" }}
-      aria-label="Open new message notification"
-    >
-      <span style={{ display: "block", marginBottom: 4 }}>{messageNotice.title}</span>
-      <span style={{ display: "block", fontWeight: 400, opacity: 0.88 }}>{messageNotice.body}</span>
-    </button>
-  );
-
   if (page === "profile") {
     return (
       <>
@@ -1918,7 +2096,6 @@ useEffect(() => {
           />
         )}
         <header><Navbar {...navbarProps} /></header>
-        {messageNoticeToast}
         <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} onNameChange={setProfileName} />
       </>
     );
@@ -1935,7 +2112,6 @@ useEffect(() => {
           />
         )}
         <header><Navbar {...navbarProps} /></header>
-        {messageNoticeToast}
         <PublicProfilePage
           userId={publicProfileId}
           onBack={() => navigateToPage(prevPage)}
@@ -1967,7 +2143,6 @@ useEffect(() => {
           />
         )}
         <header><Navbar {...navbarProps} /></header>
-        {messageNoticeToast}
         <MessagesPage
           initialRecipientId={msgRecipientId}
           initialListingTitle={msgListingTitle}
@@ -2007,7 +2182,6 @@ useEffect(() => {
           />
         )}
         <header><Navbar {...navbarProps} /></header>
-        {messageNoticeToast}
         <YourListingsPage
           onBack={goHome}
           onListingChanged={() =>
@@ -2031,7 +2205,6 @@ useEffect(() => {
           />
         )}
         <header><Navbar {...navbarProps} /></header>
-        {messageNoticeToast}
         <StudentBookingsPage user={user} onBack={goHome} />
       </>
     );
@@ -2049,7 +2222,6 @@ useEffect(() => {
           />
         )}
         <header><Navbar {...navbarProps} /></header>
-        {messageNoticeToast}
         <WishlistPage
           wishlistItems={wishlistItems}
           loading={wishlistLoading}
@@ -2063,11 +2235,68 @@ useEffect(() => {
           onClose={() => setSelectedListing(null)}
           onMessageSeller={handleMessageSeller}
           onSendOffer={handleSendOffer}
+          onFlaggedWarning={openFlaggedListingWarning}
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
           resolveListingForMessaging={resolveListingForMessaging}
           />
+        {flaggedListingDialog?.item && (
+          <aside
+            className="item-modal-overlay"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="flagged-listing-warning-title"
+            onClick={closeFlaggedListingWarning}
+          >
+            <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="modal-close"
+                onClick={closeFlaggedListingWarning}
+                aria-label="Close flagged listing warning"
+                type="button"
+              >
+                ×
+              </button>
+              <section className="item-modal-scroll">
+                <section className="item-modal-scroll-inner">
+                  <section className="item-modal-layout">
+                    <section className="item-modal-right-column item-modal-right-column--full">
+                      <article className="item-modal-card">
+                        <h2 id="flagged-listing-warning-title">Flagged listing warning</h2>
+                        <p>This listing has been flagged by an admin. Continue with caution.</p>
+                        <p>
+                          <strong>Reason:</strong>{" "}
+                          {flaggedListingDialog.item.flag_reason?.trim() || "No reason was provided."}
+                        </p>
+                        <section className="item-modal-actions">
+                          <button
+                            type="button"
+                            className="item-modal-send-btn item-modal-send-btn--secondary"
+                            onClick={closeFlaggedListingWarning}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="item-modal-send-btn"
+                            onClick={() => {
+                              const continueFlow = flaggedListingDialog.onContinue;
+                              closeFlaggedListingWarning();
+                              continueFlow?.();
+                            }}
+                          >
+                            Continue
+                          </button>
+                        </section>
+                      </article>
+                    </section>
+                  </section>
+                </section>
+              </section>
+            </article>
+          </aside>
+        )}
         <ModerationModal
           item={moderationListing}
           actionState={moderationState}
@@ -2077,32 +2306,6 @@ useEffect(() => {
           onFlagListing={handleFlagListing}
           onUnflagListing={handleUnflagListing}
           onRemoveListing={handleRemoveListing}
-        />
-        <FlaggedListingWarningToast
-          item={flaggedListingPrompt}
-          onClose={() => setFlaggedListingPrompt(null)}
-          onContinue={() => {
-            const item = flaggedListingPrompt;
-            setFlaggedListingPrompt(null);
-            if (!item) return;
-
-            if (item.__pendingAction === "offer") {
-              const listingType = String(item?.listing_type || "sale").toLowerCase();
-              const isTradeListing =
-                item?.status === "for_trade" ||
-                ["trade", "trade_only", "sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
-              openMessagesForListing(item, {
-                acknowledged: true,
-                initialDraft: isTradeListing
-                  ? `Hello, I'd like to send an item trade offer for "${item.title}".`
-                  : `Hello, I'd like to send an offer for "${item.title}".`,
-                initialAction: "offer",
-              });
-              return;
-            }
-
-            openMessagesForListing(item, { acknowledged: true });
-          }}
         />
       </>
     );
@@ -2118,7 +2321,6 @@ useEffect(() => {
         />
       )}
       <header><Navbar {...navbarProps} /></header>
-      {messageNoticeToast}
       <SettingsPage onBack={goHome} onSignOut={handleSignOut} onAccountDeleted={handleAccountDeleted} />
     </>
   );
@@ -2135,14 +2337,6 @@ useEffect(() => {
       )}
       <header>
         <Navbar {...navbarProps} />
-
-        {successMessage && (
-          <section style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "var(--gray-900)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)", whiteSpace: "nowrap" }}>
-            {successMessage}
-          </section>
-        )}
-
-        {messageNoticeToast}
 
         {showForm && (
           <aside
@@ -2164,11 +2358,68 @@ useEffect(() => {
           onClose={() => setSelectedListing(null)}
           onMessageSeller={handleMessageSeller}
           onSendOffer={handleSendOffer}
+          onFlaggedWarning={openFlaggedListingWarning}
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
           resolveListingForMessaging={resolveListingForMessaging}
         />
+        {flaggedListingDialog?.item && (
+          <aside
+            className="item-modal-overlay"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="flagged-listing-warning-title"
+            onClick={closeFlaggedListingWarning}
+          >
+            <article className="item-modal-content" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="modal-close"
+                onClick={closeFlaggedListingWarning}
+                aria-label="Close flagged listing warning"
+                type="button"
+              >
+                ×
+              </button>
+              <section className="item-modal-scroll">
+                <section className="item-modal-scroll-inner">
+                  <section className="item-modal-layout">
+                    <section className="item-modal-right-column item-modal-right-column--full">
+                      <article className="item-modal-card">
+                        <h2 id="flagged-listing-warning-title">Flagged listing warning</h2>
+                        <p>This listing has been flagged by an admin. Continue with caution.</p>
+                        <p>
+                          <strong>Reason:</strong>{" "}
+                          {flaggedListingDialog.item.flag_reason?.trim() || "No reason was provided."}
+                        </p>
+                        <section className="item-modal-actions">
+                          <button
+                            type="button"
+                            className="item-modal-send-btn item-modal-send-btn--secondary"
+                            onClick={closeFlaggedListingWarning}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="item-modal-send-btn"
+                            onClick={() => {
+                              const continueFlow = flaggedListingDialog.onContinue;
+                              closeFlaggedListingWarning();
+                              continueFlow?.();
+                            }}
+                          >
+                            Continue
+                          </button>
+                        </section>
+                      </article>
+                    </section>
+                  </section>
+                </section>
+              </section>
+            </article>
+          </aside>
+        )}
         <ModerationModal
           item={moderationListing}
           actionState={moderationState}
@@ -2178,32 +2429,6 @@ useEffect(() => {
           onFlagListing={handleFlagListing}
           onUnflagListing={handleUnflagListing}
           onRemoveListing={handleRemoveListing}
-        />
-        <FlaggedListingWarningToast
-          item={flaggedListingPrompt}
-          onClose={() => setFlaggedListingPrompt(null)}
-          onContinue={() => {
-            const item = flaggedListingPrompt;
-            setFlaggedListingPrompt(null);
-            if (!item) return;
-
-            if (item.__pendingAction === "offer") {
-              const listingType = String(item?.listing_type || "sale").toLowerCase();
-              const isTradeListing =
-                item?.status === "for_trade" ||
-                ["trade", "trade_only", "sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
-              openMessagesForListing(item, {
-                acknowledged: true,
-                initialDraft: isTradeListing
-                  ? `Hello, I'd like to send an item trade offer for "${item.title}".`
-                  : `Hello, I'd like to send an offer for "${item.title}".`,
-                initialAction: "offer",
-              });
-              return;
-            }
-
-            openMessagesForListing(item, { acknowledged: true });
-          }}
         />
       </header>
 
@@ -2277,7 +2502,9 @@ useEffect(() => {
 export default function App() {
   return (
     <AuthProvider>
-      <AppInner />
+      <NotificationProvider>
+        <AppInner />
+      </NotificationProvider>
     </AuthProvider>
   );
 }

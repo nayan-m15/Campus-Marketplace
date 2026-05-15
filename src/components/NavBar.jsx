@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import NotificationBell from "./NotificationBell";
 import "../styles/Navbar.css";
 
 export default function Navbar({
@@ -245,6 +246,8 @@ export default function Navbar({
                   </>
                 )}
               </nav>
+
+              {user && <NotificationBell />}
 
               {/* Desktop/tablet navigation stays grouped here.
                   These links are hidden on mobile so we can keep mobile behavior

@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 import { CATEGORIES, CONDITION_COLORS } from "../data/listings";
 
 const LISTING_TITLE_MAX = 90;
@@ -437,6 +438,7 @@ function EditListingTypeSelector({ value, onChange }) {
 // Rendering and feature-specific behavior are coordinated here.
 export default function YourListingsPage({ onBack, onListingChanged }) {
   const { user } = useAuth();
+  const { notifySuccess } = useNotifications();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -445,7 +447,6 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [flagReasonItem, setFlagReasonItem] = useState(null);
-  const [successMsg, setSuccessMsg] = useState("");
   const [editPriceSuggestion, setEditPriceSuggestion] = useState(null);
   const [editPriceSuggestionLoading, setEditPriceSuggestionLoading] = useState(false);
   const [editPriceSuggestionError, setEditPriceSuggestionError] = useState("");
@@ -761,8 +762,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.
   function showSuccess(msg) {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(""), 3000);
+    notifySuccess("Listing updated", msg, { category: "listing", dedupeKey: `your-listings-${msg}` });
   }
 
   return (
@@ -783,14 +783,6 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
           </span>
         )}
       </section>
-
-      {/* Success toast */}
-      {successMsg && (
-        <section style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "var(--gray-900)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
-          {successMsg}
-        </section>
-      )}
-
       {/* Error */}
       {error && (
         <p style={{ color: "crimson", marginBottom: 16 }}>{error}</p>
