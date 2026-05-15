@@ -81,6 +81,21 @@ CREATE TRIGGER update_profiles_updated_at
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Create helper functions for role-based access control
+CREATE OR REPLACE FUNCTION public.is_admin_user()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid()
+      AND role = 'admin'
+  );
+$$;
+
 CREATE OR REPLACE FUNCTION public.is_staff_user()
 RETURNS boolean
 LANGUAGE sql
@@ -112,6 +127,7 @@ AS $$
 $$;
 
 -- Grant execute permissions on helper functions
+GRANT EXECUTE ON FUNCTION public.is_admin_user() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_staff_user() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_admin_or_staff_user() TO authenticated;
 
