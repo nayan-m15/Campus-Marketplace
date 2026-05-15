@@ -465,8 +465,8 @@ export default function NotificationBell() {
                 className="notification-bell__footer-button"
                 aria-label="Mark all notifications as read"
                 onClick={markAllRead}
-              >
-                <CheckIcon aria-hidden="true" />
+              >                
+                Mark as Read
               </button>
 
               <button
@@ -475,7 +475,7 @@ export default function NotificationBell() {
                 aria-label="Clear notification history"
                 onClick={clearAll}
               >
-                <ArrowIcon aria-hidden="true" />
+                Clear All
               </button>
             </footer>
           </section>
