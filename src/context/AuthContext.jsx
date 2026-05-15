@@ -2,7 +2,7 @@
 // Shared UI pieces and page-level behavior are tied together in this file.
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
+import { isSupabaseConfigured, supabase } from "../supabaseClient";
 import { getAppBaseUrl, getPasswordRecoveryRedirectUrl } from "../utils/appUrl";
 
 const AuthContext = createContext(null);
@@ -25,6 +25,11 @@ export function AuthProvider({ children }) {
   const [lastAuthEvent, setLastAuthEvent] = useState(null);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return undefined;
+    }
+
     let isMounted = true;
 
     const {
@@ -104,6 +109,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setProfile(null);
+      return;
+    }
+
     const fetchProfile = async () => {
       if (!user?.id) {
         setProfile(null);
@@ -129,14 +139,17 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   const signUp = async (email, password, options = {}) => {
+    if (!isSupabaseConfigured) return { error: new Error("Supabase is not configured.") };
     return supabase.auth.signUp({ email, password, options });
   };
 
   const signIn = async (email, password) => {
+    if (!isSupabaseConfigured) return { error: new Error("Supabase is not configured.") };
     return supabase.auth.signInWithPassword({ email, password });
   };
 
   const signInWithGoogle = async ({ redirectTo } = {}) => {
+    if (!isSupabaseConfigured) return { error: new Error("Supabase is not configured.") };
     const resolvedRedirect = redirectTo ?? getAppBaseUrl();
 
     return supabase.auth.signInWithOAuth({
@@ -146,6 +159,7 @@ export function AuthProvider({ children }) {
   };
 
   const resetPassword = async (email, { redirectTo } = {}) => {
+    if (!isSupabaseConfigured) return { error: new Error("Supabase is not configured.") };
     const resolvedRedirect = redirectTo ?? getPasswordRecoveryRedirectUrl();
 
     return supabase.auth.resetPasswordForEmail(email, {
@@ -159,6 +173,7 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     setIsPasswordRecovery(false);
+    if (!isSupabaseConfigured) return { error: new Error("Supabase is not configured.") };
     return supabase.auth.signOut();
   };
 

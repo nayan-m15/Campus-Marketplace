@@ -14,6 +14,7 @@ const mockInsertMessage = vi.fn(() => Promise.resolve({ error: null }));
 let mockProfileRole = "student";
 
 vi.mock("./supabaseClient", () => ({
+  isSupabaseConfigured: true,
   supabase: {
     from: (table) => {
       let selectedColumns = "";
