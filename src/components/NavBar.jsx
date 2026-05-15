@@ -217,6 +217,8 @@ export default function Navbar({
                   <>
                     {/* The rest of the mobile actions stay compact so the row
                         still fits cleanly on smaller screens. */}
+                    <NotificationBell />
+
                     <button className="navbar__icon-btn" onClick={() => { onMessages?.(); }} type="button" aria-label="Open messages">
                       <span className="navbar__icon-btn-wrap">
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -232,14 +234,6 @@ export default function Navbar({
                       </span>
                     </button>
 
-                    <button className="navbar__icon-btn navbar__icon-btn--profile" title={user.email} onClick={onProfile} type="button" aria-label="Open profile">
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt="Profile" className="navbar__mobile-avatar" />
-                      ) : (
-                        renderFallbackAvatar("navbar__mobile-avatar navbar__mobile-avatar--placeholder")
-                      )}
-                    </button>
-
                     <button className="navbar__icon-btn navbar__icon-btn--plus" onClick={onShowListingForm} type="button" aria-label="List item">
                       <span aria-hidden="true">+</span>
                     </button>
@@ -247,7 +241,7 @@ export default function Navbar({
                 )}
               </nav>
 
-              {user && <NotificationBell />}
+              
 
               {/* Desktop/tablet navigation stays grouped here.
                   These links are hidden on mobile so we can keep mobile behavior
