@@ -1,3 +1,4 @@
+﻿-- Source: 20260507000100_enhance_profiles_for_staff_management.sql
 -- Migration: Enhance profiles table for comprehensive staff management
 -- This migration ensures the profiles table has all necessary fields for staff operations
 -- and implements proper Row Level Security (RLS) policies for staff management
@@ -178,3 +179,172 @@ CREATE INDEX IF NOT EXISTS idx_profiles_status ON public.profiles(status);
 CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON public.profiles(created_at);
 
 COMMIT;
+
+
+
+-- Source: 20260507000200_fix_facility_management_rls_and_constraints.sql
+-- Production hardening for facilities management.
+-- Fixes admin write access, keeps authenticated read access,
+-- and adds baseline numeric constraints for facility data.
+
+BEGIN;
+
+ALTER TABLE public.facilities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.facility_hours ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'facilities_capacity_positive'
+      AND conrelid = 'public.facilities'::regclass
+  ) THEN
+    ALTER TABLE public.facilities
+      ADD CONSTRAINT facilities_capacity_positive
+      CHECK (capacity >= 1) NOT VALID;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'facilities_session_duration_valid'
+      AND conrelid = 'public.facilities'::regclass
+  ) THEN
+    ALTER TABLE public.facilities
+      ADD CONSTRAINT facilities_session_duration_valid
+      CHECK (session_duration_minutes >= 15 AND session_duration_minutes <= 480) NOT VALID;
+  END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.is_admin_user()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid()
+      AND role = 'admin'
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_admin_user() TO authenticated;
+
+DROP POLICY IF EXISTS "facilities_select_authenticated" ON public.facilities;
+CREATE POLICY "facilities_select_authenticated"
+ON public.facilities
+FOR SELECT
+TO authenticated
+USING (true);
+
+DROP POLICY IF EXISTS "facilities_insert_admin" ON public.facilities;
+CREATE POLICY "facilities_insert_admin"
+ON public.facilities
+FOR INSERT
+TO authenticated
+WITH CHECK (public.is_admin_user());
+
+DROP POLICY IF EXISTS "facilities_update_admin" ON public.facilities;
+CREATE POLICY "facilities_update_admin"
+ON public.facilities
+FOR UPDATE
+TO authenticated
+USING (public.is_admin_user())
+WITH CHECK (public.is_admin_user());
+
+DROP POLICY IF EXISTS "facilities_delete_admin" ON public.facilities;
+CREATE POLICY "facilities_delete_admin"
+ON public.facilities
+FOR DELETE
+TO authenticated
+USING (public.is_admin_user());
+
+DROP POLICY IF EXISTS "facility_hours_select_authenticated" ON public.facility_hours;
+CREATE POLICY "facility_hours_select_authenticated"
+ON public.facility_hours
+FOR SELECT
+TO authenticated
+USING (true);
+
+DROP POLICY IF EXISTS "facility_hours_insert_admin" ON public.facility_hours;
+CREATE POLICY "facility_hours_insert_admin"
+ON public.facility_hours
+FOR INSERT
+TO authenticated
+WITH CHECK (public.is_admin_user());
+
+DROP POLICY IF EXISTS "facility_hours_update_admin" ON public.facility_hours;
+CREATE POLICY "facility_hours_update_admin"
+ON public.facility_hours
+FOR UPDATE
+TO authenticated
+USING (public.is_admin_user())
+WITH CHECK (public.is_admin_user());
+
+DROP POLICY IF EXISTS "facility_hours_delete_admin" ON public.facility_hours;
+CREATE POLICY "facility_hours_delete_admin"
+ON public.facility_hours
+FOR DELETE
+TO authenticated
+USING (public.is_admin_user());
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.facilities TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.facility_hours TO authenticated;
+
+COMMIT;
+
+
+
+-- Source: 20260507000300_add_facility_hours_unique_constraint.sql
+-- Ensure facility_hours supports ON CONFLICT (facility_id, day) safely.
+-- This migration removes duplicate rows first, keeping the newest record
+-- for each facility/day pair, then adds the required unique constraint.
+
+BEGIN;
+
+WITH ranked_facility_hours AS (
+  SELECT
+    id,
+    facility_id,
+    day,
+    ROW_NUMBER() OVER (
+      PARTITION BY facility_id, day
+      ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC
+    ) AS row_rank
+  FROM public.facility_hours
+),
+deleted_duplicates AS (
+  DELETE FROM public.facility_hours fh
+  USING ranked_facility_hours ranked
+  WHERE fh.id = ranked.id
+    AND ranked.row_rank > 1
+  RETURNING fh.id, fh.facility_id, fh.day
+)
+SELECT COUNT(*) AS removed_duplicate_rows
+FROM deleted_duplicates;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'facility_hours_facility_day_unique'
+      AND conrelid = 'public.facility_hours'::regclass
+  ) THEN
+    ALTER TABLE public.facility_hours
+      ADD CONSTRAINT facility_hours_facility_day_unique
+      UNIQUE (facility_id, day);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_facility_hours_facility_day
+ON public.facility_hours (facility_id, day);
+
+COMMIT;
+
+
+

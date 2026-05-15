@@ -1,3 +1,22 @@
+﻿-- Source: 20260512000100_add_custom_trade_offer_items.sql
+BEGIN;
+
+ALTER TABLE public.offers
+  ADD COLUMN IF NOT EXISTS offered_item_title TEXT,
+  ADD COLUMN IF NOT EXISTS offered_item_description TEXT,
+  ADD COLUMN IF NOT EXISTS offered_item_condition TEXT,
+  ADD COLUMN IF NOT EXISTS offered_item_image_url TEXT;
+
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS offered_item_description TEXT,
+  ADD COLUMN IF NOT EXISTS offered_item_condition TEXT,
+  ADD COLUMN IF NOT EXISTS offered_item_image_url TEXT;
+
+COMMIT;
+
+
+
+-- Source: 20260512000200_add_item_trade_offer_flow.sql
 BEGIN;
 
 ALTER TABLE public.offers
@@ -70,3 +89,24 @@ ALTER TABLE public.listings
   ADD COLUMN IF NOT EXISTS traded_transaction_id TEXT;
 
 COMMIT;
+
+
+
+-- Source: 20260512000300_add_trade_offer_item_details.sql
+BEGIN;
+
+ALTER TABLE public.offers
+  ADD COLUMN IF NOT EXISTS offered_item_title TEXT,
+  ADD COLUMN IF NOT EXISTS offered_item_description TEXT,
+  ADD COLUMN IF NOT EXISTS offered_item_condition TEXT,
+  ADD COLUMN IF NOT EXISTS offered_item_image_url TEXT;
+
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS offered_item_description TEXT,
+  ADD COLUMN IF NOT EXISTS offered_item_condition TEXT,
+  ADD COLUMN IF NOT EXISTS offered_item_image_url TEXT;
+
+COMMIT;
+
+
+
