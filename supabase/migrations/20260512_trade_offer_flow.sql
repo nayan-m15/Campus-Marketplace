@@ -1,4 +1,4 @@
-﻿-- Source: 20260512000100_add_custom_trade_offer_items.sql
+-- Source: 20260512000100_add_custom_trade_offer_items.sql
 BEGIN;
 
 ALTER TABLE public.offers

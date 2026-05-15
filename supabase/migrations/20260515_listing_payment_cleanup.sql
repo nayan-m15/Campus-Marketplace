@@ -1,4 +1,4 @@
-﻿-- Source: 20260515000100_allow_archived_listing_status.sql
+-- Source: 20260515000100_allow_archived_listing_status.sql
 BEGIN;
 
 ALTER TABLE public.listings

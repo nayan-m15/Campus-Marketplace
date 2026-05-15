@@ -1,4 +1,4 @@
-﻿-- Source: 20260509000100_add_atomic_transaction_slot_booking.sql
+-- Source: 20260509000100_add_atomic_transaction_slot_booking.sql
 BEGIN;
 
 CREATE INDEX IF NOT EXISTS idx_bookings_location_scheduled_status

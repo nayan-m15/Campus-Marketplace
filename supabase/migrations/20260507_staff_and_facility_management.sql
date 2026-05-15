@@ -1,4 +1,4 @@
-﻿-- Source: 20260507000100_enhance_profiles_for_staff_management.sql
+-- Source: 20260507000100_enhance_profiles_for_staff_management.sql
 -- Migration: Enhance profiles table for comprehensive staff management
 -- This migration ensures the profiles table has all necessary fields for staff operations
 -- and implements proper Row Level Security (RLS) policies for staff management

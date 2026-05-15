@@ -1,4 +1,4 @@
-﻿-- Source: 20260514000100_add_payfast_sandbox_payments.sql
+-- Source: 20260514000100_add_payfast_sandbox_payments.sql
 BEGIN;
 
 ALTER TABLE public.transactions

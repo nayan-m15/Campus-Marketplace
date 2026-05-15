@@ -1,4 +1,4 @@
-﻿-- Source: 20240507000100_create_facility_hours_table.sql
+-- Source: 20240507000100_create_facility_hours_table.sql
 -- Migration: Create facility_hours table with proper schema
 -- This ensures the facility_hours table has the correct structure
 
