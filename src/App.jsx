@@ -495,10 +495,6 @@ async function fetchNotificationPrefs(userId, fallback) {
 // That keeps the surrounding component easier to follow.
 function useUnreadCount(user, onIncomingMessage) {
   const [unreadCount, setUnreadCount] = useState(0);
-  const notificationPrefsRef = useRef({
-    notif_messages: true,
-    notif_listing_activity: true,
-  });
 
   useEffect(() => {
     if (!user) { setUnreadCount(0); return; }
@@ -522,41 +518,14 @@ function useUnreadCount(user, onIncomingMessage) {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("notif_messages, notif_listing_activity")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (!data) return;
-        notificationPrefsRef.current = {
-          notif_messages: data.notif_messages !== false,
-          notif_listing_activity: data.notif_listing_activity !== false,
-        };
-      });
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
     const channel = supabase
       .channel("navbar-unread")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
         if (payload.new.receiver_id === user.id) {
           setUnreadCount((prev) => prev + 1);
 
-          fetchNotificationPrefs(user.id, notificationPrefsRef.current)
-            .then((prefs) => {
-              notificationPrefsRef.current = prefs;
-              const isListingMessage = Boolean(payload.new.listing_id);
-              const shouldNotify = isListingMessage
-                ? prefs.notif_listing_activity || prefs.notif_messages
-                : prefs.notif_messages;
-
-              if (!shouldNotify) return null;
-              return buildIncomingMessageNotice(payload.new);
-            })
+          buildIncomingMessageNotice(payload.new)
             .then((notice) => {
-              if (!notice) return;
               onIncomingMessage?.({
                 title: notice.title,
                 body: notice.body,
