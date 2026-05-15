@@ -1,6 +1,86 @@
 -- Source: 20260512000100_add_custom_trade_offer_items.sql
 BEGIN;
 
+CREATE TABLE IF NOT EXISTS public.listings (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  description TEXT,
+  price NUMERIC DEFAULT 0,
+  condition TEXT,
+  category TEXT,
+  user_id UUID,
+  image_url TEXT,
+  image_urls TEXT[],
+  status TEXT DEFAULT 'active',
+  listing_type TEXT DEFAULT 'sale',
+  flag_reason TEXT,
+  sold_price NUMERIC,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.offers (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+  listing_id TEXT,
+  sender_id UUID,
+  receiver_id UUID,
+  amount NUMERIC,
+  status TEXT DEFAULT 'pending',
+  offer_type TEXT DEFAULT 'cash',
+  message TEXT,
+  responded_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.transactions (
+  id TEXT PRIMARY KEY,
+  item TEXT,
+  seller_id UUID,
+  buyer_id UUID,
+  price NUMERIC DEFAULT 0,
+  listing_id TEXT,
+  status TEXT DEFAULT 'pending',
+  dropoff_id TEXT,
+  collection_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.listings
+  ADD COLUMN IF NOT EXISTS title TEXT,
+  ADD COLUMN IF NOT EXISTS description TEXT,
+  ADD COLUMN IF NOT EXISTS price NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS condition TEXT,
+  ADD COLUMN IF NOT EXISTS category TEXT,
+  ADD COLUMN IF NOT EXISTS user_id UUID,
+  ADD COLUMN IF NOT EXISTS image_url TEXT,
+  ADD COLUMN IF NOT EXISTS image_urls TEXT[],
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active',
+  ADD COLUMN IF NOT EXISTS listing_type TEXT DEFAULT 'sale',
+  ADD COLUMN IF NOT EXISTS flag_reason TEXT,
+  ADD COLUMN IF NOT EXISTS sold_price NUMERIC,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE public.offers
+  ADD COLUMN IF NOT EXISTS listing_id TEXT,
+  ADD COLUMN IF NOT EXISTS sender_id UUID,
+  ADD COLUMN IF NOT EXISTS receiver_id UUID,
+  ADD COLUMN IF NOT EXISTS amount NUMERIC,
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS offer_type TEXT DEFAULT 'cash',
+  ADD COLUMN IF NOT EXISTS message TEXT,
+  ADD COLUMN IF NOT EXISTS responded_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS item TEXT,
+  ADD COLUMN IF NOT EXISTS seller_id UUID,
+  ADD COLUMN IF NOT EXISTS buyer_id UUID,
+  ADD COLUMN IF NOT EXISTS price NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS listing_id TEXT,
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS dropoff_id TEXT,
+  ADD COLUMN IF NOT EXISTS collection_id TEXT,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
 ALTER TABLE public.offers
   ADD COLUMN IF NOT EXISTS offered_item_title TEXT,
   ADD COLUMN IF NOT EXISTS offered_item_description TEXT,
