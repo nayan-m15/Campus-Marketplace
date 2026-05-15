@@ -221,6 +221,9 @@ BEGIN;
 ALTER TABLE public.facilities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.facility_hours ENABLE ROW LEVEL SECURITY;
 
+ALTER TABLE public.facilities
+  ADD COLUMN IF NOT EXISTS session_duration_minutes INTEGER DEFAULT 60;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
