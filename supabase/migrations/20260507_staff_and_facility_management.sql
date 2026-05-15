@@ -5,6 +5,19 @@
 
 BEGIN;
 
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT,
+    name TEXT,
+    display_name TEXT,
+    avatar_url TEXT,
+    role TEXT DEFAULT 'student',
+    sex TEXT,
+    birthdate DATE,
+    province TEXT,
+    institution TEXT
+);
+
 -- Add missing columns to profiles table if they don't exist
 DO $$
 BEGIN
