@@ -1,15 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useNotifications } from "../context/NotificationContext";
 import "../styles/NotificationBell.css";
-
-const INITIAL_ITEMS = [
-  { id: 1, unread: true, accent: "primary" },
-  { id: 2, unread: true, accent: "muted" },
-  { id: 3, unread: false, accent: "primary" },
-  { id: 4, unread: true, accent: "muted" },
-  { id: 5, unread: false, accent: "muted" },
-  { id: 6, unread: true, accent: "primary" },
-  { id: 7, unread: false, accent: "muted" },
-];
 
 function useMediaQuery(query) {
   const getMatch = () => {
@@ -108,12 +99,52 @@ function CloseIcon(props) {
 const TAB_ITEMS = [
   { id: "all", icon: GridIcon, label: "Show all notifications" },
   { id: "unread", icon: BellIcon, label: "Show unread notifications" },
-  { id: "priority", icon: SparkIcon, label: "Show priority notifications" },
+  { id: "system", icon: SparkIcon, label: "Show system and update notifications" },
 ];
 
+function getTypeAccent(type) {
+  if (type === "success") return "primary";
+  if (type === "warning") return "warning";
+  if (type === "error") return "danger";
+  return "muted";
+}
+
+function formatNotificationTime(timestamp) {
+  if (!timestamp) return "";
+
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const deltaMs = Date.now() - date.getTime();
+  const minutes = Math.round(deltaMs / 60000);
+
+  if (minutes < 1) return "Now";
+  if (minutes < 60) return `${minutes}m`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+
+  return date.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
+}
+
+function NotificationTypeIcon({ type }) {
+  if (type === "success") return <CheckIcon aria-hidden="true" />;
+  if (type === "warning") return <SparkIcon aria-hidden="true" />;
+  if (type === "error") return <CloseIcon aria-hidden="true" />;
+  return <BellIcon aria-hidden="true" />;
+}
+
 export default function NotificationBell() {
+  const {
+    notifications,
+    unreadCount,
+    toggleRead,
+    removeNotification,
+    markAllRead,
+    clearAll,
+    runNotificationAction,
+  } = useNotifications();
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState(INITIAL_ITEMS);
   const [activeTab, setActiveTab] = useState("all");
   const [panelStyle, setPanelStyle] = useState(null);
   const isMobile = useMediaQuery("(max-width: 767px)");
@@ -122,13 +153,13 @@ export default function NotificationBell() {
   const closeButtonRef = useRef(null);
   const panelId = useId();
 
-  const unreadCount = useMemo(() => items.filter((item) => item.unread).length, [items]);
-
   const visibleItems = useMemo(() => {
-    if (activeTab === "unread") return items.filter((item) => item.unread);
-    if (activeTab === "priority") return items.filter((item) => item.accent === "primary");
-    return items;
-  }, [activeTab, items]);
+    if (activeTab === "unread") return notifications.filter((item) => item.unread);
+    if (activeTab === "system") {
+      return notifications.filter((item) => ["system", "sync", "status", "warning"].includes(item.category));
+    }
+    return notifications;
+  }, [activeTab, notifications]);
 
   useEffect(() => {
     if (!open || isMobile || !buttonRef.current) return undefined;
@@ -248,21 +279,6 @@ export default function NotificationBell() {
     window.requestAnimationFrame(() => buttonRef.current?.focus());
   }
 
-  function markAllRead() {
-    setItems((current) => current.map((item) => ({ ...item, unread: false })));
-  }
-
-  function acknowledgeAll() {
-    setItems((current) => current.map((item) => ({ ...item, unread: false })));
-    closePanel();
-  }
-
-  function toggleItemRead(id) {
-    setItems((current) => current.map((item) => (
-      item.id === id ? { ...item, unread: !item.unread } : item
-    )));
-  }
-
   return (
     <div className="notification-bell">
       <button
@@ -337,26 +353,72 @@ export default function NotificationBell() {
             </header>
 
             <div className="notification-bell__list" aria-live="polite">
+              {visibleItems.length === 0 && (
+                <div className="notification-bell__empty" aria-live="polite">
+                  <span className="notification-bell__empty-glyph" aria-hidden="true">
+                    <BellIcon />
+                  </span>
+                  <span className="notification-bell__empty-title">All caught up</span>
+                  <span className="notification-bell__empty-meta">New alerts and updates will appear here.</span>
+                </div>
+              )}
+
               {visibleItems.map((item) => (
-                <button
+                <article
                   key={item.id}
-                  type="button"
-                  className="notification-bell__item"
-                  aria-label={item.unread ? "Mark notification as read" : "Mark notification as unread"}
-                  onClick={() => toggleItemRead(item.id)}
+                  className={`notification-bell__item${item.isNew ? " notification-bell__item--new" : ""}`}
                 >
-                  <span className={`notification-bell__avatar${item.accent === "primary" ? " notification-bell__avatar--primary" : ""}`} aria-hidden="true" />
+                  <button
+                    type="button"
+                    className="notification-bell__item-main"
+                    aria-label={
+                      item.action?.onClick
+                        ? `${item.title}. ${item.message}. Open notification action.`
+                        : `${item.title}. ${item.message}. ${item.unread ? "Mark notification as read" : "Mark notification as unread"}`
+                    }
+                    onClick={() => {
+                      if (item.action?.onClick) {
+                        runNotificationAction(item.id);
+                        closePanel();
+                        return;
+                      }
 
-                  <span className="notification-bell__skeletons" aria-hidden="true">
-                    <span className="notification-bell__line notification-bell__line--strong" />
-                    <span className="notification-bell__line notification-bell__line--medium" />
-                    <span className="notification-bell__line notification-bell__line--short" />
-                  </span>
+                      toggleRead(item.id);
+                    }}
+                  >
+                    <span className={`notification-bell__avatar notification-bell__avatar--${getTypeAccent(item.type)}`} aria-hidden="true">
+                      <NotificationTypeIcon type={item.type} />
+                    </span>
 
-                  <span className="notification-bell__item-side" aria-hidden="true">
-                    {item.unread && <span className="notification-bell__item-dot" />}
+                    <span className="notification-bell__content">
+                      <span className="notification-bell__label-row">
+                        <span className="notification-bell__label">{item.title}</span>
+                        <span className="notification-bell__timestamp">{formatNotificationTime(item.timestamp)}</span>
+                      </span>
+                      <span className="notification-bell__meta">{item.message}</span>
+                      <span className="notification-bell__category">{item.category}</span>
+                    </span>
+                  </button>
+
+                  <span className="notification-bell__item-side">
+                    <button
+                      type="button"
+                      className="notification-bell__item-control"
+                      aria-label={item.unread ? "Mark notification as read" : "Mark notification as unread"}
+                      onClick={() => toggleRead(item.id)}
+                    >
+                      {item.unread ? <span className="notification-bell__item-dot" aria-hidden="true" /> : <CheckIcon aria-hidden="true" />}
+                    </button>
+                    <button
+                      type="button"
+                      className="notification-bell__item-control"
+                      aria-label="Remove notification"
+                      onClick={() => removeNotification(item.id)}
+                    >
+                      <CloseIcon aria-hidden="true" />
+                    </button>
                   </span>
-                </button>
+                </article>
               ))}
             </div>
 
@@ -373,8 +435,8 @@ export default function NotificationBell() {
               <button
                 type="button"
                 className="notification-bell__footer-button notification-bell__footer-button--primary"
-                aria-label="Acknowledge notifications"
-                onClick={acknowledgeAll}
+                aria-label="Clear notification history"
+                onClick={clearAll}
               >
                 <ArrowIcon aria-hidden="true" />
               </button>

@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 import "../styles/ProfilePage.css";
 
 // ── Institutions by Province ─────────────────────────────────
@@ -281,11 +282,11 @@ function CompletionBar({ form, avatarPreview }) {
 // ── Main Component ───────────────────────────────────────────
 export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
   const { user } = useAuth();
+  const { notifySuccess, notifyError } = useNotifications();
   const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [memberSince, setMemberSince] = useState(null);
@@ -370,9 +371,13 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3500);
+  const showToast = (msg, type = "success") => {
+    if (type === "error") {
+      notifyError("Profile update failed", msg, { category: "profile", dedupeKey: `profile-error-${msg}` });
+      return;
+    }
+
+    notifySuccess("Profile updated", msg, { category: "profile", dedupeKey: `profile-success-${msg}` });
   };
 
   // User-driven changes pass through this handler first.
@@ -434,9 +439,9 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
 
       if (error) throw new Error(error.message);
       onNameChange?.(form.display_name.trim() || form.name.trim());
-      showToast("✅ Profile saved!");
+      showToast("Profile saved!");
     } catch (err) {
-      showToast("⚠️ " + err.message);
+      showToast(err.message, "error");
     } finally {
       setSaving(false);
     }
@@ -484,8 +489,6 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
 
   return (
     <article className="profile-page">
-      {toast && <article className="profile-toast">{toast}</article>}
-
       <article className="profile-page__inner">
         <button className="profile-page__back" onClick={onBack}>← Back</button>
 

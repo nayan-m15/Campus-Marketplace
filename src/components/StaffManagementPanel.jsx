@@ -2,15 +2,14 @@ import { useEffect, useState } from "react";
 import "../styles/AdminDashboard.css";
 import "../styles/StaffManagementPanel.css";
 import { supabase } from "../supabaseClient";
+import { useNotifications } from "../context/NotificationContext";
 
 export default function StaffManagementPanel() {
+  const { notifySuccess, notifyError } = useNotifications();
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState("success");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -198,23 +197,16 @@ export default function StaffManagementPanel() {
   };
 
   const showToastMessage = (message, type = "success") => {
-    setToastMessage(message);
-    setToastType(type);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    if (type === "error") {
+      notifyError("Staff update failed", message, { category: "staff", dedupeKey: `staff-error-${message}` });
+      return;
+    }
+
+    notifySuccess("Staff updated", message, { category: "staff", dedupeKey: `staff-success-${message}` });
   };
 
   return (
     <>
-      {showToast && (
-        <section
-          className={`save-toast save-toast--visible ${toastType === "error" ? "save-toast--error" : ""}`}
-        >
-          <span className="save-toast__icon">{toastType === "error" ? "!" : "OK"}</span>
-          {toastMessage}
-        </section>
-      )}
-
       <section className="panel" aria-labelledby="staff-heading">
         <header className="panel__header">
           <hgroup>

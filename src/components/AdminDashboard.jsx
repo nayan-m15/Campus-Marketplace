@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import "../styles/AdminDashboard.css";
 import { supabase } from "../supabaseClient";
+import { useNotifications } from "../context/NotificationContext";
 import AdminModerateListingsPanel from "./AdminModerateListingsPanel";
 import FacilitiesManagementPanel from "./FacilitiesManagementPanel";
 import StaffManagementPanel from "./StaffManagementPanel";
@@ -402,12 +403,19 @@ function ReportsPanel() {
     const { data, error } = await query;
     if (error) {
       console.error("REPORT ERROR:", error);
-      alert("Failed to generate report. Check console.");
+      notifyError("Report generation failed", "The report could not be generated. Check the console for details.", {
+        category: "system",
+        dedupeKey: `report-error-${reportType}-${dateFrom}-${dateTo}`,
+      });
       return;
     }
 
     setReportData(data || []);
     setGenerated(true);
+    notifySuccess("Report ready", "Your admin report has been generated.", {
+      category: "system",
+      dedupeKey: `report-ready-${reportType}-${dateFrom}-${dateTo}`,
+    });
   };
 
   const handleGenerate = async () => {
@@ -638,6 +646,7 @@ export default function AdminDashboard({
   onModerateListing,
   adminProfile = null,
 }) {
+  const { notifyError, notifySuccess } = useNotifications();
   const [activeTab, setActiveTab] = useState("facilities");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
