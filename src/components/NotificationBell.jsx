@@ -106,14 +106,6 @@ const TAB_ITEMS = [
 
 const PRIMARY_TAB_IDS = new Set(["all", "unread"]);
 
-function getTypeAccent(type) {
-  if (type === "message" || type === "offer" || type === "success") return "primary";
-  if (type === "system") return "muted";
-  if (type === "warning") return "warning";
-  if (type === "error") return "danger";
-  return "muted";
-}
-
 function formatNotificationTime(timestamp) {
   if (!timestamp) return "";
 
@@ -130,14 +122,6 @@ function formatNotificationTime(timestamp) {
   if (hours < 24) return `${hours}h`;
 
   return date.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
-}
-
-function NotificationTypeIcon({ type }) {
-  if (type === "message" || type === "offer") return <BellIcon aria-hidden="true" />;
-  if (type === "success") return <CheckIcon aria-hidden="true" />;
-  if (type === "warning") return <SparkIcon aria-hidden="true" />;
-  if (type === "error") return <CloseIcon aria-hidden="true" />;
-  return <BellIcon aria-hidden="true" />;
 }
 
 export default function NotificationBell() {
@@ -423,10 +407,6 @@ export default function NotificationBell() {
                       toggleRead(item.id);
                     }}
                   >
-                    <span className={`notification-bell__avatar notification-bell__avatar--${getTypeAccent(item.type)}`} aria-hidden="true">
-                      <NotificationTypeIcon type={item.type} />
-                    </span>
-
                     <span className="notification-bell__content">
                       <span className="notification-bell__label-row">
                         <span className="notification-bell__label">{item.title}</span>

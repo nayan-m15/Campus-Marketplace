@@ -5,22 +5,23 @@
 
 .notification-bell,
 .notification-bell__panel {
-  --nb-panel-bg: rgba(12, 16, 28, 0.72);
-  --nb-panel-bg-strong: rgba(10, 14, 25, 0.9);
+  --nb-panel-bg: rgba(31, 36, 31, 0.78);
+  --nb-panel-bg-strong: rgba(31, 36, 31, 0.94);
   --nb-surface: rgba(255, 255, 255, 0.08);
   --nb-surface-strong: rgba(255, 255, 255, 0.14);
   --nb-surface-soft: rgba(255, 255, 255, 0.05);
   --nb-border: rgba(255, 255, 255, 0.12);
   --nb-border-strong: rgba(255, 255, 255, 0.18);
-  --nb-text: rgba(248, 250, 255, 0.98);
-  --nb-text-muted: rgba(219, 228, 255, 0.62);
-  --nb-text-faint: rgba(219, 228, 255, 0.42);
-  --nb-accent: #88b7ff;
-  --nb-accent-strong: #8e7dff;
-  --nb-accent-soft: rgba(136, 183, 255, 0.18);
+  --nb-text: rgba(255, 253, 248, 0.98);
+  --nb-text-muted: rgba(241, 238, 230, 0.66);
+  --nb-text-faint: rgba(241, 238, 230, 0.46);
+  --nb-accent: var(--green, #1f6b52);
+  --nb-accent-strong: var(--green-dark, #174e3d);
+  --nb-accent-soft: rgba(31, 107, 82, 0.2);
+  --nb-accent-light: var(--green-light, #a9b99f);
   --nb-shadow:
     0 24px 60px rgba(0, 0, 0, 0.42),
-    0 10px 26px rgba(16, 24, 40, 0.32);
+    0 10px 26px rgba(31, 36, 31, 0.34);
 }
 
 .notification-bell__trigger {
@@ -48,10 +49,10 @@
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #95c3ff 0%, #7c7dff 100%);
+  background: var(--green, #1f6b52);
   box-shadow:
-    0 0 0 3px rgba(10, 14, 25, 0.96),
-    0 0 16px rgba(124, 125, 255, 0.45);
+    0 0 0 3px rgba(31, 36, 31, 0.96),
+    0 0 16px rgba(31, 107, 82, 0.45);
 }
 
 .notification-bell__backdrop {
@@ -59,9 +60,9 @@
   inset: 0;
   z-index: 115;
   background:
-    radial-gradient(circle at 20% 18%, rgba(99, 163, 255, 0.14), transparent 30%),
-    radial-gradient(circle at 80% 10%, rgba(125, 96, 255, 0.12), transparent 28%),
-    rgba(4, 8, 16, 0.42);
+    radial-gradient(circle at 20% 18%, rgba(31, 107, 82, 0.18), transparent 30%),
+    radial-gradient(circle at 82% 12%, rgba(169, 185, 159, 0.14), transparent 28%),
+    rgba(31, 36, 31, 0.42);
   backdrop-filter: blur(16px) saturate(140%);
 }
 
@@ -74,8 +75,8 @@
   border-radius: 30px;
   border: 1px solid var(--nb-border);
   background:
-    radial-gradient(circle at top left, rgba(126, 180, 255, 0.15), transparent 34%),
-    radial-gradient(circle at top right, rgba(126, 110, 255, 0.16), transparent 32%),
+    radial-gradient(circle at top left, rgba(31, 107, 82, 0.22), transparent 34%),
+    radial-gradient(circle at top right, rgba(169, 185, 159, 0.18), transparent 32%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02)),
     var(--nb-panel-bg);
   color: var(--nb-text);
@@ -110,7 +111,7 @@
   display: grid;
   gap: 18px;
   padding: 20px 18px 14px;
-  background: linear-gradient(180deg, rgba(9, 14, 24, 0.88), rgba(9, 14, 24, 0.62));
+  background: linear-gradient(180deg, rgba(31, 36, 31, 0.9), rgba(31, 36, 31, 0.66));
   backdrop-filter: blur(24px) saturate(140%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -135,15 +136,15 @@
   border-radius: 18px;
   background:
     radial-gradient(circle at 28% 28%, rgba(255, 255, 255, 0.3), transparent 42%),
-    linear-gradient(135deg, rgba(140, 195, 255, 0.28), rgba(124, 125, 255, 0.18));
-  color: #eef4ff;
+    linear-gradient(135deg, rgba(31, 107, 82, 0.52), rgba(169, 185, 159, 0.2));
+  color: #fffdf8;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 16px 30px rgba(40, 88, 168, 0.18);
+    0 16px 30px rgba(31, 107, 82, 0.22);
   flex-shrink: 0;
 }
 
@@ -239,13 +240,13 @@
 .notification-bell__tab--active,
 .notification-bell__footer-button--primary {
   background:
-    linear-gradient(135deg, rgba(162, 205, 255, 0.32), rgba(134, 123, 255, 0.28)),
+    linear-gradient(135deg, rgba(31, 107, 82, 0.78), rgba(23, 78, 61, 0.76)),
     rgba(255, 255, 255, 0.14);
   color: #ffffff;
-  border-color: rgba(188, 214, 255, 0.26);
+  border-color: rgba(169, 185, 159, 0.34);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 14px 28px rgba(98, 117, 255, 0.24),
+    0 14px 28px rgba(31, 107, 82, 0.28),
     0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
@@ -284,8 +285,8 @@
   inset: 0;
   border-radius: 24px;
   background:
-    radial-gradient(circle at 100% 0%, rgba(116, 165, 255, 0.15), transparent 34%),
-    radial-gradient(circle at 0% 100%, rgba(122, 108, 255, 0.1), transparent 34%);
+    radial-gradient(circle at 100% 0%, rgba(31, 107, 82, 0.18), transparent 34%),
+    radial-gradient(circle at 0% 100%, rgba(169, 185, 159, 0.12), transparent 34%);
   opacity: 0;
   transition: opacity 180ms ease;
   pointer-events: none;
@@ -300,14 +301,13 @@
   z-index: 1;
   width: 100%;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 14px;
-  padding: 16px 16px 15px;
+  padding: 16px 88px 15px 16px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05)),
-    rgba(18, 24, 38, 0.6);
+    rgba(31, 36, 31, 0.62);
   color: inherit;
   cursor: pointer;
   text-align: left;
@@ -323,7 +323,7 @@
   border-color: rgba(191, 214, 255, 0.14);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06)),
-    rgba(20, 27, 43, 0.74);
+    rgba(44, 51, 45, 0.78);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.09),
     0 18px 34px rgba(3, 8, 18, 0.36);
@@ -331,40 +331,6 @@
 
 .notification-bell__item-main:active {
   transform: scale(0.995);
-}
-
-.notification-bell__avatar {
-  width: 46px;
-  height: 46px;
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.22), transparent 38%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04));
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #f3f7ff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.notification-bell__avatar--primary {
-  background:
-    radial-gradient(circle at 30% 30%, rgba(194, 223, 255, 0.46), transparent 38%),
-    linear-gradient(135deg, rgba(88, 164, 255, 0.42), rgba(128, 105, 255, 0.22));
-}
-
-.notification-bell__avatar--warning {
-  background:
-    radial-gradient(circle at 30% 30%, rgba(255, 233, 191, 0.46), transparent 38%),
-    linear-gradient(135deg, rgba(250, 176, 62, 0.4), rgba(242, 134, 72, 0.22));
-}
-
-.notification-bell__avatar--danger {
-  background:
-    radial-gradient(circle at 30% 30%, rgba(255, 212, 212, 0.4), transparent 38%),
-    linear-gradient(135deg, rgba(255, 116, 116, 0.4), rgba(255, 101, 159, 0.2));
 }
 
 .notification-bell__content {
@@ -439,7 +405,7 @@
 .notification-bell__item-control {
   background: rgba(8, 13, 24, 0.42);
   border-color: rgba(255, 255, 255, 0.08);
-  color: rgba(240, 245, 255, 0.78);
+  color: rgba(255, 253, 248, 0.78);
   backdrop-filter: blur(14px);
 }
 
@@ -453,8 +419,8 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #9ac5ff 0%, #8d81ff 100%);
-  box-shadow: 0 0 0 6px rgba(136, 183, 255, 0.14);
+  background: var(--green, #1f6b52);
+  box-shadow: 0 0 0 6px rgba(31, 107, 82, 0.16);
 }
 
 .notification-bell__empty {
@@ -473,7 +439,7 @@
   border-radius: 24px;
   background:
     radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.26), transparent 40%),
-    linear-gradient(135deg, rgba(136, 183, 255, 0.24), rgba(134, 123, 255, 0.16));
+    linear-gradient(135deg, rgba(31, 107, 82, 0.32), rgba(169, 185, 159, 0.18));
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #f4f8ff;
   display: inline-flex;
@@ -500,19 +466,26 @@
   bottom: 0;
   z-index: 2;
   justify-content: space-between;
+  gap: 10px;
   padding: 14px 18px 18px;
-  background: linear-gradient(180deg, rgba(9, 14, 24, 0.38), rgba(9, 14, 24, 0.92));
+  background: linear-gradient(180deg, rgba(31, 36, 31, 0.42), rgba(31, 36, 31, 0.94));
   backdrop-filter: blur(24px) saturate(140%);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .notification-bell__footer-button {
-  width: 48px;
-  height: 48px;
-  border-radius: 18px;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.08);
-  color: rgba(240, 245, 255, 0.8);
+  color: rgba(255, 253, 248, 0.82);
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
@@ -537,15 +510,15 @@
 .notification-bell__trigger:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 1px rgba(178, 207, 255, 0.9),
-    0 0 0 4px rgba(136, 183, 255, 0.2);
+    0 0 0 1px rgba(169, 185, 159, 0.9),
+    0 0 0 4px rgba(31, 107, 82, 0.22);
 }
 
 .notification-bell__item-main:focus-visible {
-  border-color: rgba(176, 205, 255, 0.24);
+  border-color: rgba(169, 185, 159, 0.34);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06)),
-    rgba(20, 27, 43, 0.76);
+    rgba(44, 51, 45, 0.8);
 }
 
 @keyframes notification-bell-panel-in {
@@ -579,8 +552,8 @@
 @media (max-width: 767px) {
   .notification-bell__backdrop {
     background:
-      radial-gradient(circle at 50% 0%, rgba(99, 163, 255, 0.18), transparent 32%),
-      rgba(4, 8, 16, 0.55);
+      radial-gradient(circle at 50% 0%, rgba(31, 107, 82, 0.22), transparent 32%),
+      rgba(31, 36, 31, 0.56);
   }
 
   .notification-bell__panel {
@@ -615,7 +588,7 @@
   }
 
   .notification-bell__item-main {
-    padding: 16px 14px 15px;
+    padding: 16px 82px 15px 14px;
   }
 
   .notification-bell__item-side {
@@ -666,5 +639,5 @@
 html.dark .notification-bell__badge {
   box-shadow:
     0 0 0 3px rgba(10, 14, 25, 0.96),
-    0 0 16px rgba(124, 125, 255, 0.45);
+    0 0 16px rgba(31, 107, 82, 0.45);
 }
