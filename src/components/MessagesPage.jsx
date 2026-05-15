@@ -1086,7 +1086,7 @@ export default function MessagesPage({
 
     const transactionRequest = activeTransaction
       ? supabase.from("transactions").update(updatePayload).eq("id", activeTransaction.id)
-      : supabase.from("transactions").insert({ ...updatePayload, id: transactionId, status: "Awaiting Meetup" });
+      : supabase.from("transactions").insert({ ...updatePayload, id: transactionId, status: "awaiting_meetup" });
 
     const listingUpdate = {
       sold_price: null,

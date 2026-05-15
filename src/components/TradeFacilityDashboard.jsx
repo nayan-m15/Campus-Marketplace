@@ -112,6 +112,24 @@ function buildBookings(transactions, profilesById, bookingsById) {
         location: booking.location,
       });
     }
+
+    if (transaction.trade_meetup_id && bookingsById[transaction.trade_meetup_id]) {
+      const booking = bookingsById[transaction.trade_meetup_id];
+      const when = formatDateTime(booking.scheduled_time);
+      output.push({
+        id: booking.id,
+        type: "trade_meetup",
+        transactionId: transaction.id,
+        personName: sellerProfile.display_name || sellerProfile.name || transaction.seller_id,
+        studentId: sellerProfile.email || transaction.seller_id,
+        role: "both",
+        scheduledDate: booking.scheduled_time?.slice(0, 10) || "",
+        scheduledTime: booking.scheduled_time?.slice(11, 16) || when.time,
+        status: booking.status,
+        itemName: transaction.item,
+        location: booking.location,
+      });
+    }
   }
 
   return output.sort((a, b) => {
@@ -1136,6 +1154,226 @@ function UtilityRail({ transactions, bookings, activeView }) {
   );
 }
 
+function MeetupsSection({ transactions, bookings, staffProfile, onAction, savingIds, onRefresh, showToast }) {
+  const [respondingId, setRespondingId] = useState(null);
+
+  // Find the meetup booking for a transaction
+  function getMeetupBooking(transaction) {
+    if (!transaction.trade_meetup_id) return null;
+    return bookings.find((b) => b.id === transaction.trade_meetup_id) || null;
+  }
+
+  async function handleStaffNotify(transaction, accept) {
+    if (!staffProfile?.id) return;
+    setRespondingId(transaction.id);
+    try {
+      const meetupBooking = getMeetupBooking(transaction);
+      const locationStr = meetupBooking?.location || "the agreed location";
+      const timeStr = meetupBooking?.scheduled_time
+        ? new Date(meetupBooking.scheduled_time).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" })
+        : "the proposed time";
+
+      if (accept) {
+        // Send confirmation to both parties
+        await Promise.all([
+          insertMessage({
+            sender_id: staffProfile.id,
+            receiver_id: transaction.seller_id,
+            content: `Your trade meetup for "${transaction.item}" has been confirmed at ${locationStr} on ${timeStr}. Please arrive on time.`,
+          }),
+          insertMessage({
+            sender_id: staffProfile.id,
+            receiver_id: transaction.buyer_id,
+            content: `Your trade meetup for "${transaction.item}" has been confirmed at ${locationStr} on ${timeStr}. Please arrive on time.`,
+          }),
+        ]);
+        showToast(`Meetup confirmation sent to both parties.`);
+      } else {
+        // Notify both that they need to re-propose
+        await Promise.all([
+          insertMessage({
+            sender_id: staffProfile.id,
+            receiver_id: transaction.seller_id,
+            content: `The proposed meetup slot for "${transaction.item}" was not confirmed. Please go to My Bookings to propose a new time.`,
+          }),
+          insertMessage({
+            sender_id: staffProfile.id,
+            receiver_id: transaction.buyer_id,
+            content: `The proposed meetup slot for "${transaction.item}" was not confirmed. Please go to My Bookings to propose a new time.`,
+          }),
+        ]);
+        // Cancel the booking and clear it from the transaction
+        if (transaction.trade_meetup_id) {
+          await supabase.from("bookings").update({ status: "cancelled" }).eq("id", transaction.trade_meetup_id);
+          await supabase.from("transactions")
+            .update({ trade_meetup_id: null, trade_meetup_proposed_by: null })
+            .eq("id", transaction.id);
+        }
+        showToast(`Meetup slot cancelled. Both parties notified.`);
+      }
+      await onRefresh();
+    } catch (err) {
+      showToast(err.message || "Unable to complete the action.");
+    } finally {
+      setRespondingId(null);
+    }
+  }
+
+  return (
+    <section className="view-section" aria-labelledby="meetups-heading">
+      <h2 id="meetups-heading" className="sr-only">Trade Meetups</h2>
+      <article className="panel">
+        <header className="panel__header">
+          <section>
+            <p className="panel__eyebrow">Item-for-Item Swaps</p>
+            <h3 className="panel__title">Trade Meetups</h3>
+            <p className="panel__subtitle">
+              Monitor proposed meetup slots. Once both students agree, confirm and send them both a confirmation message. You can also cancel a proposed slot if there is an issue.
+            </p>
+          </section>
+          <p className="panel__count">{transactions.length} awaiting meetup</p>
+        </header>
+
+        {transactions.length === 0 ? (
+          <EmptyState icon="users" title="No pending meetups" description="Item-for-item trade meetups will appear here once a trade offer is accepted." />
+        ) : (
+          <ul className="booking-list booking-list--dense" role="list">
+            {transactions.map((transaction) => {
+              const meetupBooking = getMeetupBooking(transaction);
+              const saving = Boolean(savingIds[transaction.id]) || respondingId === transaction.id;
+              const proposerIsKnown = Boolean(transaction.trade_meetup_proposed_by);
+              const proposerIsSeller = transaction.trade_meetup_proposed_by === transaction.seller_id;
+
+              return (
+                <li key={transaction.id}>
+                  <article className="booking-card managed-card">
+                    <header className="booking-card__header">
+                      <section className="booking-card__header-left">
+                        <section className="booking-card__person-info">
+                          <p className="booking-card__person-name">{transaction.item}</p>
+                          <p className="booking-card__person-meta">
+                            {transaction.requested_item || "Listed item"} for {transaction.offered_item || "offered item"}
+                          </p>
+                          <p className="booking-card__person-meta booking-card__txn-id">{transaction.id}</p>
+                        </section>
+                      </section>
+                      <section className="booking-card__header-right">
+                        <StatusBadge status={transaction.status} />
+                      </section>
+                    </header>
+
+                    <section className="booking-card__body">
+                      <ul className="booking-card__details" role="list">
+                        <li className="booking-card__detail">
+                          <span className="booking-card__detail-label">Seller</span>
+                          <span className="booking-card__detail-value">{transaction.seller.name}</span>
+                        </li>
+                        <li className="booking-card__detail">
+                          <span className="booking-card__detail-label">Buyer</span>
+                          <span className="booking-card__detail-value">{transaction.buyer.name}</span>
+                        </li>
+
+                        {meetupBooking ? (
+                          <>
+                            <li className="booking-card__detail">
+                              <span className="booking-card__detail-label">Proposed Slot</span>
+                              <span className="booking-card__detail-value">
+                                {meetupBooking.location} · {formatDateTime(meetupBooking.scheduled_time).date} at {formatDateTime(meetupBooking.scheduled_time).time}
+                              </span>
+                            </li>
+                            <li className="booking-card__detail">
+                              <span className="booking-card__detail-label">Slot Status</span>
+                              <BookingStatusBadge status={meetupBooking.status} />
+                            </li>
+                            <li className="booking-card__detail">
+                              <span className="booking-card__detail-label">Proposed by</span>
+                              <span className="booking-card__detail-value">
+                                {proposerIsKnown
+                                  ? (proposerIsSeller ? transaction.seller.name : transaction.buyer.name)
+                                  : "Unknown"}
+                              </span>
+                            </li>
+                            {meetupBooking.status === "scheduled" ? (
+                              <li className="booking-card__detail booking-card__detail--full">
+                                <span className="booking-card__detail-label">Note</span>
+                                <span className="booking-card__detail-value managed-card__hint">
+                                  ✓ Slot confirmed by both parties. Use "Confirm Swap Complete" once the physical trade has happened.
+                                </span>
+                              </li>
+                            ) : (
+                              <li className="booking-card__detail booking-card__detail--full">
+                                <span className="booking-card__detail-label">Next step</span>
+                                <span className="booking-card__detail-value managed-card__hint">
+                                  A slot has been proposed. The other party needs to accept it in My Bookings. Staff can also confirm or cancel the slot below.
+                                </span>
+                              </li>
+                            )}
+                          </>
+                        ) : (
+                          <li className="booking-card__detail booking-card__detail--full">
+                            <span className="booking-card__detail-label">Meetup slot</span>
+                            <span className="booking-card__detail-value managed-card__hint">
+                              No slot proposed yet. Students will propose one from My Bookings.
+                            </span>
+                          </li>
+                        )}
+                      </ul>
+                    </section>
+
+                    <footer className="booking-card__footer">
+                      <menu className="booking-card__actions" role="list">
+                        {/* Staff: confirm swap complete (only after slot is scheduled) */}
+                        {meetupBooking?.status === "scheduled" && (
+                          <li>
+                            <button
+                              className="btn-action btn-action--release"
+                              onClick={() => onAction(transaction, "completed")}
+                              disabled={saving}
+                            >
+                              <Icon name="handoff" className="btn-action__icon" />
+                              Confirm Swap Complete
+                            </button>
+                          </li>
+                        )}
+                        {/* Staff: send confirmation to both parties (when slot is pending) */}
+                        {meetupBooking && meetupBooking.status !== "scheduled" && (
+                          <>
+                            <li>
+                              <button
+                                className="btn-action btn-action--receipt"
+                                onClick={() => handleStaffNotify(transaction, true)}
+                                disabled={saving}
+                              >
+                                <Icon name="check-circle" className="btn-action__icon" />
+                                Confirm & Notify Both Parties
+                              </button>
+                            </li>
+                            <li>
+                              <button
+                                className="btn-action btn-action--cancel"
+                                onClick={() => handleStaffNotify(transaction, false)}
+                                disabled={saving}
+                                style={{ background: "var(--color-error, #ef4444)", color: "#fff" }}
+                              >
+                                <Icon name="x-circle" className="btn-action__icon" />
+                                Cancel Slot & Re-Notify
+                              </button>
+                            </li>
+                          </>
+                        )}
+                      </menu>
+                    </footer>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </article>
+    </section>
+  );
+}
+
 export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   const { notifySuccess, notifyError, notifyInfo } = useNotifications();
   const [activeView, setActiveView] = useState("overview");
@@ -1664,13 +1902,16 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
         ) : null}
 
         {!loading && !error && activeView === "meetups" ? (
-          <ManageBookingsSection
-            transactions={transactions.filter((t) => t.status === "awaiting_meetup")}
-            bookings={bookings}
-            onAction={handleManagedAction}
-            savingIds={savingIds}
-          />
-        ) : null}
+        <MeetupsSection
+          transactions={transactions.filter((t) => t.status === "awaiting_meetup")}
+          bookings={bookings}
+          staffProfile={staffProfile}
+          onAction={handleManagedAction}
+          savingIds={savingIds}
+          onRefresh={loadDashboard}
+          showToast={showToast}
+        />
+      ) : null}
       </main>
 
       <UtilityRail transactions={transactions} bookings={bookings} activeView={activeView} />

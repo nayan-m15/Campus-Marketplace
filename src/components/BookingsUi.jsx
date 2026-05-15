@@ -15,7 +15,7 @@ import {
 import { canBookCollectionForStatus, TRANSACTION_STATUS_META } from "../utils/tradeWorkflow";
 
 function getBookingErrorMessage(error) {
-  const message = error?.message || "";
+  const message = error?.message || error?.error_description || JSON.stringify(error) || "";
   if (/slot is no longer available/i.test(message)) {
     return "That slot has just filled up. Please choose another available time.";
   }
@@ -30,6 +30,12 @@ function getBookingErrorMessage(error) {
   }
   if (/future time/i.test(message)) {
     return "Please choose a future date and time.";
+  }
+  if (/not awaiting a meetup/i.test(message)) {
+    return "This transaction is not in the correct state for a meetup booking.";
+  }
+  if (/only the seller or buyer/i.test(message)) {
+    return "You do not have permission to book this meetup slot.";
   }
   return message || "Unable to save the booking.";
 }
@@ -149,7 +155,7 @@ async function fetchSlotUsage(location, selectedDate, excludeBookingId = null) {
   }, {});
 }
 
-function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
+function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, user }) {
   const dialogRef = useRef(null);
 
   const [step, setStep] = useState(1);
@@ -314,17 +320,29 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
         }));
       }
 
-      if (bookingError) throw bookingError;
+      if (bookingError) {
+        const errMsg = bookingError?.message || bookingError?.details || bookingError?.hint || JSON.stringify(bookingError);
+        throw new Error(errMsg);
+      }
 
       const bookingResult = Array.isArray(data) ? data[0] : data;
-      if (!bookingResult?.booking_id) {
+      if (!bookingResult?.booking_id && bookingType !== "trade_meetup") {
         throw new Error("Booking confirmation did not return a valid booking reference.");
       }
 
+      // Send staff notification via secure RPC (bypasses RLS sender restriction)
+      if (bookingType === "trade_meetup") {
+        await supabase.rpc("notify_meetup_proposed", {
+          p_transaction_id: transaction.id,
+          p_facility_name: selectedFacility?.name || "the facility",
+          p_scheduled_time: scheduledTime,
+        }).catch(() => {});
+      }
+
       onSuccess?.({
-        scheduledTime: bookingResult.scheduled_time || scheduledTime,
+        scheduledTime: bookingResult?.scheduled_time || scheduledTime,
         bookingType,
-        bookingId: bookingResult.booking_id,
+        bookingId: bookingResult?.booking_id,
         transactionId: transaction.id,
       });
       setDone(true);
@@ -513,10 +531,10 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   );
 }
 
-function TransactionBookingCard({ transaction, userId, onBook, onPay, payingId }) {
+function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay, payingId }) {
   const userIsSeller = transaction.seller_id === userId;
   const userIsBuyer = transaction.buyer_id === userId;
-  const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
+  const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id) || transaction.status === "awaiting_meetup";
   const sellerItem = transaction.requested_item || transaction.item;
   const buyerItem = transaction.offered_item || "Offered item";
   const hasRecordedPaymentStatus = transaction.payment_status !== null && transaction.payment_status !== undefined;
@@ -538,6 +556,28 @@ function TransactionBookingCard({ transaction, userId, onBook, onPay, payingId }
   const canBookCollection = userIsBuyer && !transaction.collection_booking && collectionRequestReady;
   const showAwaitingDropoffNote =
     !isItemTrade && transaction.status === "awaiting_dropoff" && !transaction.dropoff_booking && paymentStatus === "paid";
+  const [meetupResponding, setMeetupResponding] = useState(false);
+
+  async function handleMeetupResponse(tx, accept) {
+    setMeetupResponding(true);
+    try {
+      const rpcName = accept ? "confirm_trade_meetup_slot" : "decline_trade_meetup_slot";
+      const { error } = await supabase.rpc(rpcName, { p_transaction_id: tx.id });
+      if (error) throw error;
+
+      // Notify the proposer via secure RPC (bypasses RLS sender restriction)
+      await supabase.rpc("notify_meetup_response", {
+        p_transaction_id: tx.id,
+        p_accepted: accept,
+      }).catch(() => {});
+
+      onRefresh?.();
+    } catch (err) {
+      alert(err.message || "Unable to respond to meetup slot.");
+    } finally {
+      setMeetupResponding(false);
+    }
+  }
 
   return (
     <article className="bookings-page-card">
@@ -650,8 +690,8 @@ function TransactionBookingCard({ transaction, userId, onBook, onPay, payingId }
             ) : (
             <p>Not booked yet</p>
             )}
-          {/* Seller books first */}
-          {userIsSeller &&
+          {/* Either party can propose when no slot is pending */}
+          {(userIsSeller || userIsBuyer) &&
             !transaction.meetup_booking &&
             transaction.status === "awaiting_meetup" && (
               <button
@@ -660,19 +700,43 @@ function TransactionBookingCard({ transaction, userId, onBook, onPay, payingId }
               >
                 Propose meetup slot
               </button>
-                  )}
-                {/* Buyer confirms (or re-books) */}
-                {userIsBuyer &&
-                  transaction.meetup_booking &&
+            )}
+                {/* Proposer: waiting message + option to change */}
+                {transaction.meetup_booking &&
                   transaction.meetup_booking.status !== "scheduled" &&
-                  transaction.status === "awaiting_meetup" && (
-                <button
-                  className="btn-primary bookings-page-card__action"
-                  onClick={() => onBook(transaction, "trade_meetup")}
-                >
-                Confirm or change meetup slot
+                  transaction.status === "awaiting_meetup" &&
+                  transaction.meetup_booking_booker === userId && (
+                  <button
+                    className="btn-export bookings-page-card__action"
+                    onClick={() => onBook(transaction, "trade_meetup")}
+                  >
+                  Change proposed slot
                 </button>
               )}
+
+              {/* Other party: accept or decline */}
+              {transaction.meetup_booking &&
+                transaction.meetup_booking.status !== "scheduled" &&
+                transaction.status === "awaiting_meetup" &&
+                transaction.meetup_booking_booker !== userId &&
+                (userIsSeller || userIsBuyer) && (
+                <section style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+                  <button
+                    className="btn-export bookings-page-card__action"
+                    onClick={() => handleMeetupResponse(transaction, false)}
+                    disabled={meetupResponding}
+                  >
+                  Decline
+                </button>
+                <button
+                  className="btn-primary bookings-page-card__action"
+                  onClick={() => handleMeetupResponse(transaction, true)}
+                  disabled={meetupResponding}
+                >
+                  Accept meetup slot
+                </button>
+              </section>
+            )}
             </section>
             ) : (
           // ── Existing cash sale flow ──
@@ -900,6 +964,7 @@ export function StudentBookingsPage({ user, onBack }) {
               onBook={(selectedTransaction, bookingType) => setActiveBooking({ transaction: selectedTransaction, bookingType })}
               onPay={handlePay}
               payingId={payingId}
+              onRefresh={loadTransactions}
             />
           ))}
         </article>
@@ -909,6 +974,7 @@ export function StudentBookingsPage({ user, onBack }) {
         <BookingRequestModal
           transaction={activeBooking.transaction}
           bookingType={activeBooking.bookingType}
+          user={user}
           onClose={() => setActiveBooking(null)}
           onSuccess={() => {
             setActiveBooking(null);
