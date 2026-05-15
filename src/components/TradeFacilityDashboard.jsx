@@ -4,9 +4,11 @@ import { insertMessage } from "../utils/messageDelivery";
 import { deriveBookingStatus } from "../utils/tradeWorkflow";
 import ReceiptModal from "./ReceiptModal";
 import { generateTransactionReceiptPdf } from "../utils/receiptPdf";
+import { useNotifications } from "../context/NotificationContext";
 import "../styles/TradeFacilityDashboard.css";
 
 const STATUS_META = {
+  awaiting_payment:           { label: "Awaiting Payment", cls: "status--awaiting-payment", icon: "receipt" },
   awaiting_dropoff:            { label: "Awaiting Drop-off", cls: "status--awaiting-dropoff", icon: "clock" },
   item_received:               { label: "Item Received", cls: "status--item-received", icon: "package" },
   collection_pending_approval: { label: "Collection Pending Approval", cls: "status--awaiting-collection", icon: "clipboard" },
@@ -24,7 +26,7 @@ const BOOKING_STATUS_META = {
   cancelled: { label: "Cancelled", cls: "bstatus--no-show" },
 };
 
-const MANAGED_STATUSES = ["awaiting_dropoff", "item_received", "awaiting_collection", "item_released", "awaiting_meetup"];
+const MANAGED_STATUSES = ["awaiting_payment", "awaiting_dropoff", "item_received", "awaiting_collection", "item_released", "awaiting_meetup"];
 
 const NAV_ITEMS = [
   { key: "overview", label: "Overview", icon: "grid" },
@@ -323,6 +325,8 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
 
   const getAction = () => {
     switch (status) {
+      case "awaiting_payment":
+        return null;
       case "awaiting_dropoff":
       return {
         label: "Mark Item Received",
@@ -400,6 +404,14 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
               {isItemTrade ? "Item for item" : `R ${Number(transaction.price || 0).toLocaleString("en-ZA")}`}
             </span>
           </li>
+          {!isItemTrade ? (
+            <li className="booking-card__detail">
+              <span className="booking-card__detail-label">Payment</span>
+              <span className="booking-card__detail-value">
+                {transaction.payment_status === "paid" ? "Paid" : "PayFast sandbox pending"}
+              </span>
+            </li>
+          ) : null}
           {dropoffBooking ? (
             <li className="booking-card__detail">
               <span className="booking-card__detail-label">Drop-off</span>
@@ -415,6 +427,14 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
               <span className="booking-card__detail-value booking-card__detail-stack">
                 <span>{formatDate(collectionBooking.scheduledDate)} {collectionBooking.scheduledTime}</span>
                 <BookingStatusBadge status={collectionBooking.status} />
+              </span>
+            </li>
+          ) : null}
+          {status === "awaiting_payment" ? (
+            <li className="booking-card__detail booking-card__detail--full">
+              <span className="booking-card__detail-label">Next step</span>
+              <span className="booking-card__detail-value managed-card__hint">
+                Waiting for the buyer to complete PayFast sandbox payment. Drop-off booking opens after payment is confirmed.
               </span>
             </li>
           ) : null}
@@ -533,6 +553,7 @@ function ConfirmDialog({ dialog, onConfirm, onCancel, saving }) {
 function OverviewSection({ transactions, bookings }) {
   const pendingRequests = bookings.filter((booking) => booking.status === "scheduled").length;
   const managed = transactions.filter((transaction) => MANAGED_STATUSES.includes(transaction.status)).length;
+  const awaitingPayment = transactions.filter((transaction) => transaction.status === "awaiting_payment").length;
   const awaitingDropoff = transactions.filter((transaction) => transaction.status === "awaiting_dropoff").length;
   const awaitingCollection = transactions.filter((transaction) => transaction.status === "awaiting_collection").length;
   const completedAll = transactions.filter((transaction) => transaction.status === "completed").length;
@@ -560,6 +581,9 @@ function OverviewSection({ transactions, bookings }) {
             </article>
             <article role="listitem">
               <StatCard icon="table" value={pendingRequests} label="Scheduled Bookings" subLabel="Confirmed staff appointments that still need physical handling" />
+            </article>
+            <article role="listitem">
+              <StatCard icon="receipt" value={awaitingPayment} label="Awaiting Payment" subLabel="Buyer still needs to complete PayFast sandbox checkout" />
             </article>
             <article role="listitem">
               <StatCard icon="receipt" value={`R ${totalValue.toLocaleString("en-ZA")}`} label="Processed Value" subLabel="Combined trade value represented in the live ledger" />
@@ -598,6 +622,7 @@ function OverviewSection({ transactions, bookings }) {
 
           <section className="flow-list" role="list">
             {[
+              { key: "awaiting_payment", count: awaitingPayment },
               { key: "awaiting_dropoff", count: awaitingDropoff },
               { key: "item_received", count: transactions.filter((transaction) => transaction.status === "item_received").length },
               { key: "awaiting_collection", count: awaitingCollection },
@@ -761,6 +786,7 @@ function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) 
 
   const statusFilterOptions = [
     { value: "all", label: "All Active" },
+    { value: "awaiting_payment", label: "Awaiting Payment" },
     { value: "awaiting_dropoff", label: "Awaiting Drop-off" },
     { value: "item_received", label: "Item Received" },
     { value: "awaiting_collection", label: "Awaiting Collection" },
@@ -816,7 +842,7 @@ function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) 
           <EmptyState
             icon="settings"
             title="No active transactions"
-            description="Accepted bookings will appear here once they need staff handover actions."
+            description="Accepted offers appear here once payment starts. Students book facility slots from My Bookings."
           />
         ) : (
           <ul className="booking-list booking-list--dense" role="list">
@@ -847,6 +873,7 @@ function TransactionsSection({
   const [search, setSearch] = useState("");
 
   const transactionStatusOptions = [
+    "awaiting_payment",
     "awaiting_dropoff",
     "item_received",
     "awaiting_collection",
@@ -1110,6 +1137,7 @@ function UtilityRail({ transactions, bookings, activeView }) {
 }
 
 export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
+  const { notifySuccess, notifyError, notifyInfo } = useNotifications();
   const [activeView, setActiveView] = useState("overview");
   const [transactions, setTransactions] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -1120,15 +1148,23 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   const [savingIds, setSavingIds] = useState({});
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptGeneratingId, setReceiptGeneratingId] = useState("");
-  const [toast, setToast] = useState({ msg: "", visible: false });
   const [isNavOpen, setIsNavOpen] = useState(false);
-  const toastTimer = useRef(null);
 
   const showToast = useCallback((msg) => {
-    setToast({ msg, visible: true });
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast({ msg: "", visible: false }), 3200);
-  }, []);
+    const lower = String(msg || "").toLowerCase();
+
+    if (lower.includes("unable") || lower.includes("failed") || lower.includes("select a transaction")) {
+      notifyError("Trade facility update", msg, { category: "facility", dedupeKey: `trade-error-${msg}` });
+      return;
+    }
+
+    if (lower.includes("downloaded")) {
+      notifyInfo("Receipt ready", msg, { category: "sync", dedupeKey: `trade-info-${msg}` });
+      return;
+    }
+
+    notifySuccess("Trade facility update", msg, { category: "status", dedupeKey: `trade-success-${msg}` });
+  }, [notifyError, notifyInfo, notifySuccess]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -1236,8 +1272,6 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
   useEffect(() => {
     setIsNavOpen(false);
   }, [activeView]);
-
-  useEffect(() => () => clearTimeout(toastTimer.current), []);
 
   useEffect(() => {
     if (!isNavOpen) return undefined;
@@ -1660,18 +1694,6 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
           }}
         />
       ) : null}
-
-      <aside
-        className={`save-toast ${toast.visible ? "save-toast--visible" : ""}`}
-        aria-live="polite"
-        aria-atomic="true"
-        role="status"
-      >
-        <span className="save-toast__icon" aria-hidden="true">
-          <Icon name="check-circle" className="save-toast__icon-svg" />
-        </span>
-        {toast.msg}
-      </aside>
     </section>
   );
 }

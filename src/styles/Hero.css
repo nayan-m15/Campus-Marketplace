@@ -268,6 +268,13 @@
 
 .carousel-slide {
   min-width: 100%;
+  cursor: pointer;
+  outline: none;
+}
+
+.carousel-slide:focus-visible .listing-card {
+  outline: 3px solid rgba(31, 107, 82, 0.45);
+  outline-offset: -3px;
 }
 
 /* Card inside carousel */
@@ -375,6 +382,7 @@
 }
 
 .listing-button {
+  display: block;
   width: 100%;
   background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
   color: white;
@@ -383,6 +391,7 @@
   border-radius: 8px;
   font-size: 0.7rem;
   font-weight: 600;
+  text-align: center;
   cursor: pointer;
   transition: all 0.25s ease;
   box-shadow: 0 2px 8px rgba(31, 107, 82, 0.30);
@@ -407,13 +416,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.35rem;
-  font-weight: 800;
-  line-height: 1;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
   transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
   z-index: 3;
+}
+
+.carousel-nav__chevron {
+  width: 11px;
+  height: 11px;
+  border-top: 3px solid currentColor;
+  border-right: 3px solid currentColor;
+}
+
+.carousel-nav--prev .carousel-nav__chevron {
+  transform: translateX(2px) rotate(-135deg);
+}
+
+.carousel-nav--next .carousel-nav__chevron {
+  transform: translateX(-2px) rotate(45deg);
 }
 
 .carousel-nav:hover {

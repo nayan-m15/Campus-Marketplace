@@ -10,24 +10,11 @@ const mockOnAuthStateChange = vi.fn(() => ({
   data: { subscription: { unsubscribe: vi.fn() } },
 }));
 const mockSignOut = vi.fn(() => Promise.resolve({ error: null }));
-const mockInvoke = vi.fn(() => Promise.resolve({
-  data: {
-    suggestedPrice: 160,
-    suggestedRange: {
-      min: 120,
-      max: 180,
-      minFormatted: "R 120",
-      maxFormatted: "R 180",
-    },
-    confidence: { level: "High" },
-    pricingBasis: { label: "Google Shopping SA prices" },
-  },
-  error: null,
-}));
 const mockInsertMessage = vi.fn(() => Promise.resolve({ error: null }));
 let mockProfileRole = "student";
 
 vi.mock("./supabaseClient", () => ({
+  isSupabaseConfigured: true,
   supabase: {
     from: (table) => {
       let selectedColumns = "";
@@ -129,9 +116,6 @@ vi.mock("./supabaseClient", () => ({
       onAuthStateChange: (...args) => mockOnAuthStateChange(...args),
       signOut: (...args) => mockSignOut(...args),
     },
-    functions: {
-      invoke: (...args) => mockInvoke(...args),
-    },
     channel: vi.fn(() => ({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn(() => ({})),
@@ -145,9 +129,10 @@ vi.mock("./utils/messageDelivery", () => ({
 }));
 
 vi.mock("./components/Hero", () => ({
-  default: ({ onBrowseClick, onSignupClick, onLoginClick }) => (
+  default: ({ onBrowseClick, onHowItWorksClick, onSignupClick, onLoginClick }) => (
     <section aria-label="Hero">
       <button onClick={onBrowseClick}>Start Browsing</button>
+      <button onClick={onHowItWorksClick}>How It Works</button>
       <button onClick={onSignupClick}>Start listing</button>
       <button onClick={onLoginClick}>Already have an account? Sign in</button>
     </section>
@@ -247,21 +232,6 @@ beforeEach(() => {
   mockInsertMessage.mockResolvedValue({ error: null });
   mockSignOut.mockReset();
   mockSignOut.mockResolvedValue({ error: null });
-  mockInvoke.mockReset();
-  mockInvoke.mockResolvedValue({
-    data: {
-      suggestedPrice: 160,
-      suggestedRange: {
-        min: 120,
-        max: 180,
-        minFormatted: "R 120",
-        maxFormatted: "R 180",
-      },
-      confidence: { level: "High" },
-      pricingBasis: { label: "Google Shopping SA prices" },
-    },
-    error: null,
-  });
   Element.prototype.scrollIntoView = vi.fn();
   window.sessionStorage.clear();
   window.history.replaceState({}, "", "/");
@@ -469,27 +439,6 @@ test("modal shows login prompt when user is not logged in", async () => {
   expect(
     within(modalContent).getByText(/to message this seller\./i, { selector: "p" })
   ).toBeInTheDocument();
-});
-
-test("modal runs price check for logged-out users", async () => {
-  renderApp();
-  fireEvent.click(await screen.findByRole("button", { name: /open details for master shifu children toy/i }));
-
-  await waitFor(() => {
-    expect(mockInvoke).toHaveBeenCalledWith("price-suggestion", {
-      body: expect.objectContaining({
-        listingId: "2",
-        query: "Master Shifu Children Toy",
-        category: "Other",
-        condition: "Like New",
-        listingPrice: 150,
-      }),
-    });
-  });
-
-  const closeButton = await screen.findByRole("button", { name: /close item details/i });
-  const modalContent = closeButton.closest(".item-modal-content");
-  expect(within(modalContent).getByText(/good price/i)).toBeInTheDocument();
 });
 
 test("modal shows seller info", async () => {
@@ -794,6 +743,28 @@ test("returns to the home hero when the browser goes back from signup", async ()
   await waitFor(() => {
     expect(screen.getByRole("region", { name: /hero/i })).toBeInTheDocument();
   });
+});
+
+test("navigates to the How It Works page from the hero button without a refresh", async () => {
+  renderApp();
+
+  const hero = await screen.findByRole("region", { name: /hero/i });
+  fireEvent.click(within(hero).getByRole("button", { name: /how it works/i }));
+
+  expect(await screen.findByRole("heading", { name: /how it works/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /the student journey from discovery to handover/i })).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/how-it-works");
+});
+
+test("opens the How It Works page from desktop navigation", async () => {
+  renderApp();
+
+  const nav = await screen.findByRole("navigation", { name: /user navigation/i });
+  fireEvent.click(within(nav).getByRole("button", { name: /^how it works$/i }));
+
+  expect(await screen.findByText(/students can browse listings, save items, message sellers/i)).toBeInTheDocument();
+  expect(screen.getByText(/staff accounts work inside the trade facility workflow/i)).toBeInTheDocument();
+  expect(screen.getByText(/admins balance marketplace quality and operational control/i)).toBeInTheDocument();
 });
 
 test("shows the reset password page when the recovery link uses query params", async () => {

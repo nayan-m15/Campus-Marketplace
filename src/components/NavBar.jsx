@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import NotificationBell from "./NotificationBell";
 import "../styles/Navbar.css";
 
 export default function Navbar({
@@ -11,6 +12,7 @@ export default function Navbar({
   profileName,
   onLogin,
   onSignup,
+  onHowItWorks,
   onSignOut,
   onShowListingForm,
   onProfile,
@@ -216,6 +218,8 @@ export default function Navbar({
                   <>
                     {/* The rest of the mobile actions stay compact so the row
                         still fits cleanly on smaller screens. */}
+                    <NotificationBell />
+
                     <button className="navbar__icon-btn" onClick={() => { onMessages?.(); }} type="button" aria-label="Open messages">
                       <span className="navbar__icon-btn-wrap">
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -231,20 +235,14 @@ export default function Navbar({
                       </span>
                     </button>
 
-                    <button className="navbar__icon-btn navbar__icon-btn--profile" title={user.email} onClick={onProfile} type="button" aria-label="Open profile">
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt="Profile" className="navbar__mobile-avatar" />
-                      ) : (
-                        renderFallbackAvatar("navbar__mobile-avatar navbar__mobile-avatar--placeholder")
-                      )}
-                    </button>
-
                     <button className="navbar__icon-btn navbar__icon-btn--plus" onClick={onShowListingForm} type="button" aria-label="List item">
                       <span aria-hidden="true">+</span>
                     </button>
                   </>
                 )}
               </nav>
+
+              {user && <span className="navbar__desktop-bell"><NotificationBell /></span>}
 
               {/* Desktop/tablet navigation stays grouped here.
                   These links are hidden on mobile so we can keep mobile behavior
@@ -253,6 +251,9 @@ export default function Navbar({
                 <ul className="navbar__links">
                   {user ? (
                     <>
+                      <li>
+                        <button className="navbar__link" onClick={onHowItWorks}>How It Works</button>
+                      </li>
                       <li>
                         <button className="navbar__link" onClick={onMessages} style={{ position: "relative" }}>
                           <span style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
@@ -308,6 +309,7 @@ export default function Navbar({
                     </>
                   ) : (
                     <>
+                      <li><button className="navbar__link" onClick={onHowItWorks}>How It Works</button></li>
                       <li><button className="navbar__link" onClick={onLogin}>Log In</button></li>
                       <li>
                         <button className="btn-primary navbar__list-btn" onClick={onSignup}>
@@ -343,6 +345,11 @@ export default function Navbar({
                       <ul>
                         {user && (
                           <>
+                            <li>
+                              <button onClick={() => { onHowItWorks?.(); setMenuOpen(false); }}>
+                                How It Works
+                              </button>
+                            </li>
                             <li>
                               <button onClick={() => { onMessages?.(); setMenuOpen(false); }}>
                                 Messages
@@ -399,6 +406,11 @@ export default function Navbar({
 
                         {!user && (
                           <>
+                            <li>
+                              <button onClick={() => { onHowItWorks?.(); setMenuOpen(false); }}>
+                                How It Works
+                              </button>
+                            </li>
                             <li>
                               <button onClick={() => { onLogin?.(); setMenuOpen(false); }}>
                                 Log In

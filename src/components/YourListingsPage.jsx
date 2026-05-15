@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 import { CATEGORIES, CONDITION_COLORS } from "../data/listings";
 
 const LISTING_TITLE_MAX = 90;
@@ -434,6 +435,7 @@ function EditListingTypeSelector({ value, onChange }) {
 // Rendering and feature-specific behavior are coordinated here.
 export default function YourListingsPage({ onBack, onListingChanged }) {
   const { user } = useAuth();
+  const { notifySuccess } = useNotifications();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -442,7 +444,6 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [flagReasonItem, setFlagReasonItem] = useState(null);
-  const [successMsg, setSuccessMsg] = useState("");
   const [editPriceSuggestion, setEditPriceSuggestion] = useState(null);
   const [editPriceSuggestionLoading, setEditPriceSuggestionLoading] = useState(false);
   const [editPriceSuggestionError, setEditPriceSuggestionError] = useState("");
@@ -539,6 +540,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
         .from("listings")
         .select("*")
         .eq("user_id", user.id)
+        .neq("status", "archived")
         .order("created_at", { ascending: false }),
       supabase
         .from("transactions")
@@ -567,9 +569,59 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
     void Promise.resolve().then(fetchUserListings);
   }, [fetchUserListings]);
 
+  async function archiveListing(id) {
+    const { error } = await supabase.from("listings").update({ status: "archived" }).eq("id", id);
+    return error;
+  }
+
+  function isTransactionReferenceError(error) {
+    return (
+      error?.code === "23503" ||
+      String(error?.message || "").includes("transactions_listing_id_fkey") ||
+      String(error?.message || "").includes("violates foreign key constraint")
+    );
+  }
+
+  async function listingHasTransactionReference(id) {
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("id")
+      .or(`listing_id.eq.${id},requested_listing_id.eq.${id},offered_listing_id.eq.${id}`);
+
+    if (error) return false;
+    return Boolean(data?.length);
+  }
+
   async function handleDelete(id) {
+    setError(null);
+
+    const shouldArchive = await listingHasTransactionReference(id);
+
+    if (shouldArchive) {
+      const archiveError = await archiveListing(id);
+      if (archiveError) { setError(archiveError.message); return; }
+      setListings((prev) => prev.filter((l) => l.id !== id));
+      setDeleteConfirm(null);
+      showSuccess("Listing removed from your listings.");
+      onListingChanged?.();
+      return;
+    }
+
     const { error } = await supabase.from("listings").delete().eq("id", id);
-    if (error) { setError(error.message); return; }
+    if (error) {
+      if (isTransactionReferenceError(error)) {
+        const archiveError = await archiveListing(id);
+        if (archiveError) { setError(archiveError.message); return; }
+        setListings((prev) => prev.filter((l) => l.id !== id));
+        setDeleteConfirm(null);
+        showSuccess("Listing removed from your listings.");
+        onListingChanged?.();
+        return;
+      }
+
+      setError(error.message);
+      return;
+    }
     setListings((prev) => prev.filter((l) => l.id !== id));
     setDeleteConfirm(null);
     showSuccess("Listing deleted.");
@@ -713,8 +765,7 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.
   function showSuccess(msg) {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(""), 3000);
+    notifySuccess("Listing updated", msg, { category: "listing", dedupeKey: `your-listings-${msg}` });
   }
 
   return (
@@ -735,14 +786,6 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
           </span>
         )}
       </section>
-
-      {/* Success toast */}
-      {successMsg && (
-        <section style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: "var(--gray-900)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
-          {successMsg}
-        </section>
-      )}
-
       {/* Error */}
       {error && (
         <p style={{ color: "crimson", marginBottom: 16 }}>{error}</p>

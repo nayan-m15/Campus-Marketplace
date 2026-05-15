@@ -36,6 +36,7 @@ function formatStatCount(value) {
 export default function Hero({
   onListingClick,
   onBrowseClick,
+  onHowItWorksClick,
   onSignupClick,
   onLoginClick,
   user,
@@ -43,7 +44,6 @@ export default function Hero({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef(null);
-  const [showPopup, setShowPopup] = useState(false);
 
   const [topListings, setTopListings] = useState([]);
   const [heroStats, setHeroStats] = useState([
@@ -165,6 +165,12 @@ export default function Hero({
   // User-driven changes pass through this handler first.
   // State updates and follow-up UI actions are triggered here.
   const handleMouseLeave = () => setIsPaused(false);
+  const handleSlideKeyDown = (event, listing) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    onListingClick?.(listing);
+  };
 
   return (
     <section className={`hero${!user ? " hero--with-sell-cta" : ""}`}>
@@ -191,31 +197,10 @@ export default function Hero({
             <button
               className="btn-outline"
               style={{ fontSize: 15, padding: "13px 28px" }}
-              onClick={() => setShowPopup(true)}
+              onClick={onHowItWorksClick}
             >
               How It Works
             </button>
-             {showPopup && (
-                <section className="popup-overlay" onClick={() => setShowPopup(false)}>
-                  <article
-                    className="popup-card"
-                    onClick={(e) => e.stopPropagation()} // prevents closing when clicking inside
-                  >
-                    <h3>How It Works</h3>
-                    <p>
-                      Browse listings, connect with sellers, and securely complete your
-                      transaction — all in one place.
-                    </p>
-
-                    <button
-                      className="btn-outline"
-                      onClick={() => setShowPopup(false)}
-                    >
-                      Close
-                    </button>
-                  </article>
-                </section>
-              )}
           </nav>
 
           <ul className="hero__badges">
@@ -263,8 +248,17 @@ export default function Hero({
                 className="carousel-track"
                 style={{ transform: `translateX(-${currentSlide * 100}%)` }}
               >
-                {topListings.map((listing) => (
-                  <article key={listing.id} className="carousel-slide">
+                {topListings.map((listing, index) => (
+                  <article
+                    key={listing.id}
+                    className="carousel-slide"
+                    onClick={() => onListingClick?.(listing)}
+                    onKeyDown={(event) => handleSlideKeyDown(event, listing)}
+                    role="button"
+                    tabIndex={index === currentSlide ? 0 : -1}
+                    aria-hidden={index !== currentSlide}
+                    aria-label={`Open details for ${listing.title}`}
+                  >
                     <article className="listing-card">
                       <figure className="listing-image">
                         {listing.image_url ? (
@@ -299,12 +293,12 @@ export default function Hero({
                           </span>
                         </p>
 
-                        <button
+                        <span
                           className="listing-button"
-                          onClick={() => onListingClick(listing)}
+                          aria-hidden="true"
                         >
                           View Details →
-                        </button>
+                        </span>
                       </section>
                     </article>
                   </article>
@@ -316,14 +310,14 @@ export default function Hero({
                 onClick={prevSlide}
                 aria-label="Previous slide"
               >
-                ‹
+                <span className="carousel-nav__chevron" aria-hidden="true" />
               </button>
               <button
                 className="carousel-nav carousel-nav--next"
                 onClick={nextSlide}
                 aria-label="Next slide"
               >
-                ›
+                <span className="carousel-nav__chevron" aria-hidden="true" />
               </button>
 
               <nav className="carousel-dots">

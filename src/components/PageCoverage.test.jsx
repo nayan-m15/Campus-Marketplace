@@ -12,6 +12,11 @@ import PublicProfilePage from "./PublicProfilePage";
 import TradeFacilityDashboard from "./TradeFacilityDashboard";
 import YourListingsPage from "./YourListingsPage";
 import { StudentBookingsPage } from "./BookingsUi";
+import { NotificationProvider } from "../context/NotificationContext";
+
+function renderWithNotifications(ui) {
+  return render(<NotificationProvider>{ui}</NotificationProvider>);
+}
 
 const mocks = vi.hoisted(() => ({
   upsert: vi.fn(),
@@ -462,7 +467,7 @@ test("ProfilePage loads profile, validates phone, and saves updates", async () =
   const onBack = vi.fn();
   const onNameChange = vi.fn();
 
-  render(<ProfilePage onBack={onBack} onNameChange={onNameChange} />);
+  renderWithNotifications(<ProfilePage onBack={onBack} onNameChange={onNameChange} />);
 
   expect(await screen.findByDisplayValue("Student User")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /back/i }));
@@ -490,7 +495,7 @@ test("ProfilePage loads profile, validates phone, and saves updates", async () =
 test("PublicProfilePage loads seller details and submits a rating", async () => {
   const onBack = vi.fn();
   const onMessageSeller = vi.fn();
-  const onView = render(
+  const onView = renderWithNotifications(
     <PublicProfilePage
       userId="seller-1"
       onBack={onBack}
@@ -524,7 +529,7 @@ test("PublicProfilePage loads seller details and submits a rating", async () => 
 test("YourListingsPage edits status and deletes a listing", async () => {
   const onBack = vi.fn();
   const onListingChanged = vi.fn();
-  render(<YourListingsPage onBack={onBack} onListingChanged={onListingChanged} />);
+  renderWithNotifications(<YourListingsPage onBack={onBack} onListingChanged={onListingChanged} />);
 
   expect(await screen.findByRole("heading", { name: /your listings/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /back/i }));
@@ -561,13 +566,13 @@ test("YourListingsPage edits status and deletes a listing", async () => {
   fireEvent.click(screen.getByRole("button", { name: /🗑|delete/i }));
   fireEvent.click(await screen.findByRole("button", { name: /^delete$/i }));
 
-  await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("listings"));
+  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith("listings", { status: "archived" }));
   expect(onListingChanged).toHaveBeenCalled();
 });
 
 test("YourListingsPage updates listing photos in the edit modal", async () => {
   const onListingChanged = vi.fn();
-  render(<YourListingsPage onBack={vi.fn()} onListingChanged={onListingChanged} />);
+  renderWithNotifications(<YourListingsPage onBack={vi.fn()} onListingChanged={onListingChanged} />);
 
   // Open the existing listing and verify the current photo is loaded first.
   fireEvent.click(await screen.findByRole("button", { name: /edit/i }));
@@ -614,9 +619,10 @@ test("YourListingsPage updates listing photos in the edit modal", async () => {
   vi.unstubAllGlobals();
 });
 
-test("Hero loads listings, opens help popup, and routes CTA clicks", async () => {
+test("Hero loads listings and routes CTA clicks", async () => {
   const onListingClick = vi.fn();
   const onBrowseClick = vi.fn();
+  const onHowItWorksClick = vi.fn();
   const onSignupClick = vi.fn();
   const onLoginClick = vi.fn();
 
@@ -624,6 +630,7 @@ test("Hero loads listings, opens help popup, and routes CTA clicks", async () =>
     <Hero
       onListingClick={onListingClick}
       onBrowseClick={onBrowseClick}
+      onHowItWorksClick={onHowItWorksClick}
       onSignupClick={onSignupClick}
       onLoginClick={onLoginClick}
       user={null}
@@ -636,10 +643,9 @@ test("Hero loads listings, opens help popup, and routes CTA clicks", async () =>
   expect(onBrowseClick).toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /how it works/i }));
-  expect(await screen.findByRole("heading", { name: /how it works/i })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: /close/i }));
+  expect(onHowItWorksClick).toHaveBeenCalled();
 
-  fireEvent.click((await screen.findAllByRole("button", { name: /view details/i }))[0]);
+  fireEvent.click(await screen.findByRole("button", { name: /open details for calculator/i }));
   expect(onListingClick).toHaveBeenCalledWith(expect.objectContaining({ id: "hero-1" }));
 
   fireEvent.click(screen.getByRole("button", { name: /start listing/i }));
@@ -797,7 +803,7 @@ test("MessagesPage keeps offer-only threads tied to a specific listing", async (
   expect(screen.getAllByText(/offer accepted/i).length).toBeGreaterThan(0);
 });
 
-test("MessagesPage creates a transaction when an offer is accepted", async () => {
+test("MessagesPage prepares a PayFast payment transaction when a cash offer is accepted", async () => {
   transactions.splice(0, transactions.length);
   offers.splice(
     0,
@@ -825,21 +831,10 @@ test("MessagesPage creates a transaction when an offer is accepted", async () =>
 
   fireEvent.click(await screen.findByRole("button", { name: /accept/i }));
 
-  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
-    "transactions",
-    expect.objectContaining({
-      item: "Textbook",
-      seller_id: "seller-1",
-      buyer_id: "user-1",
-      price: 500,
-      status: "awaiting_dropoff",
-    })
+  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
+    "accept_cash_offer_for_payment",
+    { p_offer_id: "offer-pending-1" }
   ));
-
-  expect(mocks.update).toHaveBeenCalledWith(
-    "listings",
-    expect.objectContaining({ sold_price: 500, status: "sold" })
-  );
 });
 
 test("MessagesPage creates an item-trade transaction when a trade offer is accepted", async () => {
@@ -982,12 +977,18 @@ test("MessagesPage warns before sending a message for a flagged listing", async 
 
 test("AdminDashboard loads facilities, saves changes, and generates a report", async () => {
   const onSignOut = vi.fn();
-  render(<AdminDashboard onSignOut={onSignOut} />);
+  renderWithNotifications(<AdminDashboard onSignOut={onSignOut} />);
 
   expect(await screen.findByText(/main trade desk/i)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /edit/i }));
   fireEvent.click(screen.getByRole("button", { name: /update facility/i }));
-  expect(await screen.findByRole("status")).toHaveTextContent(/facility updated successfully/i);
+  await waitFor(() =>
+    expect(
+      mocks.update.mock.calls.some(
+        ([table, payload]) => table === "facilities" && payload?.name === "Main Trade Desk"
+      )
+    ).toBe(true)
+  );
 
   fireEvent.click(screen.getByRole("button", { name: /reports/i }));
   fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
@@ -1001,7 +1002,7 @@ test("AdminDashboard loads facilities, saves changes, and generates a report", a
 
 test("TradeFacilityDashboard renders navigation and sign out", () => {
   const onSignOut = vi.fn();
-  render(<TradeFacilityDashboard onSignOut={onSignOut} staffProfile={profile} />);
+  renderWithNotifications(<TradeFacilityDashboard onSignOut={onSignOut} staffProfile={profile} />);
 
   expect(screen.getByRole("heading", { name: /dashboard overview/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /drop-off bookings/i }));

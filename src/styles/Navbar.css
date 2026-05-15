@@ -413,6 +413,17 @@ html.dark .navbar__hamburger span {
   background: #f9fafb;
 }
 
+.navbar__desktop-bell {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .navbar__desktop-bell {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   /* Mobile/tablet split:
      below this breakpoint we stop trying to squeeze desktop navbar patterns down.

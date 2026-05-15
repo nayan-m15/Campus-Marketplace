@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabaseClient";
+import { useNotifications } from "../context/NotificationContext";
 import { DAYS, normalizeFacilityDay } from "../utils/bookingScheduling";
 import { isValidTimeFormat, normalizeTime } from "../utils/time";
 import {
@@ -602,6 +603,7 @@ function FacilityCard({ facility, onEdit, onDelete, onToggleStatus }) {
 
 // ── Main Facilities Management Panel Component ───────────────────────
 export default function FacilitiesManagementPanel() {
+  const { notifySuccess, notifyError } = useNotifications();
   const [facilities, setFacilities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -610,7 +612,6 @@ export default function FacilitiesManagementPanel() {
   const [showModal, setShowModal] = useState(false);
   const [editingFacility, setEditingFacility] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
 
   // Load facilities from Supabase
   const fetchFacilities = useCallback(async () => {
@@ -649,9 +650,13 @@ export default function FacilitiesManagementPanel() {
 
   // Show toast notification
   const showToast = useCallback((message, type = "success") => {
-    setToast({ visible: true, message, type });
-    setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
-  }, []);
+    if (type === "error") {
+      notifyError("Facility update failed", message, { category: "facility", dedupeKey: `facility-error-${message}` });
+      return;
+    }
+
+    notifySuccess("Facility updated", message, { category: "facility", dedupeKey: `facility-success-${message}` });
+  }, [notifyError, notifySuccess]);
 
   // Filter facilities based on search and status
   const filteredFacilities = facilities.filter(facility => {
@@ -906,17 +911,6 @@ export default function FacilitiesManagementPanel() {
 
   return (
     <section className="facilities-management-panel">
-      {/* Toast Notification */}
-      {toast.visible && (
-        <section
-          className={`toast toast--${toast.type} toast--visible`}
-          role="status"
-          aria-live={toast.type === "error" ? "assertive" : "polite"}
-        >
-          <span className="toast-message">{toast.message}</span>
-        </section>
-      )}
-
       {/* Header */}
       <header className="panel-header">
         <header className="header-content">

@@ -1,4 +1,43 @@
+-- Source: 20260509000100_add_atomic_transaction_slot_booking.sql
 BEGIN;
+
+CREATE TABLE IF NOT EXISTS public.bookings (
+  id TEXT PRIMARY KEY,
+  type TEXT,
+  scheduled_time TIMESTAMPTZ,
+  location TEXT,
+  status TEXT DEFAULT 'scheduled',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.transactions (
+  id TEXT PRIMARY KEY,
+  item TEXT,
+  seller_id UUID,
+  buyer_id UUID,
+  price NUMERIC DEFAULT 0,
+  status TEXT DEFAULT 'pending',
+  dropoff_id TEXT,
+  collection_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.bookings
+  ADD COLUMN IF NOT EXISTS type TEXT,
+  ADD COLUMN IF NOT EXISTS scheduled_time TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS location TEXT,
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'scheduled',
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS item TEXT,
+  ADD COLUMN IF NOT EXISTS seller_id UUID,
+  ADD COLUMN IF NOT EXISTS buyer_id UUID,
+  ADD COLUMN IF NOT EXISTS price NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS dropoff_id TEXT,
+  ADD COLUMN IF NOT EXISTS collection_id TEXT,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
 CREATE INDEX IF NOT EXISTS idx_bookings_location_scheduled_status
 ON public.bookings (location, scheduled_time, status);
@@ -202,3 +241,30 @@ $$;
 GRANT EXECUTE ON FUNCTION public.book_transaction_slot(TEXT, TEXT, TEXT, TIMESTAMPTZ) TO authenticated;
 
 COMMIT;
+
+
+
+-- Source: 20260509000200_remove_manual_booking_approval_workflow.sql
+BEGIN;
+
+UPDATE public.bookings
+SET status = 'scheduled'
+WHERE status = 'pending_approval'
+  AND type IN ('dropoff', 'collection');
+
+UPDATE public.transactions t
+SET status = CASE
+  WHEN t.dropoff_id IS NOT NULL AND t.collection_id IS NULL THEN 'awaiting_dropoff'
+  WHEN t.collection_id IS NOT NULL THEN 'awaiting_collection'
+  ELSE t.status
+END
+WHERE t.status IN ('pending', 'collection_pending_approval')
+  AND (
+    t.dropoff_id IS NOT NULL
+    OR t.collection_id IS NOT NULL
+  );
+
+COMMIT;
+
+
+

@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 import "../styles/ProfilePage.css";
 
 // ── Star display (read-only) ─────────────────────────────────
@@ -58,6 +59,7 @@ function StarPicker({ value, onChange }) {
 // ── Main Component ───────────────────────────────────────────
 export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
   const { user } = useAuth();
+  const { notifySuccess, notifyError, notifyWarning } = useNotifications();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +74,6 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
   const [selectedListing, setSelectedListing] = useState("");
   const [selectedStars, setSelectedStars] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const [ratingToast, setRatingToast] = useState(null);
 
   // ── Load profile (includes avg_rating + rating_count columns) ──
   useEffect(() => {
@@ -160,8 +161,17 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
 
   // ── Helpers ──────────────────────────────────────────────────
   function showToast(msg) {
-    setRatingToast(msg);
-    setTimeout(() => setRatingToast(null), 3000);
+    if (msg.toLowerCase().includes("please select")) {
+      notifyWarning("Rating incomplete", msg, { category: "profile", dedupeKey: `rating-warning-${msg}` });
+      return;
+    }
+
+    if (msg.toLowerCase().includes("submitted")) {
+      notifySuccess("Rating submitted", msg, { category: "profile", dedupeKey: `rating-success-${msg}` });
+      return;
+    }
+
+    notifyError("Rating failed", msg, { category: "profile", dedupeKey: `rating-error-${msg}` });
   }
 
   async function handleSubmitRating() {
@@ -179,7 +189,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
 
       if (error) throw new Error(error.message);
 
-      showToast("✅ Rating submitted!");
+      showToast("Rating submitted!");
       setSelectedListing("");
       setSelectedStars(0);
 
@@ -203,7 +213,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
         )
       );
     } catch (err) {
-      showToast("⚠️ " + err.message);
+      showToast(err.message);
     } finally {
       setSubmitting(false);
     }
@@ -261,8 +271,6 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
   // ── Render ────────────────────────────────────────────────────
   return (
     <article className="profile-page">
-      {ratingToast && <article className="profile-toast">{ratingToast}</article>}
-
       <article className="profile-page__inner">
         <button className="profile-page__back" onClick={onBack}>← Back</button>
 

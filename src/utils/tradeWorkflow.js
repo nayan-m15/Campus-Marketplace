@@ -1,4 +1,5 @@
 export const TRANSACTION_STATUS_META = {
+  awaiting_payment: "Awaiting Payment",
   pending: "Pending",
   awaiting_dropoff: "Awaiting Drop-off",
   item_received: "Item Received",

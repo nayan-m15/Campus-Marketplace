@@ -211,6 +211,7 @@ export default function MessagesPage({
   const [acceptedOfferBanner, setAcceptedOfferBanner] = useState(null);
   const [offerSending, setOfferSending] = useState(false);
   const [offerError, setOfferError] = useState("");
+  const [offerActionError, setOfferActionError] = useState("");
   const [sendDraftBeforeOffer, setSendDraftBeforeOffer] = useState(false);
   const [offerMode, setOfferMode] = useState("cash"); // "cash" | "trade"
   const [tradeImage, setTradeImage] = useState(null);
@@ -1115,6 +1116,40 @@ export default function MessagesPage({
   };
 
   const respondToOffer = async (offerId, accept) => {
+    setOfferActionError("");
+
+    const existingOffer = offers.find((offer) => offer.id === offerId);
+    if (accept && existingOffer && !isItemTradeOffer(existingOffer)) {
+      const { data, error } = await supabase.rpc("accept_cash_offer_for_payment", {
+        p_offer_id: String(offerId),
+      });
+
+      if (error) {
+        console.error(error.message);
+        setOfferActionError(error.message || "Could not prepare the PayFast payment transaction.");
+        return;
+      }
+
+      const accepted = Array.isArray(data) ? data[0] : data;
+      setOffers((prev) =>
+        prev.map((offer) =>
+          offer.id === offerId
+            ? { ...offer, status: "accepted", responded_at: new Date().toISOString() }
+            : offer.listing_id === existingOffer.listing_id && offer.status === "pending"
+              ? { ...offer, status: "declined", responded_at: new Date().toISOString() }
+              : offer
+        )
+      );
+
+      if (iAmTheLister) {
+        setAcceptedOfferBanner({
+          amount: accepted?.amount ?? existingOffer.amount,
+          listingTitle: accepted?.listing_title || conversationListing?.title || "Marketplace item",
+        });
+      }
+      return;
+    }
+
     const newStatus = accept ? "accepted" : "declined";
     const { data: updatedOffer, error } = await supabase
       .from("offers")
@@ -1123,7 +1158,11 @@ export default function MessagesPage({
       .select()
       .single();
 
-    if (error) { console.error(error.message); return; }
+    if (error) {
+      console.error(error.message);
+      setOfferActionError(error.message || "Could not update this offer.");
+      return;
+    }
     setOffers((prev) => prev.map((o) => o.id === offerId ? updatedOffer : o));
 
     // Trade offers accepted — no transaction/listing update needed (no cash)
@@ -1161,22 +1200,21 @@ export default function MessagesPage({
         buyer_id: buyerId,
         price: updatedOffer.amount,
         listing_id: updatedOffer.listing_id,
+        transaction_type: "cash_sale",
+        payment_status: "unpaid",
+        payment_provider: "payfast",
+        payment_method: "payfast_sandbox",
+        status: "awaiting_payment",
       };
 
       const insertPayload = {
         ...updatePayload,
         id: buildTradeTransactionId(),
-        status: "awaiting_dropoff",
       };
 
       const transactionRequest = activeTransaction
         ? supabase.from("transactions").update(updatePayload).eq("id", activeTransaction.id)
         : supabase.from("transactions").insert(insertPayload);
-
-      const listingRequest = supabase
-        .from("listings")
-        .update({ sold_price: updatedOffer.amount, status: "sold" })
-        .eq("id", updatedOffer.listing_id);
 
       const offerCleanupRequest = supabase
         .from("offers")
@@ -1184,7 +1222,7 @@ export default function MessagesPage({
         .eq("listing_id", updatedOffer.listing_id)
         .eq("status", "pending");
 
-      await Promise.allSettled([transactionRequest, listingRequest, offerCleanupRequest]);
+      await Promise.allSettled([transactionRequest, offerCleanupRequest]);
 
       if (iAmTheLister) {
         setAcceptedOfferBanner({ amount: updatedOffer.amount, listingTitle });
@@ -1716,6 +1754,11 @@ export default function MessagesPage({
             )}
 
             <section className="msg-chat__body">
+              {offerActionError && (
+                <article className="msg-offer-action-error" role="alert">
+                  {offerActionError}
+                </article>
+              )}
               {msgsLoading && (
                 <section className="msg-chat__loading"><span className="msg-spinner" /></section>
               )}
@@ -1849,7 +1892,7 @@ export default function MessagesPage({
                                     </span>
                                   </header>
                                   <p className="msg-offer-card__note">
-                                    This offer only records the agreed price. Payment and collection are arranged later in chat.
+                                    This offer uses PayFast sandbox checkout after it is accepted. No real money is transferred.
                                   </p>
                                   <p className="msg-offer-card__amount">
                                     R{Number(item.amount).toLocaleString("en-ZA")}
@@ -1869,6 +1912,7 @@ export default function MessagesPage({
                                   {isAccepted && (
                                     <section className="msg-offer-card__accepted-block">
                                       <p className="msg-offer-card__status msg-offer-card__status--accepted" style={{ margin: 0 }}>✓ Offer accepted</p>
+                                      <p className="msg-offer-card__accepted-note">The buyer must pay with PayFast sandbox in My Bookings before facility drop-off can be booked.</p>
                                       <button className="msg-offer-card__bookings-btn" onClick={() => onGoToBookings?.()} type="button">Go to My Bookings →</button>
                                     </section>
                                   )}
@@ -1936,7 +1980,7 @@ export default function MessagesPage({
                     R{Number(acceptedOfferBanner.amount).toLocaleString("en-ZA")}
                   </p>
                   <p className="msg-offer-card__note" style={{ color: "rgba(255,255,255,0.6)" }}>
-                    You accepted the offer for <strong style={{ color: "#fff" }}>{acceptedOfferBanner.listingTitle}</strong>. Book a drop-off or collection slot to complete the transaction.
+                    You accepted the offer for <strong style={{ color: "#fff" }}>{acceptedOfferBanner.listingTitle}</strong>. The buyer can now pay with PayFast sandbox from My Bookings.
                   </p>
                   <section className="msg-offer-card__actions">
                     <button
