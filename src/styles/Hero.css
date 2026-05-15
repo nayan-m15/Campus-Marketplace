@@ -19,11 +19,11 @@
 }
 
 .hero--with-sell-cta {
-  min-height: calc(100vh - 64px);
+  min-height: 100vh;
   padding-bottom: 40px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .hero__main {
@@ -227,12 +227,12 @@
 }
 
 .hero__stat-label {
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 
 .hero__stat-divider {
@@ -250,15 +250,12 @@
   position: relative;
   overflow: hidden;
   border-radius: 20px;
-
-  /* Glass style */
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
+  background: #fffdf8;
+  border: 1px solid rgba(31, 36, 31, 0.08);
 
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.05),
-    0 24px 64px rgba(0, 0, 0, 0.6);
+    0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 24px 64px rgba(0, 0, 0, 0.34);
 }
 
 .carousel-track {
@@ -272,15 +269,11 @@
 
 /* Card inside carousel */
 .hero__carousel .listing-card {
-  background: transparent;
   border-radius: 16px;
   overflow: hidden;
   margin: 0.75rem;
-
-  /* Glass look */
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(10px);
+  background: #fffdf8;
+  border: 1px solid rgba(31, 36, 31, 0.08);
 
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
@@ -293,7 +286,7 @@
 .listing-image {
   position: relative;
   height: 168px;
-  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
+  background: #fffdf8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -329,6 +322,7 @@
 
 .listing-details {
   padding: 0.85rem;
+  background: #fffdf8;
 }
 
 .listing-title {
@@ -660,34 +654,25 @@
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 900px) {
   .hero {
-    padding: 24px 16px 0;
+    padding: 72px 16px 28px;
   }
 
   .hero:not(.hero--with-sell-cta) {
-    min-height: calc(100vh - var(--navbar-height));
-    min-height: calc(100svh - var(--navbar-height));
-    min-height: calc(100dvh - var(--navbar-height));
-    padding-bottom: 28px;
+    min-height: unset;
+    padding-bottom: 36px;
   }
 
   .hero--with-sell-cta {
-    min-height: auto;
-    padding-bottom: 0;
-    display: block;
+    min-height: unset;
   }
 
   .hero__main {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 24px;
-    min-height: auto;
+    min-height: unset;
   }
 
   .hero:not(.hero--with-sell-cta) .hero__main {
-    min-height: calc(100vh - var(--navbar-height) - 52px);
-    min-height: calc(100svh - var(--navbar-height) - 52px);
-    min-height: calc(100dvh - var(--navbar-height) - 52px);
-    justify-content: center;
+    justify-content: flex-start;
+    padding-top: 16px;
   }
 
   .hero__content {
@@ -702,8 +687,8 @@
     width: 100%;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    padding: 18px;
+    gap: 4px;
+    padding: 14px 10px;
   }
 
   .hero__stat-group,
@@ -745,7 +730,7 @@
   }
 
   .hero__stat-value {
-    font-size: 22px;
+    font-size: 16px;
   }
 
   .sell-cta {
@@ -778,8 +763,8 @@
   }
 
   .hero__stats {
-    grid-template-columns: 1fr;
-    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .hero__stat-divider {
@@ -805,13 +790,62 @@
 }
 /* ── DARK MODE FIXES FOR HERO CAROUSEL ── */
 
+html.dark .hero {
+  background: #fffdf8 !important;
+}
+
+html.dark .hero__bg {
+  background: #fffdf8 !important;
+}
+
+html.dark .hero__bg::before,
+html.dark .hero__bg::after,
+html.dark .hero__overlay {
+  display: none;
+}
+
+html.dark .hero__title {
+  color: var(--gray-900);
+}
+
+html.dark .hero__subtitle {
+  color: var(--green-dark);
+  text-shadow: none;
+}
+
+html.dark .hero__description,
+html.dark .hero__badge {
+  color: var(--gray-800);
+}
+
+html.dark .hero__stats {
+  background: #f7f4ec;
+  border-color: rgba(31, 36, 31, 0.1);
+  backdrop-filter: none;
+}
+
+html.dark .hero__stat-value {
+  color: var(--gray-900);
+}
+
+html.dark .hero__stat-label {
+  color: var(--gray-600);
+}
+
+html.dark .hero .btn-outline {
+  background: #fffdf8;
+  border-color: rgba(31, 107, 82, 0.35);
+  color: var(--green-dark);
+  backdrop-filter: none;
+}
+
 html.dark .listing-seller {
-  color: #9ca3af !important;
+  color: var(--gray-500) !important;
 }
 
 html.dark .listing-title,
 html.dark .listing-price {
-  color: #f9fafb !important;
+  color: var(--gray-900) !important;
 }
 
 /* Arrow buttons */
