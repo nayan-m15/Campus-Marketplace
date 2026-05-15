@@ -168,7 +168,7 @@ html.dark body {
 }
 
 html.dark .navbar {
-  background: #111827;
+  background: rgba(17, 24, 39, 0.97);
   border-bottom-color: #1f2937;
 }
 

@@ -1084,13 +1084,6 @@
   background: linear-gradient(135deg, #295e50 0%, #1f6b52 100%);
 }
 
-.item-modal-send-btn--unflag {
-  background: linear-gradient(135deg, #f8fafc 0%, #e5e7eb 100%);
-  color: var(--navy);
-  border: 1px solid rgba(31, 36, 31, 0.14);
-  box-shadow: 0 4px 14px rgba(31, 36, 31, 0.12);
-}
-
 .item-modal-send-btn--offer {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);

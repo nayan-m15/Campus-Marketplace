@@ -182,8 +182,6 @@ function EditPriceSuggestion({ suggestion, loading, error, hasEnoughDetail }) {
 
   if (!suggestion) return null;
 
-  const pricingBasisLabel = suggestion.pricingBasis?.label || "Google Shopping SA";
-
   return (
     <section style={{ border: "1px solid rgba(31, 107, 82, 0.22)", borderRadius: 10, padding: 12, background: "rgba(227, 239, 230, 0.7)", color: "var(--gray-600)" }}>
       <section style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
@@ -196,7 +194,7 @@ function EditPriceSuggestion({ suggestion, loading, error, hasEnoughDetail }) {
         {suggestion.suggestedPriceFormatted}
       </p>
       <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45 }}>
-        Based on {pricingBasisLabel}, adjusted for condition.
+        Based on Google Shopping SA, adjusted for condition.
       </p>
     </section>
   );
@@ -211,7 +209,6 @@ function getEditPriceSuggestionCacheKey(item) {
     description: String(item.description || "").trim().toLowerCase(),
     category: String(item.category || "").trim().toLowerCase(),
     condition: String(item.condition || "").trim().toLowerCase(),
-    price: String(item.price || "").trim().toLowerCase(),
   });
 }
 
@@ -496,7 +493,6 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
             description: editingItem.description || "",
             category: editingItem.category,
             condition: editingItem.condition,
-            listingPrice: editingItem.price,
             imageUrl:
               editingItem.image_url ||
               editingItem.image_urls?.find(Boolean) ||
@@ -679,20 +675,12 @@ export default function YourListingsPage({ onBack, onListingChanged }) {
           description: description || "",
           category,
           condition,
-          listingPrice: numericPrice,
           imageUrl: savedImageUrls[0] || editingItem.image_url || "",
         },
       }).then(({ data, error }) => {
         if (error || data?.error) throw error || new Error(data.error);
         editPriceSuggestionCache.set(
-          getEditPriceSuggestionCacheKey({
-            id,
-            title,
-            description,
-            category,
-            condition,
-            price: numericPrice,
-          }),
+          getEditPriceSuggestionCacheKey({ id, title, description, category, condition }),
           data
         );
       }).catch((cacheError) => {
