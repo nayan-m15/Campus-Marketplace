@@ -119,7 +119,7 @@ VITE_DEBUG_AUTH=false
 Important:
 
 - Do not commit private environment values to version control
-- The code accepts `VITE_SUPABASE_KEY` as a fallback, but `VITE_SUPABASE_ANON_KEY` is the preferred variable name
+- Use `VITE_SUPABASE_ANON_KEY` for the public Supabase anon key. Never expose or commit `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Run Locally
 
