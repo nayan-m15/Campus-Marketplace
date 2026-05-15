@@ -10,6 +10,20 @@ const mockOnAuthStateChange = vi.fn(() => ({
   data: { subscription: { unsubscribe: vi.fn() } },
 }));
 const mockSignOut = vi.fn(() => Promise.resolve({ error: null }));
+const mockInvoke = vi.fn(() => Promise.resolve({
+  data: {
+    suggestedPrice: 160,
+    suggestedRange: {
+      min: 120,
+      max: 180,
+      minFormatted: "R 120",
+      maxFormatted: "R 180",
+    },
+    confidence: { level: "High" },
+    pricingBasis: { label: "Google Shopping SA prices" },
+  },
+  error: null,
+}));
 const mockInsertMessage = vi.fn(() => Promise.resolve({ error: null }));
 let mockProfileRole = "student";
 
@@ -114,6 +128,9 @@ vi.mock("./supabaseClient", () => ({
       getSession: (...args) => mockGetSession(...args),
       onAuthStateChange: (...args) => mockOnAuthStateChange(...args),
       signOut: (...args) => mockSignOut(...args),
+    },
+    functions: {
+      invoke: (...args) => mockInvoke(...args),
     },
     channel: vi.fn(() => ({
       on: vi.fn().mockReturnThis(),
@@ -230,6 +247,21 @@ beforeEach(() => {
   mockInsertMessage.mockResolvedValue({ error: null });
   mockSignOut.mockReset();
   mockSignOut.mockResolvedValue({ error: null });
+  mockInvoke.mockReset();
+  mockInvoke.mockResolvedValue({
+    data: {
+      suggestedPrice: 160,
+      suggestedRange: {
+        min: 120,
+        max: 180,
+        minFormatted: "R 120",
+        maxFormatted: "R 180",
+      },
+      confidence: { level: "High" },
+      pricingBasis: { label: "Google Shopping SA prices" },
+    },
+    error: null,
+  });
   Element.prototype.scrollIntoView = vi.fn();
   window.sessionStorage.clear();
   window.history.replaceState({}, "", "/");
@@ -437,6 +469,27 @@ test("modal shows login prompt when user is not logged in", async () => {
   expect(
     within(modalContent).getByText(/to message this seller\./i, { selector: "p" })
   ).toBeInTheDocument();
+});
+
+test("modal runs price check for logged-out users", async () => {
+  renderApp();
+  fireEvent.click(await screen.findByRole("button", { name: /open details for master shifu children toy/i }));
+
+  await waitFor(() => {
+    expect(mockInvoke).toHaveBeenCalledWith("price-suggestion", {
+      body: expect.objectContaining({
+        listingId: "2",
+        query: "Master Shifu Children Toy",
+        category: "Other",
+        condition: "Like New",
+        listingPrice: 150,
+      }),
+    });
+  });
+
+  const closeButton = await screen.findByRole("button", { name: /close item details/i });
+  const modalContent = closeButton.closest(".item-modal-content");
+  expect(within(modalContent).getByText(/good price/i)).toBeInTheDocument();
 });
 
 test("modal shows seller info", async () => {
