@@ -1239,7 +1239,7 @@ export default function MessagesPage({
         payment_status: "unpaid",
         payment_provider: "payfast",
         payment_method: "payfast_sandbox",
-        status: "awaiting_payment",
+        status: "awaiting_dropoff",
       };
 
       const insertPayload = {
@@ -1978,7 +1978,7 @@ export default function MessagesPage({
                     R{Number(acceptedOfferBanner.amount).toLocaleString("en-ZA")}
                   </p>
                   <p className="msg-offer-card__note" style={{ color: "rgba(255,255,255,0.6)" }}>
-                    You accepted the offer for <strong style={{ color: "#fff" }}>{acceptedOfferBanner.listingTitle}</strong>. The buyer can now pay with PayFast sandbox from My Bookings.
+                    You accepted the offer for <strong style={{ color: "#fff" }}>{acceptedOfferBanner.listingTitle}</strong>. Book a drop-off slot from My Bookings so staff can check in the item before the buyer pays.
                   </p>
                   <section className="msg-offer-card__actions">
                     <button

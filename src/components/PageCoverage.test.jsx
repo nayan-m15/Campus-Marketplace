@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   delete: vi.fn(),
   insert: vi.fn(),
   rpc: vi.fn(),
+  functionInvoke: vi.fn(),
   upload: vi.fn(),
   getPublicUrl: vi.fn(),
   removeChannel: vi.fn(),
@@ -389,6 +390,12 @@ vi.mock("../supabaseClient", () => ({
       }
       return Promise.resolve({ data: [{ metric: "Listings", value: 3 }], error: null });
     },
+    functions: {
+      invoke: (...args) => {
+        mocks.functionInvoke(...args);
+        return Promise.resolve({ data: { ok: true }, error: null });
+      },
+    },
     storage: {
       from: () => ({
         upload: (...args) => {
@@ -465,6 +472,7 @@ vi.mock("jspdf-autotable", () => ({ default: vi.fn() }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.history.replaceState({}, "", "/");
   messages.splice(0, messages.length, ...defaultMessages);
   offers.splice(0, offers.length, ...defaultOffers);
   transactions.splice(0, transactions.length, ...defaultTransactions);
@@ -1144,7 +1152,31 @@ test("StudentBookingsPage shows a seller drop-off booking action for accepted tr
   expect(await screen.findByRole("button", { name: /book drop-off/i })).toBeInTheDocument();
 });
 
-test("StudentBookingsPage lets a buyer book collection after staff confirms drop-off", async () => {
+test("StudentBookingsPage lets a seller book drop-off before payment", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-dropoff-before-payment",
+      item: "Desk Lamp",
+      seller_id: "user-1",
+      buyer_id: "buyer-1",
+      price: 250,
+      status: "awaiting_payment",
+      payment_status: "unpaid",
+      dropoff_id: null,
+      collection_id: null,
+      created_at: "2026-04-18T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  expect(await screen.findByRole("button", { name: /book drop-off/i })).toBeInTheDocument();
+  expect(screen.getByText(/book a drop-off slot so facility staff can receive the item before the buyer pays/i)).toBeInTheDocument();
+});
+
+test("StudentBookingsPage lets a buyer book collection after payment is confirmed", async () => {
   transactions.splice(
     0,
     transactions.length,
@@ -1154,7 +1186,8 @@ test("StudentBookingsPage lets a buyer book collection after staff confirms drop
       seller_id: "seller-1",
       buyer_id: "user-1",
       price: 250,
-      status: "item_received",
+      status: "awaiting_collection",
+      payment_status: "paid",
       dropoff_id: "booking-1",
       collection_id: null,
       created_at: "2026-04-18T10:00:00.000Z",
@@ -1165,6 +1198,80 @@ test("StudentBookingsPage lets a buyer book collection after staff confirms drop
 
   expect(await screen.findByText(/my bookings/i)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /book collection/i })).toBeInTheDocument();
+});
+
+test("StudentBookingsPage lets a paid buyer book collection when status is stale", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-paid-stale",
+      item: "Desk Lamp",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 250,
+      status: "awaiting_dropoff",
+      payment_status: "paid",
+      dropoff_id: "booking-1",
+      collection_id: null,
+      created_at: "2026-04-18T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  expect(await screen.findByRole("button", { name: /book collection/i })).toBeInTheDocument();
+});
+
+test("StudentBookingsPage keeps bookings visible after payment return notice", async () => {
+  window.history.replaceState({}, "", "/bookings?payment=success&transaction_id=txn-1");
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-1",
+      item: "Textbook",
+      listing_id: "listing-2",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 500,
+      status: "awaiting_collection",
+      payment_status: "paid",
+      dropoff_id: "booking-1",
+      collection_id: null,
+      created_at: "2026-04-18T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  expect(await screen.findByText(/payment confirmed/i)).toBeInTheDocument();
+  expect(screen.getByText("Textbook")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /book collection/i })).toBeInTheDocument();
+});
+
+test("StudentBookingsPage lets a buyer pay only after staff receives the item", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-pay-ready",
+      item: "Desk Lamp",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 250,
+      status: "item_received",
+      payment_status: "unpaid",
+      dropoff_id: "booking-1",
+      collection_id: null,
+      created_at: "2026-04-18T10:00:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  expect(await screen.findByRole("button", { name: /pay with payfast sandbox/i })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /book collection/i })).not.toBeInTheDocument();
 });
 
 test("StudentBookingsPage lets a seller complete a drop-off booking flow", async () => {
@@ -1219,7 +1326,8 @@ test("StudentBookingsPage lets a buyer complete a collection booking flow", asyn
       seller_id: "seller-1",
       buyer_id: "user-1",
       price: 250,
-      status: "item_received",
+      status: "awaiting_collection",
+      payment_status: "paid",
       dropoff_id: "booking-1",
       collection_id: null,
       created_at: "2026-05-03T10:00:00.000Z",

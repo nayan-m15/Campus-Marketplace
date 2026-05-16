@@ -174,7 +174,7 @@ BEGIN
       'unpaid',
       'payfast',
       'payfast_sandbox',
-      'awaiting_payment'
+      'awaiting_dropoff'
     );
   ELSE
     UPDATE public.transactions
@@ -187,7 +187,7 @@ BEGIN
            payment_status = 'unpaid',
            payment_provider = 'payfast',
            payment_method = 'payfast_sandbox',
-           status = 'awaiting_payment'
+           status = 'awaiting_dropoff'
      WHERE id = v_transaction_id;
   END IF;
 
