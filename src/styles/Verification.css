@@ -1,0 +1,168 @@
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.verified-badge__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(32, 123, 91, 0.24);
+  background:
+    linear-gradient(135deg, rgba(216, 244, 232, 0.96), rgba(233, 248, 240, 0.92));
+  color: #176749;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.verified-badge__icon {
+  flex-shrink: 0;
+}
+
+.verified-badge__university {
+  color: var(--gray-500, #5f6b63);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.verified-badge--compact .verified-badge__pill {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.verification-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(16, 24, 20, 0.62);
+  backdrop-filter: blur(10px);
+}
+
+.verification-modal {
+  width: min(100%, 420px);
+  border-radius: 24px;
+  padding: 24px;
+  background: linear-gradient(160deg, rgba(255, 250, 245, 0.98), rgba(255, 255, 255, 0.98));
+  border: 1px solid rgba(229, 157, 58, 0.26);
+  box-shadow: 0 28px 80px rgba(18, 27, 20, 0.24);
+  color: var(--gray-700, #223127);
+}
+
+.verification-modal__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(229, 157, 58, 0.16);
+  color: #b36417;
+}
+
+.verification-modal__title {
+  margin: 16px 0 8px;
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.verification-modal__message {
+  margin: 0;
+  color: var(--gray-600, #4f5d54);
+  line-height: 1.6;
+}
+
+.verification-modal__subtle {
+  margin: 10px 0 0;
+  color: var(--gray-400, #748177);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.verification-modal__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.verification-modal__button {
+  min-width: 132px;
+  min-height: 42px;
+  border: none;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.verification-modal__button:hover {
+  transform: translateY(-1px);
+}
+
+.verification-modal__button--ghost {
+  background: rgba(126, 142, 131, 0.14);
+  color: var(--gray-700, #223127);
+}
+
+.verification-modal__button--primary {
+  background: linear-gradient(135deg, #d97706, #e59d3a);
+  color: #fffdf7;
+  box-shadow: 0 12px 24px rgba(217, 119, 6, 0.22);
+}
+
+html.dark .verified-badge__pill {
+  border-color: rgba(103, 219, 170, 0.24);
+  background: linear-gradient(135deg, rgba(23, 79, 59, 0.92), rgba(18, 60, 46, 0.92));
+  color: #c7f2dc;
+}
+
+html.dark .verified-badge__university {
+  color: rgba(224, 232, 226, 0.75);
+}
+
+html.dark .verification-modal {
+  background: linear-gradient(160deg, rgba(20, 28, 24, 0.98), rgba(31, 40, 35, 0.98));
+  border-color: rgba(229, 157, 58, 0.22);
+  color: rgba(245, 248, 246, 0.94);
+}
+
+html.dark .verification-modal__message {
+  color: rgba(228, 234, 230, 0.78);
+}
+
+html.dark .verification-modal__subtle {
+  color: rgba(198, 208, 200, 0.72);
+}
+
+html.dark .verification-modal__button--ghost {
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(245, 248, 246, 0.94);
+}
+
+@media (max-width: 640px) {
+  .verification-modal {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .verification-modal__actions {
+    flex-direction: column-reverse;
+  }
+
+  .verification-modal__button {
+    width: 100%;
+  }
+}

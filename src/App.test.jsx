@@ -18,14 +18,19 @@ vi.mock("./supabaseClient", () => ({
   supabase: {
     from: (table) => {
       let selectedColumns = "";
+      const filters = {};
 
       const query = {
-        eq: vi.fn(() => query),
+        eq: vi.fn((column, value) => {
+          filters[column] = value;
+          return query;
+        }),
         in: vi.fn(() => query),
         is: vi.fn(() => query),
         neq: vi.fn(() => query),
         or: vi.fn(() => query),
         order: vi.fn(() => query),
+        limit: vi.fn(() => query),
         update: vi.fn(() => query),
         select: vi.fn(() => query),
         maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
@@ -42,6 +47,8 @@ vi.mock("./supabaseClient", () => ({
                 birthdate: "2001-01-01",
                 province: "Gauteng",
                 institution: "Wits",
+                is_verified: true,
+                verified_university: "University of the Witwatersrand (Wits)",
               },
               error: null,
             });
@@ -91,16 +98,20 @@ vi.mock("./supabaseClient", () => ({
 
       query.maybeSingle = vi.fn(() => {
         if (table === "listings") {
+          const isSecondListing = String(filters.id) === "2";
           return Promise.resolve({
             data: {
-              id: "1",
-              title: "Sony PS5",
-              price: 10999,
-              user_id: "user-abc",
-              status: selectedColumns.includes("status") ? "flagged" : undefined,
-              flag_reason: selectedColumns.includes("flag_reason")
-                ? "Reported for suspicious payment requests."
+              id: isSecondListing ? "2" : "1",
+              title: isSecondListing ? "Master Shifu Children Toy" : "Sony PS5",
+              price: isSecondListing ? 150 : 10999,
+              user_id: isSecondListing ? "user-xyz" : "user-abc",
+              status: selectedColumns.includes("status")
+                ? (isSecondListing ? "active" : "flagged")
                 : undefined,
+              flag_reason: selectedColumns.includes("flag_reason")
+                ? (isSecondListing ? "" : "Reported for suspicious payment requests.")
+                : undefined,
+              listing_type: isSecondListing ? "sale" : "trade",
             },
             error: null,
           });
@@ -173,6 +184,8 @@ vi.mock("./data/listings", () => ({
         created_at: "2026-02-01T08:00:00.000Z",
         status: "flagged",
         flag_reason: "Reported for suspicious payment requests.",
+        seller_is_verified: true,
+        seller_verified_university: "University of the Witwatersrand (Wits)",
       },
       {
         id: "2",
@@ -192,6 +205,8 @@ vi.mock("./data/listings", () => ({
         institution: "UP",
         joined_year: 2023,
         created_at: "2026-03-01T08:00:00.000Z",
+        seller_is_verified: false,
+        seller_verified_university: null,
       },
     ]),
   CATEGORIES: [
@@ -420,6 +435,11 @@ test("renders seller name on listing card", async () => {
   expect(await screen.findByText(/Saurav/)).toBeInTheDocument();
 });
 
+test("renders a verified badge for verified sellers", async () => {
+  renderApp();
+  expect(await screen.findByLabelText(/verified university student/i)).toBeInTheDocument();
+});
+
 test("opens listing details modal when a listing card is clicked", async () => {
   renderApp();
   fireEvent.click(await screen.findByRole("button", { name: /open details for sony ps5/i }));
@@ -499,6 +519,44 @@ test("warns before opening chat from the flagged listing message action", async 
   expect(screen.getByText(/reported for suspicious payment requests\./i)).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+  expect(await screen.findByPlaceholderText(/type a message/i)).toBeInTheDocument();
+});
+
+test("warns before opening chat for an unverified seller", async () => {
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "student@example.com" },
+      },
+    },
+  });
+
+  renderApp();
+
+  fireEvent.click(await screen.findByRole("button", { name: /message nayan/i }));
+
+  expect(await screen.findByRole("heading", { name: /unverified seller/i })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /continue anyway/i }));
+
+  expect(await screen.findByPlaceholderText(/type a message/i)).toBeInTheDocument();
+});
+
+test("warns before sending an offer to an unverified seller", async () => {
+  mockGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: { id: "user-123", email: "student@example.com" },
+      },
+    },
+  });
+
+  renderApp();
+  fireEvent.click(await screen.findByRole("button", { name: /open details for master shifu children toy/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /send offer/i }));
+
+  expect(await screen.findByRole("heading", { name: /unverified seller/i })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /continue anyway/i }));
 
   expect(await screen.findByPlaceholderText(/type a message/i)).toBeInTheDocument();
 });

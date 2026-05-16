@@ -19,6 +19,8 @@ import ProfileSetupPage from "./components/ProfileSetupPage";
 import MessagesPage from "./components/MessagesPage";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import WishlistPage from "./components/WishlistPage";
+import VerifiedBadge from "./components/VerifiedBadge";
+import UnverifiedSellerWarning from "./components/UnverifiedSellerWarning";
 import { fetchListings, CONDITIONS } from "./data/listings";
 import "./styles/index.css";
 import ListingForm from "./components/ListingForm";
@@ -36,6 +38,7 @@ import {
 import SettingsPage from "./components/SettingsPage";
 import { getAppBaseUrl } from "./utils/appUrl";
 import { insertMessage } from "./utils/messageDelivery";
+import { getVerificationStatus } from "./utils/verification";
 import { StudentBookingsPage } from "./components/BookingsUi";
 import RatingPromptModal from "./components/RatingPromptModal";
 
@@ -650,6 +653,7 @@ function ListingDetailsModal({
   onMessageSeller,
   onSendOffer,
   onFlaggedWarning,
+  onUnverifiedSellerWarning,
   user,
   isWishlisted,
   onToggleWishlist,
@@ -741,7 +745,7 @@ function ListingDetailsModal({
     setCurrentImageIndex((index) => (index === images.length - 1 ? 0 : index + 1));
   }
 
-  async function performSendMessage({ acknowledged = false } = {}) {
+  async function performSendMessage({ acknowledged = false, skipUnverifiedWarning = false } = {}) {
     if (!message.trim()) { setSendError("Please enter a message."); setSendSuccess(""); return; }
     if (!user) { setSendError("You must be logged in to send a message."); setSendSuccess(""); return; }
     if (!item.user_id) { setSendError("Seller information is missing."); setSendSuccess(""); return; }
@@ -765,7 +769,14 @@ function ListingDetailsModal({
         category: "message",
         dedupeKey: `message-sent-${item.id}-${Date.now()}`,
       });
-      setTimeout(() => { onClose(); onMessageSeller(item, { acknowledged, suppressDraft: true }); }, 1000);
+      setTimeout(() => {
+        onClose();
+        onMessageSeller(item, {
+          acknowledged,
+          suppressDraft: true,
+          skipUnverifiedWarning,
+        });
+      }, 1000);
     } catch (err) {
       setSendError(err.message || "Failed to send message.");
       notifyError("Message failed", err.message || "Failed to send message.", {
@@ -783,8 +794,12 @@ function ListingDetailsModal({
       onFlaggedWarning?.(latestItem, () => performSendMessage({ acknowledged: true }));
       return;
     }
-
-    performSendMessage();
+    const proceed = () => performSendMessage({ skipUnverifiedWarning: true });
+    if (onUnverifiedSellerWarning) {
+      onUnverifiedSellerWarning(latestItem, proceed);
+      return;
+    }
+    proceed();
   }
 
   return (
@@ -891,6 +906,11 @@ function ListingDetailsModal({
                           </span>
                           <span className="item-modal-seller-text">
                             <strong>{sellerName}</strong>
+                            <VerifiedBadge
+                              compact
+                              isVerified={item.seller_is_verified}
+                              verifiedUniversity={item.seller_verified_university}
+                            />
                             <span>{sellerJoinedText}</span>
                           </span>
                         </section>
@@ -932,8 +952,15 @@ function ListingDetailsModal({
                             className="item-modal-send-btn item-modal-send-btn--secondary"
                             onClick={async () => {
                               const latestItem = await resolveListingForMessaging?.(item) || item;
-                              onClose();
-                              onMessageSeller(latestItem);
+                              const proceed = () => {
+                                onClose();
+                                onMessageSeller(latestItem, { skipUnverifiedWarning: true });
+                              };
+                              if (onUnverifiedSellerWarning) {
+                                onUnverifiedSellerWarning(latestItem, proceed);
+                                return;
+                              }
+                              proceed();
                             }}
                           >
                             Open chat
@@ -943,8 +970,15 @@ function ListingDetailsModal({
                             className="item-modal-send-btn item-modal-send-btn--offer"
                             onClick={async () => {
                               const latestItem = await resolveListingForMessaging?.(item) || item;
-                              onClose();
-                              onSendOffer?.(latestItem);
+                              const proceed = () => {
+                                onClose();
+                                onSendOffer?.(latestItem, { skipUnverifiedWarning: true });
+                              };
+                              if (onUnverifiedSellerWarning) {
+                                onUnverifiedSellerWarning(latestItem, proceed);
+                                return;
+                              }
+                              proceed();
                             }}
                           >
                             {tradeBadgeLabel ? "Send Trade Offer" : "Send Offer"}
@@ -1130,6 +1164,7 @@ function AppInner() {
   const [msgInitialDraft, setMsgInitialDraft] = useState(null);
   const [msgInitialAction, setMsgInitialAction] = useState(null);
   const [flaggedListingDialog, setFlaggedListingDialog] = useState(null);
+  const [unverifiedSellerDialog, setUnverifiedSellerDialog] = useState(null);
 
   const [profileChecked, setProfileChecked] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
@@ -1467,7 +1502,7 @@ function AppInner() {
 
     supabase
       .from("profiles")
-      .select("id, name, display_name, avatar_url, role, sex, birthdate, province, institution, email")
+      .select("id, name, display_name, avatar_url, role, sex, birthdate, province, institution, email, is_verified, verified_university")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
@@ -1733,6 +1768,31 @@ useEffect(() => {
     setFlaggedListingDialog(null);
   }
 
+  function openUnverifiedSellerWarning(item, onContinue) {
+    setUnverifiedSellerDialog({
+      item,
+      onContinue,
+    });
+  }
+
+  function closeUnverifiedSellerWarning() {
+    setUnverifiedSellerDialog(null);
+  }
+
+  function continueIfSellerVerified(item, onContinue) {
+    const verificationStatus = getVerificationStatus({
+      is_verified: item?.seller_is_verified,
+      verified_university: item?.seller_verified_university,
+    });
+
+    if (verificationStatus.isVerified) {
+      onContinue();
+      return;
+    }
+
+    openUnverifiedSellerWarning(item, onContinue);
+  }
+
   function notifyFlaggedListingWarning(item, pendingAction) {
     addNotification({
       title: "Flagged listing warning",
@@ -1799,16 +1859,25 @@ useEffect(() => {
     }
   }
 
-  async function handleMessageSeller(item, { acknowledged = false, suppressDraft = false } = {}) {
+  async function handleMessageSeller(
+    item,
+    { acknowledged = false, suppressDraft = false, skipUnverifiedWarning = false } = {},
+  ) {
     const latestItem = await resolveListingForMessaging(item);
     if (latestItem?.status === "flagged" && !acknowledged) {
       notifyFlaggedListingWarning(latestItem, "message");
       return;
     }
-    openMessagesForListing(latestItem, { acknowledged, suppressDraft });
+    if (skipUnverifiedWarning) {
+      openMessagesForListing(latestItem, { acknowledged, suppressDraft });
+      return;
+    }
+    continueIfSellerVerified(latestItem, () => {
+      openMessagesForListing(latestItem, { acknowledged, suppressDraft });
+    });
   }
 
-  async function handleSendOffer(item) {
+  async function handleSendOffer(item, { skipUnverifiedWarning = false } = {}) {
     if (!user) {
       redirectToLogin("messages");
       return;
@@ -1825,11 +1894,23 @@ useEffect(() => {
       latestItem?.status === "for_trade" ||
       ["trade", "trade_only", "sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
 
-    openMessagesForListing(latestItem, {
-      initialDraft: isTradeListing
-        ? `Hello, I'd like to send an item trade offer for "${latestItem.title}".`
-        : `Hello, I'd like to send an offer for "${latestItem.title}".`,
-      initialAction: "offer",
+    if (skipUnverifiedWarning) {
+      openMessagesForListing(latestItem, {
+        initialDraft: isTradeListing
+          ? `Hello, I'd like to send an item trade offer for "${latestItem.title}".`
+          : `Hello, I'd like to send an offer for "${latestItem.title}".`,
+        initialAction: "offer",
+      });
+      return;
+    }
+
+    continueIfSellerVerified(latestItem, () => {
+      openMessagesForListing(latestItem, {
+        initialDraft: isTradeListing
+          ? `Hello, I'd like to send an item trade offer for "${latestItem.title}".`
+          : `Hello, I'd like to send an offer for "${latestItem.title}".`,
+        initialAction: "offer",
+      });
     });
   }
 
@@ -2288,6 +2369,7 @@ useEffect(() => {
           onMessageSeller={handleMessageSeller}
           onSendOffer={handleSendOffer}
           onFlaggedWarning={openFlaggedListingWarning}
+          onUnverifiedSellerWarning={continueIfSellerVerified}
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
@@ -2350,6 +2432,16 @@ useEffect(() => {
             </article>
           </aside>
         )}
+        <UnverifiedSellerWarning
+          open={Boolean(unverifiedSellerDialog?.item)}
+          sellerName={unverifiedSellerDialog?.item?.seller}
+          onCancel={closeUnverifiedSellerWarning}
+          onContinue={() => {
+            const continueFlow = unverifiedSellerDialog?.onContinue;
+            closeUnverifiedSellerWarning();
+            continueFlow?.();
+          }}
+        />
         <ModerationModal
           item={moderationListing}
           actionState={moderationState}
@@ -2427,6 +2519,7 @@ useEffect(() => {
           onMessageSeller={handleMessageSeller}
           onSendOffer={handleSendOffer}
           onFlaggedWarning={openFlaggedListingWarning}
+          onUnverifiedSellerWarning={continueIfSellerVerified}
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
@@ -2489,6 +2582,16 @@ useEffect(() => {
             </article>
           </aside>
         )}
+        <UnverifiedSellerWarning
+          open={Boolean(unverifiedSellerDialog?.item)}
+          sellerName={unverifiedSellerDialog?.item?.seller}
+          onCancel={closeUnverifiedSellerWarning}
+          onContinue={() => {
+            const continueFlow = unverifiedSellerDialog?.onContinue;
+            closeUnverifiedSellerWarning();
+            continueFlow?.();
+          }}
+        />
         <ModerationModal
           item={moderationListing}
           actionState={moderationState}

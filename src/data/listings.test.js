@@ -58,6 +58,8 @@ test("normaliseListing formats price, prefers profile display name, and promotes
       province: "Gauteng",
       institution: "Wits",
       created_at: "2025-02-01T00:00:00.000Z",
+      is_verified: true,
+      verified_university: "University of the Witwatersrand (Wits)",
     }
   );
 
@@ -69,6 +71,8 @@ test("normaliseListing formats price, prefers profile display name, and promotes
     category: "Furniture",
     condition: "Good",
     seller: "Seller Name",
+    seller_is_verified: true,
+    seller_verified_university: "University of the Witwatersrand (Wits)",
     institution: "Wits",
     approximate_location: "Gauteng",
     image_url: "https://example.com/b.jpg",
@@ -111,6 +115,8 @@ test("fetchListings returns normalized rows with seller profile details", async 
         province: "Western Cape",
         institution: "UCT",
         created_at: "2024-01-01T00:00:00.000Z",
+        is_verified: true,
+        verified_university: "University of Cape Town (UCT)",
       },
     ],
     error: null,
@@ -130,6 +136,8 @@ test("fetchListings returns normalized rows with seller profile details", async 
   expect(result[0]).toMatchObject({
     title: "Textbook",
     seller: "Amina",
+    seller_is_verified: true,
+    seller_verified_university: "University of Cape Town (UCT)",
     institution: "UCT",
     listing_type: "trade",
     status: "flagged",

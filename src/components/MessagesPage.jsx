@@ -7,6 +7,9 @@ import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { insertMessage } from "../utils/messageDelivery";
 import { buildTradeTransactionId } from "../utils/tradeWorkflow";
+import VerifiedBadge from "./VerifiedBadge";
+import UnverifiedSellerWarning from "./UnverifiedSellerWarning";
+import { getVerificationStatus } from "../utils/verification";
 import "../styles/Messages.css";
 
 function flaggedWarningToastStyle() {
@@ -255,10 +258,13 @@ export default function MessagesPage({
   const [selectedTradeListingId, setSelectedTradeListingId] = useState("");
   const [tradeListingsLoading, setTradeListingsLoading] = useState(false);
   const [tradeError, setTradeError] = useState("");
+  const [unverifiedWarningOpen, setUnverifiedWarningOpen] = useState(false);
+  const [pendingUnverifiedAction, setPendingUnverifiedAction] = useState(null);
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
   const realtimeRef = useRef(null);
+  const skipNextUnverifiedWarningRef = useRef(false);
 
   function clampOfferAmount(value) {
     const cleaned = String(value ?? "").replace(",", ".").replace(/[^0-9.]/g, "");
@@ -387,7 +393,7 @@ export default function MessagesPage({
     if (peerIds.length > 0) {
       const { data } = await supabase
         .from("profiles")
-        .select("id, name, display_name, avatar_url")
+        .select("id, name, display_name, avatar_url, institution, is_verified, verified_university, email")
         .in("id", peerIds);
       profiles = data || [];
     }
@@ -508,10 +514,12 @@ export default function MessagesPage({
     setOfferMode("cash");
     resetTradeOfferDetails();
     setTradeError("");
+    setUnverifiedWarningOpen(false);
+    setPendingUnverifiedAction(null);
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, name, display_name, avatar_url, institution")
+      .select("id, name, display_name, avatar_url, institution, is_verified, verified_university, email")
       .eq("id", peerId)
       .single();
     setActivePeer(profile || { id: peerId });
@@ -791,6 +799,8 @@ export default function MessagesPage({
     setOfferMode("cash");
     resetTradeOfferDetails();
     setTradeError("");
+    setUnverifiedWarningOpen(false);
+    setPendingUnverifiedAction(null);
   };
 
   const requestDeleteConversation = (conversation) => {
@@ -876,6 +886,10 @@ export default function MessagesPage({
     if (!text || !activeId || sending) return;
 
     const latestListing = await resolveConversationListingForSend();
+    const hasOutgoingInteraction =
+      messages.some((message) => message.sender_id === user.id) ||
+      offers.some((offer) => offer.sender_id === user.id);
+    const sellerVerification = getVerificationStatus(activePeer);
 
     if (
       latestListing?.status === "flagged" &&
@@ -884,6 +898,14 @@ export default function MessagesPage({
     ) {
       setPendingFlaggedMessage(text);
       setFlaggedWarningOpen(true);
+      return;
+    }
+
+    if (skipNextUnverifiedWarningRef.current) {
+      skipNextUnverifiedWarningRef.current = false;
+    } else if (!iAmTheLister && !sellerVerification.isVerified && !hasOutgoingInteraction) {
+      setPendingUnverifiedAction(() => () => sendMessageNow(text, options));
+      setUnverifiedWarningOpen(true);
       return;
     }
 
@@ -896,6 +918,19 @@ export default function MessagesPage({
 
   // ── Send Offer ────────────────────────────────────────────
   const sendOffer = async () => {
+    const hasOutgoingInteraction =
+      messages.some((message) => message.sender_id === user.id) ||
+      offers.some((offer) => offer.sender_id === user.id);
+    const sellerVerification = getVerificationStatus(activePeer);
+
+    if (skipNextUnverifiedWarningRef.current) {
+      skipNextUnverifiedWarningRef.current = false;
+    } else if (!iAmTheLister && !sellerVerification.isVerified && !hasOutgoingInteraction) {
+      setPendingUnverifiedAction(() => sendOffer);
+      setUnverifiedWarningOpen(true);
+      return;
+    }
+
     const effectiveOfferMode = getEffectiveOfferMode(offerMode, conversationListing);
     // ── Cash offer ──────────────────────────────────────────
     if (effectiveOfferMode === "cash") {
@@ -1348,6 +1383,7 @@ export default function MessagesPage({
                       <span className={`msg-conv-item__name ${unread > 0 && !isActive ? "msg-conv-item__name--unread" : ""}`}>
                         {threadTitle}
                       </span>
+                      <VerifiedBadge user={conv.profile} compact />
                       {conv.lastMsg && (
                         <span className="msg-conv-item__time">{timeLabel(conv.lastMsg.created_at)}</span>
                       )}
@@ -1430,6 +1466,7 @@ export default function MessagesPage({
                         ? `${peerName(activePeer)} - ${conversationListing.title}`
                         : peerName(activePeer)}
                     </button>
+                    <VerifiedBadge user={activePeer} compact />
                     {activePeer.institution && (
                       <span className="msg-chat__header-sub">{activePeer.institution}</span>
                     )}
@@ -1457,6 +1494,7 @@ export default function MessagesPage({
                   <Avatar url={activePeer.avatar_url} name={peerName(activePeer)} size={38} />
                   <article className="msg-buyer-banner__card-info">
                     <span className="msg-buyer-banner__card-name">{peerName(activePeer)}</span>
+                    <VerifiedBadge user={activePeer} compact />
                     {activePeer.institution && (
                       <span className="msg-buyer-banner__card-sub">{activePeer.institution}</span>
                     )}
@@ -2000,6 +2038,22 @@ export default function MessagesPage({
                 </article>
               </article>
             )}
+
+            <UnverifiedSellerWarning
+              open={unverifiedWarningOpen}
+              sellerName={peerName(activePeer)}
+              onCancel={() => {
+                setUnverifiedWarningOpen(false);
+                setPendingUnverifiedAction(null);
+              }}
+              onContinue={() => {
+                const pendingAction = pendingUnverifiedAction;
+                skipNextUnverifiedWarningRef.current = true;
+                setUnverifiedWarningOpen(false);
+                setPendingUnverifiedAction(null);
+                pendingAction?.();
+              }}
+            />
 
             <footer className="msg-composer">
               {showSellerQuickReplies && (
