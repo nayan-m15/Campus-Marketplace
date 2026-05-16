@@ -715,7 +715,7 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
                   transaction.status === "awaiting_meetup" &&
                   transaction.meetup_booking_booker === userId && (
                   <button
-                    className="btn-export bookings-page-card__action"
+                    className="btn-primary bookings-page-card__action"
                     onClick={() => onBook(transaction, "trade_meetup")}
                   >
                   Change proposed slot
@@ -729,19 +729,19 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
                 transaction.meetup_booking_booker !== userId &&
                 (userIsSeller || userIsBuyer) && (
                 <section style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-                  <button
-                    className="btn-export bookings-page-card__action"
-                    onClick={() => handleMeetupResponse(transaction, false)}
-                    disabled={meetupResponding}
-                  >
-                  Decline
-                </button>
                 <button
                   className="btn-primary bookings-page-card__action"
                   onClick={() => handleMeetupResponse(transaction, true)}
                   disabled={meetupResponding}
                 >
                   Accept meetup slot
+                </button>
+                <button
+                    className="btn-primary bookings-page-card__action"
+                    onClick={() => handleMeetupResponse(transaction, false)}
+                    disabled={meetupResponding}
+                  >
+                  Decline
                 </button>
               </section>
             )}
@@ -949,7 +949,7 @@ export function StudentBookingsPage({ user, onBack }) {
           <p className="bookings-page__eyebrow">Trade Facility</p>
           <h1>My Bookings</h1>
           <p className="bookings-page__intro">
-            Book facility slots once a transaction is ready. For item trades, both students shoudl agree upon a meetup time and location for the trade.
+            Book facility slots once a transaction is ready. For item trades, both students should agree upon a meetup time and location for the trade.
           </p>
         </section>
       </header>
