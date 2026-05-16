@@ -122,6 +122,7 @@ const defaultTransactions = [
   {
     id: "txn-1",
     item: "Textbook",
+    listing_id: "listing-2",
     seller_id: "seller-1",
     buyer_id: "user-1",
     price: 500,
@@ -129,6 +130,18 @@ const defaultTransactions = [
     dropoff_id: "booking-1",
     collection_id: null,
     created_at: "2026-04-18T10:00:00.000Z",
+  },
+  {
+    id: "txn-2",
+    item: "Ball",
+    listing_id: "listing-3",
+    seller_id: "seller-1",
+    buyer_id: "buyer-1",
+    price: 120,
+    status: "completed",
+    dropoff_id: null,
+    collection_id: null,
+    created_at: "2026-04-20T10:00:00.000Z",
   },
 ];
 const transactions = [...defaultTransactions];
@@ -320,6 +333,29 @@ vi.mock("../supabaseClient", () => ({
       mocks.rpc(...args);
       if (args[0] === "get_seller_rating") {
         return Promise.resolve({ data: [{ average: "4.5", count: "2" }], error: null });
+      }
+      if (args[0] === "get_public_transaction_history") {
+        return Promise.resolve({
+          data: [
+            {
+              transaction_id: "txn-2",
+              item_title: "Ball",
+              item_image_url: "",
+              relationship_label: "Sold to",
+              other_user_name: "Buyer",
+              created_at: "2026-04-20T10:00:00.000Z",
+            },
+            {
+              transaction_id: "txn-1",
+              item_title: "Textbook",
+              item_image_url: "",
+              relationship_label: "Sold to",
+              other_user_name: "Student",
+              created_at: "2026-04-18T10:00:00.000Z",
+            },
+          ],
+          error: null,
+        });
       }
       if (args[0] === "book_transaction_slot") {
         const payload = args[1] || {};
@@ -521,6 +557,13 @@ test("PublicProfilePage loads seller details and submits a rating", async () => 
   expect(await screen.findByRole("heading", { name: /seller/i })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /message/i }));
   expect(onMessageSeller).toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: /transaction history/i }));
+  expect(await screen.findByText(/textbook/i)).toBeInTheDocument();
+  expect(screen.getByText(/sold to student/i)).toBeInTheDocument();
+  expect(screen.getByText(/ball/i)).toBeInTheDocument();
+  expect(screen.getByText(/sold to buyer/i)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /^details$/i }));
 
   fireEvent.change(screen.getByRole("combobox"), {
     target: { value: "listing-2" },

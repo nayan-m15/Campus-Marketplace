@@ -203,6 +203,39 @@
 
 .profile-section-title:first-child { margin-top: 0; }
 
+.profile-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 14px 32px 0;
+  border-top: 1px solid rgba(31, 107, 82, 0.08);
+}
+
+.profile-tabs__button {
+  min-height: 38px;
+  border: 1px solid rgba(31, 107, 82, 0.14);
+  border-radius: 999px;
+  padding: 0 16px;
+  background: rgba(235, 245, 239, 0.62);
+  color: var(--gray-600);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.profile-tabs__button:hover {
+  background: var(--mint);
+  color: var(--green-dark);
+}
+
+.profile-tabs__button--active {
+  background: var(--green-dark);
+  border-color: var(--green-dark);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(31, 107, 82, 0.18);
+}
+
 /* ── Field ──────────────────────────────────────────────────── */
 .profile-field {
   display: flex;
@@ -359,6 +392,8 @@
   .profile-card__footer { padding: 0 20px 24px; }
   .profile-field-row { grid-template-columns: 1fr; }
   .profile-save-btn { width: 100%; }
+  .profile-tabs { padding: 12px 20px 0; }
+  .profile-tabs__button { flex: 1; padding: 0 10px; }
 }
 /* ── Public profile read-only value ─────────────────────────── */
 .profile-public-value {
@@ -490,6 +525,81 @@
   font-size: 12px;
   color: var(--green);
   margin: 0;
+}
+
+.pub-transactions__list {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.pub-transaction {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid rgba(31, 107, 82, 0.10);
+  border-radius: 14px;
+  background: rgba(235, 245, 239, 0.58);
+}
+
+.pub-transaction__image {
+  width: 64px;
+  height: 64px;
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mint);
+  color: var(--green-dark);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.pub-transaction__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pub-transaction__body {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.pub-transaction__body strong {
+  color: var(--navy);
+  font-size: 14px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pub-transaction__body span {
+  color: var(--gray-500);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.pub-transactions__empty,
+.pub-transactions__empty-card p {
+  margin: 0;
+  color: var(--gray-500);
+  font-size: 14px;
+}
+
+.pub-transactions__empty-card {
+  border: 1px dashed rgba(31, 107, 82, 0.18);
+  border-radius: 14px;
+  padding: 18px;
+  background: rgba(235, 245, 239, 0.42);
 }
 
 html.dark .profile-page {
