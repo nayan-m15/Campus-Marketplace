@@ -52,7 +52,9 @@ npm install
 
 ### Environment Variables
 
-Create a local env file such as `.env.local` and add:
+The repo includes `.env.example` with the expected keys. Running `npm run dev`, `npm run build`, or `npm run preview` will create a local `.env` from `.env.example` if `.env` is missing.
+
+Add your local Supabase values to `.env` or `.env.local`:
 
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
@@ -61,7 +63,7 @@ VITE_APP_URL=https://your-deployed-app.example.com
 VITE_BASE_PATH=/
 ```
 
-The app reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in [`src/supabaseClient.js`](/C:/Users/hpars/OneDrive/Documents/GitHub/Campus-Marketplace/src/supabaseClient.js). `VITE_APP_URL` is used for auth redirects, and `VITE_BASE_PATH` lets you override the GitHub Pages base path when deploying elsewhere.
+The app reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `src/supabaseClient.js`. `VITE_APP_URL` is used for auth redirects, and `VITE_BASE_PATH` lets you override the GitHub Pages base path when deploying elsewhere. Keep personal `.env` values out of Git; `.env` and `.env.local` are intentionally ignored.
 
 ## Available Scripts
 

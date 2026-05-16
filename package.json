@@ -4,9 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/ensure-env.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/ensure-env.mjs",
     "build": "vite build",
     "lint": "eslint .",
+    "prepreview": "node scripts/ensure-env.mjs",
     "preview": "vite preview",
     "test": "vitest --configLoader native --pool threads",
     "test:watch": "vitest --configLoader native --pool threads",
