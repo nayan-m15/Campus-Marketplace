@@ -279,6 +279,59 @@ function CompletionBar({ form, avatarPreview }) {
   );
 }
 
+function getListingImage(listing) {
+  if (!listing) return "";
+  if (listing.image_url) return listing.image_url;
+  if (Array.isArray(listing.image_urls)) return listing.image_urls.find(Boolean) || "";
+  return "";
+}
+
+function mapRpcTransactionHistory(rows) {
+  return (rows || [])
+    .filter((row) => row?.transaction_id)
+    .map((row) => ({
+      id: row.transaction_id,
+      itemTitle: row.item_title || "Transaction item",
+      imageUrl: row.item_image_url || "",
+      otherUserName: row.other_user_name || "Unknown user",
+      relationshipLabel: row.relationship_label || "Traded with",
+    }));
+}
+
+function TransactionHistory({ transactions, loading }) {
+  if (loading) {
+    return <p className="pub-transactions__empty">Loading transaction history...</p>;
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <section className="pub-transactions__empty-card">
+        <p>No transaction history yet.</p>
+      </section>
+    );
+  }
+
+  return (
+    <ul className="pub-transactions__list">
+      {transactions.map((transaction) => (
+        <li key={transaction.id} className="pub-transaction">
+          <figure className="pub-transaction__image">
+            {transaction.imageUrl ? (
+              <img src={transaction.imageUrl} alt={transaction.itemTitle} />
+            ) : (
+              <span>{transaction.itemTitle?.[0]?.toUpperCase() || "I"}</span>
+            )}
+          </figure>
+          <section className="pub-transaction__body">
+            <strong>{transaction.itemTitle}</strong>
+            <span>{transaction.relationshipLabel} {transaction.otherUserName}</span>
+          </section>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // ── Main Component ───────────────────────────────────────────
 export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
   const { user } = useAuth();
@@ -293,6 +346,9 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
   const [phoneError, setPhoneError] = useState("");
   const [ratingAvg, setRatingAvg] = useState(0);
   const [ratingCount, setRatingCount] = useState(0);
+  const [activeTab, setActiveTab] = useState("edit");
+  const [transactionHistory, setTransactionHistory] = useState([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -352,6 +408,113 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
         setLoading(false);
       });
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let cancelled = false;
+
+    async function loadTransactionHistory() {
+      setTransactionsLoading(true);
+
+      try {
+        const { data: rpcRows, error: rpcError } = await supabase.rpc(
+          "get_public_transaction_history",
+          { p_profile_user_id: user.id }
+        );
+
+        const rpcHistory = !rpcError ? mapRpcTransactionHistory(rpcRows) : [];
+        if (rpcHistory.length > 0) {
+          if (!cancelled) setTransactionHistory(rpcHistory);
+          return;
+        }
+
+        const { data: rows, error } = await supabase
+          .from("transactions")
+          .select("id, item, listing_id, requested_listing_id, offered_listing_id, seller_id, buyer_id, transaction_type, status, created_at")
+          .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        const transactions = rows || [];
+        const listingIds = [
+          ...new Set(
+            transactions
+              .flatMap((transaction) => [
+                transaction.listing_id,
+                transaction.requested_listing_id,
+                transaction.offered_listing_id,
+              ])
+              .filter(Boolean)
+          ),
+        ];
+        const otherUserIds = [
+          ...new Set(
+            transactions
+              .map((transaction) =>
+                transaction.seller_id === user.id ? transaction.buyer_id : transaction.seller_id
+              )
+              .filter(Boolean)
+          ),
+        ];
+
+        const [{ data: listings }, { data: profiles }] = await Promise.all([
+          listingIds.length
+            ? supabase
+                .from("listings")
+                .select("id, title, image_url, image_urls")
+                .in("id", listingIds)
+            : Promise.resolve({ data: [] }),
+          otherUserIds.length
+            ? supabase
+                .from("profiles")
+                .select("id, display_name, name")
+                .in("id", otherUserIds)
+            : Promise.resolve({ data: [] }),
+        ]);
+
+        const listingById = Object.fromEntries((listings || []).map((listing) => [listing.id, listing]));
+        const profileById = Object.fromEntries((profiles || []).map((profile) => [profile.id, profile]));
+
+        const history = transactions.map((transaction) => {
+          const isSeller = transaction.seller_id === user.id;
+          const otherUserId = isSeller ? transaction.buyer_id : transaction.seller_id;
+          const listingId =
+            transaction.listing_id ||
+            transaction.requested_listing_id ||
+            transaction.offered_listing_id;
+          const listing = listingById[listingId] || null;
+          const otherProfile = profileById[otherUserId] || null;
+          const otherUserName =
+            otherProfile?.display_name ||
+            otherProfile?.name ||
+            (otherUserId ? String(otherUserId).slice(0, 8) : "Unknown user");
+
+          return {
+            id: transaction.id,
+            itemTitle: listing?.title || transaction.item || "Transaction item",
+            imageUrl: getListingImage(listing),
+            otherUserName,
+            relationshipLabel: isSeller ? "Sold to" : "Bought from",
+          };
+        });
+
+        if (!cancelled) setTransactionHistory(history);
+      } catch (err) {
+        console.error("Failed to load transaction history:", err.message);
+        if (!cancelled) setTransactionHistory([]);
+      } finally {
+        if (!cancelled) setTransactionsLoading(false);
+      }
+    }
+
+    loadTransactionHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   // Clear institution when province changes
   const handleProvinceChange = (val) => {
@@ -538,8 +701,32 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
             </article>
           </article>
 
+          <nav className="profile-tabs" aria-label="Profile sections">
+            <button
+              type="button"
+              className={`profile-tabs__button${activeTab === "edit" ? " profile-tabs__button--active" : ""}`}
+              onClick={() => setActiveTab("edit")}
+            >
+              Edit profile
+            </button>
+            <button
+              type="button"
+              className={`profile-tabs__button${activeTab === "transactions" ? " profile-tabs__button--active" : ""}`}
+              onClick={() => setActiveTab("transactions")}
+            >
+              Transaction history
+            </button>
+          </nav>
+
           {/* Form body */}
           <article className="profile-card__body">
+            {activeTab === "transactions" ? (
+              <>
+                <p className="profile-section-title">Transaction History</p>
+                <TransactionHistory transactions={transactionHistory} loading={transactionsLoading} />
+              </>
+            ) : (
+              <>
 
             <p className="profile-section-title">Personal</p>
 
@@ -676,13 +863,17 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                 )}
             </article>
             </article>
+              </>
+            )}
           </article>
 
+          {activeTab === "edit" && (
           <footer className="profile-card__footer">
             <button className="profile-save-btn" onClick={handleSave} disabled={saving}>
               {saving ? "Saving…" : "Save profile"}
             </button>
           </footer>
+          )}
         </article>
       </article>
     </article>
