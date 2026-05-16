@@ -1,11 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CAMPUSXCHANGE logo">
-  <rect width="512" height="512" rx="96" fill="#005434"/>
-  <path
-    d="M140 181c31-42 75-64 132-64 70 0 126 31 163 94l-47 28c-25-43-63-64-116-64-39 0-69 14-91 42l-41-36Zm0 150c31 42 75 64 132 64 70 0 126-31 163-94l-47-28c-25 43-63 64-116 64-39 0-69-14-91-42l-41 36Z"
-    fill="#fffaf5"
-  />
-  <path
-    d="M372 181c-31-42-75-64-132-64-70 0-126 31-163 94l47 28c25-43 63-64 116-64 39 0 69 14 91 42l41-36Zm0 150c-31 42-75 64-132 64-70 0-126-31-163-94l47-28c25 43 63 64 116 64 39 0 69-14 91-42l41 36Z"
-    fill="#fffaf5"
-  />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#0a7a46"/>
+      <stop offset="100%" stop-color="#065c35"/>
+    </radialGradient>
+    <linearGradient id="dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0b1220"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- C Shape -->
+  <path d="
+    M 250 110
+    A 145 145 0 1 0 250 402
+    L 285 367
+    A 95 95 0 1 1 285 145
+    Z"
+    fill="url(#dark)"/>
+
+  <!-- White Arrow -->
+  <polygon points="
+    245,170
+    300,170
+    385,256
+    300,342
+    245,342
+    330,256"
+    fill="#f3f4f6"/>
+
+  <!-- X Shape -->
+  <polygon points="
+    405,165
+    482,165
+    402,245
+    367,210"
+    fill="url(#dark)"/>
+
+  <polygon points="
+    402,267
+    482,347
+    405,347
+    367,302"
+    fill="url(#dark)"/>
 </svg>
