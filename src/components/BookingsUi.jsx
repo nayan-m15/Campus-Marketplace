@@ -393,9 +393,20 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
                   <label className="brm-label" htmlFor="booking-facility">Facility</label>
                     {bookingType === "collection" ? (
                       <>
-                        <p className="brm-input" style={{ margin: 0, padding: "0.5rem 0.75rem", background: "var(--color-surface-2, #f3f4f6)", borderRadius: "var(--radius, 6px)", color: "var(--color-text, inherit)" }}>
-                          {transaction.dropoff_booking?.location ?? "—"}
-                        </p>
+                        <select
+                          id="booking-facility"
+                          className="brm-select"
+                          value={facilityId}
+                          onChange={(event) => setFacilityId(event.target.value)}
+                          disabled={loadingFacilities}
+                        >
+                          <option value="">Select a facility...</option>
+                          {facilities.map((facility) => (
+                            <option key={facility.id} value={facility.id}>
+                              {facility.name} ({facility.capacity} per slot)
+                            </option>
+                          ))}
+                        </select>
                       <p className="brm-hint">Collection must be at the same facility as the drop-off.</p>
                     </>
                   ) : (

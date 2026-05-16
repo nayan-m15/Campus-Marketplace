@@ -563,6 +563,10 @@ html.dark .navbar__hamburger span {
     white-space: nowrap;
   }
 
+  .navbar--logged-out .navbar__link--how-it-works {
+    display: none;
+  }
+
   .navbar--logged-out .navbar__list-btn {
     height: 38px;
     margin-left: 0;
