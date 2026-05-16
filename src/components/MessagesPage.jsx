@@ -84,6 +84,36 @@ function buildOfferPreview(offer, currentUserId) {
   return sentByMe ? `You offered ${amount}` : `Offer received: ${amount}`;
 }
 
+function normalizeListingType(listing) {
+  return String(listing?.listing_type || "sale").toLowerCase();
+}
+
+function isTradeCapableListing(listing) {
+  const listingType = normalizeListingType(listing);
+  return listing?.status === "for_trade" ||
+    ["trade", "trade_only", "sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
+}
+
+function isTradeOnlyListing(listing) {
+  const listingType = normalizeListingType(listing);
+  return ["trade", "trade_only"].includes(listingType);
+}
+
+function isSaleAndTradeListing(listing) {
+  const listingType = normalizeListingType(listing);
+  return listing?.status === "for_trade" ||
+    ["sale_and_trade", "sale_trade", "sale+trade", "both"].includes(listingType);
+}
+
+function getInitialOfferModeForListing(listing) {
+  return isTradeCapableListing(listing) ? "trade" : "cash";
+}
+
+function getEffectiveOfferMode(offerMode, listing) {
+  if (offerMode === "trade" || isTradeOnlyListing(listing)) return "trade";
+  return "cash";
+}
+
 // ── Helpers ────────────────────────────────────────────────
 function timeLabel(iso) {
   const d = new Date(iso);
@@ -228,8 +258,6 @@ export default function MessagesPage({
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
   const realtimeRef = useRef(null);
-  const initialDraftAppliedRef = useRef(false);
-
   function clampOfferAmount(value) {
     const cleaned = String(value ?? "").replace(",", ".").replace(/[^0-9.]/g, "");
     const dotIndex = cleaned.indexOf(".");
@@ -404,7 +432,7 @@ export default function MessagesPage({
     if (!initialRecipientId || !user) return;
     async function openInitialChat() {
       setActiveListingId(initialListingId || null);
-      await openChat(initialRecipientId, initialListingId || null);
+      const openedListing = await openChat(initialRecipientId, initialListingId || null);
       if (initialDraft !== null && initialDraft !== undefined) {
         setDraft(initialDraft);
       } else if (initialListingTitle) {
@@ -414,7 +442,7 @@ export default function MessagesPage({
         setOfferError("");
         setTradeError("");
         setOfferAmount("");
-        setOfferMode("cash");
+        setOfferMode(getInitialOfferModeForListing(openedListing));
         resetTradeOfferDetails();
         setSendDraftBeforeOffer(true);
         setShowOfferModal(true);
@@ -513,6 +541,7 @@ export default function MessagesPage({
     // ── Buyer info banner ────────────────────────────────────
     const msgWithListing = [...threadMessages].reverse().find((m) => m.listing_id) ||
       (listingId ? { listing_id: listingId, sender_id: peerId } : null);
+    let activeThreadListing = null;
 
     if (msgWithListing) {
       setActiveListingId(msgWithListing.listing_id || null);
@@ -524,15 +553,16 @@ export default function MessagesPage({
         .maybeSingle();
 
       const iOwnThisListing = listing ? listing.user_id === user.id : msgWithListing.sender_id === peerId;
-      setIAmTheLister(iOwnThisListing);
-      setConversationListing(listing || {
+      activeThreadListing = listing || {
         id: msgWithListing.listing_id,
         title: initialListingTitle || null,
         price: null,
         user_id: iOwnThisListing ? user.id : peerId,
         status: "active",
         flag_reason: "",
-      });
+      };
+      setIAmTheLister(iOwnThisListing);
+      setConversationListing(activeThreadListing);
     }
     setOffers(threadOffers);
     setMsgsLoading(false);
@@ -551,6 +581,7 @@ export default function MessagesPage({
         lastMsg: null,
       }, ...prev];
     });
+    return activeThreadListing;
   }, [user, markAsRead, initialListingTitle]);
 
   // ── Realtime: messages ────────────────────────────────────
@@ -863,8 +894,9 @@ export default function MessagesPage({
 
   // ── Send Offer ────────────────────────────────────────────
   const sendOffer = async () => {
+    const effectiveOfferMode = getEffectiveOfferMode(offerMode, conversationListing);
     // ── Cash offer ──────────────────────────────────────────
-    if (offerMode === "cash") {
+    if (effectiveOfferMode === "cash") {
       const amount = parseFloat(offerAmount.replace(/[^0-9.]/g, ""));
       if (!amount || amount <= 0) { setOfferError("Please enter a valid amount."); return; }
       if (!conversationListing?.id || !activeId) return;
@@ -1431,8 +1463,7 @@ export default function MessagesPage({
                       className="msg-buyer-banner__btn msg-buyer-banner__btn--offer"
                       onClick={() => {
                         if (!hasAcceptedOffer) {
-                          const lt = conversationListing?.listing_type || "sale";
-                          setOfferMode(lt === "trade" ? "trade" : "cash");
+                          setOfferMode(getInitialOfferModeForListing(conversationListing));
                           setOfferError("");
                           setTradeError("");
                           setOfferAmount("");
@@ -1460,10 +1491,10 @@ export default function MessagesPage({
 
             {/* ── Send Offer Modal ── */}
             {showOfferModal && conversationListing && (() => {
-              const lt = conversationListing.listing_type || "sale";
-              const isSaleAndTrade = lt === "sale_and_trade";
-              const isTradeOnly = lt === "trade";
-              const isCashMode = offerMode === "cash";
+              const isSaleAndTrade = isSaleAndTradeListing(conversationListing);
+              const isTradeOnly = isTradeOnlyListing(conversationListing);
+              const effectiveOfferMode = getEffectiveOfferMode(offerMode, conversationListing);
+              const isCashMode = effectiveOfferMode === "cash";
               const useCustomTradeItem = tradeOfferMode === "custom" || myTradeListings.length === 0;
               const customTradeReady = Boolean(
                 tradeTitle.trim() &&

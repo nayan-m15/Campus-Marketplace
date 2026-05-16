@@ -93,7 +93,6 @@ const userListing = {
   image_urls: ["https://example.com/old-lamp.jpg"],
   emoji: "Lamp",
   created_at: "2026-01-01T00:00:00.000Z",
-  status: "active",
 };
 
 const defaultMessages = [
@@ -801,6 +800,54 @@ test("MessagesPage keeps offer-only threads tied to a specific listing", async (
   expect(screen.getByText(/seller's listing/i)).toBeInTheDocument();
   expect(screen.getAllByText(/ball/i).length).toBeGreaterThan(0);
   expect(screen.getAllByText(/offer accepted/i).length).toBeGreaterThan(0);
+});
+
+test("MessagesPage sends a custom trade offer from the listing shortcut modal", async () => {
+  messages.splice(0, messages.length);
+  offers.splice(0, offers.length);
+  listingRecords["listing-3"] = {
+    ...listingRecords["listing-3"],
+    listing_type: "trade",
+  };
+
+  render(
+    <MessagesPage
+      initialRecipientId="seller-1"
+      initialListingId="listing-3"
+      initialListingTitle="Ball"
+      initialDraft={'Hello, I\'d like to send an item trade offer for "Ball".'}
+      initialAction="offer"
+      onBack={vi.fn()}
+      onViewProfile={vi.fn()}
+      onUnreadChange={vi.fn()}
+    />
+  );
+
+  expect(await screen.findByRole("heading", { name: /send an offer/i })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /another item/i }));
+  fireEvent.change(screen.getByPlaceholderText(/item title/i), { target: { value: "Wireless Mouse" } });
+  fireEvent.change(screen.getByRole("combobox"), { target: { value: "Good" } });
+  fireEvent.change(screen.getByPlaceholderText(/describe the item/i), { target: { value: "Works well and includes batteries." } });
+  fireEvent.change(screen.getByLabelText(/attach a photo/i), {
+    target: {
+      files: [new File(["mouse"], "mouse.jpg", { type: "image/jpeg" })],
+    },
+  });
+
+  const sendOfferButtons = screen.getAllByRole("button", { name: /send offer/i });
+  fireEvent.click(sendOfferButtons[sendOfferButtons.length - 1]);
+
+  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
+    "offers",
+    expect.objectContaining({
+      listing_id: "listing-3",
+      requested_listing_id: "listing-3",
+      offered_listing_id: null,
+      offer_type: "item_trade",
+      offered_item_title: "Wireless Mouse",
+      offered_item_condition: "Good",
+    })
+  ));
 });
 
 test("MessagesPage prepares a PayFast payment transaction when a cash offer is accepted", async () => {
