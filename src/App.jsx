@@ -878,7 +878,7 @@ function ListingDetailsModal({
                         <textarea className="item-modal-textarea" value={message} onChange={(e) => setMessage(e.target.value)} rows={4} />
                         {sendError && <p className="item-modal-error">{sendError}</p>}
                         {sendSuccess && <p className="item-modal-success">{sendSuccess}</p>}
-                        <section className="item-modal-actions">
+                        <section className="item-modal-actions item-modal-actions--message">
                           <button type="button" className="item-modal-send-btn" onClick={handleSendMessage} disabled={sending}>
                             {sending ? "Sending..." : "Send message"}
                           </button>
