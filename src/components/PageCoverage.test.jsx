@@ -1188,8 +1188,12 @@ test("StudentBookingsPage lets a seller complete a drop-off booking flow", async
   render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
 
   fireEvent.click(await screen.findByRole("button", { name: /book drop-off/i }));
-  fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
-  fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  const facilitySelect = await screen.findByLabelText(/^facility$/i);
+  await waitFor(() => expect(facilitySelect).not.toBeDisabled());
+  await waitFor(() => expect(screen.getByRole("option", { name: /main trade desk/i })).toBeInTheDocument());
+  fireEvent.change(facilitySelect, { target: { value: "facility-1" } });
+  const dateInput = await screen.findByLabelText(/^date$/i);
+  fireEvent.change(dateInput, { target: { value: "2099-05-04" } });
   fireEvent.click(screen.getByRole("button", { name: /next/i }));
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
@@ -1228,7 +1232,7 @@ test("StudentBookingsPage lets a buyer complete a collection booking flow", asyn
   await waitFor(() => {
     expect(screen.queryByRole("combobox", { name: /facility/i })).not.toBeInTheDocument();
   });
-  fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  fireEvent.change(await screen.findByLabelText(/^date$/i), { target: { value: "2099-05-04" } });
   fireEvent.click(screen.getByRole("button", { name: /next/i }));
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
@@ -1270,8 +1274,11 @@ test("StudentBookingsPage lets either trade party propose one shared swap meetup
   render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
 
   fireEvent.click(await screen.findByRole("button", { name: /propose swap meetup/i }));
-  fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
-  fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  const facilitySelect = await screen.findByLabelText(/^facility$/i);
+  await waitFor(() => expect(facilitySelect).not.toBeDisabled());
+  await waitFor(() => expect(screen.getByRole("option", { name: /main trade desk/i })).toBeInTheDocument());
+  fireEvent.change(facilitySelect, { target: { value: "facility-1" } });
+  fireEvent.change(await screen.findByLabelText(/^date$/i), { target: { value: "2099-05-04" } });
   fireEvent.click(screen.getByRole("button", { name: /next/i }));
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
   fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
