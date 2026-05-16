@@ -640,6 +640,7 @@ function ReportsPanel() {
 
 export default function AdminDashboard({
   onSignOut,
+  onOpenSettings,
   listings = [],
   listingsLoading = false,
   listingsError = "",
@@ -731,6 +732,19 @@ export default function AdminDashboard({
 
   const calendarCells = useMemo(() => buildCalendarMatrix(new Date()), []);
   const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const handleUserCardActivate = (event) => {
+    if (!onOpenSettings) return;
+
+    const interactiveTarget = event.target.closest(
+      'button, a, input, select, textarea, [role="button"], [role="link"]'
+    );
+
+    if (interactiveTarget && interactiveTarget !== event.currentTarget) {
+      return;
+    }
+
+    onOpenSettings();
+  };
 
   return (
     <section className="admin-shell">
@@ -808,7 +822,19 @@ export default function AdminDashboard({
         </section>
 
         <footer className="admin-sidebar__footer">
-          <article className="admin-user-card">
+          <article
+            className="admin-user-card"
+            role="link"
+            tabIndex={onOpenSettings ? 0 : undefined}
+            aria-label="Open settings"
+            onClick={handleUserCardActivate}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleUserCardActivate(event);
+              }
+            }}
+          >
             <span className="admin-user-card__avatar" aria-hidden="true">
               {getAdminInitials(adminName)}
             </span>

@@ -363,6 +363,15 @@ html.dark {
   padding: 12px;
   border-radius: 15px;
   background: var(--admin-surface-soft) !important;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+.admin-user-card:hover,
+.admin-user-card:focus-visible {
+  background: rgba(31, 107, 82, 0.08) !important;
+  outline: none;
+  transform: translateY(-1px);
 }
 
 .admin-user-card__avatar {
