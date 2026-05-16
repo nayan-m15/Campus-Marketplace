@@ -4,6 +4,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import VerifiedBadge from "./VerifiedBadge";
+import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 import "../styles/ProfilePage.css";
 
 // ── Star display (read-only) ─────────────────────────────────
