@@ -1897,12 +1897,16 @@ export default function MessagesPage({
                         !mine &&
                         typeof item.content === "string" &&
                         item.content.includes("You can now book your collection slot in My Bookings.");
+                      const isMeetupProposedMsg =
+                        !mine &&
+                        typeof item.content === "string" &&
+                        item.content.includes("Go to My Bookings to accept or decline.");
                       return (
                         <section key={item.id ?? `opt-${item.created_at}`} className={`msg-bubble-wrap ${mine ? "msg-bubble-wrap--mine" : "msg-bubble-wrap--theirs"}`}>
                           {!mine && <Avatar url={activePeer?.avatar_url} name={peerName(activePeer)} size={28} />}
                           <section className={`msg-bubble ${mine ? "msg-bubble--mine" : "msg-bubble--theirs"}`}>
                             <p>{item.content}</p>
-                            {isCollectionReadyMsg && (
+                            {(isCollectionReadyMsg || isMeetupProposedMsg) && (
                               <button
                                 className="msg-offer-card__bookings-btn"
                                 onClick={() => onGoToBookings?.()}
