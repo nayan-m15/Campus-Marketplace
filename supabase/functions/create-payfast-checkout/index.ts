@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
   const { data: transaction, error } = await adminClient
     .from("transactions")
-    .select("id, item, seller_id, buyer_id, price, status, payment_status, transaction_type, payfast_payment_reference")
+    .select("id, item, seller_id, buyer_id, price, status, payment_status, transaction_type, dropoff_id, payfast_payment_reference")
     .eq("id", transactionId)
     .single();
 
@@ -219,6 +219,12 @@ Deno.serve(async (req) => {
   }
   if (transaction.payment_status === "paid") {
     return jsonResponse({ error: "This transaction is already paid." }, 409);
+  }
+  if (transaction.status !== "item_received") {
+    return jsonResponse({ error: "Payment opens after facility staff marks the seller's item as received." }, 409);
+  }
+  if (!transaction.dropoff_id) {
+    return jsonResponse({ error: "A seller drop-off booking is required before payment can start." }, 409);
   }
 
   const amount = Number(transaction.price || 0);

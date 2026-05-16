@@ -160,6 +160,16 @@ async function fetchSlotUsage(location, selectedDate, excludeBookingId = null) {
   }, {});
 }
 
+function isLegacyDropoffStatusError(error) {
+  const message = error?.message || error?.details || error?.hint || "";
+  return /not ready for a drop-off booking/i.test(message);
+}
+
+function isLegacyCollectionStatusError(error) {
+  const message = error?.message || error?.details || error?.hint || "";
+  return /collection cannot be booked|seller drop-off has been completed/i.test(message);
+}
+
 function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   const dialogRef = useRef(null);
 
@@ -303,6 +313,13 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
     const scheduledTime = `${selectedDate}T${selectedTime}:00`;
     try {
       let data, bookingError;
+      const bookTransactionSlot = () =>
+        supabase.rpc("book_transaction_slot", {
+          p_transaction_id: transaction.id,
+          p_booking_type: bookingType,
+          p_facility_id: String(selectedFacility.id),
+          p_scheduled_time: scheduledTime,
+        });
 
       if (bookingType === "trade_meetup") {
         ({ data, error: bookingError } = await supabase.rpc("book_trade_meetup_slot", {
@@ -311,12 +328,43 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
           p_scheduled_time: scheduledTime,
         }));
       } else {
-        ({ data, error: bookingError } = await supabase.rpc("book_transaction_slot", {
-          p_transaction_id: transaction.id,
-          p_booking_type: bookingType,
-          p_facility_id: String(selectedFacility.id),
-          p_scheduled_time: scheduledTime,
-        }));
+        ({ data, error: bookingError } = await bookTransactionSlot());
+
+        if (
+          bookingError &&
+          bookingType === "dropoff" &&
+          transaction.status === "awaiting_payment" &&
+          isLegacyDropoffStatusError(bookingError)
+        ) {
+          const { error: statusUpdateError } = await supabase
+            .from("transactions")
+            .update({ status: "awaiting_dropoff" })
+            .eq("id", transaction.id)
+            .eq("seller_id", transaction.seller_id);
+
+          if (!statusUpdateError) {
+            ({ data, error: bookingError } = await bookTransactionSlot());
+          }
+        }
+
+        if (
+          bookingError &&
+          bookingType === "collection" &&
+          transaction.payment_status === "paid" &&
+          transaction.status === "awaiting_dropoff" &&
+          Boolean(transaction.dropoff_id || transaction.dropoff_booking) &&
+          isLegacyCollectionStatusError(bookingError)
+        ) {
+          const { error: statusUpdateError } = await supabase
+            .from("transactions")
+            .update({ status: "awaiting_collection" })
+            .eq("id", transaction.id)
+            .eq("buyer_id", transaction.buyer_id);
+
+          if (!statusUpdateError) {
+            ({ data, error: bookingError } = await bookTransactionSlot());
+          }
+        }
       }
 
       if (bookingError) {
@@ -548,7 +596,7 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
   const sellerItem = transaction.requested_item || transaction.item;
   const buyerItem = transaction.offered_item || "Offered item";
   const hasRecordedPaymentStatus = transaction.payment_status !== null && transaction.payment_status !== undefined;
-  const statusImpliesPaid = ["awaiting_dropoff", "item_received", "awaiting_collection", "item_released", "completed"].includes(
+  const statusImpliesPaid = ["awaiting_collection", "item_released", "completed"].includes(
     transaction.status
   );
   const paymentStatus = hasRecordedPaymentStatus
@@ -558,14 +606,20 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
       : "unpaid";
   const isClosed = ["cancelled", "completed", "item_released"].includes(transaction.status);
   const needsPayment = !isItemTrade && !isClosed && paymentStatus !== "paid";
-  const canPay = userIsBuyer && needsPayment;
-  const canBookDropoff = userIsSeller && !transaction.dropoff_booking && ["pending", "awaiting_dropoff"].includes(transaction.status);
-  const collectionRequestReady =
-    canBookCollectionForStatus(transaction.status) ||
-    (transaction.status === "item_received" && Boolean(transaction.dropoff_booking));
+  const paymentReady = transaction.status === "item_received" && Boolean(transaction.dropoff_booking);
+  const canPay = userIsBuyer && needsPayment && paymentReady;
+  const canBookDropoff =
+    userIsSeller &&
+    !transaction.dropoff_booking &&
+    ["pending", "awaiting_payment", "awaiting_dropoff"].includes(transaction.status);
+  const collectionRequestReady = isItemTrade
+    ? canBookCollectionForStatus(transaction.status)
+    : paymentStatus === "paid" &&
+      (canBookCollectionForStatus(transaction.status) ||
+        (transaction.status === "awaiting_dropoff" && Boolean(transaction.dropoff_booking)));
   const canBookCollection = userIsBuyer && !transaction.collection_booking && collectionRequestReady;
   const showAwaitingDropoffNote =
-    !isItemTrade && transaction.status === "awaiting_dropoff" && !transaction.dropoff_booking && paymentStatus === "paid";
+    !isItemTrade && ["awaiting_payment", "awaiting_dropoff"].includes(transaction.status) && !transaction.dropoff_booking;
   const [meetupResponding, setMeetupResponding] = useState(false);
 
   async function handleMeetupResponse(tx, accept) {
@@ -645,9 +699,9 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
       {needsPayment && (
         <article className="bookings-page-card__payment">
           <section>
-            <p className="bookings-page-card__label">Sandbox payment required</p>
+            <p className="bookings-page-card__label">{paymentReady ? "Sandbox payment required" : "Payment locked"}</p>
             <p>
-              PayFast sandbox uses test money only. The seller can book drop-off after the sandbox payment is confirmed.
+              PayFast sandbox unlocks after facility staff checks in the seller's drop-off.
             </p>
           </section>
           {canPay ? (
@@ -661,7 +715,11 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
             </button>
           ) : (
             <p className="bookings-page-card__payment-note">
-              Waiting for the buyer to complete PayFast sandbox payment.
+              {paymentReady
+                ? "Item received. Waiting for the buyer to complete PayFast payment."
+                : userIsBuyer
+                  ? "Payment opens once staff marks the item as received."
+                  : "Waiting for facility staff to check in the seller's item before buyer payment opens."}
             </p>
           )}
         </article>
@@ -670,10 +728,10 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
       {showAwaitingDropoffNote && (
         <article className="bookings-page-card__payment bookings-page-card__payment--ready">
           <section>
-            <p className="bookings-page-card__label">Payment confirmed</p>
+            <p className="bookings-page-card__label">Drop-off needed</p>
             <p>
               {userIsSeller
-                ? "Payment is confirmed. Use the drop-off section below to book a slot."
+                ? "Book a drop-off slot so facility staff can receive the item before the buyer pays."
                 : "Waiting for the seller to book the drop-off slot."}
             </p>
           </section>
@@ -902,7 +960,7 @@ export function StudentBookingsPage({ user, onBack }) {
 
         if (functionError) throw functionError;
 
-        setPaymentNotice("PayFast sandbox payment confirmed. The seller can now book drop-off.");
+        setPaymentNotice("PayFast sandbox payment confirmed. You can now book collection.");
         await loadTransactions();
       } catch (err) {
         setPaymentNotice(getFunctionErrorMessage(err));
@@ -976,10 +1034,12 @@ export function StudentBookingsPage({ user, onBack }) {
         </section>
       </header>
 
+      {paymentNotice ? (
+        <article className="bookings-page__notice">{paymentNotice}</article>
+      ) : null}
+
       {loading ? (
         <article className="bookings-page__empty">Loading your transactions...</article>
-      ) : paymentNotice ? (
-        <article className="bookings-page__notice">{paymentNotice}</article>
       ) : error ? (
         <article className="bookings-page__empty bookings-page__empty--error">{error}</article>
       ) : transactions.length === 0 ? (

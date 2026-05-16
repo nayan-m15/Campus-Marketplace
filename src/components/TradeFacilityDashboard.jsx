@@ -506,7 +506,7 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
             <li className="booking-card__detail booking-card__detail--full">
               <span className="booking-card__detail-label">Next step</span>
               <span className="booking-card__detail-value managed-card__hint">
-                Waiting for the buyer to complete PayFast sandbox payment. Drop-off booking opens after payment is confirmed.
+                Waiting for the seller to book a drop-off slot. Buyer payment opens after staff receives the item.
               </span>
             </li>
           ) : null}
@@ -514,7 +514,7 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
             <li className="booking-card__detail booking-card__detail--full">
               <span className="booking-card__detail-label">Next step</span>
               <span className="booking-card__detail-value managed-card__hint">
-                {isItemTrade ? "Waiting for the other student to book the swap handover slot." : "Waiting for the buyer to book a collection time at the seller's drop-off facility."}
+                {isItemTrade ? "Waiting for the other student to book the swap handover slot." : "Item checked in. Waiting for the buyer to pay before collection booking opens."}
               </span>
             </li>
           ) : null}
@@ -655,7 +655,7 @@ function OverviewSection({ transactions, bookings }) {
               <StatCard icon="table" value={pendingRequests} label="Scheduled Bookings" subLabel="Confirmed staff appointments that still need physical handling" />
             </article>
             <article role="listitem">
-              <StatCard icon="receipt" value={awaitingPayment} label="Awaiting Payment" subLabel="Buyer still needs to complete PayFast sandbox checkout" />
+              <StatCard icon="receipt" value={awaitingPayment} label="Awaiting Payment" subLabel="Buyer payment happens after staff item receipt" />
             </article>
             <article role="listitem">
               <StatCard icon="receipt" value={`R ${totalValue.toLocaleString("en-ZA")}`} label="Processed Value" subLabel="Combined trade value represented in the live ledger" />
@@ -2175,7 +2175,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
             ]);
           } else {
             const messages = {
-              item_received: { to: transaction.buyer_id, text: `Your item "${transaction.item}" has been checked in. You can now book a collection time at ${transaction.dropoffFacility || "the seller's drop-off facility"} in My Bookings.` },
+              item_received: { to: transaction.buyer_id, text: `Your item "${transaction.item}" has been checked in. You can now pay in My Bookings. Collection booking opens after payment is confirmed.` },
               awaiting_collection: { to: transaction.buyer_id, text: `Your item "${transaction.item}" is ready for collection at ${transaction.collectionFacility || transaction.dropoffFacility || "the seller's drop-off facility"}.` },
               item_released: { to: transaction.seller_id, text: `Your item "${transaction.item}" has been collected by the buyer. The transaction is almost complete.` },
               completed: { to: transaction.seller_id, text: `Transaction for "${transaction.item}" is now fully completed. Thank you for using CampusXChange!` },
