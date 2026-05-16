@@ -551,7 +551,7 @@ test("ProfilePage loads profile, validates phone, and saves updates", async () =
   expect(onNameChange).toHaveBeenCalledWith("Campus Seller");
 });
 
-test("PublicProfilePage loads seller details and submits a rating", async () => {
+test("PublicProfilePage loads seller details without public rating controls", async () => {
   const onBack = vi.fn();
   const onMessageSeller = vi.fn();
   const onView = renderWithNotifications(
@@ -573,21 +573,9 @@ test("PublicProfilePage loads seller details and submits a rating", async () => 
   expect(screen.getByText(/sold to buyer/i)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /^details$/i }));
 
-  fireEvent.change(screen.getByRole("combobox"), {
-    target: { value: "listing-2" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: /rate 5 stars/i }));
-  fireEvent.click(screen.getByRole("button", { name: /submit rating/i }));
-
-  await waitFor(() => expect(mocks.insert).toHaveBeenCalledWith(
-    "ratings",
-    expect.objectContaining({
-      rater_id: "user-1",
-      rated_id: "seller-1",
-      listing_id: "listing-2",
-      rating: 5,
-    })
-  ));
+  expect(screen.queryByText(/rate this user/i)).not.toBeInTheDocument();
+  expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /submit rating/i })).not.toBeInTheDocument();
 
   onView.unmount();
 });
@@ -1123,7 +1111,7 @@ test("TradeFacilityDashboard renders navigation and sign out", () => {
   expect(screen.getByRole("heading", { name: /drop-off bookings/i })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: /transaction ledger/i }));
-  expect(screen.getByRole("heading", { level: 1, name: /transaction ledger/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /transaction ledger/i, level: 1 })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();

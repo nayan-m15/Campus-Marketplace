@@ -20,6 +20,7 @@ export default function Navbar({
   onHome,
   onYourListings,
   onBookings,
+  onTransactionHistory,
   onWishlist,
   wishlistCount = 0,
   unreadCount = 0,
@@ -367,6 +368,11 @@ export default function Navbar({
                             <li>
                               <button onClick={() => { onBookings?.(); setMenuOpen(false); }}>
                                 My Bookings
+                              </button>
+                            </li>
+                            <li>
+                              <button onClick={() => { onTransactionHistory?.(); setMenuOpen(false); }}>
+                                Transaction History
                               </button>
                             </li>
                             <li>

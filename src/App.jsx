@@ -1138,6 +1138,7 @@ function AppInner() {
   const [currentProfile, setCurrentProfile] = useState(null);
   const [pendingRatings, setPendingRatings] = useState([]);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState("edit");
 
   // ── Refs for the filter bar and listings section so CTA/search can scroll cleanly ──
   const filterBarRef = useRef(null);
@@ -2116,7 +2117,10 @@ useEffect(() => {
     },
     onHowItWorks: () => navigateToPage("howItWorks"),
     onShowListingForm: () => { goHome(); setShowForm(true); },
-    onProfile: () => navigateToPage("profile"),
+    onProfile: () => {
+      setProfileInitialTab("edit");
+      navigateToPage("profile");
+    },
     onMessages: () => {
       setMsgRecipientId(null);
       setMsgListingTitle(null);
@@ -2129,6 +2133,10 @@ useEffect(() => {
     onHome: goHome,
     onYourListings: () => navigateToPage("yourlistings"),
     onBookings: () => navigateToPage("bookings"),
+    onTransactionHistory: () => {
+      setProfileInitialTab("transactions");
+      navigateToPage("profile");
+    },
     onWishlist: () => navigateToPage("wishlist"),
     wishlistCount: wishlistItems.length,
     onSettings: () => navigateToPage("settings"),
@@ -2148,7 +2156,12 @@ useEffect(() => {
           />
         )}
         <header><Navbar {...navbarProps} /></header>
-        <ProfilePage onBack={goHome} onAvatarChange={setAvatarUrl} onNameChange={setProfileName} />
+        <ProfilePage
+          initialTab={profileInitialTab}
+          onBack={goHome}
+          onAvatarChange={setAvatarUrl}
+          onNameChange={setProfileName}
+        />
       </>
     );
   }

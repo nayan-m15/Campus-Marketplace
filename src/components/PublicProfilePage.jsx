@@ -3,8 +3,6 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
-import { useAuth } from "../context/AuthContext";
-import { useNotifications } from "../context/NotificationContext";
 import "../styles/ProfilePage.css";
 
 // ── Star display (read-only) ─────────────────────────────────
@@ -30,28 +28,6 @@ function StarDisplay({ average = 0, count = 0 }) {
           ? `${average} (${count} review${count !== 1 ? "s" : ""})`
           : "No reviews yet"}
       </span>
-    </section>
-  );
-}
-
-// ── Interactive star picker ──────────────────────────────────
-function StarPicker({ value, onChange }) {
-  const [hovered, setHovered] = useState(0);
-  return (
-    <section className="pub-rating__picker">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <button
-          key={i}
-          type="button"
-          className={`pub-rating__pick-star ${i <= (hovered || value) ? "pub-rating__pick-star--on" : ""}`}
-          onMouseEnter={() => setHovered(i)}
-          onMouseLeave={() => setHovered(0)}
-          onClick={() => onChange(i)}
-          aria-label={`Rate ${i} star${i !== 1 ? "s" : ""}`}
-        >
-          ★
-        </button>
-      ))}
     </section>
   );
 }
@@ -111,9 +87,6 @@ function TransactionHistory({ transactions, loading }) {
 }
 
 export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
-  const { user } = useAuth();
-  const { notifySuccess, notifyError, notifyWarning } = useNotifications();
-
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -122,11 +95,6 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
   const [ratingAvg, setRatingAvg] = useState(0);
   const [ratingCount, setRatingCount] = useState(0);
 
-  // Listings the current user has messaged the seller about
-  const [rateableListings, setRateableListings] = useState([]);
-  const [selectedListing, setSelectedListing] = useState("");
-  const [selectedStars, setSelectedStars] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [transactionHistory, setTransactionHistory] = useState([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
@@ -153,67 +121,6 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
       })
       .finally(() => setLoading(false));
   }, [userId]);
-
-  // ── Load listings the current user can rate this seller for ──
-  useEffect(() => {
-    if (!user || !userId || user.id === userId) return;
-
-    async function loadRateableListings() {
-      // Source 1: listings the user messaged the seller about
-      const { data: msgData } = await supabase
-        .from("messages")
-        .select("listing_id")
-        .eq("sender_id", user.id)
-        .eq("receiver_id", userId)
-        .not("listing_id", "is", null);
-
-      // Source 2: completed transactions where both parties were involved
-      const { data: txnData } = await supabase
-        .from("transactions")
-        .select("listing_id")
-        .eq("status", "completed")
-        .or(
-          `and(buyer_id.eq.${user.id},seller_id.eq.${userId}),and(seller_id.eq.${user.id},buyer_id.eq.${userId})`
-        )
-        .not("listing_id", "is", null);
-
-      const allListingIds = [
-        ...new Set([
-          ...(msgData || []).map((m) => m.listing_id),
-          ...(txnData || []).map((t) => t.listing_id),
-        ]),
-      ].filter(Boolean);
-
-      if (allListingIds.length === 0) return;
-
-      const { data: listings } = await supabase
-        .from("listings")
-        .select("id, title")
-        .in("id", allListingIds);
-
-      if (!listings) return;
-
-      // Check which ones the user has already rated
-      const { data: existingRatings } = await supabase
-        .from("ratings")
-        .select("listing_id, rating")
-        .eq("rater_id", user.id)
-        .eq("rated_id", userId);
-
-      const ratedMap = Object.fromEntries(
-        (existingRatings || []).map((r) => [r.listing_id, r.rating])
-      );
-
-      setRateableListings(
-        listings.map((l) => ({
-          ...l,
-          existingRating: ratedMap[l.id] || null,
-        }))
-      );
-    }
-
-    loadRateableListings();
-  }, [user, userId]);
 
   // ── Helpers ──────────────────────────────────────────────────
   useEffect(() => {
@@ -322,65 +229,6 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
     };
   }, [userId]);
 
-  function showToast(msg) {
-    if (msg.toLowerCase().includes("please select")) {
-      notifyWarning("Rating incomplete", msg, { category: "profile", dedupeKey: `rating-warning-${msg}` });
-      return;
-    }
-
-    if (msg.toLowerCase().includes("submitted")) {
-      notifySuccess("Rating submitted", msg, { category: "profile", dedupeKey: `rating-success-${msg}` });
-      return;
-    }
-
-    notifyError("Rating failed", msg, { category: "profile", dedupeKey: `rating-error-${msg}` });
-  }
-
-  async function handleSubmitRating() {
-    if (!selectedListing) { showToast("Please select a listing first."); return; }
-    if (!selectedStars)    { showToast("Please select a star rating.");   return; }
-
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.from("ratings").insert({
-        rater_id: user.id,
-        rated_id: userId,
-        listing_id: selectedListing,
-        rating: selectedStars,
-      });
-
-      if (error) throw new Error(error.message);
-
-      showToast("Rating submitted!");
-      setSelectedListing("");
-      setSelectedStars(0);
-
-      // Re-fetch the profile row so avg_rating + rating_count reflect the
-      // trigger's recalculation — no RPC call required.
-      const { data: updated } = await supabase
-        .from("profiles")
-        .select("avg_rating, rating_count")
-        .eq("id", userId)
-        .single();
-
-      if (updated) {
-        setRatingAvg(parseFloat(updated.avg_rating) || 0);
-        setRatingCount(parseInt(updated.rating_count) || 0);
-      }
-
-      // Mark the listing as rated in local state
-      setRateableListings((prev) =>
-        prev.map((l) =>
-          l.id === selectedListing ? { ...l, existingRating: selectedStars } : l
-        )
-      );
-    } catch (err) {
-      showToast(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   // ── Loading / error states ────────────────────────────────────
   if (loading) {
     return (
@@ -427,8 +275,6 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
         year: "numeric",
       })
     : null;
-
-  const selectedListingData = rateableListings.find((l) => l.id === selectedListing);
 
   // ── Render ────────────────────────────────────────────────────
   return (
@@ -552,59 +398,6 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
               </>
             )}
 
-            {/* ── Rate this user ── */}
-            {user && user.id !== userId && rateableListings.length > 0 && (
-              <>
-                <p className="profile-section-title">Rate this user</p>
-                <section className="pub-rating__form">
-                  <article className="profile-field">
-                    <label>Select a listing you sold/bought</label>
-                    <select
-                      value={selectedListing}
-                      onChange={(e) => {
-                        setSelectedListing(e.target.value);
-                        const l = rateableListings.find((l) => l.id === e.target.value);
-                        setSelectedStars(l?.existingRating || 0);
-                      }}
-                    >
-                    <option value="">Choose a listing…</option>
-                    {rateableListings.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.title}
-                        {l.existingRating ? ` (rated: ${l.existingRating}★)` : ""}
-                      </option>
-                    ))}
-                    </select>
-                  </article>
-
-                {/* Show rating picker only if this listing hasn't been rated yet */}
-                {selectedListingData && !selectedListingData.existingRating && (
-                  <article className="profile-field">
-                    <label>Your rating</label>
-                    <StarPicker value={selectedStars} onChange={setSelectedStars} />
-                  </article>
-                )}
-
-          {selectedListingData?.existingRating ? (
-            <p className="pub-rating__existing-note">
-              You already rated this listing {selectedListingData.existingRating}★. Ratings cannot be changed after submission.
-            </p>
-         ) : null}
-
-          {selectedListingData && !selectedListingData.existingRating && (
-            <button
-              className="profile-save-btn"
-              style={{ width: "100%", marginTop: 4 }}
-              onClick={handleSubmitRating}
-              disabled={submitting || !selectedStars || !selectedListing}
-              type="button"
-            >
-            {submitting ? "Submitting…" : "Submit Rating"}
-          </button>
-        )}
-  </section>
-  </>
-)}
               </>
             )}
 
