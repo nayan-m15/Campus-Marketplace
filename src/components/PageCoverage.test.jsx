@@ -1114,8 +1114,8 @@ test("TradeFacilityDashboard renders navigation and sign out", () => {
   fireEvent.click(screen.getByRole("button", { name: /drop-off bookings/i }));
   expect(screen.getByRole("heading", { name: /drop-off bookings/i })).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole("button", { name: /all transactions/i }));
-  expect(screen.getByRole("heading", { name: /all transactions/i })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /transaction ledger/i }));
+  expect(screen.getByRole("heading", { name: /transaction ledger/i, level: 1 })).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
   expect(onSignOut).toHaveBeenCalled();
