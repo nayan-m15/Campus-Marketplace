@@ -76,26 +76,25 @@ export default function Hero({
         const [
           { count: activeListingsCount, error: listingsCountError },
           { count: totalUsersCount, error: usersCountError },
-          { data: soldListings, error: soldListingsError },
+          { data: acceptedOffers, error: soldListingsError },
         ] = await Promise.all([
           activeListingsQuery,
           supabase.from("profiles").select("*", { count: "exact", head: true }),
           supabase
-            .from("listings")
-            .select("price, created_at, status")
-            .eq("status", "sold")
+            .from("offers")
+            .select("amount, created_at")
+            .eq("status", "accepted")
             .gte("created_at", semesterStart.toISOString()),
         ]);
 
         if (listingsCountError) throw listingsCountError;
         if (soldListingsError) throw soldListingsError;
 
-        const semesterTradeValue = (soldListings || []).reduce((sum, listing) => {
-          const price = typeof listing.price === "number"
-            ? listing.price
-            : parseFloat(String(listing.price || "").replace(/[^0-9.]/g, ""));
-
-          return sum + (Number.isFinite(price) ? price : 0);
+        const semesterTradeValue = (acceptedOffers || []).reduce((sum, offer) => {
+          const amount = typeof offer.amount === "number"
+            ? offer.amount
+            : parseFloat(String(offer.amount || "").replace(/[^0-9.]/g, ""));
+          return sum + (Number.isFinite(amount) ? amount : 0);
         }, 0);
 
         if (!isMounted) return;
