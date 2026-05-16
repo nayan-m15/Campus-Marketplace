@@ -335,6 +335,22 @@ vi.mock("../supabaseClient", () => ({
           error: null,
         });
       }
+      if (args[0] === "book_trade_meetup_slot") {
+        const payload = args[1] || {};
+        return Promise.resolve({
+          data: [{
+            booking_id: "MT-TESTBOOK",
+            location: "Main Trade Desk",
+            scheduled_time: payload.p_scheduled_time,
+            booking_status: "pending_approval",
+            transaction_status: "awaiting_meetup",
+          }],
+          error: null,
+        });
+      }
+      if (args[0] === "confirm_trade_meetup_slot" || args[0] === "decline_trade_meetup_slot") {
+        return Promise.resolve({ data: null, error: null });
+      }
       return Promise.resolve({ data: [{ metric: "Listings", value: 3 }], error: null });
     },
     storage: {
@@ -925,7 +941,7 @@ test("MessagesPage creates an item-trade transaction when a trade offer is accep
       offered_listing_id: "listing-3",
       transaction_type: "item_trade",
       price: 0,
-      status: "awaiting_dropoff",
+      status: "awaiting_meetup",
     })
   ));
 
@@ -1182,5 +1198,96 @@ test("StudentBookingsPage lets a buyer complete a collection booking flow", asyn
       p_facility_id: "facility-1",
       p_scheduled_time: "2099-05-04T09:00:00",
     })
+  ));
+});
+
+test("StudentBookingsPage lets either trade party propose one shared swap meetup slot", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-trade-1",
+      item: "Desk Lamp for Ball",
+      requested_item: "Desk Lamp",
+      offered_item: "Ball",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 0,
+      status: "awaiting_meetup",
+      transaction_type: "item_trade",
+      dropoff_id: null,
+      collection_id: null,
+      trade_meetup_id: null,
+      trade_meetup_proposed_by: null,
+      created_at: "2026-05-03T10:00:00.000Z",
+    }
+  );
+  bookings.splice(0, bookings.length);
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /propose swap meetup/i }));
+  fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
+  fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
+  fireEvent.click(screen.getByRole("button", { name: /next/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
+  fireEvent.click(screen.getByRole("button", { name: /confirm slot/i }));
+
+  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
+    "book_trade_meetup_slot",
+    expect.objectContaining({
+      p_transaction_id: "txn-trade-1",
+      p_facility_id: "facility-1",
+      p_scheduled_time: "2099-05-04T09:00:00",
+    })
+  ));
+});
+
+test("StudentBookingsPage lets the other trade party accept or request a different swap meetup slot", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-trade-2",
+      item: "Desk Lamp for Ball",
+      requested_item: "Desk Lamp",
+      offered_item: "Ball",
+      seller_id: "seller-1",
+      buyer_id: "user-1",
+      price: 0,
+      status: "awaiting_meetup",
+      transaction_type: "item_trade",
+      dropoff_id: null,
+      collection_id: null,
+      trade_meetup_id: "booking-meetup-1",
+      trade_meetup_proposed_by: "seller-1",
+      created_at: "2026-05-03T10:00:00.000Z",
+    }
+  );
+  bookings.splice(
+    0,
+    bookings.length,
+    {
+      id: "booking-meetup-1",
+      type: "trade_meetup",
+      scheduled_time: "2099-05-04T09:00:00.000Z",
+      location: "Main Trade Desk",
+      status: "pending_approval",
+      created_at: "2026-05-03T10:05:00.000Z",
+    }
+  );
+
+  render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /accept slot/i }));
+  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
+    "confirm_trade_meetup_slot",
+    { p_transaction_id: "txn-trade-2" }
+  ));
+
+  fireEvent.click(await screen.findByRole("button", { name: /request different slot/i }));
+  await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith(
+    "decline_trade_meetup_slot",
+    { p_transaction_id: "txn-trade-2" }
   ));
 });

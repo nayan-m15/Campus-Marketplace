@@ -8,6 +8,7 @@ export const TRANSACTION_STATUS_META = {
   item_released: "Item Released",
   completed: "Completed",
   cancelled: "Cancelled",
+  awaiting_meetup: "Awaiting Swap Meetup",
 };
 
 export function buildTradeTransactionId(prefix = "TXN") {

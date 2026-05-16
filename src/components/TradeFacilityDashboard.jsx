@@ -356,13 +356,7 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
         hint: "Confirm the seller has handed the item over.",
       };
       case "awaiting_meetup":
-      return {
-        label: "Confirm Swap Complete",
-        icon: "handoff",
-        cls: "btn-action--release",
-        next: "completed",
-        hint: "Both students are present. Confirm the swap has happened and close the transaction.",
-      };
+        return null;
 
       case "item_received":
         return null;
@@ -810,6 +804,7 @@ function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) 
     { value: "all", label: "All Active" },
     { value: "awaiting_payment", label: "Awaiting Payment" },
     { value: "awaiting_dropoff", label: "Awaiting Drop-off" },
+    { value: "awaiting_meetup", label: "Awaiting Swap Meetup" },
     { value: "item_received", label: "Item Received" },
     { value: "awaiting_collection", label: "Awaiting Collection" },
     { value: "item_released", label: "Item Released" },
@@ -897,6 +892,7 @@ function TransactionsSection({
   const transactionStatusOptions = [
     "awaiting_payment",
     "awaiting_dropoff",
+    "awaiting_meetup",
     "item_received",
     "awaiting_collection",
     "item_released",
@@ -1160,69 +1156,11 @@ function UtilityRail({ transactions, bookings, activeView }) {
   );
 }
 
-function MeetupsSection({ transactions, bookings, staffProfile, onAction, savingIds, onRefresh, showToast }) {
-  const [respondingId, setRespondingId] = useState(null);
-
+function MeetupsSection({ transactions, bookings, onAction, savingIds }) {
   // Find the meetup booking for a transaction
   function getMeetupBooking(transaction) {
     if (!transaction.trade_meetup_id) return null;
     return bookings.find((b) => b.id === transaction.trade_meetup_id) || null;
-  }
-
-  async function handleStaffNotify(transaction, accept) {
-    if (!staffProfile?.id) return;
-    setRespondingId(transaction.id);
-    try {
-      const meetupBooking = getMeetupBooking(transaction);
-      const locationStr = meetupBooking?.location || "the agreed location";
-      const timeStr = meetupBooking?.scheduled_time
-        ? new Date(meetupBooking.scheduled_time).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" })
-        : "the proposed time";
-
-      if (accept) {
-        // Send confirmation to both parties
-        await Promise.all([
-          insertMessage({
-            sender_id: staffProfile.id,
-            receiver_id: transaction.seller_id,
-            content: `Your trade meetup for "${transaction.item}" has been confirmed at ${locationStr} on ${timeStr}. Please arrive on time.`,
-          }),
-          insertMessage({
-            sender_id: staffProfile.id,
-            receiver_id: transaction.buyer_id,
-            content: `Your trade meetup for "${transaction.item}" has been confirmed at ${locationStr} on ${timeStr}. Please arrive on time.`,
-          }),
-        ]);
-        showToast(`Meetup confirmation sent to both parties.`);
-      } else {
-        // Notify both that they need to re-propose
-        await Promise.all([
-          insertMessage({
-            sender_id: staffProfile.id,
-            receiver_id: transaction.seller_id,
-            content: `The proposed meetup slot for "${transaction.item}" was not confirmed. Please go to My Bookings to propose a new time.`,
-          }),
-          insertMessage({
-            sender_id: staffProfile.id,
-            receiver_id: transaction.buyer_id,
-            content: `The proposed meetup slot for "${transaction.item}" was not confirmed. Please go to My Bookings to propose a new time.`,
-          }),
-        ]);
-        // Cancel the booking and clear it from the transaction
-        if (transaction.trade_meetup_id) {
-          await supabase.from("bookings").update({ status: "cancelled" }).eq("id", transaction.trade_meetup_id);
-          await supabase.from("transactions")
-            .update({ trade_meetup_id: null, trade_meetup_proposed_by: null })
-            .eq("id", transaction.id);
-        }
-        showToast(`Meetup slot cancelled. Both parties notified.`);
-      }
-      await onRefresh();
-    } catch (err) {
-      showToast(err.message || "Unable to complete the action.");
-    } finally {
-      setRespondingId(null);
-    }
   }
 
   return (
@@ -1234,7 +1172,7 @@ function MeetupsSection({ transactions, bookings, staffProfile, onAction, saving
             <p className="panel__eyebrow">Item-for-Item Swaps</p>
             <h3 className="panel__title">Trade Meetups</h3>
             <p className="panel__subtitle">
-              Monitor proposed meetup slots. Once both students agree, confirm and send them both a confirmation message. You can also cancel a proposed slot if there is an issue.
+              Students choose and agree on one shared swap meetup slot in My Bookings. Staff only confirms the swap after both students arrive.
             </p>
           </section>
           <p className="panel__count">{transactions.length} awaiting meetup</p>
@@ -1246,7 +1184,7 @@ function MeetupsSection({ transactions, bookings, staffProfile, onAction, saving
           <ul className="booking-list booking-list--dense" role="list">
             {transactions.map((transaction) => {
               const meetupBooking = getMeetupBooking(transaction);
-              const saving = Boolean(savingIds[transaction.id]) || respondingId === transaction.id;
+              const saving = Boolean(savingIds[transaction.id]);
               const proposerIsKnown = Boolean(transaction.trade_meetup_proposed_by);
               const proposerIsSeller = transaction.trade_meetup_proposed_by === transaction.seller_id;
 
@@ -1303,14 +1241,14 @@ function MeetupsSection({ transactions, bookings, staffProfile, onAction, saving
                               <li className="booking-card__detail booking-card__detail--full">
                                 <span className="booking-card__detail-label">Note</span>
                                 <span className="booking-card__detail-value managed-card__hint">
-                                  ✓ Slot confirmed by both parties. Use "Confirm Swap Complete" once the physical trade has happened.
+                                  Slot accepted by both parties. Use "Confirm Swap Complete" after the physical trade has happened.
                                 </span>
                               </li>
                             ) : (
                               <li className="booking-card__detail booking-card__detail--full">
                                 <span className="booking-card__detail-label">Next step</span>
                                 <span className="booking-card__detail-value managed-card__hint">
-                                  A slot has been proposed. The other party needs to accept it in My Bookings. Staff can also confirm or cancel the slot below.
+                                  A slot has been proposed. The other student needs to accept it or request a different slot in My Bookings.
                                 </span>
                               </li>
                             )}
@@ -1329,16 +1267,28 @@ function MeetupsSection({ transactions, bookings, staffProfile, onAction, saving
                     <footer className="booking-card__footer">
                       <menu className="booking-card__actions" role="list">
                         {meetupBooking?.status === "scheduled" && (
-                          <li>
-                            <button
-                              className="btn-action btn-action--release"
-                              onClick={() => onAction(transaction, "completed")}
-                              disabled={saving}
-                            >
-                              <Icon name="handoff" className="btn-action__icon" />
-                              Confirm Swap Complete
-                            </button>
-                          </li>
+                          <>
+                            <li>
+                              <button
+                                className="btn-action btn-action--release"
+                                onClick={() => onAction(transaction, "completed")}
+                                disabled={saving}
+                              >
+                                <Icon name="handoff" className="btn-action__icon" />
+                                Confirm Swap Complete
+                              </button>
+                            </li>
+                            <li>
+                              <button
+                                className="btn-action btn-action--danger"
+                                onClick={() => onAction(transaction, "cancelled")}
+                                disabled={saving}
+                              >
+                                <Icon name="x-circle" className="btn-action__icon" />
+                                Mark Swap Not Completed
+                              </button>
+                            </li>
+                          </>
                         )}
                       </menu>
                     </footer>
@@ -1910,8 +1860,6 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
           staffProfile={staffProfile}
           onAction={handleManagedAction}
           savingIds={savingIds}
-          onRefresh={loadDashboard}
-          showToast={showToast}
         />
       ) : null}
       </main>
