@@ -286,19 +286,39 @@ function getListingImage(listing) {
   return "";
 }
 
-function mapRpcTransactionHistory(rows) {
-  return (rows || [])
-    .filter((row) => row?.transaction_id)
-    .map((row) => ({
-      id: row.transaction_id,
-      itemTitle: row.item_title || "Transaction item",
-      imageUrl: row.item_image_url || "",
-      otherUserName: row.other_user_name || "Unknown user",
-      relationshipLabel: row.relationship_label || "Traded with",
-    }));
+function StarPicker({ value, onChange }) {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <section className="pub-rating__picker profile-transaction-rating__stars">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          className={`pub-rating__pick-star ${star <= (hovered || value) ? "pub-rating__pick-star--on" : ""}`}
+          onMouseEnter={() => setHovered(star)}
+          onMouseLeave={() => setHovered(0)}
+          onClick={() => onChange(star)}
+          aria-label={`Rate ${star} star${star !== 1 ? "s" : ""}`}
+        >
+          ★
+        </button>
+      ))}
+    </section>
+  );
 }
 
-function TransactionHistory({ transactions, loading }) {
+function TransactionHistory({
+  activeRatingId,
+  loading,
+  onCancelRating,
+  onOpenRating,
+  onSelectRating,
+  onSubmitRating,
+  ratingError,
+  ratingValue,
+  submittingRatingId,
+  transactions,
+}) {
   if (loading) {
     return <p className="pub-transactions__empty">Loading transaction history...</p>;
   }
@@ -325,7 +345,55 @@ function TransactionHistory({ transactions, loading }) {
           <section className="pub-transaction__body">
             <strong>{transaction.itemTitle}</strong>
             <span>{transaction.relationshipLabel} {transaction.otherUserName}</span>
+            <section className="profile-transaction-rating__actions">
+              {transaction.rated ? (
+                <span className="profile-transaction-rating__badge">
+                  Rated{transaction.rating ? ` ${transaction.rating}★` : ""}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="profile-transaction-rating__button"
+                  onClick={() => onOpenRating(transaction.id)}
+                  disabled={!transaction.canRate}
+                >
+                  {transaction.canRate ? "Rate" : "Cannot rate"}
+                </button>
+              )}
+            </section>
           </section>
+          {activeRatingId === transaction.id && !transaction.rated && transaction.canRate && (
+            <section className="profile-transaction-rating">
+              <p className="profile-transaction-rating__title">
+                Rate your experience with {transaction.otherUserName}
+              </p>
+              <StarPicker value={ratingValue} onChange={onSelectRating} />
+              {ratingValue > 0 && (
+                <p className="profile-transaction-rating__label">
+                  {["", "Poor", "Below average", "Average", "Good", "Excellent"][ratingValue]}
+                </p>
+              )}
+              {ratingError && <p className="profile-transaction-rating__error">{ratingError}</p>}
+              <footer className="profile-transaction-rating__footer">
+                <button
+                  type="button"
+                  className="profile-transaction-rating__secondary"
+                  onClick={onCancelRating}
+                  disabled={submittingRatingId === transaction.id}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="profile-transaction-rating__submit"
+                  onClick={() => onSubmitRating(transaction)}
+                  disabled={!ratingValue || submittingRatingId === transaction.id}
+                >
+                  {submittingRatingId === transaction.id ? "Submitting..." : "Submit rating"}
+                </button>
+              </footer>
+            </section>
+          )}
         </li>
       ))}
     </ul>
@@ -333,7 +401,7 @@ function TransactionHistory({ transactions, loading }) {
 }
 
 // ── Main Component ───────────────────────────────────────────
-export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
+export default function ProfilePage({ initialTab = "edit", onBack, onAvatarChange, onNameChange}) {
   const { user } = useAuth();
   const { notifySuccess, notifyError } = useNotifications();
   const fileInputRef = useRef(null);
@@ -346,9 +414,13 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
   const [phoneError, setPhoneError] = useState("");
   const [ratingAvg, setRatingAvg] = useState(0);
   const [ratingCount, setRatingCount] = useState(0);
-  const [activeTab, setActiveTab] = useState("edit");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [transactionHistory, setTransactionHistory] = useState([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [activeRatingId, setActiveRatingId] = useState(null);
+  const [ratingValue, setRatingValue] = useState(0);
+  const [ratingError, setRatingError] = useState("");
+  const [submittingRatingId, setSubmittingRatingId] = useState(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -370,6 +442,10 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
         // { group: "Private Colleges & Universities", items: provinceData.private },
       ]
     : [];
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   // Load profile on mount
   useEffect(() => {
@@ -418,20 +494,9 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
       setTransactionsLoading(true);
 
       try {
-        const { data: rpcRows, error: rpcError } = await supabase.rpc(
-          "get_public_transaction_history",
-          { p_profile_user_id: user.id }
-        );
-
-        const rpcHistory = !rpcError ? mapRpcTransactionHistory(rpcRows) : [];
-        if (rpcHistory.length > 0) {
-          if (!cancelled) setTransactionHistory(rpcHistory);
-          return;
-        }
-
         const { data: rows, error } = await supabase
           .from("transactions")
-          .select("id, item, listing_id, requested_listing_id, offered_listing_id, seller_id, buyer_id, transaction_type, status, created_at")
+          .select("id, item, listing_id, requested_listing_id, offered_listing_id, seller_id, buyer_id, transaction_type, status, created_at, buyer_rating_pending, seller_rating_pending")
           .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
           .order("created_at", { ascending: false });
 
@@ -459,7 +524,7 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
           ),
         ];
 
-        const [{ data: listings }, { data: profiles }] = await Promise.all([
+        const [{ data: listings }, { data: profiles }, { data: ratings }] = await Promise.all([
           listingIds.length
             ? supabase
                 .from("listings")
@@ -472,10 +537,21 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
                 .select("id, display_name, name")
                 .in("id", otherUserIds)
             : Promise.resolve({ data: [] }),
+          listingIds.length && otherUserIds.length
+            ? supabase
+                .from("ratings")
+                .select("listing_id, rated_id, rating")
+                .eq("rater_id", user.id)
+                .in("listing_id", listingIds)
+                .in("rated_id", otherUserIds)
+            : Promise.resolve({ data: [] }),
         ]);
 
         const listingById = Object.fromEntries((listings || []).map((listing) => [listing.id, listing]));
         const profileById = Object.fromEntries((profiles || []).map((profile) => [profile.id, profile]));
+        const ratingByKey = Object.fromEntries(
+          (ratings || []).map((rating) => [`${rating.listing_id}:${rating.rated_id}`, rating.rating])
+        );
 
         const history = transactions.map((transaction) => {
           const isSeller = transaction.seller_id === user.id;
@@ -490,12 +566,19 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
             otherProfile?.display_name ||
             otherProfile?.name ||
             (otherUserId ? String(otherUserId).slice(0, 8) : "Unknown user");
+          const rating = ratingByKey[`${listingId}:${otherUserId}`] || null;
 
           return {
             id: transaction.id,
             itemTitle: listing?.title || transaction.item || "Transaction item",
             imageUrl: getListingImage(listing),
+            isSeller,
+            listingId,
+            otherUserId,
             otherUserName,
+            rating,
+            rated: Boolean(rating),
+            canRate: Boolean(listingId && otherUserId),
             relationshipLabel: isSeller ? "Sold to" : "Bought from",
           };
         });
@@ -541,6 +624,73 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
     }
 
     notifySuccess("Profile updated", msg, { category: "profile", dedupeKey: `profile-success-${msg}` });
+  };
+
+  const openTransactionRating = (transactionId) => {
+    setActiveRatingId(transactionId);
+    setRatingValue(0);
+    setRatingError("");
+  };
+
+  const cancelTransactionRating = () => {
+    setActiveRatingId(null);
+    setRatingValue(0);
+    setRatingError("");
+  };
+
+  const submitTransactionRating = async (transaction) => {
+    if (!user?.id || !transaction?.listingId || !transaction?.otherUserId) return;
+
+    if (!ratingValue) {
+      setRatingError("Please choose a star rating.");
+      return;
+    }
+
+    setSubmittingRatingId(transaction.id);
+    setRatingError("");
+
+    try {
+      const { error: ratingInsertError } = await supabase.from("ratings").insert({
+        rater_id: user.id,
+        rated_id: transaction.otherUserId,
+        listing_id: transaction.listingId,
+        rating: ratingValue,
+      });
+
+      if (ratingInsertError && ratingInsertError.code !== "23505") {
+        throw new Error(ratingInsertError.message || "Failed to submit rating.");
+      }
+
+      const updateField = transaction.isSeller
+        ? { seller_rating_pending: false }
+        : { buyer_rating_pending: false };
+
+      await supabase
+        .from("transactions")
+        .update(updateField)
+        .eq("id", transaction.id);
+
+      setTransactionHistory((current) =>
+        current.map((item) =>
+          item.listingId === transaction.listingId && item.otherUserId === transaction.otherUserId
+            ? { ...item, rated: true, rating: ratingValue }
+            : item
+        )
+      );
+      cancelTransactionRating();
+      notifySuccess("Rating submitted", `You rated ${transaction.otherUserName}.`, {
+        category: "profile",
+        dedupeKey: `transaction-rating-${transaction.id}`,
+      });
+    } catch (err) {
+      setRatingError(err.message || "Failed to submit rating.");
+      notifyError("Rating failed", err.message || "Failed to submit rating.", {
+        category: "profile",
+        dedupeKey: `transaction-rating-error-${transaction.id}`,
+      });
+    } finally {
+      setSubmittingRatingId(null);
+    }
   };
 
   // User-driven changes pass through this handler first.
@@ -723,7 +873,18 @@ export default function ProfilePage({ onBack, onAvatarChange, onNameChange}) {
             {activeTab === "transactions" ? (
               <>
                 <p className="profile-section-title">Transaction History</p>
-                <TransactionHistory transactions={transactionHistory} loading={transactionsLoading} />
+                <TransactionHistory
+                  activeRatingId={activeRatingId}
+                  loading={transactionsLoading}
+                  onCancelRating={cancelTransactionRating}
+                  onOpenRating={openTransactionRating}
+                  onSelectRating={setRatingValue}
+                  onSubmitRating={submitTransactionRating}
+                  ratingError={ratingError}
+                  ratingValue={ratingValue}
+                  submittingRatingId={submittingRatingId}
+                  transactions={transactionHistory}
+                />
               </>
             ) : (
               <>
