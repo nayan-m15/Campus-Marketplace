@@ -73,9 +73,10 @@ function getFunctionErrorMessage(error) {
 }
 
 function StepIndicator({ step }) {
+  const labels = ["Facility & Date", "Time & Confirm"];
   return (
     <section className="brm-steps" role="list" aria-label="Booking steps">
-      {["Facility & Date", "Time & Confirm"].map((label, index) => {
+      {labels.map((label, index) => {
         const itemStep = index + 1;
         const active = step >= itemStep;
         const current = step === itemStep;
@@ -94,12 +95,15 @@ function StepIndicator({ step }) {
 }
 
 function SuccessView({ bookingType, facilityName, selectedDate, selectedTime, onClose }) {
+  const isMeetup = bookingType === "trade_meetup";
   return (
     <section className="brm-success">
       <span className="brm-success-icon" aria-hidden="true">✓</span>
-      <h3 className="brm-success-title">Slot booked</h3>
+      <h3 className="brm-success-title">{isMeetup ? "Meetup slot proposed" : "Slot booked"}</h3>
       <p className="brm-success-body">
-        Your {bookingType === "trade_meetup" ? "meetup" : bookingType === "dropoff" ? "drop-off" : "collection"} slot is now linked to the transaction.
+        {isMeetup
+          ? "The other student can now accept this shared swap meetup slot or request a different time."
+          : `Your ${bookingType === "dropoff" ? "drop-off" : "collection"} slot is now linked to the transaction.`}
       </p>
       <ul className="brm-success-details" role="list">
         <li><span>Facility</span><strong>{facilityName}</strong></li>
@@ -258,7 +262,6 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   }, [selectedDate, facilityId]);
 
   const today = toDateInputValue();
-  const now = new Date();
   const dayHours = selectedDate ? hoursByDay.get(getDateDayName(selectedDate)) : null;
 
   const availableSlots = useMemo(() => {
@@ -268,6 +271,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
 
     const isToday = selectedDate === today;
     if (!isToday) return slots;
+    const now = new Date();
     return slots.filter((slot) => {
       const [hours, minutes] = slot.split(":").map(Number);
       const slotTime = new Date(now);
@@ -684,14 +688,14 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
                     {/* Show who booked it vs who still needs to confirm */}
                   {transaction.meetup_booking.status === "scheduled" ? (
               <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
-               ✓ Slot confirmed — both students should arrive at this time.
+               Slot accepted. Both students should arrive together for the swap.
                 </p>
               ) : (
               <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
                 Slot proposed by{" "}
                 {transaction.meetup_booking_booker === userId ? "you" : "the other student"}.{" "}
                 {transaction.meetup_booking_booker !== userId
-                  ? "Go to My Bookings to confirm or choose a different time."
+                  ? "Accept this slot or request a different one."
                   : "Waiting for the other student to confirm."}
                 </p>
               )}
@@ -707,7 +711,7 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
                 className="btn-primary bookings-page-card__action"
                 onClick={() => onBook(transaction, "trade_meetup")}
               >
-                Propose meetup slot
+                Propose swap meetup
               </button>
             )}
                 {/* Proposer: waiting message + option to change */}
@@ -735,14 +739,14 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
                   onClick={() => handleMeetupResponse(transaction, true)}
                   disabled={meetupResponding}
                 >
-                  Accept meetup slot
+                  Accept slot
                 </button>
                 <button
                     className="btn-primary bookings-page-card__action"
                     onClick={() => handleMeetupResponse(transaction, false)}
                     disabled={meetupResponding}
                   >
-                  Decline
+                  Request different slot
                 </button>
               </section>
             )}

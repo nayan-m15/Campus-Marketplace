@@ -228,7 +228,6 @@ export default function MessagesPage({
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
   const realtimeRef = useRef(null);
-  const initialDraftAppliedRef = useRef(false);
 
   function clampOfferAmount(value) {
     const cleaned = String(value ?? "").replace(",", ".").replace(/[^0-9.]/g, "");
@@ -1079,6 +1078,7 @@ export default function MessagesPage({
       requested_listing_id: String(requestedListingId),
       offered_listing_id: offeredListingId ? String(offeredListingId) : null,
       transaction_type: "item_trade",
+      status: "awaiting_meetup",
       offered_item_description: offeredListing?.description || updatedOffer.offered_item_description || updatedOffer.description || "",
       offered_item_condition: offeredListing?.condition || updatedOffer.offered_item_condition || "",
       offered_item_image_url: offeredListing?.image_url || updatedOffer.offered_item_image_url || updatedOffer.image_url || null,
@@ -1086,7 +1086,7 @@ export default function MessagesPage({
 
     const transactionRequest = activeTransaction
       ? supabase.from("transactions").update(updatePayload).eq("id", activeTransaction.id)
-      : supabase.from("transactions").insert({ ...updatePayload, id: transactionId, status: "awaiting_dropoff" });
+      : supabase.from("transactions").insert({ ...updatePayload, id: transactionId });
 
     const listingUpdate = {
       sold_price: null,

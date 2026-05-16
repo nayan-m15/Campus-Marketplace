@@ -941,6 +941,11 @@
   color: var(--gray-900);
 }
 
+.btn-action--danger {
+  background: rgba(180, 35, 24, 0.12);
+  color: #b42318;
+}
+
 .empty-state {
   display: grid;
   justify-items: center;
