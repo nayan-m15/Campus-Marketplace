@@ -650,6 +650,7 @@ function ListingDetailsModal({
   user,
   isWishlisted,
   onToggleWishlist,
+  onSellerClick,
   resolveListingForMessaging,
 }) {
   const { notifySuccess, notifyError } = useNotifications();
@@ -711,6 +712,17 @@ function ListingDetailsModal({
     tradeBadgeLabel === "For Trade Only"
       ? "item-modal-trade-badge item-modal-trade-badge--only"
       : "item-modal-trade-badge";
+  const sellerName = item.seller || "Unknown seller";
+  const sellerInitials = sellerName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "S";
+  const sellerJoinedText =
+    joinedLabel === "Not provided"
+      ? "Joined date not provided"
+      : `Joined Campus Marketplace in ${joinedLabel}`;
 
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.
@@ -861,11 +873,41 @@ function ListingDetailsModal({
 
                 <article className="item-modal-bottom-card">
                   <section className="item-modal-info">
-                    <section className="item-modal-meta">
-                      <p><strong>Seller:</strong> {item.seller || "Unknown seller"}</p>
-                      <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
-                      <p><strong>Joined since:</strong> {joinedLabel}</p>
-                      {item.category && <p><strong>Category:</strong> {item.category}</p>}
+                    <section className="item-modal-seller-panel">
+                      <header className="item-modal-seller-panel__header">
+                        <h3>Seller information</h3>
+                      </header>
+                      <section className="item-modal-seller-card">
+                        <section className="item-modal-seller-identity">
+                          <span className="item-modal-seller-avatar" aria-hidden="true">
+                            {item.seller_avatar_url ? (
+                              <img src={item.seller_avatar_url} alt="" />
+                            ) : (
+                              sellerInitials
+                            )}
+                          </span>
+                          <span className="item-modal-seller-text">
+                            <strong>{sellerName}</strong>
+                            <span>{sellerJoinedText}</span>
+                          </span>
+                        </section>
+                        {item.user_id && onSellerClick && (
+                          <button
+                            type="button"
+                            className="item-modal-view-profile-btn"
+                            onClick={() => {
+                              onClose();
+                              onSellerClick(item.user_id, sellerName);
+                            }}
+                          >
+                            View profile
+                          </button>
+                        )}
+                      </section>
+                      <section className="item-modal-meta item-modal-meta--seller">
+                        <p><strong>Institution:</strong> {item.institution || "Institution not provided"}</p>
+                        {item.category && <p><strong>Category:</strong> {item.category}</p>}
+                      </section>
                     </section>
                   </section>
 
@@ -2189,6 +2231,7 @@ useEffect(() => {
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
+          onSellerClick={handleSellerClick}
           resolveListingForMessaging={resolveListingForMessaging}
           />
         {flaggedListingDialog?.item && (
@@ -2326,6 +2369,7 @@ useEffect(() => {
           user={user}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
+          onSellerClick={handleSellerClick}
           resolveListingForMessaging={resolveListingForMessaging}
         />
         {flaggedListingDialog?.item && (

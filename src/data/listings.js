@@ -105,6 +105,7 @@ export function normaliseListing(listing, profile) {
     condition: listing.condition ?? "Good",
     seller: getSellerName(profile, listing.user_id),
     user_id: listing.user_id,
+    seller_avatar_url: profile?.avatar_url ?? "",
     institution: profile?.institution ?? "",
     approximate_location: profile?.province ?? "Location not provided",
     joined_year: getJoinedYear(profile?.created_at),
@@ -148,7 +149,7 @@ export async function fetchListings(currentUserId = null) {
     if (userIds.length > 0) {
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, display_name, name, province, institution, created_at")
+        .select("id, display_name, name, avatar_url, province, institution, created_at")
         .in("id", userIds);
 
       if (profilesError) {
@@ -181,7 +182,7 @@ export async function fetchListingById(id) {
   if (listing.user_id) {
     const { data, error: profileError } = await supabase
       .from("profiles")
-      .select("id, display_name, name, province, institution, created_at")
+      .select("id, display_name, name, avatar_url, province, institution, created_at")
       .eq("id", listing.user_id)
       .single();
 
