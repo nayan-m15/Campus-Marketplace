@@ -332,11 +332,15 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
 
       // Send staff notification via secure RPC (bypasses RLS sender restriction)
       if (bookingType === "trade_meetup") {
-        await supabase.rpc("notify_meetup_proposed", {
-          p_transaction_id: transaction.id,
-          p_facility_name: selectedFacility?.name || "the facility",
-          p_scheduled_time: scheduledTime,
-        }).catch(() => {});
+        try {
+          await supabase.rpc("notify_meetup_proposed", {
+            p_transaction_id: transaction.id,
+            p_facility_name: selectedFacility?.name || "the facility",
+            p_scheduled_time: scheduledTime,
+          });
+        } catch (_) {
+          // non-critical notification — ignore failures
+        }
       }
 
       onSuccess?.({
@@ -566,10 +570,14 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
       if (error) throw error;
 
       // Notify the proposer via secure RPC (bypasses RLS sender restriction)
-      await supabase.rpc("notify_meetup_response", {
-        p_transaction_id: tx.id,
-        p_accepted: accept,
-      }).catch(() => {});
+      try {
+        await supabase.rpc("notify_meetup_response", {
+          p_transaction_id: tx.id,
+          p_accepted: accept,
+        });
+      } catch (_) {
+        // non-critical notification — ignore failures
+      }
 
       onRefresh?.();
     } catch (err) {
