@@ -76,9 +76,11 @@ function buildBookings(transactions, profilesById, bookingsById) {
   for (const transaction of transactions) {
     const sellerProfile = profilesById[transaction.seller_id] || {};
     const buyerProfile = profilesById[transaction.buyer_id] || {};
+    const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
+    const dropoffBooking = transaction.dropoff_id ? bookingsById[transaction.dropoff_id] : null;
 
-    if (transaction.dropoff_id && bookingsById[transaction.dropoff_id]) {
-      const booking = bookingsById[transaction.dropoff_id];
+    if (transaction.dropoff_id && dropoffBooking) {
+      const booking = dropoffBooking;
       const when = formatDateTime(booking.scheduled_time);
       output.push({
         id: booking.id,
@@ -109,7 +111,7 @@ function buildBookings(transactions, profilesById, bookingsById) {
         scheduledTime: booking.scheduled_time?.slice(11, 16) || when.time,
         status: booking.status || deriveBookingStatus("collection", transaction.status),
         itemName: transaction.item,
-        location: booking.location,
+        location: !isItemTrade && dropoffBooking?.location ? dropoffBooking.location : booking.location,
       });
     }
 
@@ -435,6 +437,7 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
               <span className="booking-card__detail-label">Drop-off</span>
               <span className="booking-card__detail-value booking-card__detail-stack">
                 <span>{formatDate(dropoffBooking.scheduledDate)} {dropoffBooking.scheduledTime}</span>
+                <span>{dropoffBooking.location || "Facility not recorded"}</span>
                 <BookingStatusBadge status={dropoffBooking.status} />
               </span>
             </li>
@@ -444,6 +447,7 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
               <span className="booking-card__detail-label">Collection</span>
               <span className="booking-card__detail-value booking-card__detail-stack">
                 <span>{formatDate(collectionBooking.scheduledDate)} {collectionBooking.scheduledTime}</span>
+                <span>{collectionBooking.location || dropoffBooking?.location || "Seller drop-off facility"}</span>
                 <BookingStatusBadge status={collectionBooking.status} />
               </span>
             </li>
@@ -460,7 +464,7 @@ function ManagedTransactionCard({ transaction, bookings, onAction, saving }) {
             <li className="booking-card__detail booking-card__detail--full">
               <span className="booking-card__detail-label">Next step</span>
               <span className="booking-card__detail-value managed-card__hint">
-                {isItemTrade ? "Waiting for the other student to book the swap handover slot." : "Waiting for the buyer to book a collection slot."}
+                {isItemTrade ? "Waiting for the other student to book the swap handover slot." : "Waiting for the buyer to book a collection time at the seller's drop-off facility."}
               </span>
             </li>
           ) : null}
@@ -735,7 +739,7 @@ function BookingsSection({ type, bookings, transactions }) {
             <p className="panel__subtitle">
               {type === "dropoff"
                 ? "Drop-off slots confirm automatically. Use Manage Bookings once the seller hands the item over."
-                : "Collection slots confirm automatically. Use Manage Bookings once the buyer completes the pickup."}
+                : "Collection times confirm automatically at the seller's drop-off facility. Use Manage Bookings once the buyer completes the pickup."}
             </p>
           </section>
           <p className="panel__count">{filtered.length} visible</p>
@@ -1025,6 +1029,7 @@ function TransactionsSection({
                           <section className="txn-booking-cell">
                             <p>{formatDate(dropoff.scheduledDate)}</p>
                             <p className="txn-booking-time">{dropoff.scheduledTime}</p>
+                            <p className="txn-date">{dropoff.location || "-"}</p>
                             <BookingStatusBadge status={dropoff.status} />
                           </section>
                         ) : <span className="txn-na">-</span>}
@@ -1034,6 +1039,7 @@ function TransactionsSection({
                           <section className="txn-booking-cell">
                             <p>{formatDate(collection.scheduledDate)}</p>
                             <p className="txn-booking-time">{collection.scheduledTime}</p>
+                            <p className="txn-date">{collection.location || dropoff?.location || "-"}</p>
                             <BookingStatusBadge status={collection.status} />
                           </section>
                         ) : <span className="txn-na">-</span>}
@@ -1431,12 +1437,17 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
 
       const mappedTransactions = rows.map((transaction) => {
         const matchedListing = listingMatches.get(buildListingMatchKey(transaction.seller_id, transaction.item)) || null;
+        const dropoffBooking = transaction.dropoff_id ? bookingsById[transaction.dropoff_id] || null : null;
+        const collectionBooking = transaction.collection_id ? bookingsById[transaction.collection_id] || null : null;
+        const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
 
         return {
           ...transaction,
           listing_id: transaction.listing_id || transaction.requested_listing_id || matchedListing?.id || null,
           dropoffId: transaction.dropoff_id,
           collectionId: transaction.collection_id,
+          dropoffFacility: dropoffBooking?.location || "",
+          collectionFacility: !isItemTrade && dropoffBooking?.location ? dropoffBooking.location : collectionBooking?.location || "",
           createdAt: transaction.created_at,
           matchedListing,
           itemDescription: matchedListing?.description || "",
@@ -1679,8 +1690,8 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
             ]);
           } else {
             const messages = {
-              item_received: { to: transaction.buyer_id, text: `Your item "${transaction.item}" has been checked in. You can now book your collection slot in My Bookings.` },
-              awaiting_collection: { to: transaction.buyer_id, text: `Your item "${transaction.item}" is ready for collection at the trade facility.` },
+              item_received: { to: transaction.buyer_id, text: `Your item "${transaction.item}" has been checked in. You can now book a collection time at ${transaction.dropoffFacility || "the seller's drop-off facility"} in My Bookings.` },
+              awaiting_collection: { to: transaction.buyer_id, text: `Your item "${transaction.item}" is ready for collection at ${transaction.collectionFacility || transaction.dropoffFacility || "the seller's drop-off facility"}.` },
               item_released: { to: transaction.seller_id, text: `Your item "${transaction.item}" has been collected by the buyer. The transaction is almost complete.` },
               completed: { to: transaction.seller_id, text: `Transaction for "${transaction.item}" is now fully completed. Thank you for using CampusXChange!` },
             };

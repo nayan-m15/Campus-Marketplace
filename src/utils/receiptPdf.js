@@ -109,6 +109,16 @@ export async function generateTransactionReceiptPdf(transaction) {
   cursorY = drawWrappedValue(doc, "Date & Time", formatDateTime(transaction.createdAt), margin + 10, cursorY + 2, 110);
   cursorY = drawWrappedValue(doc, "Status", transaction.status || "Not recorded", margin + 10, cursorY + 2, 110);
   cursorY = drawWrappedValue(doc, "Payment", isItemTrade ? "Item trade" : transaction.paymentMethod || "Not recorded", margin + 10, cursorY + 2, 110);
+  if (!isItemTrade) {
+    cursorY = drawWrappedValue(
+      doc,
+      "Facility",
+      transaction.collectionFacility || transaction.dropoffFacility || "Not recorded",
+      margin + 10,
+      cursorY + 2,
+      110,
+    );
+  }
 
   cursorY += 8;
   drawSectionTitle(doc, "People", margin + 6, cursorY, contentWidth - 12);

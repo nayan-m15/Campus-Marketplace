@@ -155,7 +155,7 @@ async function fetchSlotUsage(location, selectedDate, excludeBookingId = null) {
   }, {});
 }
 
-function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, user }) {
+function BookingRequestModal({ transaction, bookingType, onClose, onSuccess }) {
   const dialogRef = useRef(null);
 
   const [step, setStep] = useState(1);
@@ -169,6 +169,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const isCollectionBooking = bookingType === "collection";
 
   useEffect(() => {
     if (dialogRef.current && !dialogRef.current.open) {
@@ -177,7 +178,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
   }, []);
 
   useEffect(() => {
-    if (bookingType !== "collection") return;
+    if (!isCollectionBooking) return;
     if (!facilities.length) return;
 
     const dropoffLocation = transaction.dropoff_booking?.location;
@@ -189,7 +190,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
     if (matched) {
       setFacilityId(String(matched.id));
     }
-  }, [bookingType, facilities, transaction.dropoff_booking?.location]);
+  }, [isCollectionBooking, facilities, transaction.dropoff_booking?.location]);
 
   useEffect(() => {
     let active = true;
@@ -222,14 +223,6 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
     [selectedFacility],
   );
 
-  const closedDayIndices = useMemo(() => {
-    return DAYS
-      .map((day, index) => ({ index, hours: hoursByDay.get(day) }))
-      .filter(({ hours }) => !hours?.open)
-      .map(({ index }) => index)
-      .join(",");
-  }, [hoursByDay]);
-
   useEffect(() => {
     if (!selectedFacility || !selectedDate) {
       setSlotUsage({});
@@ -240,7 +233,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
     setLoadingSlots(true);
     const existingBookingId =
       bookingType === "dropoff" ? transaction.dropoff_id
-      : bookingType === "collection" ? transaction.collection_id
+      : isCollectionBooking ? transaction.collection_id
       : transaction.trade_meetup_id;
     fetchSlotUsage(selectedFacility.name, selectedDate, existingBookingId)
       .then((usage) => {
@@ -258,7 +251,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
     return () => {
       active = false;
     };
-  }, [selectedFacility, selectedDate]);
+  }, [selectedFacility, selectedDate, bookingType, isCollectionBooking, transaction.collection_id, transaction.dropoff_id, transaction.trade_meetup_id]);
 
   useEffect(() => {
     setSelectedTime("");
@@ -286,11 +279,12 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
   const isDateOpen = Boolean(dayHours?.open) && availableSlots.length > 0;
 
   const canProceedToStep2 = Boolean(selectedFacility && selectedDate && isDateOpen);
+  const collectionFacilityMissing = isCollectionBooking && !loadingFacilities && !selectedFacility;
 
   async function handleSubmit() {
     if (!selectedFacility || !selectedDate || !selectedTime) return;
 
-    if (bookingType === "collection") {
+    if (isCollectionBooking) {
       const dropoffLocation = transaction.dropoff_booking?.location;
       if (selectedFacility.name !== dropoffLocation) {
         setError("Collection must be at the same facility as the drop-off.");
@@ -338,7 +332,7 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
             p_facility_name: selectedFacility?.name || "the facility",
             p_scheduled_time: scheduledTime,
           });
-        } catch (_) {
+        } catch {
           // non-critical notification — ignore failures
         }
       }
@@ -390,27 +384,23 @@ function BookingRequestModal({ transaction, bookingType, onClose, onSuccess, use
             {step === 1 && (
               <section className="brm-body">
                 <section className="brm-field">
-                  <label className="brm-label" htmlFor="booking-facility">Facility</label>
-                    {bookingType === "collection" ? (
+                  <span className="brm-label">Facility</span>
+                    {isCollectionBooking ? (
                       <>
-                        <select
-                          id="booking-facility"
-                          className="brm-select"
-                          value={facilityId}
-                          onChange={(event) => setFacilityId(event.target.value)}
-                          disabled={loadingFacilities}
-                        >
-                          <option value="">Select a facility...</option>
-                          {facilities.map((facility) => (
-                            <option key={facility.id} value={facility.id}>
-                              {facility.name} ({facility.capacity} per slot)
-                            </option>
-                          ))}
-                        </select>
-                      <p className="brm-hint">Collection must be at the same facility as the drop-off.</p>
+                        <p className="brm-readonly-field" aria-label="Collection facility">
+                          {loadingFacilities
+                            ? "Loading drop-off facility..."
+                            : selectedFacility?.name || transaction.dropoff_booking?.location || "Drop-off facility unavailable"}
+                        </p>
+                        <p className={`brm-hint ${collectionFacilityMissing ? "brm-hint--warn" : ""}`}>
+                          {collectionFacilityMissing
+                            ? "The seller's drop-off facility could not be matched. Ask staff to check the drop-off booking before collection."
+                            : "Collection uses the seller's drop-off facility."}
+                        </p>
                     </>
                   ) : (
                     <>
+                      <label className="sr-only" htmlFor="booking-facility">Facility</label>
                       <select
                         id="booking-facility"
                         className="brm-select"
@@ -586,7 +576,7 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
           p_transaction_id: tx.id,
           p_accepted: accept,
         });
-      } catch (_) {
+      } catch {
         // non-critical notification — ignore failures
       }
 
@@ -846,15 +836,25 @@ export function StudentBookingsPage({ user, onBack }) {
       const bookingsById = Object.fromEntries((bookingsData || []).map((booking) => [booking.id, booking]));
       const profilesById = Object.fromEntries((profilesData || []).map((profile) => [profile.id, profile]));
 
-      setTransactions(rows.map((transaction) => ({
-        ...transaction,
-        dropoff_booking: transaction.dropoff_id ? bookingsById[transaction.dropoff_id] || null : null,
-        collection_booking: transaction.collection_id ? bookingsById[transaction.collection_id] || null : null,
-        seller_profile: profilesById[transaction.seller_id] || null,
-        buyer_profile: profilesById[transaction.buyer_id] || null,
-        meetup_booking: transaction.trade_meetup_id ? bookingsById[transaction.trade_meetup_id] || null : null,
-        meetup_booking_booker: transaction.trade_meetup_proposed_by || null,
-      })));
+      setTransactions(rows.map((transaction) => {
+        const dropoffBooking = transaction.dropoff_id ? bookingsById[transaction.dropoff_id] || null : null;
+        const collectionBooking = transaction.collection_id ? bookingsById[transaction.collection_id] || null : null;
+        const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
+        const alignedCollectionBooking =
+          !isItemTrade && collectionBooking && dropoffBooking?.location
+            ? { ...collectionBooking, location: dropoffBooking.location }
+            : collectionBooking;
+
+        return {
+          ...transaction,
+          dropoff_booking: dropoffBooking,
+          collection_booking: alignedCollectionBooking,
+          seller_profile: profilesById[transaction.seller_id] || null,
+          buyer_profile: profilesById[transaction.buyer_id] || null,
+          meetup_booking: transaction.trade_meetup_id ? bookingsById[transaction.trade_meetup_id] || null : null,
+          meetup_booking_booker: transaction.trade_meetup_proposed_by || null,
+        };
+      }));
     } catch (err) {
       setError(err.message || "Failed to load your bookings.");
     } finally {
@@ -993,7 +993,6 @@ export function StudentBookingsPage({ user, onBack }) {
         <BookingRequestModal
           transaction={activeBooking.transaction}
           bookingType={activeBooking.bookingType}
-          user={user}
           onClose={() => setActiveBooking(null)}
           onSuccess={() => {
             setActiveBooking(null);

@@ -175,6 +175,12 @@ export default function ReceiptModal({
                       <dt>Status</dt>
                       <dd>{selectedTransaction.status}</dd>
                     </section>
+                    {selectedTransaction.transaction_type !== "item_trade" && (
+                      <section>
+                        <dt>Handover Facility</dt>
+                        <dd>{selectedTransaction.collectionFacility || selectedTransaction.dropoffFacility || "Not recorded"}</dd>
+                      </section>
+                    )}
                     <section>
                       <dt>Has image</dt>
                       <dd>{selectedTransaction.itemImageUrl ? "Yes" : "No"}</dd>

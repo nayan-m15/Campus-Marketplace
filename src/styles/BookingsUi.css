@@ -211,6 +211,19 @@
   background: #fff;
 }
 
+.brm-readonly-field {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text-primary, #111);
+  background: var(--surface-secondary, #f9fafb);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-sizing: border-box;
+  margin: 0;
+  font-weight: 600;
+}
+
 .brm-textarea {
   width: 100%;
   padding: 9px 12px;

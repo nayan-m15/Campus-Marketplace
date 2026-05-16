@@ -1119,7 +1119,9 @@ test("StudentBookingsPage lets a buyer complete a collection booking flow", asyn
   render(<StudentBookingsPage user={currentUser} onBack={vi.fn()} />);
 
   fireEvent.click(await screen.findByRole("button", { name: /book collection/i }));
-  fireEvent.change(await screen.findByLabelText(/facility/i), { target: { value: "facility-1" } });
+  await waitFor(() => {
+    expect(screen.queryByRole("combobox", { name: /facility/i })).not.toBeInTheDocument();
+  });
   fireEvent.change(await screen.findByLabelText(/date/i), { target: { value: "2099-05-04" } });
   fireEvent.click(screen.getByRole("button", { name: /next/i }));
   fireEvent.click(await screen.findByRole("button", { name: /09:00/i }));
