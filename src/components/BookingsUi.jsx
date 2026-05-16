@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
+import VerifiedBadge from "./VerifiedBadge";
 import "../styles/BookingsUi.css";
 import {
   DAYS,
@@ -613,11 +614,17 @@ function TransactionBookingCard({ transaction, userId, onBook, onRefresh, onPay,
       <article className="bookings-page-card__grid">
         <section>
           <p className="bookings-page-card__label">Seller</p>
-          <p>{transaction.seller_profile?.display_name || transaction.seller_profile?.name || transaction.seller_id}</p>
+          <p>
+            {transaction.seller_profile?.display_name || transaction.seller_profile?.name || transaction.seller_id}
+            <VerifiedBadge user={transaction.seller_profile} compact />
+          </p>
         </section>
         <section>
           <p className="bookings-page-card__label">Buyer</p>
-          <p>{transaction.buyer_profile?.display_name || transaction.buyer_profile?.name || transaction.buyer_id}</p>
+          <p>
+            {transaction.buyer_profile?.display_name || transaction.buyer_profile?.name || transaction.buyer_id}
+            <VerifiedBadge user={transaction.buyer_profile} compact />
+          </p>
         </section>
         <section>
           <p className="bookings-page-card__label">{isItemTrade ? "Trade" : "Price"}</p>
@@ -833,7 +840,7 @@ export function StudentBookingsPage({ user, onBack }) {
           ? supabase.from("bookings").select("*").in("id", bookingIds)
           : Promise.resolve({ data: [] }),
         profileIds.length
-          ? supabase.from("profiles").select("id, name, display_name, email").in("id", profileIds)
+          ? supabase.from("profiles").select("id, name, display_name, email, is_verified, verified_university").in("id", profileIds)
           : Promise.resolve({ data: [] }),
       ]);
 

@@ -122,7 +122,7 @@ export function AuthProvider({ children }) {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, display_name, avatar_url")
+        .select("id, display_name, avatar_url, email, is_verified, verified_university")
         .eq("id", user.id)
         .single();
 

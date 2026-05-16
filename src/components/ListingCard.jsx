@@ -2,6 +2,7 @@
 // Shared UI pieces and page-level behavior are tied together in this file.
 
 import { CONDITION_COLORS } from "../data/listings";
+import VerifiedBadge from "./VerifiedBadge";
 import "../styles/ListingCard.css";
 
 // Component entry point for this part of the interface.
@@ -153,10 +154,22 @@ export default function ListingCard({
               type="button"
               aria-label={`View profile of ${item.seller}`}
             >
-              👤 {item.seller}
+              <span>👤 {item.seller}</span>
+              <VerifiedBadge
+                compact
+                isVerified={item.seller_is_verified}
+                verifiedUniversity={item.seller_verified_university}
+              />
             </button>
           ) : (
-            <p className="listing-card__seller">👤 {item.seller}</p>
+            <p className="listing-card__seller">
+              <span>👤 {item.seller}</span>
+              <VerifiedBadge
+                compact
+                isVerified={item.seller_is_verified}
+                verifiedUniversity={item.seller_verified_university}
+              />
+            </p>
           )}
           <p className={`listing-card__institution${institutionLengthClass}`}>🎓 {institution}</p>
         </section>

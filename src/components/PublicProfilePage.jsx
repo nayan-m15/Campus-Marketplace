@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
+import VerifiedBadge from "./VerifiedBadge";
 import "../styles/ProfilePage.css";
 
 // ── Star display (read-only) ─────────────────────────────────
@@ -105,7 +106,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
     supabase
       .from("profiles")
       .select(
-        "name, display_name, about, province, institution, sex, birthdate, avatar_url, created_at, avg_rating, rating_count"
+        "name, display_name, about, province, institution, sex, birthdate, avatar_url, created_at, avg_rating, rating_count, email, is_verified, verified_university"
       )
       .eq("id", userId)
       .single()
@@ -300,6 +301,7 @@ export default function PublicProfilePage({ userId, onBack, onMessageSeller }) {
             <article className="profile-card__avatar-info">
               <article className="pub-profile__name-row">
                 <h2>{displayName}</h2>
+                <VerifiedBadge user={profile} showUniversity />
                 <StarDisplay average={ratingAvg} count={ratingCount} />
               </article>
               {memberSince && <p>🗓 Member since {memberSince}</p>}

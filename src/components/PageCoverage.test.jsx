@@ -49,6 +49,8 @@ const profile = {
   created_at: "2025-02-01T00:00:00.000Z",
   notif_messages: true,
   notif_listing_activity: false,
+  is_verified: true,
+  verified_university: "University of Johannesburg (UJ)",
 };
 
 const sellerProfile = {
@@ -64,6 +66,8 @@ const sellerProfile = {
   created_at: "2024-01-01T00:00:00.000Z",
   avg_rating: 4,
   rating_count: 1,
+  is_verified: true,
+  verified_university: "University of Cape Town (UCT)",
 };
 
 const buyerProfile = {
@@ -77,6 +81,8 @@ const buyerProfile = {
   sex: "Male",
   avatar_url: "",
   created_at: "2024-06-01T00:00:00.000Z",
+  is_verified: true,
+  verified_university: "University of KwaZulu-Natal (UKZN)",
 };
 
 const userListing = {

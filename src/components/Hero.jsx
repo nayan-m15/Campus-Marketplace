@@ -5,6 +5,7 @@ import "../styles/Hero.css";
 import { useState, useEffect, useRef } from "react";
 import { fetchListings, CONDITION_COLORS } from "../data/listings";
 import { supabase } from "../supabaseClient";
+import VerifiedBadge from "./VerifiedBadge";
 
 // Small prep work happens in this helper before the UI uses the result.
 // It keeps lookup, formatting, or data shaping out of the render path.
@@ -278,6 +279,11 @@ export default function Hero({
 
                         <p className="listing-seller-info">
                           <span className="listing-seller">{listing.seller}</span>
+                          <VerifiedBadge
+                            compact
+                            isVerified={listing.seller_is_verified}
+                            verifiedUniversity={listing.seller_verified_university}
+                          />
                         </p>
 
                         <p className="listing-price-condition">

@@ -17,6 +17,7 @@ The app is designed around a few core flows:
 
 - Email/password and Google sign-in with Supabase Auth
 - Profile setup and public profile views
+- Automatic university email verification with verified seller badges
 - Browse, search, filter, and sort marketplace listings
 - Listing creation with category, condition, price, and images
 - Listing details modal with direct seller messaging
@@ -92,10 +93,16 @@ Then open the local URL shown by Vite, usually `http://localhost:5173`.
 Based on the codebase, the app expects Supabase resources for at least:
 
 - `profiles`
+- `approved_university_email_domains`
 - `listings`
 - `messages`
 - `facilities`
 - `facility_hours`
+
+The `profiles` table also needs verification columns managed by the included migration:
+
+- `is_verified BOOLEAN NOT NULL DEFAULT FALSE`
+- `verified_university TEXT NULL`
 
 The admin reporting flow also calls RPC functions, including:
 
@@ -139,6 +146,52 @@ npm run test:coverage
 ```
 
 This writes coverage artifacts to `coverage/`, including `coverage/lcov.info` for Codecov uploads.
+
+## University Verification
+
+University verification is automatic. The frontend exposes the approved domain list in [src/utils/verification.js](/src/utils/verification.js), and the Supabase migration `supabase/migrations/20260516_university_email_verification.sql` stores the same approved domains in `public.approved_university_email_domains`.
+
+Approved domains:
+
+- `@students.wits.ac.za`
+- `@tuks.co.za`
+- `@student.uj.ac.za`
+- `@tut4life.ac.za`
+- `@vut.ac.za`
+- `@mylife.unisa.ac.za`
+- `@myuct.ac.za`
+- `@sun.ac.za`
+- `@myuwc.ac.za`
+- `@mycput.ac.za`
+- `@stu.ukzn.ac.za`
+- `@dut4life.ac.za`
+- `@mut.ac.za`
+- `@unizulu.ac.za`
+- `@campus.ru.ac.za`
+- `@wsu.ac.za`
+- `@mandela.ac.za`
+- `@ufh.ac.za`
+- `@ufs.ac.za`
+- `@cut.ac.za`
+- `@mynwu.ac.za`
+- `@ul.ac.za`
+- `@ump.ac.za`
+- `@spu.ac.za`
+
+How it works:
+
+- Email values are trimmed and lowercased before verification checks run.
+- Verification uses strict domain suffix matching, so spoofed values such as `student@students.wits.ac.za.fake.com` are rejected.
+- Supabase triggers recalculate `is_verified` and `verified_university` whenever a profile email is inserted or updated.
+- The app also upserts the authenticated email into `profiles` on sign-in, which refreshes verification status for registration, login, email changes, and legacy users.
+- Verified users get a reusable badge in profiles, listing cards, listing details, chat headers, and booking/offer-related views.
+- When a buyer starts interacting with an unverified seller, the UI shows a caution modal before the first message or offer flow continues.
+
+Security notes:
+
+- Verification status is not trusted from local React state.
+- The database trigger overwrites `is_verified` and `verified_university` based on the stored email, even if a client tries to submit custom values.
+- Frontend helpers are used for UI consistency and legacy fallbacks only; the backend remains the source of truth.
 
 ## Codecov Integration
 

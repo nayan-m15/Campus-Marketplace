@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
+import VerifiedBadge from "./VerifiedBadge";
 import "../styles/ProfilePage.css";
 
 // ── Institutions by Province ─────────────────────────────────
@@ -414,6 +415,10 @@ export default function ProfilePage({ initialTab = "edit", onBack, onAvatarChang
   const [phoneError, setPhoneError] = useState("");
   const [ratingAvg, setRatingAvg] = useState(0);
   const [ratingCount, setRatingCount] = useState(0);
+  const [verification, setVerification] = useState({
+    is_verified: false,
+    verified_university: null,
+  });
   const [activeTab, setActiveTab] = useState(initialTab);
   const [transactionHistory, setTransactionHistory] = useState([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
@@ -480,6 +485,10 @@ export default function ProfilePage({ initialTab = "edit", onBack, onAvatarChang
           if (data.avatar_url) setAvatarPreview(data.avatar_url);
           setRatingAvg(parseFloat(data.avg_rating) || 0);
           setRatingCount(parseInt(data.rating_count) || 0);
+          setVerification({
+            is_verified: Boolean(data.is_verified),
+            verified_university: data.verified_university || null,
+          });
         }
         setLoading(false);
       });
@@ -842,6 +851,7 @@ export default function ProfilePage({ initialTab = "edit", onBack, onAvatarChang
             <article className="profile-card__avatar-info">
               <h2>{form.display_name || form.name || "Your Profile"}</h2>
               <p>{user?.email}</p>
+              <VerifiedBadge user={{ email: user?.email, ...verification }} showUniversity />
               <StarDisplay average={ratingAvg} count={ratingCount} />
               {memberSince && (
                 <p style={{ fontSize: 12, color: "var(--gray-400)", marginTop: 4 }}>
