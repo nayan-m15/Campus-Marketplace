@@ -1322,7 +1322,6 @@ function MeetupsSection({ transactions, bookings, staffProfile, onAction, saving
 
                     <footer className="booking-card__footer">
                       <menu className="booking-card__actions" role="list">
-                        {/* Staff: confirm swap complete (only after slot is scheduled) */}
                         {meetupBooking?.status === "scheduled" && (
                           <li>
                             <button
@@ -1334,32 +1333,6 @@ function MeetupsSection({ transactions, bookings, staffProfile, onAction, saving
                               Confirm Swap Complete
                             </button>
                           </li>
-                        )}
-                        {/* Staff: send confirmation to both parties (when slot is pending) */}
-                        {meetupBooking && meetupBooking.status !== "scheduled" && (
-                          <>
-                            <li>
-                              <button
-                                className="btn-action btn-action--receipt"
-                                onClick={() => handleStaffNotify(transaction, true)}
-                                disabled={saving}
-                              >
-                                <Icon name="check-circle" className="btn-action__icon" />
-                                Confirm & Notify Both Parties
-                              </button>
-                            </li>
-                            <li>
-                              <button
-                                className="btn-action btn-action--cancel"
-                                onClick={() => handleStaffNotify(transaction, false)}
-                                disabled={saving}
-                                style={{ background: "var(--color-error, #ef4444)", color: "#fff" }}
-                              >
-                                <Icon name="x-circle" className="btn-action__icon" />
-                                Cancel Slot & Re-Notify
-                              </button>
-                            </li>
-                          </>
                         )}
                       </menu>
                     </footer>
