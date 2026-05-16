@@ -722,7 +722,7 @@ function ListingDetailsModal({
   const sellerJoinedText =
     joinedLabel === "Not provided"
       ? "Joined date not provided"
-      : `Joined Campus Marketplace in ${joinedLabel}`;
+      : `Joined in ${joinedLabel}`;
 
   // Small prep work happens in this helper before the UI uses the result.
   // It keeps lookup, formatting, or data shaping out of the render path.

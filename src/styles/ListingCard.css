@@ -971,7 +971,7 @@
 
 .item-modal-bottom-card {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(310px, 330px) minmax(0, 1fr);
   gap: 22px;
   align-items: start;
 }
@@ -1038,12 +1038,12 @@
 }
 
 .item-modal-seller-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
-  padding: 16px;
+  padding: 14px;
   border-radius: 20px;
   background: rgba(235, 245, 239, 0.74);
 }
@@ -1056,9 +1056,9 @@
 }
 
 .item-modal-seller-avatar {
-  width: 52px;
-  height: 52px;
-  flex: 0 0 52px;
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
   border-radius: 50%;
   overflow: hidden;
   display: inline-flex;
@@ -1101,7 +1101,7 @@
   flex: 0 0 auto;
   border: none;
   border-radius: 12px;
-  padding: 10px 16px;
+  padding: 10px 14px;
   background: #e5e7eb;
   color: var(--navy);
   font-family: var(--font);
@@ -1345,7 +1345,11 @@
   .modal-close { right: -8px; top: -8px; }
   .item-modal-carousel__frame { aspect-ratio: 4 / 3; }
   .item-modal-summary { align-items: flex-start; gap: 10px; }
-  .item-modal-seller-card { align-items: flex-start; flex-direction: column; }
+  .item-modal-seller-card {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+  }
   .item-modal-view-profile-btn { width: 100%; }
   .item-modal-actions > * { width: 100%; justify-content: center; }
   .item-modal-actions--message {

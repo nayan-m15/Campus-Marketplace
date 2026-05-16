@@ -446,7 +446,9 @@ test("modal shows seller info", async () => {
   fireEvent.click(await screen.findByRole("button", { name: /open details for sony ps5/i }));
   const modal = await screen.findByRole("button", { name: /close item details/i });
   const modalContent = modal.closest(".item-modal-content");
-  expect(within(modalContent).getByText(/seller:/i)).toBeInTheDocument();
+  expect(within(modalContent).getByRole("heading", { name: /seller information/i })).toBeInTheDocument();
+  expect(within(modalContent).getByText(/Saurav/i)).toBeInTheDocument();
+  expect(within(modalContent).getByRole("button", { name: /view profile/i })).toBeInTheDocument();
   expect(within(modalContent).getByText(/institution:/i)).toBeInTheDocument();
   expect(within(modalContent).getByText(/Wits/)).toBeInTheDocument();
 });
