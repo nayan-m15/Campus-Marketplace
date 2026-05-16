@@ -1,9 +1,12 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+﻿import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SERPAPI_URL = "https://serpapi.com/search.json";
 const DEFAULT_LOCATION = "Johannesburg, South Africa";
 const DEFAULT_CONDITION = "Good";
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
+const IMAGE_SEARCH_TIMEOUT_MS = 5_000;
+const SHOPPING_SEARCH_BUDGET_MS = 6_500;
+const RESPONSE_GRACE_MS = 1_000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,6 +29,8 @@ type PriceSuggestionRequest = {
   category?: string;
   condition?: string;
   location?: string;
+  listingPrice?: string | number;
+  price?: string | number;
   imageUrl?: string;
   imageUrls?: string[];
 };
@@ -43,6 +48,27 @@ type ShoppingResult = {
 type LensResult = {
   title?: string;
   source?: string;
+};
+
+type PricedShoppingResult = ShoppingResult & {
+  extractedPrice: number;
+};
+
+type SearchCandidate = {
+  level: string;
+  label: string;
+  query: string;
+  matchTokens: string[];
+  usedFallback: boolean;
+};
+
+type EvaluatedPricing = ReturnType<typeof evaluateShoppingResults>;
+
+type PricingAttempt = {
+  basis: SearchCandidate;
+  pricing: EvaluatedPricing | null;
+  sanity: ReturnType<typeof getSanityResult>;
+  error?: string;
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -68,6 +94,24 @@ function normaliseImageUrl(value: unknown) {
   }
 }
 
+function normalisePrice(value: unknown) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  const rawPrice = normaliseText(value);
+  if (!rawPrice) return null;
+
+  const compact = rawPrice.replace(/\s/g, "");
+  const numericText = compact
+    .replace(/[^0-9.,]/g, "")
+    .replace(/,(?=\d{3}(\D|$))/g, "")
+    .replace(",", ".");
+  const price = Number(numericText);
+
+  return Number.isFinite(price) && price > 0 ? price : null;
+}
+
 async function hashText(value: string) {
   const data = new TextEncoder().encode(value);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -82,11 +126,13 @@ async function buildRequestFingerprint({
   condition,
   location,
   imageUrl,
+  listingPrice,
 }: {
   searchQuery: string;
   condition: string;
   location: string;
   imageUrl: string;
+  listingPrice: number | null;
 }) {
   const fingerprint = JSON.stringify({
     version: CACHE_VERSION,
@@ -94,6 +140,7 @@ async function buildRequestFingerprint({
     condition: condition.toLowerCase(),
     location: location.toLowerCase(),
     imageUrl,
+    listingPrice,
   });
 
   return hashText(fingerprint);
@@ -146,6 +193,9 @@ function findBrandSignals(text: string) {
     "mecer",
     "microsoft",
     "nike",
+    "bose",
+    "jbl",
+    "lamborghini",
     "samsung",
     "sony",
     "texas instruments",
@@ -259,35 +309,473 @@ async function getImageSearchContext({
     safe: "active",
   });
 
-  const lensResponse = await fetch(`${SERPAPI_URL}?${params.toString()}`);
-  const lensData = await lensResponse.json();
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-  if (!lensResponse.ok || lensData.error) {
-    console.error("Google Lens image search failed:", lensData.error || lensResponse.statusText);
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        controller.abort();
+        reject(new Error("Image search timed out."));
+      }, IMAGE_SEARCH_TIMEOUT_MS);
+    });
+
+    const { lensResponse, lensData } = await Promise.race([
+      (async () => {
+        const lensResponse = await fetch(`${SERPAPI_URL}?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        const lensData = await lensResponse.json();
+
+        return { lensResponse, lensData };
+      })(),
+      timeoutPromise,
+    ]);
+
+    if (!lensResponse.ok || lensData.error) {
+      console.error("Google Lens image search failed:", lensData.error || lensResponse.statusText);
+      return {
+        used: true,
+        terms: [] as string[],
+        sourceTitles: [] as string[],
+        error: lensData.error || "Image search failed.",
+      };
+    }
+
+    const { terms, sourceTitles } = extractLensTerms(lensData, originalTokens);
+
+    return {
+      used: true,
+      terms,
+      sourceTitles,
+    };
+  } catch (error) {
+    const timedOut = error instanceof Error &&
+      (error.name === "AbortError" || error.message === "Image search timed out.");
+
+    if (timedOut) {
+      console.error(`Google Lens image search timed out after ${IMAGE_SEARCH_TIMEOUT_MS}ms.`);
+    } else {
+      console.error("Google Lens image search failed:", error);
+    }
+
     return {
       used: true,
       terms: [] as string[],
       sourceTitles: [] as string[],
-      error: lensData.error || "Image search failed.",
+      error: timedOut ? "Image search timed out." : "Image search failed.",
+    };
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+function countTokenMatches(result: ShoppingResult, tokens: string[]) {
+  const resultText = `${result.title || ""} ${result.source || ""}`.toLowerCase();
+  return tokens.filter((token) => resultText.includes(token)).length;
+}
+
+function titleHasNegativeSignal(result: ShoppingResult, category: string, listingText: string) {
+  const resultText = `${result.title || ""} ${result.source || ""}`.toLowerCase();
+  const sourceText = listingText.toLowerCase();
+  const genericNegativeSignals = [
+    "accessory",
+    "case",
+    "cover",
+    "manual",
+    "poster",
+    "protector",
+    "remote",
+    "replacement",
+    "skin",
+    "stand",
+  ];
+  const vehicleNegativeSignals = [
+    "1:18",
+    "1:24",
+    "1:32",
+    "1:43",
+    "1:64",
+    "diecast",
+    "hot wheels",
+    "lego",
+    "model car",
+    "rc car",
+    "scale model",
+    "toy",
+  ];
+  const lowerCategory = category.toLowerCase();
+  const negativeSignals = lowerCategory.includes("vehicle") || lowerCategory.includes("car")
+    ? [...genericNegativeSignals, ...vehicleNegativeSignals]
+    : genericNegativeSignals;
+
+  return negativeSignals.find((signal) =>
+    resultText.includes(signal) && !sourceText.includes(signal)
+  ) || "";
+}
+
+function buildGenericFallbackTerms({
+  query,
+  category,
+  brandSignals,
+  modelSignals,
+}: {
+  query: string;
+  category: string;
+  brandSignals: string[];
+  modelSignals: string[];
+}) {
+  const excludedTokens = new Set([
+    ...brandSignals.flatMap((brand) => brand.toLowerCase().split(/\s+/)),
+    ...modelSignals.flatMap((model) => model.toLowerCase().split(/[-\s]+/)),
+  ]);
+
+  return getMeaningfulTokens(`${query} ${category}`)
+    .filter((token) => !excludedTokens.has(token))
+    .slice(0, 4);
+}
+
+function buildSearchCandidates({
+  searchQuery,
+  query,
+  category,
+  brandSignals,
+  modelSignals,
+}: {
+  searchQuery: string;
+  query: string;
+  category: string;
+  brandSignals: string[];
+  modelSignals: string[];
+}) {
+  const candidates: SearchCandidate[] = [
+    {
+      level: "exact_or_detailed",
+      label: "detailed listing search",
+      query: searchQuery,
+      matchTokens: getMeaningfulTokens(`${query} ${category}`),
+      usedFallback: false,
+    },
+  ];
+  const genericTerms = buildGenericFallbackTerms({ query, category, brandSignals, modelSignals });
+  const brandQuery = dedupeWords([brandSignals[0], ...genericTerms].filter(Boolean).join(" "));
+  const categoryQuery = dedupeWords(
+    [genericTerms.join(" "), category].filter(Boolean).join(" "),
+  );
+
+  if (
+    brandSignals.length > 0 &&
+    brandQuery &&
+    brandQuery.toLowerCase() !== searchQuery.toLowerCase()
+  ) {
+    candidates.push({
+      level: "brand_category",
+      label: "brand and item type fallback",
+      query: brandQuery,
+      matchTokens: getMeaningfulTokens(brandQuery),
+      usedFallback: true,
+    });
+  }
+
+  if (categoryQuery && categoryQuery.toLowerCase() !== searchQuery.toLowerCase()) {
+    candidates.push({
+      level: "category_only",
+      label: "item type fallback",
+      query: categoryQuery,
+      matchTokens: getMeaningfulTokens(categoryQuery),
+      usedFallback: true,
+    });
+  }
+
+  return candidates;
+}
+
+function getMinimumTokenMatches(tokens: string[], usedFallback: boolean) {
+  if (tokens.length === 0) return 0;
+  if (usedFallback) return 1;
+  return tokens.length >= 3 ? 2 : 1;
+}
+
+function getSanityResult(listingPrice: number | null, suggestedPrice: number) {
+  if (!listingPrice || suggestedPrice <= 0) {
+    return { status: "ok", warning: "" };
+  }
+
+  const ratio = suggestedPrice / listingPrice;
+
+  if (ratio < 0.05 || ratio > 20) {
+    return {
+      status: "extreme",
+      warning: "Comparable prices are far away from the seller's listing price, so they may be for a different item type.",
     };
   }
 
-  const { terms, sourceTitles } = extractLensTerms(lensData, originalTokens);
+  if (ratio < 0.33 || ratio > 3) {
+    return {
+      status: "moderate",
+      warning: "Comparable prices differ meaningfully from the seller's listing price.",
+    };
+  }
+
+  return { status: "ok", warning: "" };
+}
+
+async function fetchShoppingResults({
+  serpApiKey,
+  searchQuery,
+  location,
+}: {
+  serpApiKey: string;
+  searchQuery: string;
+  location: string;
+}) {
+  const params = new URLSearchParams({
+    engine: "google_shopping",
+    q: searchQuery,
+    api_key: serpApiKey,
+    gl: "za",
+    hl: "en",
+    google_domain: "google.co.za",
+    location,
+    num: "20",
+  });
+  const serpResponse = await fetch(`${SERPAPI_URL}?${params.toString()}`);
+  const serpData = await serpResponse.json();
+
+  if (!serpResponse.ok || serpData.error) {
+    throw new Error(serpData.error || "Failed to fetch shopping prices from SerpApi.");
+  }
+
+  return Array.isArray(serpData.shopping_results)
+    ? serpData.shopping_results as ShoppingResult[]
+    : [];
+}
+
+function evaluateShoppingResults({
+  shoppingResults,
+  basis,
+  category,
+  listingText,
+}: {
+  shoppingResults: ShoppingResult[];
+  basis: {
+    level: string;
+    label: string;
+    query: string;
+    matchTokens: string[];
+    usedFallback: boolean;
+  };
+  category: string;
+  listingText: string;
+}) {
+  const pricedResults = shoppingResults
+    .map((result) => ({ ...result, extractedPrice: parsePrice(result) }))
+    .filter((result): result is PricedShoppingResult => result.extractedPrice !== null);
+  const randResults = pricedResults.filter(looksLikeRand);
+  const currencyResults = randResults.length > 0 ? randResults : pricedResults;
+  const rejectedResults = currencyResults
+    .map((result) => ({ result, reason: titleHasNegativeSignal(result, category, listingText) }))
+    .filter(({ reason }) => reason);
+  const cleanedResults = currencyResults.filter((result) =>
+    !titleHasNegativeSignal(result, category, listingText)
+  );
+  const minimumMatches = getMinimumTokenMatches(basis.matchTokens, basis.usedFallback);
+  const relevantResults = cleanedResults.filter((result) =>
+    minimumMatches === 0 || countTokenMatches(result, basis.matchTokens) >= minimumMatches
+  );
+  const usableResults = relevantResults.length >= 2 ? relevantResults : cleanedResults;
+  const prices = usableResults.map((result) => result.extractedPrice);
+  const filteredPrices = removeOutliers(prices);
 
   return {
-    used: true,
-    terms,
-    sourceTitles,
+    pricedResults,
+    currencyResults,
+    rejectedResults,
+    cleanedResults,
+    relevantResults,
+    usableResults,
+    prices,
+    filteredPrices,
   };
 }
 
-function resultMatchesListing(result: ShoppingResult, tokens: string[]) {
-  if (tokens.length === 0) return true;
+async function evaluateSearchCandidate({
+  candidate,
+  serpApiKey,
+  location,
+  category,
+  listingText,
+  listingPrice,
+  conditionFactor,
+}: {
+  candidate: SearchCandidate;
+  serpApiKey: string;
+  location: string;
+  category: string;
+  listingText: string;
+  listingPrice: number | null;
+  conditionFactor: number;
+}): Promise<PricingAttempt> {
+  try {
+    const shoppingResults = await fetchShoppingResults({
+      serpApiKey,
+      searchQuery: candidate.query,
+      location,
+    });
+    const pricing = evaluateShoppingResults({
+      shoppingResults,
+      basis: candidate,
+      category,
+      listingText,
+    });
+    const candidateMedian = pricing.filteredPrices.length > 0
+      ? roundToNearestFive(median(pricing.filteredPrices))
+      : 0;
+    const candidateSuggestedPrice = roundToNearestFive(candidateMedian * conditionFactor);
 
-  const resultText = `${result.title || ""} ${result.source || ""}`.toLowerCase();
-  const matchedTokens = tokens.filter((token) => resultText.includes(token));
+    return {
+      basis: candidate,
+      pricing,
+      sanity: getSanityResult(listingPrice, candidateSuggestedPrice),
+    };
+  } catch (error) {
+    return {
+      basis: candidate,
+      pricing: null,
+      sanity: { status: "ok", warning: "" },
+      error: error instanceof Error ? error.message : "Shopping search failed.",
+    };
+  }
+}
 
-  return matchedTokens.length > 0;
+function attemptIsUsable(attempt: PricingAttempt) {
+  if (!attempt.pricing) return false;
+
+  const hasRelevantMatches =
+    attempt.basis.matchTokens.length < 2 || attempt.pricing.relevantResults.length > 0;
+
+  return (
+    attempt.pricing.filteredPrices.length > 0 &&
+    hasRelevantMatches &&
+    attempt.sanity.status !== "extreme"
+  );
+}
+
+function attemptSummary(attempt: PricingAttempt) {
+  return {
+    level: attempt.basis.level,
+    label: attempt.basis.label,
+    searchQuery: attempt.basis.query,
+    sampleSize: attempt.pricing?.filteredPrices.length || 0,
+    relevantSampleSize: attempt.pricing?.relevantResults.length || 0,
+    rejectedSampleSize: attempt.pricing?.rejectedResults.length || 0,
+    sanityStatus: attempt.sanity.status,
+    error: attempt.error,
+  };
+}
+
+function selectBestPricingAttempt(attempts: PricingAttempt[]) {
+  const priority: Record<string, number> = {
+    exact_or_detailed: 0,
+    brand_category: 1,
+    category_only: 2,
+  };
+
+  return [...attempts]
+    .sort((a, b) => (priority[a.basis.level] ?? 99) - (priority[b.basis.level] ?? 99))
+    .find(attemptIsUsable) || null;
+}
+
+function delay(ms: number) {
+  return new Promise<"timeout">((resolve) => {
+    setTimeout(() => resolve("timeout"), ms);
+  });
+}
+
+function startCandidateEvaluations({
+  candidates,
+  serpApiKey,
+  location,
+  category,
+  listingText,
+  listingPrice,
+  conditionFactor,
+}: {
+  candidates: SearchCandidate[];
+  serpApiKey: string;
+  location: string;
+  category: string;
+  listingText: string;
+  listingPrice: number | null;
+  conditionFactor: number;
+}) {
+  return candidates.map((candidate, index) => ({
+    index,
+    candidate,
+    promise: evaluateSearchCandidate({
+      candidate,
+      serpApiKey,
+      location,
+      category,
+      listingText,
+      listingPrice,
+      conditionFactor,
+    }),
+  }));
+}
+
+async function collectCompletedAttempts(
+  tasks: Array<{ index: number; candidate: SearchCandidate; promise: Promise<PricingAttempt> }>,
+  budgetMs: number,
+) {
+  const settledAttempts: PricingAttempt[] = [];
+  let acceptingAttempts = true;
+
+  await Promise.race([
+    Promise.all(
+      tasks.map(({ promise }) =>
+        promise.then((attempt) => {
+          if (acceptingAttempts) {
+            settledAttempts.push(attempt);
+          }
+        })
+      ),
+    ),
+    delay(budgetMs),
+  ]);
+  acceptingAttempts = false;
+
+  return settledAttempts.sort((a, b) => {
+    const aIndex = tasks.find((task) => task.candidate?.query === a.basis.query)?.index ?? 0;
+    const bIndex = tasks.find((task) => task.candidate?.query === b.basis.query)?.index ?? 0;
+    return aIndex - bIndex;
+  });
+}
+
+async function settleAllAttempts(
+  tasks: Array<{ index: number; candidate: SearchCandidate; promise: Promise<PricingAttempt> }>,
+) {
+  const attempts = await Promise.all(tasks.map(({ promise }) => promise));
+  return attempts.sort((a, b) => {
+    const aIndex = tasks.find((task) => task.candidate?.query === a.basis.query)?.index ?? 0;
+    const bIndex = tasks.find((task) => task.candidate?.query === b.basis.query)?.index ?? 0;
+    return aIndex - bIndex;
+  });
+}
+
+function runInBackground(promise: Promise<unknown>) {
+  const handledPromise = promise.catch((error) => {
+    console.error("Background price suggestion refinement failed:", error);
+  });
+  const runtime = (globalThis as unknown as {
+    EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void };
+  }).EdgeRuntime;
+
+  if (runtime?.waitUntil) {
+    runtime.waitUntil(handledPromise);
+  }
 }
 
 function parsePrice(result: ShoppingResult) {
@@ -295,17 +783,7 @@ function parsePrice(result: ShoppingResult) {
     return result.extracted_price;
   }
 
-  const rawPrice = normaliseText(result.price);
-  if (!rawPrice) return null;
-
-  const compact = rawPrice.replace(/\s/g, "");
-  const numericText = compact
-    .replace(/[^0-9.,]/g, "")
-    .replace(/,(?=\d{3}(\D|$))/g, "")
-    .replace(",", ".");
-  const price = Number(numericText);
-
-  return Number.isFinite(price) && price > 0 ? price : null;
+  return normalisePrice(result.price);
 }
 
 function looksLikeRand(result: ShoppingResult) {
@@ -370,6 +848,53 @@ function withCacheMeta(response: Record<string, unknown>, hit: boolean, cacheKey
   };
 }
 
+function cacheRequestMatchesBase(
+  request: unknown,
+  {
+    baseFingerprint,
+    query,
+    description,
+    category,
+    condition,
+    location,
+    imageUrl,
+    listingPrice,
+    baseSearchQuery,
+  }: {
+    baseFingerprint: string;
+    query: string;
+    description: string;
+    category: string;
+    condition: string;
+    location: string;
+    imageUrl: string;
+    listingPrice: number | null;
+    baseSearchQuery: string;
+  },
+) {
+  if (!request || typeof request !== "object") return false;
+
+  const cacheRequest = request as Record<string, unknown>;
+
+  if (
+    cacheRequest.fingerprint === baseFingerprint ||
+    cacheRequest.baseFingerprint === baseFingerprint
+  ) {
+    return true;
+  }
+
+  return (
+    normaliseText(cacheRequest.query) === query &&
+    normaliseText(cacheRequest.description) === description &&
+    normaliseText(cacheRequest.category) === category &&
+    normaliseText(cacheRequest.condition) === condition &&
+    normaliseText(cacheRequest.location) === location &&
+    normaliseImageUrl(cacheRequest.imageUrl) === imageUrl &&
+    normalisePrice(cacheRequest.listingPrice) === listingPrice &&
+    normaliseText(cacheRequest.baseSearchQuery) === baseSearchQuery
+  );
+}
+
 async function upsertCache(
   adminClient: ReturnType<typeof createClient>,
   {
@@ -412,6 +937,9 @@ function getConfidence({
   variation,
   relevantSampleSize,
   meaningfulTokenCount,
+  pricingBasis,
+  rejectedSampleCount,
+  sanityWarning,
 }: {
   query: string;
   description: string;
@@ -422,6 +950,9 @@ function getConfidence({
   variation: number;
   relevantSampleSize: number;
   meaningfulTokenCount: number;
+  pricingBasis: { level: string; label: string; usedFallback: boolean };
+  rejectedSampleCount: number;
+  sanityWarning: string;
 }) {
   let score = 0;
   const reasons: string[] = [];
@@ -478,6 +1009,21 @@ function getConfidence({
     warnings.push("Comparable prices vary widely, which usually means the search is too broad.");
   }
 
+  if (pricingBasis.usedFallback) {
+    warnings.push(`Used ${pricingBasis.label} because exact listing matches were limited.`);
+    score = Math.min(score, pricingBasis.level === "brand_category" ? 68 : 52);
+  } else {
+    reasons.push("Used the detailed listing search as the pricing basis.");
+  }
+
+  if (rejectedSampleCount > 0) {
+    warnings.push("Ignored shopping results that looked like accessories or a different item type.");
+  }
+
+  if (sanityWarning) {
+    warnings.push(sanityWarning);
+  }
+
   const boundedScore = Math.max(0, Math.min(100, score));
   const level = boundedScore >= 75 ? "High" : boundedScore >= 45 ? "Medium" : "Low";
 
@@ -487,6 +1033,115 @@ function getConfidence({
     reasons,
     warnings,
     needsMoreDetail: level === "Low",
+  };
+}
+
+function buildPriceSuggestionResponse({
+  query,
+  description,
+  category,
+  condition,
+  conditionFactor,
+  location,
+  imageSearch,
+  modelSignals,
+  brandSignals,
+  meaningfulTokens,
+  selectedAttempt,
+  attemptedPricingBasis,
+}: {
+  query: string;
+  description: string;
+  category: string;
+  condition: string;
+  conditionFactor: number;
+  location: string;
+  imageSearch: Record<string, unknown>;
+  modelSignals: string[];
+  brandSignals: string[];
+  meaningfulTokens: string[];
+  selectedAttempt: PricingAttempt;
+  attemptedPricingBasis: Array<Record<string, unknown>>;
+}) {
+  if (!selectedAttempt.pricing) {
+    throw new Error("Cannot build a price suggestion without evaluated pricing.");
+  }
+
+  const { filteredPrices, relevantResults, usableResults, rejectedResults } = selectedAttempt.pricing;
+  const retailMedian = roundToNearestFive(median(filteredPrices));
+  const retailAverage = roundToNearestFive(
+    filteredPrices.reduce((total, price) => total + price, 0) / filteredPrices.length,
+  );
+  const priceVariation = calculateVariation(filteredPrices, retailMedian);
+  const suggestedPrice = roundToNearestFive(retailMedian * conditionFactor);
+  const confidence = getConfidence({
+    query,
+    description,
+    category,
+    modelSignals,
+    brandSignals,
+    sampleSize: filteredPrices.length,
+    variation: priceVariation,
+    relevantSampleSize: relevantResults.length,
+    meaningfulTokenCount: meaningfulTokens.length,
+    pricingBasis: selectedAttempt.basis,
+    rejectedSampleCount: rejectedResults.length,
+    sanityWarning: selectedAttempt.sanity.warning,
+  });
+  const suggestedRange = {
+    min: roundToNearestFive(suggestedPrice * 0.9),
+    max: roundToNearestFive(suggestedPrice * 1.1),
+  };
+
+  return {
+    query,
+    searchQuery: selectedAttempt.basis.query,
+    condition,
+    conditionFactor,
+    location,
+    market: "South Africa",
+    currency: "ZAR",
+    confidence,
+    pricingBasis: {
+      level: selectedAttempt.basis.level,
+      label: selectedAttempt.basis.label,
+      searchQuery: selectedAttempt.basis.query,
+      usedFallback: selectedAttempt.basis.usedFallback,
+      attempted: attemptedPricingBasis,
+      rejectedSampleSize: rejectedResults.length,
+      sanityStatus: selectedAttempt.sanity.status,
+    },
+    imageSearch,
+    detectedSignals: {
+      models: modelSignals,
+      brands: brandSignals,
+    },
+    suggestedPrice,
+    suggestedPriceFormatted: formatZar(suggestedPrice),
+    suggestedRange: {
+      ...suggestedRange,
+      minFormatted: formatZar(suggestedRange.min),
+      maxFormatted: formatZar(suggestedRange.max),
+    },
+    retailPrice: {
+      median: retailMedian,
+      medianFormatted: formatZar(retailMedian),
+      average: retailAverage,
+      averageFormatted: formatZar(retailAverage),
+      min: roundToNearestFive(Math.min(...filteredPrices)),
+      max: roundToNearestFive(Math.max(...filteredPrices)),
+      sampleSize: filteredPrices.length,
+      variation: Number(priceVariation.toFixed(2)),
+    },
+    sources: usableResults.slice(0, 8).map((result) => ({
+      title: result.title || "",
+      source: result.source || "",
+      price: result.price || "",
+      extractedPrice: result.extractedPrice,
+      link: result.link || result.product_link || "",
+      thumbnail: result.thumbnail || "",
+    })),
+    generatedAt: new Date().toISOString(),
   };
 }
 
@@ -503,23 +1158,9 @@ Deno.serve(async (req) => {
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const serpApiKey = Deno.env.get("SERPAPI_API_KEY");
-  const authHeader = req.headers.get("Authorization");
-
   if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey || !serpApiKey) {
     return jsonResponse({ error: "Missing required backend environment variables." }, 500);
   }
-
-  if (!authHeader) {
-    return jsonResponse({ error: "Missing authorization header." }, 401);
-  }
-
-  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        Authorization: authHeader,
-      },
-    },
-  });
 
   const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {
@@ -527,15 +1168,6 @@ Deno.serve(async (req) => {
       autoRefreshToken: false,
     },
   });
-
-  const {
-    data: { user },
-    error: authError,
-  } = await userClient.auth.getUser();
-
-  if (authError || !user) {
-    return jsonResponse({ error: authError?.message || "User not authenticated." }, 401);
-  }
 
   let body: PriceSuggestionRequest;
 
@@ -553,6 +1185,7 @@ Deno.serve(async (req) => {
   const category = normaliseText(body.category);
   const condition = normaliseText(body.condition) || DEFAULT_CONDITION;
   const location = normaliseText(body.location) || DEFAULT_LOCATION;
+  const listingPrice = normalisePrice(body.listingPrice) ?? normalisePrice(body.price);
   const imageUrl =
     normaliseImageUrl(body.imageUrl) ||
     normaliseImageUrl(Array.isArray(body.imageUrls) ? body.imageUrls.find(Boolean) : "");
@@ -567,53 +1200,37 @@ Deno.serve(async (req) => {
   const listingText = `${query} ${category} ${description}`;
   const modelSignals = findModelSignals(listingText);
   const brandSignals = findBrandSignals(listingText);
-  const shouldUseImageSearch =
-    imageUrl &&
-    (modelSignals.length === 0 || brandSignals.length === 0 || baseMeaningfulTokens.length < 3);
-  const imageSearch = shouldUseImageSearch
-    ? await getImageSearchContext({
-        serpApiKey,
-        imageUrl,
-        searchQuery: baseSearchQuery,
-        originalTokens: baseMeaningfulTokens,
-      })
-    : { used: false, terms: [] as string[], sourceTitles: [] as string[] };
-  const searchQuery = dedupeWords(
-    [baseSearchQuery, ...imageSearch.terms].filter(Boolean).join(" "),
-  );
-  const requestFingerprint = await buildRequestFingerprint({ searchQuery, condition, location, imageUrl });
-  const searchCacheKey = `search:${CACHE_VERSION}:${requestFingerprint}`;
-  const cacheKey = listingId ? `listing:${CACHE_VERSION}:${listingId}` : searchCacheKey;
-  const cacheRequest = {
+  const baseFingerprint = await buildRequestFingerprint({
+    searchQuery: baseSearchQuery,
+    condition,
+    location,
+    imageUrl,
+    listingPrice,
+  });
+  const baseSearchCacheKey = `search:${CACHE_VERSION}:${baseFingerprint}`;
+  const listingCacheKey = listingId ? `listing:${CACHE_VERSION}:${listingId}` : baseSearchCacheKey;
+  const baseCacheRequest = {
     version: CACHE_VERSION,
-    fingerprint: requestFingerprint,
+    fingerprint: baseFingerprint,
+    baseFingerprint,
     listingId: listingId || null,
     query,
     description,
     category,
     condition,
     location,
+    listingPrice,
     imageUrl: imageUrl || null,
-    searchQuery,
+    searchQuery: baseSearchQuery,
     baseSearchQuery,
-    imageSearch,
+    imageSearch: { used: false, terms: [] as string[], sourceTitles: [] as string[] },
   };
-  const params = new URLSearchParams({
-    engine: "google_shopping",
-    q: searchQuery,
-    api_key: serpApiKey,
-    gl: "za",
-    hl: "en",
-    google_domain: "google.co.za",
-    location,
-    num: "20",
-  });
 
   try {
     const { data: cachedSuggestion, error: cacheReadError } = await adminClient
       .from("price_suggestion_cache")
       .select("request, response")
-      .eq("cache_key", cacheKey)
+      .eq("cache_key", listingCacheKey)
       .maybeSingle();
 
     if (cacheReadError) {
@@ -622,168 +1239,304 @@ Deno.serve(async (req) => {
 
     if (
       cachedSuggestion?.response &&
-      (!listingId || cachedSuggestion.request?.fingerprint === requestFingerprint)
+      (!listingId ||
+        cacheRequestMatchesBase(cachedSuggestion.request, {
+          baseFingerprint,
+          query,
+          description,
+          category,
+          condition,
+          location,
+          imageUrl,
+          listingPrice,
+          baseSearchQuery,
+        }))
     ) {
-      return jsonResponse(withCacheMeta(cachedSuggestion.response, true, cacheKey));
+      return jsonResponse(withCacheMeta(cachedSuggestion.response, true, listingCacheKey));
     }
 
     if (listingId) {
-      const { data: cachedSearchSuggestion, error: searchCacheReadError } = await adminClient
+      const { data: cachedBaseSearchSuggestion, error: baseSearchCacheReadError } = await adminClient
         .from("price_suggestion_cache")
         .select("request, response")
-        .eq("cache_key", searchCacheKey)
+        .eq("cache_key", baseSearchCacheKey)
         .maybeSingle();
 
-      if (searchCacheReadError) {
-        console.error("Failed to read search price suggestion cache:", searchCacheReadError.message);
+      if (baseSearchCacheReadError) {
+        console.error(
+          "Failed to read base search price suggestion cache:",
+          baseSearchCacheReadError.message,
+        );
       }
 
       if (
-        cachedSearchSuggestion?.response &&
-        cachedSearchSuggestion.request?.fingerprint === requestFingerprint
+        cachedBaseSearchSuggestion?.response &&
+        cacheRequestMatchesBase(cachedBaseSearchSuggestion.request, {
+          baseFingerprint,
+          query,
+          description,
+          category,
+          condition,
+          location,
+          imageUrl,
+          listingPrice,
+          baseSearchQuery,
+        })
       ) {
         await upsertCache(adminClient, {
-          cacheKey,
+          cacheKey: listingCacheKey,
           listingId,
-          request: cacheRequest,
-          response: cachedSearchSuggestion.response,
+          request: baseCacheRequest,
+          response: cachedBaseSearchSuggestion.response,
         });
 
-        return jsonResponse(withCacheMeta(cachedSearchSuggestion.response, true, cacheKey));
+        return jsonResponse(withCacheMeta(cachedBaseSearchSuggestion.response, true, listingCacheKey));
       }
     }
 
-    const serpResponse = await fetch(`${SERPAPI_URL}?${params.toString()}`);
-    const serpData = await serpResponse.json();
-
-    if (!serpResponse.ok || serpData.error) {
-      return jsonResponse(
-        { error: serpData.error || "Failed to fetch shopping prices from SerpApi." },
-        serpResponse.ok ? 502 : serpResponse.status,
-      );
-    }
-
-    const shoppingResults = Array.isArray(serpData.shopping_results)
-      ? serpData.shopping_results as ShoppingResult[]
-      : [];
-    const pricedResults = shoppingResults
-      .map((result) => ({ ...result, extractedPrice: parsePrice(result) }))
-      .filter((result) => result.extractedPrice !== null);
-
-    const randResults = pricedResults.filter(looksLikeRand);
-    const currencyResults = randResults.length > 0 ? randResults : pricedResults;
+    const responseStartedAt = Date.now();
     const meaningfulTokens = getMeaningfulTokens(`${query} ${description}`);
-    const relevantResults = currencyResults.filter((result) =>
-      resultMatchesListing(result, meaningfulTokens),
-    );
-    const usableResults = relevantResults.length >= 2 ? relevantResults : currencyResults;
-    const prices = usableResults.map((result) => result.extractedPrice as number);
-    const filteredPrices = removeOutliers(prices);
+    const fallbackImageSearch = {
+      used: false,
+      terms: [] as string[],
+      sourceTitles: [] as string[],
+    };
+    const shouldUseImageSearch =
+      imageUrl &&
+      (modelSignals.length === 0 || brandSignals.length === 0 || baseMeaningfulTokens.length < 3);
+    const imageSearchPromise = shouldUseImageSearch
+      ? getImageSearchContext({
+          serpApiKey,
+          imageUrl,
+          searchQuery: baseSearchQuery,
+          originalTokens: baseMeaningfulTokens,
+        })
+      : Promise.resolve(fallbackImageSearch);
+    const baseSearchCandidates = buildSearchCandidates({
+      searchQuery: baseSearchQuery,
+      query,
+      category,
+      brandSignals,
+      modelSignals,
+    });
+    const baseSearchTasks = startCandidateEvaluations({
+      candidates: baseSearchCandidates,
+      serpApiKey,
+      location,
+      category,
+      listingText,
+      listingPrice,
+      conditionFactor,
+    });
+    const lensSearchPackPromise = imageSearchPromise.then((imageSearch) => {
+      const lensSearchQuery = dedupeWords(
+        [baseSearchQuery, ...imageSearch.terms].filter(Boolean).join(" "),
+      );
+      const existingQueries = new Set(baseSearchCandidates.map((candidate) => candidate.query.toLowerCase()));
+      const lensSearchCandidates = lensSearchQuery.toLowerCase() === baseSearchQuery.toLowerCase()
+        ? []
+        : buildSearchCandidates({
+            searchQuery: lensSearchQuery,
+            query,
+            category,
+            brandSignals,
+            modelSignals,
+          }).filter((candidate) => !existingQueries.has(candidate.query.toLowerCase()));
+      const lensSearchTasks = startCandidateEvaluations({
+        candidates: lensSearchCandidates,
+        serpApiKey,
+        location,
+        category,
+        listingText,
+        listingPrice,
+        conditionFactor,
+      });
 
-    if (meaningfulTokens.length >= 2 && relevantResults.length === 0) {
+      return {
+        imageSearch,
+        searchQuery: lensSearchQuery,
+        tasks: lensSearchTasks.map((task, index) => ({
+          ...task,
+          index: baseSearchTasks.length + index,
+        })),
+      };
+    });
+    const timedLensSearchPack = await Promise.race([
+      lensSearchPackPromise,
+      delay(Math.min(IMAGE_SEARCH_TIMEOUT_MS, SHOPPING_SEARCH_BUDGET_MS)),
+    ]);
+    const foregroundImageSearch = timedLensSearchPack === "timeout"
+      ? fallbackImageSearch
+      : timedLensSearchPack.imageSearch;
+    const foregroundSearchTasks = timedLensSearchPack === "timeout"
+      ? baseSearchTasks
+      : [...baseSearchTasks, ...timedLensSearchPack.tasks];
+    const elapsedMs = Date.now() - responseStartedAt;
+    const foregroundAttempts = await collectCompletedAttempts(
+      foregroundSearchTasks,
+      Math.max(RESPONSE_GRACE_MS, SHOPPING_SEARCH_BUDGET_MS - elapsedMs),
+    );
+    const selectedAttempt = selectBestPricingAttempt(foregroundAttempts);
+    const attemptedPricingBasis = foregroundAttempts.map(attemptSummary);
+
+    if (!selectedAttempt) {
       return jsonResponse(
         {
           error: "Price check inconclusive. No reliable shopping matches were found for this listing.",
           query,
-          searchQuery,
+          searchQuery: baseSearchQuery,
           location,
+          pricingBasis: {
+            level: "failed_match",
+            label: "no reliable pricing basis",
+            attempted: attemptedPricingBasis,
+          },
         },
         404,
       );
     }
 
-    if (filteredPrices.length === 0) {
-      return jsonResponse(
-        {
-          error: "No usable South African shopping prices were found for this item.",
-          query,
-          searchQuery,
-          location,
-        },
-        404,
-      );
-    }
-
-    const retailMedian = roundToNearestFive(median(filteredPrices));
-    const retailAverage = roundToNearestFive(
-      filteredPrices.reduce((total, price) => total + price, 0) / filteredPrices.length,
-    );
-    const priceVariation = calculateVariation(filteredPrices, retailMedian);
-    const confidence = getConfidence({
+    const searchQuery = selectedAttempt.basis.query;
+    const requestFingerprint = await buildRequestFingerprint({
+      searchQuery,
+      condition,
+      location,
+      imageUrl,
+      listingPrice,
+    });
+    const searchCacheKey = `search:${CACHE_VERSION}:${requestFingerprint}`;
+    const cacheKey = listingId ? listingCacheKey : searchCacheKey;
+    const cacheRequest = {
+      version: CACHE_VERSION,
+      fingerprint: requestFingerprint,
+      baseFingerprint,
+      listingId: listingId || null,
       query,
       description,
       category,
-      modelSignals,
-      brandSignals,
-      sampleSize: filteredPrices.length,
-      variation: priceVariation,
-      relevantSampleSize: relevantResults.length,
-      meaningfulTokenCount: meaningfulTokens.length,
-    });
-    const suggestedPrice = roundToNearestFive(retailMedian * conditionFactor);
-    const suggestedRange = {
-      min: roundToNearestFive(suggestedPrice * 0.9),
-      max: roundToNearestFive(suggestedPrice * 1.1),
-    };
-
-    const responseBody = {
-      query,
+      condition,
+      location,
+      listingPrice,
+      imageUrl: imageUrl || null,
       searchQuery,
+      baseSearchQuery,
+      imageSearch: foregroundImageSearch,
+    };
+    const responseBody = buildPriceSuggestionResponse({
+      query,
+      description,
+      category,
       condition,
       conditionFactor,
       location,
-      market: "South Africa",
-      currency: "ZAR",
-      confidence,
-      imageSearch,
-      detectedSignals: {
-        models: modelSignals,
-        brands: brandSignals,
-      },
-      suggestedPrice,
-      suggestedPriceFormatted: formatZar(suggestedPrice),
-      suggestedRange: {
-        ...suggestedRange,
-        minFormatted: formatZar(suggestedRange.min),
-        maxFormatted: formatZar(suggestedRange.max),
-      },
-      retailPrice: {
-        median: retailMedian,
-        medianFormatted: formatZar(retailMedian),
-        average: retailAverage,
-        averageFormatted: formatZar(retailAverage),
-        min: roundToNearestFive(Math.min(...filteredPrices)),
-        max: roundToNearestFive(Math.max(...filteredPrices)),
-        sampleSize: filteredPrices.length,
-        variation: Number(priceVariation.toFixed(2)),
-      },
-      sources: usableResults.slice(0, 8).map((result) => ({
-        title: result.title || "",
-        source: result.source || "",
-        price: result.price || "",
-        extractedPrice: result.extractedPrice,
-        link: result.link || result.product_link || "",
-        thumbnail: result.thumbnail || "",
-      })),
-      generatedAt: new Date().toISOString(),
-    };
+      imageSearch: foregroundImageSearch,
+      modelSignals,
+      brandSignals,
+      meaningfulTokens,
+      selectedAttempt,
+      attemptedPricingBasis,
+    });
 
-    const { error: cacheWriteError } = await adminClient
-      .from("price_suggestion_cache")
-      .upsert(
-        {
-          cache_key: cacheKey,
-          listing_id: listingId || null,
-          request: cacheRequest,
-          response: responseBody,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "cache_key" },
-      );
+    await upsertCache(adminClient, {
+      cacheKey,
+      listingId: listingId || null,
+      request: cacheRequest,
+      response: responseBody,
+    });
 
-    if (cacheWriteError) {
-      console.error("Failed to write price suggestion cache:", cacheWriteError.message);
+    if (searchCacheKey !== cacheKey) {
+      await upsertCache(adminClient, {
+        cacheKey: searchCacheKey,
+        listingId: null,
+        request: cacheRequest,
+        response: responseBody,
+      });
     }
+
+    if (baseSearchCacheKey !== cacheKey && baseSearchCacheKey !== searchCacheKey) {
+      await upsertCache(adminClient, {
+        cacheKey: baseSearchCacheKey,
+        listingId: null,
+        request: {
+          ...cacheRequest,
+          fingerprint: baseFingerprint,
+          searchQuery: baseSearchQuery,
+        },
+        response: responseBody,
+      });
+    }
+
+    runInBackground((async () => {
+      const lensSearchPack = await lensSearchPackPromise;
+      const allTasks = [
+        ...baseSearchTasks,
+        ...lensSearchPack.tasks,
+      ];
+      const allAttempts = await settleAllAttempts(allTasks);
+      const refinedAttempt = selectBestPricingAttempt(allAttempts);
+
+      if (!refinedAttempt) return;
+
+      const refinedSearchQuery = refinedAttempt.basis.query;
+      const refinedFingerprint = await buildRequestFingerprint({
+        searchQuery: refinedSearchQuery,
+        condition,
+        location,
+        imageUrl,
+        listingPrice,
+      });
+      const refinedSearchCacheKey = `search:${CACHE_VERSION}:${refinedFingerprint}`;
+      const refinedCacheKey = listingId ? listingCacheKey : refinedSearchCacheKey;
+      const refinedCacheRequest = {
+        ...cacheRequest,
+        fingerprint: refinedFingerprint,
+        searchQuery: refinedSearchQuery,
+        imageSearch: lensSearchPack.imageSearch,
+      };
+      const refinedResponseBody = buildPriceSuggestionResponse({
+        query,
+        description,
+        category,
+        condition,
+        conditionFactor,
+        location,
+        imageSearch: lensSearchPack.imageSearch,
+        modelSignals,
+        brandSignals,
+        meaningfulTokens,
+        selectedAttempt: refinedAttempt,
+        attemptedPricingBasis: allAttempts.map(attemptSummary),
+      });
+
+      await upsertCache(adminClient, {
+        cacheKey: refinedCacheKey,
+        listingId: listingId || null,
+        request: refinedCacheRequest,
+        response: refinedResponseBody,
+      });
+
+      if (refinedSearchCacheKey !== refinedCacheKey) {
+        await upsertCache(adminClient, {
+          cacheKey: refinedSearchCacheKey,
+          listingId: null,
+          request: refinedCacheRequest,
+          response: refinedResponseBody,
+        });
+      }
+
+      if (baseSearchCacheKey !== refinedCacheKey && baseSearchCacheKey !== refinedSearchCacheKey) {
+        await upsertCache(adminClient, {
+          cacheKey: baseSearchCacheKey,
+          listingId: null,
+          request: {
+            ...refinedCacheRequest,
+            fingerprint: baseFingerprint,
+            searchQuery: baseSearchQuery,
+          },
+          response: refinedResponseBody,
+        });
+      }
+    })());
 
     return jsonResponse(withCacheMeta(responseBody, false, cacheKey));
   } catch (error) {

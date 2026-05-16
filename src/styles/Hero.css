@@ -250,15 +250,12 @@
   position: relative;
   overflow: hidden;
   border-radius: 20px;
-
-  /* Glass style */
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
+  background: #fffdf8;
+  border: 1px solid rgba(31, 36, 31, 0.08);
 
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.05),
-    0 24px 64px rgba(0, 0, 0, 0.6);
+    0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 24px 64px rgba(0, 0, 0, 0.34);
 }
 
 .carousel-track {
@@ -279,15 +276,11 @@
 
 /* Card inside carousel */
 .hero__carousel .listing-card {
-  background: transparent;
   border-radius: 16px;
   overflow: hidden;
   margin: 0.75rem;
-
-  /* Glass look */
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(10px);
+  background: #fffdf8;
+  border: 1px solid rgba(31, 36, 31, 0.08);
 
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
@@ -300,7 +293,7 @@
 .listing-image {
   position: relative;
   height: 168px;
-  background: linear-gradient(135deg, var(--surface-strong), var(--mint-pale));
+  background: #fffdf8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -336,6 +329,7 @@
 
 .listing-details {
   padding: 0.85rem;
+  background: #fffdf8;
 }
 
 .listing-title {
@@ -826,13 +820,62 @@
 }
 /* ── DARK MODE FIXES FOR HERO CAROUSEL ── */
 
+html.dark .hero {
+  background: #fffdf8 !important;
+}
+
+html.dark .hero__bg {
+  background: #fffdf8 !important;
+}
+
+html.dark .hero__bg::before,
+html.dark .hero__bg::after,
+html.dark .hero__overlay {
+  display: none;
+}
+
+html.dark .hero__title {
+  color: var(--gray-900);
+}
+
+html.dark .hero__subtitle {
+  color: var(--green-dark);
+  text-shadow: none;
+}
+
+html.dark .hero__description,
+html.dark .hero__badge {
+  color: var(--gray-800);
+}
+
+html.dark .hero__stats {
+  background: #f7f4ec;
+  border-color: rgba(31, 36, 31, 0.1);
+  backdrop-filter: none;
+}
+
+html.dark .hero__stat-value {
+  color: var(--gray-900);
+}
+
+html.dark .hero__stat-label {
+  color: var(--gray-600);
+}
+
+html.dark .hero .btn-outline {
+  background: #fffdf8;
+  border-color: rgba(31, 107, 82, 0.35);
+  color: var(--green-dark);
+  backdrop-filter: none;
+}
+
 html.dark .listing-seller {
-  color: #9ca3af !important;
+  color: var(--gray-500) !important;
 }
 
 html.dark .listing-title,
 html.dark .listing-price {
-  color: #f9fafb !important;
+  color: var(--gray-900) !important;
 }
 
 /* Arrow buttons */

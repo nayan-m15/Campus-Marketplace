@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { insertMessage } from "../utils/messageDelivery";
 import { deriveBookingStatus } from "../utils/tradeWorkflow";
@@ -33,7 +33,7 @@ const NAV_ITEMS = [
   { key: "dropoffs", label: "Drop-off Bookings", icon: "arrow-down" },
   { key: "collections", label: "Collection Bookings", icon: "arrow-up" },
   { key: "manage", label: "Manage Bookings", icon: "settings" },
-  { key: "transactions", label: "All Transactions", icon: "table" },
+  { key: "transactions", label: "Transaction Ledger", icon: "table" },
   { key: "meetups", label: "Trade Meetups", icon: "users" },
 ];
 
@@ -55,12 +55,37 @@ function formatDateTime(timestamp) {
   };
 }
 
+function formatDateTimeLong(timestamp) {
+  if (!timestamp) return "-";
+  const date = new Date(timestamp);
+  return date.toLocaleDateString("en-ZA", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function initials(name) {
   return (name || "?").split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2);
 }
 
 function buildListingMatchKey(userId, itemName) {
   return `${userId || ""}::${String(itemName || "").trim().toLowerCase()}`;
+}
+
+function getItemTypeLabel(transaction) {
+  return transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id)
+    ? "Item Trade"
+    : "Sale";
+}
+
+function getStatusTone(status) {
+  if (["completed", "item_released"].includes(status)) return "success";
+  if (["awaiting_dropoff", "collection_pending_approval"].includes(status)) return "warning";
+  if (status === "cancelled") return "danger";
+  if (["awaiting_collection", "item_received"].includes(status)) return "info";
+  return "neutral";
 }
 
 function mapBookingStatusToTransactionStatus(type, bookingStatus, currentStatus) {
@@ -191,6 +216,18 @@ function Icon({ name, className = "", title }) {
     receipt: (
       <path d="M7 4h10v16l-2.5-1.5L12 20l-2.5-1.5L7 20V4Zm3 4h4m-4 4h4" />
     ),
+    calendar: (
+      <path d="M8 3v3m8-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1Z" />
+    ),
+    copy: (
+      <path d="M9 9h10v11H9zM5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+    ),
+    "chevron-down": (
+      <path d="m6 9 6 6 6-6" />
+    ),
+    more: (
+      <path d="M12 5.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm0 5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm0 5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" />
+    ),
     activity: (
       <path d="M4 13h4l2-6 4 10 2-4h4" />
     ),
@@ -254,6 +291,25 @@ function EmptyState({ icon, title, description }) {
       </span>
       <p className="empty-state__title">{title}</p>
       <p className="empty-state__description">{description}</p>
+    </section>
+  );
+}
+
+function TransactionTableSkeleton() {
+  return (
+    <section className="transactions-skeleton" aria-hidden="true">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <section key={index} className="transactions-skeleton__row">
+          <span className="transactions-skeleton__cell transactions-skeleton__cell--checkbox" />
+          <span className="transactions-skeleton__cell transactions-skeleton__cell--transaction" />
+          <span className="transactions-skeleton__cell transactions-skeleton__cell--item" />
+          <span className="transactions-skeleton__cell transactions-skeleton__cell--person" />
+          <span className="transactions-skeleton__cell transactions-skeleton__cell--person" />
+          <span className="transactions-skeleton__cell transactions-skeleton__cell--amount" />
+          <span className="transactions-skeleton__cell transactions-skeleton__cell--status" />
+          <span className="transactions-skeleton__cell transactions-skeleton__cell--actions" />
+        </section>
+      ))}
     </section>
   );
 }
@@ -883,11 +939,27 @@ function ManageBookingsSection({ transactions, bookings, onAction, savingIds }) 
 function TransactionsSection({
   transactions,
   bookings,
+  loading = false,
   onTransactionStatusChange,
   statusSavingIds,
   onOpenReceiptModal,
+  onGenerateReceipt,
 }) {
   const [search, setSearch] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" });
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [itemTypeFilter, setItemTypeFilter] = useState("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState("all");
+  const [sellerFilter, setSellerFilter] = useState("all");
+  const [buyerFilter, setBuyerFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [page, setPage] = useState(1);
+  const [openMenuId, setOpenMenuId] = useState("");
+  const [expandedRowId, setExpandedRowId] = useState("");
+  const [copiedId, setCopiedId] = useState("");
+  const actionMenuRefs = useRef({});
+  const statusSelectRefs = useRef({});
+  const pageSize = 10;
 
   const transactionStatusOptions = [
     "awaiting_payment",
@@ -900,93 +972,411 @@ function TransactionsSection({
     "cancelled",
   ];
 
-  const filtered = useMemo(
-    () =>
-      transactions.filter((transaction) => {
-        if (!search.trim()) return true;
-        const haystack = [transaction.id, transaction.item, transaction.seller.name, transaction.buyer.name]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return haystack.includes(search.toLowerCase());
-      }),
-    [search, transactions],
+  const sellerOptions = useMemo(
+    () => Array.from(new Set(transactions.map((transaction) => transaction.seller.name).filter(Boolean))).sort(),
+    [transactions],
   );
+
+  const buyerOptions = useMemo(
+    () => Array.from(new Set(transactions.map((transaction) => transaction.buyer.name).filter(Boolean))).sort(),
+    [transactions],
+  );
+
+  const filtered = useMemo(() => {
+    const now = new Date();
+    const searchValue = search.trim().toLowerCase();
+
+    return transactions.filter((transaction) => {
+      const itemType = getItemTypeLabel(transaction);
+      const createdAt = transaction.createdAt ? new Date(transaction.createdAt) : null;
+      const haystack = [
+        transaction.id,
+        transaction.item,
+        transaction.itemDescription,
+        transaction.seller.name,
+        transaction.seller.studentId,
+        transaction.buyer.name,
+        transaction.buyer.studentId,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      if (searchValue && !haystack.includes(searchValue)) return false;
+      if (statusFilter !== "all" && transaction.status !== statusFilter) return false;
+      if (itemTypeFilter !== "all" && itemType !== itemTypeFilter) return false;
+      if (sellerFilter !== "all" && transaction.seller.name !== sellerFilter) return false;
+      if (buyerFilter !== "all" && transaction.buyer.name !== buyerFilter) return false;
+
+      if (dateRangeFilter !== "all" && createdAt) {
+        const diffDays = (now - createdAt) / (1000 * 60 * 60 * 24);
+        if (dateRangeFilter === "7d" && diffDays > 7) return false;
+        if (dateRangeFilter === "30d" && diffDays > 30) return false;
+        if (dateRangeFilter === "90d" && diffDays > 90) return false;
+      }
+
+      return true;
+    });
+  }, [buyerFilter, dateRangeFilter, itemTypeFilter, search, sellerFilter, statusFilter, transactions]);
+
+  const sortedTransactions = useMemo(() => {
+    const valueFor = (transaction, key) => {
+      switch (key) {
+        case "id":
+          return transaction.id || "";
+        case "item":
+          return transaction.item || "";
+        case "seller":
+          return transaction.seller.name || "";
+        case "buyer":
+          return transaction.buyer.name || "";
+        case "amount":
+          return Number(transaction.totalAmount || 0);
+        case "status":
+          return STATUS_META[transaction.status]?.label || transaction.status || "";
+        case "createdAt":
+        default:
+          return new Date(transaction.createdAt || 0).getTime();
+      }
+    };
+
+    return [...filtered].sort((a, b) => {
+      const aValue = valueFor(a, sortConfig.key);
+      const bValue = valueFor(b, sortConfig.key);
+      const direction = sortConfig.direction === "asc" ? 1 : -1;
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return (aValue - bValue) * direction;
+      }
+
+      return String(aValue).localeCompare(String(bValue), "en", { sensitivity: "base" }) * direction;
+    });
+  }, [filtered, sortConfig]);
+
+  const pageCount = Math.max(1, Math.ceil(sortedTransactions.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const validSelectedIds = useMemo(
+    () => selectedIds.filter((id) => sortedTransactions.some((transaction) => transaction.id === id)),
+    [selectedIds, sortedTransactions],
+  );
+  const paginatedTransactions = useMemo(
+    () => sortedTransactions.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [currentPage, sortedTransactions],
+  );
+  const pageIds = paginatedTransactions.map((transaction) => transaction.id);
+  const allVisibleSelected = pageIds.length > 0 && pageIds.every((id) => validSelectedIds.includes(id));
+  const activeFilterCount = [statusFilter, itemTypeFilter, dateRangeFilter, sellerFilter, buyerFilter].filter(
+    (value) => value !== "all",
+  ).length;
+
+  useEffect(() => {
+    if (!openMenuId) return undefined;
+
+    const handleOutsideClick = (event) => {
+      const activeMenu = actionMenuRefs.current[openMenuId];
+      if (activeMenu && !activeMenu.contains(event.target)) {
+        setOpenMenuId("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [openMenuId]);
+
+  useEffect(() => {
+    if (!copiedId) return undefined;
+    const timer = window.setTimeout(() => setCopiedId(""), 1600);
+    return () => window.clearTimeout(timer);
+  }, [copiedId]);
+
+  const bookingMap = useMemo(
+    () => Object.fromEntries(bookings.map((booking) => [booking.id, booking])),
+    [bookings],
+  );
+
+  const handleSort = useCallback((key) => {
+    setSortConfig((current) => (
+      current.key === key
+        ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
+        : { key, direction: key === "createdAt" ? "desc" : "asc" }
+    ));
+    setPage(1);
+  }, []);
+
+  const handleCopyId = useCallback(async (transactionId) => {
+    try {
+      await navigator.clipboard.writeText(transactionId);
+      setCopiedId(transactionId);
+    } catch {
+      setCopiedId("");
+    }
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setStatusFilter("all");
+    setItemTypeFilter("all");
+    setDateRangeFilter("all");
+    setSellerFilter("all");
+    setBuyerFilter("all");
+    setPage(1);
+  }, []);
+
+  const toggleSelection = useCallback((transactionId) => {
+    setSelectedIds((prev) => (
+      prev.includes(transactionId)
+        ? prev.filter((id) => id !== transactionId)
+        : [...prev, transactionId]
+    ));
+  }, []);
+
+  const togglePageSelection = useCallback(() => {
+    setSelectedIds((prev) => (
+      allVisibleSelected
+        ? prev.filter((id) => !pageIds.includes(id))
+        : Array.from(new Set([...prev, ...pageIds]))
+    ));
+  }, [allVisibleSelected, pageIds]);
+
+  const openStatusEditor = useCallback((transactionId) => {
+    setOpenMenuId("");
+    statusSelectRefs.current[transactionId]?.focus();
+  }, []);
+
+  const toggleExpandedRow = useCallback((transactionId) => {
+    setExpandedRowId((current) => (current === transactionId ? "" : transactionId));
+    setOpenMenuId("");
+  }, []);
 
   return (
     <section className="view-section" aria-labelledby="transactions-heading">
-      <h2 id="transactions-heading" className="sr-only">All Transactions</h2>
+      <h2 id="transactions-heading" className="sr-only">Transaction Ledger</h2>
 
       <article className="panel">
         <header className="panel__header">
           <section>
             <p className="panel__eyebrow">Full Ledger</p>
-            <h3 className="panel__title">All Transactions</h3>
+            <h3 className="panel__title">Transaction Ledger</h3>
             <p className="panel__subtitle">Complete view of accepted offers across every handover stage.</p>
           </section>
           <p className="panel__count">{filtered.length} of {transactions.length} transactions</p>
         </header>
 
-        <section className="bookings-controls transactions-toolbar">
-          <label htmlFor="txn-search" className="dashboard-search transactions-toolbar__search">
-            <Icon name="search" className="dashboard-search__icon" />
-            <span className="sr-only">Search transactions</span>
-            <input
-              id="txn-search"
-              type="search"
-              className="bookings-search"
-              placeholder="Search by transaction ID, item, buyer, or seller..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </label>
-          <button type="button" className="btn-primary" onClick={onOpenReceiptModal}>
-            <Icon name="receipt" className="btn-action__icon" />
-            Generate Receipt
-          </button>
+        <section className="bookings-controls transactions-toolbar-wrap">
+          <section className="transactions-toolbar">
+            <label htmlFor="txn-search" className="dashboard-search transactions-toolbar__search">
+              <Icon name="search" className="dashboard-search__icon" />
+              <span className="sr-only">Search transactions</span>
+              <input
+                id="txn-search"
+                type="search"
+                className="bookings-search"
+                placeholder="Search by transaction ID, item, buyer, or seller..."
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <section className="transactions-toolbar__summary" aria-live="polite">
+              <span className="transactions-toolbar__count">
+                {activeFilterCount} active filter{activeFilterCount === 1 ? "" : "s"}
+              </span>
+              <span className="transactions-toolbar__selection">
+                {validSelectedIds.length} selected
+              </span>
+            </section>
+            <button type="button" className="btn-primary" onClick={onOpenReceiptModal}>
+              <Icon name="receipt" className="btn-action__icon" />
+              Generate Receipt
+            </button>
+          </section>
+
+          <section className="transactions-filters" aria-label="Transaction filters">
+            <label className="filter-chip">
+              <Icon name="calendar" className="filter-chip__icon" />
+              <span>Date Range</span>
+              <select
+                value={dateRangeFilter}
+                onChange={(event) => {
+                  setDateRangeFilter(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">All Dates</option>
+                <option value="7d">Last 7 days</option>
+                <option value="30d">Last 30 days</option>
+                <option value="90d">Last 90 days</option>
+              </select>
+            </label>
+            <label className="filter-chip">
+              <span>Status</span>
+              <select
+                value={statusFilter}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">All Statuses</option>
+                {transactionStatusOptions.map((status) => (
+                  <option key={status} value={status}>{STATUS_META[status]?.label || status}</option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-chip">
+              <span>Item Type</span>
+              <select
+                value={itemTypeFilter}
+                onChange={(event) => {
+                  setItemTypeFilter(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">All Types</option>
+                <option value="Sale">Sale</option>
+                <option value="Item Trade">Item Trade</option>
+              </select>
+            </label>
+            <label className="filter-chip">
+              <span>Seller</span>
+              <select
+                value={sellerFilter}
+                onChange={(event) => {
+                  setSellerFilter(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">All Sellers</option>
+                {sellerOptions.map((seller) => <option key={seller} value={seller}>{seller}</option>)}
+              </select>
+            </label>
+            <label className="filter-chip">
+              <span>Buyer</span>
+              <select
+                value={buyerFilter}
+                onChange={(event) => {
+                  setBuyerFilter(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">All Buyers</option>
+                {buyerOptions.map((buyer) => <option key={buyer} value={buyer}>{buyer}</option>)}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="transactions-clear-filters"
+              onClick={clearFilters}
+              disabled={activeFilterCount === 0}
+            >
+              Clear Filters
+            </button>
+          </section>
         </section>
 
-        {filtered.length === 0 ? (
-          <EmptyState icon="search" title="No transactions found" description="Accepted offers will appear here once they enter the facility workflow." />
+        {loading ? (
+          <TransactionTableSkeleton />
+        ) : filtered.length === 0 ? (
+          <section className="transactions-empty-state">
+            <EmptyState icon="search" title="No transactions match these filters" description="Try broadening the date range, clearing a chip, or searching with a different seller, buyer, or item name." />
+          </section>
         ) : (
-          <figure className="table-figure" role="group" aria-label="Transactions table">
+          <>
+          <figure className="table-figure transactions-table-wrap" role="group" aria-label="Transactions table">
             <table className="report-table transactions-table">
               <thead>
                 <tr>
-                  <th scope="col">Transaction</th>
-                  <th scope="col">Item</th>
-                  <th scope="col">Seller</th>
-                  <th scope="col">Buyer</th>
-                  <th scope="col">Value</th>
-                  <th scope="col">Status</th>
+                  <th scope="col" className="transactions-table__checkbox-col">
+                    <input type="checkbox" aria-label={allVisibleSelected ? "Deselect current page rows" : "Select current page rows"} checked={allVisibleSelected} onChange={togglePageSelection} />
+                  </th>
+                  <th scope="col">
+                    <button type="button" className="transactions-table__header-btn" onClick={() => handleSort("createdAt")}>
+                      Transaction <span className="transactions-table__sort">{sortConfig.key === "createdAt" ? (sortConfig.direction === "asc" ? "^" : "v") : "-"}</span>
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button type="button" className="transactions-table__header-btn" onClick={() => handleSort("item")}>
+                      Item <span className="transactions-table__sort">{sortConfig.key === "item" ? (sortConfig.direction === "asc" ? "^" : "v") : "-"}</span>
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button type="button" className="transactions-table__header-btn" onClick={() => handleSort("seller")}>
+                      Seller <span className="transactions-table__sort">{sortConfig.key === "seller" ? (sortConfig.direction === "asc" ? "^" : "v") : "-"}</span>
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button type="button" className="transactions-table__header-btn" onClick={() => handleSort("buyer")}>
+                      Buyer <span className="transactions-table__sort">{sortConfig.key === "buyer" ? (sortConfig.direction === "asc" ? "^" : "v") : "-"}</span>
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button type="button" className="transactions-table__header-btn" onClick={() => handleSort("amount")}>
+                      Value <span className="transactions-table__sort">{sortConfig.key === "amount" ? (sortConfig.direction === "asc" ? "^" : "v") : "-"}</span>
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button type="button" className="transactions-table__header-btn" onClick={() => handleSort("status")}>
+                      Status <span className="transactions-table__sort">{sortConfig.key === "status" ? (sortConfig.direction === "asc" ? "^" : "v") : "-"}</span>
+                    </button>
+                  </th>
                   <th scope="col">Drop-off</th>
                   <th scope="col">Collection</th>
+                  <th scope="col" className="transactions-table__actions-col">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((transaction) => {
-                  const dropoff = bookings.find((booking) => booking.id === transaction.dropoffId);
-                  const collection = bookings.find((booking) => booking.id === transaction.collectionId);
+                {paginatedTransactions.map((transaction) => {
+                  const dropoff = bookingMap[transaction.dropoffId] || bookingMap[transaction.dropoff_id];
+                  const collection = bookingMap[transaction.collectionId] || bookingMap[transaction.collection_id];
                   const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
+                  const selected = validSelectedIds.includes(transaction.id);
+                  const expanded = expandedRowId === transaction.id;
 
                   return (
-                    <tr key={transaction.id}>
+                    <Fragment key={transaction.id}>
+                    <tr className={`transactions-table__row${selected ? " transactions-table__row--selected" : ""}`}>
                       <td>
-                        <span className="txn-id-chip">{transaction.id}</span>
-                        <p className="txn-date">{formatDate(transaction.createdAt?.slice(0, 10) || "")}</p>
+                        <input type="checkbox" aria-label={`Select transaction ${transaction.id}`} checked={selected} onChange={() => toggleSelection(transaction.id)} />
                       </td>
-                      <td className="txn-item">
-                        {transaction.item}
-                        {isItemTrade ? (
-                          <p className="txn-date">
-                            {transaction.requested_item || "Listed item"} for {transaction.offered_item || "offered item"}
+                      <td>
+                        <section className="txn-transaction-cell">
+                          <section className="txn-id-row">
+                            <span className="txn-id-chip">{transaction.id}</span>
+                            <button type="button" className="txn-copy-btn" onClick={() => handleCopyId(transaction.id)} aria-label={`Copy transaction ID ${transaction.id}`}>
+                              <Icon name="copy" className="txn-copy-btn__icon" />
+                            </button>
+                          </section>
+                          <p className="txn-date txn-date--calendar">
+                            <Icon name="calendar" className="txn-date__icon" />
+                            <span>{formatDateTimeLong(transaction.createdAt)}</span>
                           </p>
-                        ) : null}
+                          {copiedId === transaction.id && <p className="txn-date">Copied</p>}
+                        </section>
+                      </td>
+                      <td>
+                        <section className="txn-item-cell" title={transaction.item}>
+                          {transaction.itemImageUrl ? (
+                            <img src={transaction.itemImageUrl} alt="" className="txn-item-thumb" />
+                          ) : (
+                            <span className="txn-item-thumb txn-item-thumb--placeholder" aria-hidden="true">
+                              {transaction.item?.slice(0, 1)?.toUpperCase() || "I"}
+                            </span>
+                          )}
+                          <section className="txn-item-copy">
+                            <p className="txn-item">{transaction.item}</p>
+                            <p className="txn-item__meta">
+                              {isItemTrade
+                                ? `${transaction.requested_item || "Listed item"} for ${transaction.offered_item || "offered item"}`
+                                : transaction.itemDescription || "Marketplace sale"}
+                            </p>
+                          </section>
+                        </section>
                       </td>
                       <td>
                         <section className="txn-person">
                           <Avatar name={transaction.seller.name} size="sm" />
-                          <section>
+                          <section className="txn-person__copy">
                             <p className="txn-person__name">{transaction.seller.name}</p>
                             <p className="txn-person__id">{transaction.seller.studentId}</p>
                           </section>
@@ -995,13 +1385,16 @@ function TransactionsSection({
                       <td>
                         <section className="txn-person">
                           <Avatar name={transaction.buyer.name} size="sm" />
-                          <section>
+                          <section className="txn-person__copy">
                             <p className="txn-person__name">{transaction.buyer.name}</p>
                             <p className="txn-person__id">{transaction.buyer.studentId}</p>
                           </section>
                         </section>
                       </td>
-                      <td className="txn-price">{isItemTrade ? "Item trade" : `R ${Number(transaction.price || 0).toLocaleString("en-ZA")}`}</td>
+                      <td>
+                        <p className="txn-price">{isItemTrade ? "Item trade" : `R ${Number(transaction.totalAmount || transaction.price || 0).toLocaleString("en-ZA")}`}</p>
+                        <p className="txn-amount__meta">{getItemTypeLabel(transaction)}</p>
+                      </td>
                       <td>
                         <span className="txn-status-stack">
                           <StatusBadge status={transaction.status} />
@@ -1010,6 +1403,9 @@ function TransactionsSection({
                             <select
                               className="status-select status-select--compact"
                               value={transaction.status}
+                              ref={(node) => {
+                                statusSelectRefs.current[transaction.id] = node;
+                              }}
                               onChange={(event) => onTransactionStatusChange(transaction.id, event.target.value)}
                               disabled={Boolean(statusSavingIds[transaction.id])}
                             >
@@ -1040,12 +1436,151 @@ function TransactionsSection({
                           </section>
                         ) : <span className="txn-na">-</span>}
                       </td>
+                      <td>
+                        <section
+                          className="txn-actions"
+                          ref={(node) => {
+                            actionMenuRefs.current[transaction.id] = node;
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className="txn-actions__trigger"
+                            aria-label={`Open actions for ${transaction.id}`}
+                            onClick={() => setOpenMenuId((current) => current === transaction.id ? "" : transaction.id)}
+                          >
+                            <Icon name="more" className="txn-actions__trigger-icon" />
+                          </button>
+                          {openMenuId === transaction.id && (
+                            <section className="txn-actions__menu">
+                              <button type="button" onClick={() => toggleExpandedRow(transaction.id)}>
+                                {expanded ? "Hide details" : "View details"}
+                              </button>
+                              <button type="button" onClick={() => openStatusEditor(transaction.id)}>
+                                Change status
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuId("");
+                                  if (onGenerateReceipt) onGenerateReceipt(transaction);
+                                  else onOpenReceiptModal();
+                                }}
+                              >
+                                Generate receipt
+                              </button>
+                            </section>
+                          )}
+                        </section>
+                      </td>
                     </tr>
+                    {expanded && (
+                      <tr key={`${transaction.id}-details`} className="transactions-table__detail-row">
+                        <td colSpan={10}>
+                          <section className="transactions-detail-card">
+                            <section className="transactions-detail-card__group">
+                              <p className="transactions-detail-card__label">Description</p>
+                              <p className="transactions-detail-card__value transactions-detail-card__value--muted">
+                                {transaction.itemDescription || "No item description recorded."}
+                              </p>
+                            </section>
+                            <section className="transactions-detail-card__group">
+                              <p className="transactions-detail-card__label">Payment</p>
+                              <p className="transactions-detail-card__value">
+                                {transaction.paymentStatus || transaction.payment_status || "Not recorded"}
+                              </p>
+                            </section>
+                            <section className="transactions-detail-card__group">
+                              <p className="transactions-detail-card__label">Bookings</p>
+                              <p className="transactions-detail-card__value transactions-detail-card__value--muted">
+                                Drop-off: {dropoff?.id || "-"} | Collection: {collection?.id || "-"}
+                              </p>
+                            </section>
+                          </section>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })}
               </tbody>
             </table>
           </figure>
+          <section className="transactions-cards" aria-label="Transactions cards">
+            {paginatedTransactions.map((transaction) => {
+              const isItemTrade = transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id);
+              return (
+                <article key={`card-${transaction.id}`} className="transactions-card">
+                  <section className="transactions-card__top">
+                    <section>
+                      <section className="txn-id-row">
+                        <span className="txn-id-chip">{transaction.id}</span>
+                        <button type="button" className="txn-copy-btn" onClick={() => handleCopyId(transaction.id)} aria-label={`Copy transaction ID ${transaction.id}`}>
+                          <Icon name="copy" className="txn-copy-btn__icon" />
+                        </button>
+                      </section>
+                      <p className="txn-date txn-date--calendar">
+                        <Icon name="calendar" className="txn-date__icon" />
+                        <span>{formatDateTimeLong(transaction.createdAt)}</span>
+                      </p>
+                    </section>
+                    <StatusBadge status={transaction.status} />
+                  </section>
+                  <section className="txn-item-cell" title={transaction.item}>
+                    <span className="txn-item-thumb txn-item-thumb--placeholder" aria-hidden="true">
+                      {transaction.item?.slice(0, 1)?.toUpperCase() || "I"}
+                    </span>
+                    <section className="txn-item-copy">
+                      <p className="txn-item">{transaction.item}</p>
+                      <p className="txn-item__meta">{isItemTrade ? "Item trade" : "Marketplace sale"}</p>
+                    </section>
+                  </section>
+                  <section className="transactions-card__meta">
+                    <section className="txn-person">
+                      <Avatar name={transaction.seller.name} size="sm" />
+                      <section className="txn-person__copy">
+                        <p className="txn-person__name">{transaction.seller.name}</p>
+                        <p className="txn-person__id">{transaction.seller.studentId}</p>
+                      </section>
+                    </section>
+                    <section className="txn-person">
+                      <Avatar name={transaction.buyer.name} size="sm" />
+                      <section className="txn-person__copy">
+                        <p className="txn-person__name">{transaction.buyer.name}</p>
+                        <p className="txn-person__id">{transaction.buyer.studentId}</p>
+                      </section>
+                    </section>
+                  </section>
+                  <section className="transactions-card__footer">
+                    <section>
+                      <p className="transactions-detail-card__label">Amount</p>
+                      <p className="txn-price">
+                        {isItemTrade ? "Item trade" : `R ${Number(transaction.totalAmount || transaction.price || 0).toLocaleString("en-ZA")}`}
+                      </p>
+                    </section>
+                    <button type="button" className="btn-export" onClick={() => toggleExpandedRow(transaction.id)}>
+                      {expandedRowId === transaction.id ? "Hide Details" : "View Details"}
+                    </button>
+                  </section>
+                </article>
+              );
+            })}
+          </section>
+          <footer className="transactions-pagination">
+            <p className="transactions-pagination__summary">
+              Showing {paginatedTransactions.length ? (currentPage - 1) * pageSize + 1 : 0}-{Math.min(currentPage * pageSize, sortedTransactions.length)} of {sortedTransactions.length}
+            </p>
+            <section className="transactions-pagination__controls">
+              <button type="button" className="btn-export" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={currentPage === 1}>
+                Previous
+              </button>
+              <span className="transactions-pagination__page">Page {currentPage} of {pageCount}</span>
+              <button type="button" className="btn-export" onClick={() => setPage((current) => Math.min(pageCount, current + 1))} disabled={currentPage === pageCount}>
+                Next
+              </button>
+            </section>
+          </footer>
+          </>
         )}
       </article>
     </section>
@@ -1702,7 +2237,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
     dropoffs: "Drop-off Bookings",
     collections: "Collection Bookings",
     manage: "Manage Bookings",
-    transactions: "All Transactions",
+    transactions: "Transaction Ledger",
     meetups: "Trade Meetups",
   };
 
@@ -1805,7 +2340,7 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
           </section>
         </header>
 
-        {loading ? <section className="panel panel--feedback">Loading facility activity...</section> : null}
+        {loading && activeView !== "transactions" ? <section className="panel panel--feedback">Loading facility activity...</section> : null}
         {!loading && error ? <section className="panel panel--feedback">{error}</section> : null}
 
         {!loading && !error && activeView === "overview" ? (
@@ -1843,13 +2378,15 @@ export default function TradeFacilityDashboard({ onSignOut, staffProfile }) {
           />
         ) : null}
 
-        {!loading && !error && activeView === "transactions" ? (
+        {!error && activeView === "transactions" ? (
           <TransactionsSection
             transactions={transactions}
             bookings={bookings}
+            loading={loading}
             onTransactionStatusChange={handleTransactionStatusChange}
             statusSavingIds={savingIds}
             onOpenReceiptModal={() => setReceiptModalOpen(true)}
+            onGenerateReceipt={handleGenerateReceipt}
           />
         ) : null}
 

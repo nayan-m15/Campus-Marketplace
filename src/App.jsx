@@ -304,6 +304,7 @@ function ListingPriceCheck({ item }) {
         description: String(item.description || "").trim().toLowerCase(),
         category: String(item.category || "").trim().toLowerCase(),
         condition: String(item.condition || "").trim().toLowerCase(),
+        listingPrice,
         imageUrl,
       })
     : "";
@@ -351,6 +352,7 @@ function ListingPriceCheck({ item }) {
         description: item.description || "",
         category: item.category,
         condition: item.condition,
+        listingPrice,
         imageUrl,
       },
     }).then(({ data, error }) => {
@@ -416,6 +418,7 @@ function ListingPriceCheck({ item }) {
 
   const fairness = getPriceFairness(listingPrice, priceCheck, item);
   const confidenceLevel = priceCheck.confidence?.level || "Low";
+  const pricingBasisLabel = priceCheck.pricingBasis?.label || "Google Shopping SA prices";
 
   return (
     <section className={`item-modal-price-check item-modal-price-check--${fairness.tone}`}>
@@ -426,7 +429,7 @@ function ListingPriceCheck({ item }) {
       <p>{fairness.message}</p>
       {fairness.showRange && (
         <p>
-          Based on Google Shopping SA prices, adjusted for condition. Suggested range:{" "}
+          Based on {pricingBasisLabel}, adjusted for condition. Suggested range:{" "}
           {priceCheck.suggestedRange?.minFormatted} - {priceCheck.suggestedRange?.maxFormatted}.
         </p>
       )}
@@ -968,11 +971,13 @@ function ModerationModal({
   onReasonChange,
   onClose,
   onFlagListing,
+  onUnflagListing,
   onRemoveListing,
 }) {
   if (!item) return null;
 
   const moderationReasonLength = moderationReason.length;
+  const isFlagged = item.status === "flagged";
 
   return (
     <section className="item-modal-overlay" onClick={onClose}>
@@ -987,9 +992,15 @@ function ModerationModal({
                   <section className="item-modal-top-text">
                     <h2 className="item-modal-title">Review moderation</h2>
                     <article className="item-modal-description-card">
-                      <p>
-                        Moderate listing safety for <strong>{item.title}</strong>. Use <strong>Flag listing</strong> to warn buyers that this listing needs caution, or <strong>Remove listing</strong> to take it down entirely.
-                      </p>
+                      {isFlagged ? (
+                        <p>
+                          Moderate listing safety for <strong>{item.title}</strong>. Use <strong>Update flag</strong> to revise the buyer warning, <strong>Unflag listing</strong> to remove the warning, or <strong>Remove listing</strong> to take it down entirely.
+                        </p>
+                      ) : (
+                        <p>
+                          Moderate listing safety for <strong>{item.title}</strong>. Use <strong>Flag listing</strong> to warn buyers that this listing needs caution, or <strong>Remove listing</strong> to take it down entirely.
+                        </p>
+                      )}
                     </article>
                   </section>
                 </article>
@@ -1041,8 +1052,18 @@ function ModerationModal({
                         onClick={() => onFlagListing(item)}
                         disabled={Boolean(actionState.loading)}
                       >
-                        {actionState.loading === "flag" ? "Flagging..." : "Flag listing"}
+                        {actionState.loading === "flag" ? "Saving..." : isFlagged ? "Update flag" : "Flag listing"}
                       </button>
+                      {isFlagged && (
+                        <button
+                          type="button"
+                          className="item-modal-send-btn item-modal-send-btn--unflag"
+                          onClick={() => onUnflagListing(item)}
+                          disabled={Boolean(actionState.loading)}
+                        >
+                          {actionState.loading === "unflag" ? "Unflagging..." : "Unflag listing"}
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="item-modal-send-btn item-modal-send-btn--secondary"
@@ -1911,6 +1932,11 @@ useEffect(() => {
       if (error) throw error;
 
       await refreshListings();
+      setModerationListing((current) =>
+        current?.id === item.id
+          ? { ...current, status: "flagged", flag_reason: reason }
+          : current
+      );
       setModerationState({
         loading: "",
         success: "Listing flagged. Buyers will now see a warning on it.",
@@ -1921,6 +1947,38 @@ useEffect(() => {
         loading: "",
         success: "",
         error: err.message || "Could not flag this listing.",
+      });
+    }
+  }
+
+  async function handleUnflagListing(item) {
+    setModerationState({ loading: "unflag", success: "", error: "" });
+
+    try {
+      const { error } = await supabase
+        .from("listings")
+        .update({ status: "active", flag_reason: "" })
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      await refreshListings();
+      setModerationReason("");
+      setModerationListing((current) =>
+        current?.id === item.id
+          ? { ...current, status: "active", flag_reason: "" }
+          : current
+      );
+      setModerationState({
+        loading: "",
+        success: "Listing unflagged. Buyers will no longer see a warning on it.",
+        error: "",
+      });
+    } catch (err) {
+      setModerationState({
+        loading: "",
+        success: "",
+        error: err.message || "Could not unflag this listing.",
       });
     }
   }
@@ -2031,6 +2089,7 @@ useEffect(() => {
           onReasonChange={(value) => setModerationReason(limitModerationReason(value))}
           onClose={() => setModerationListing(null)}
           onFlagListing={handleFlagListing}
+          onUnflagListing={handleUnflagListing}
           onRemoveListing={handleRemoveListing}
         />
       </>
@@ -2298,6 +2357,7 @@ useEffect(() => {
           onReasonChange={(value) => setModerationReason(limitModerationReason(value))}
           onClose={() => setModerationListing(null)}
           onFlagListing={handleFlagListing}
+          onUnflagListing={handleUnflagListing}
           onRemoveListing={handleRemoveListing}
         />
       </>
@@ -2436,6 +2496,7 @@ useEffect(() => {
           onReasonChange={(value) => setModerationReason(limitModerationReason(value))}
           onClose={() => setModerationListing(null)}
           onFlagListing={handleFlagListing}
+          onUnflagListing={handleUnflagListing}
           onRemoveListing={handleRemoveListing}
         />
       </header>
