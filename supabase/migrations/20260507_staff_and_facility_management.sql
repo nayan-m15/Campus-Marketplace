@@ -93,6 +93,7 @@ AS $$
     FROM public.profiles
     WHERE id = auth.uid()
       AND role = 'admin'
+      AND COALESCE(status, 'active') = 'active'
   );
 $$;
 
@@ -108,6 +109,7 @@ AS $$
     FROM public.profiles
     WHERE id = auth.uid()
       AND role = 'staff'
+      AND COALESCE(status, 'active') = 'active'
   );
 $$;
 
@@ -123,6 +125,7 @@ AS $$
     FROM public.profiles
     WHERE id = auth.uid()
       AND role IN ('admin', 'staff')
+      AND COALESCE(status, 'active') = 'active'
   );
 $$;
 
@@ -130,6 +133,38 @@ $$;
 GRANT EXECUTE ON FUNCTION public.is_admin_user() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_staff_user() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_admin_or_staff_user() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.prevent_non_admin_profile_role_status_update()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+BEGIN
+  IF (
+    NEW.role IS DISTINCT FROM OLD.role
+    OR NEW.status IS DISTINCT FROM OLD.status
+  )
+  AND COALESCE(auth.role(), '') <> 'service_role'
+  AND NOT public.is_admin_user()
+  THEN
+    RAISE EXCEPTION 'Only administrators can change profile role or status'
+      USING ERRCODE = '42501';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS protect_profile_role_status_update ON public.profiles;
+CREATE TRIGGER protect_profile_role_status_update
+BEFORE UPDATE OF role, status ON public.profiles
+FOR EACH ROW
+WHEN (
+  NEW.role IS DISTINCT FROM OLD.role
+  OR NEW.status IS DISTINCT FROM OLD.status
+)
+EXECUTE FUNCTION public.prevent_non_admin_profile_role_status_update();
 
 -- Drop existing policies if they exist to avoid conflicts
 DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
@@ -176,11 +211,7 @@ ON public.profiles
 FOR UPDATE
 TO authenticated
 USING (id = auth.uid())
-WITH CHECK (
-    id = auth.uid() AND 
-    role IS NOT DISTINCT FROM role AND 
-    status IS NOT DISTINCT FROM status
-);
+WITH CHECK (id = auth.uid());
 
 -- Admin can delete profiles (for staff management)
 CREATE POLICY "profiles_delete_admin"
@@ -261,6 +292,7 @@ AS $$
     FROM public.profiles
     WHERE id = auth.uid()
       AND role = 'admin'
+      AND COALESCE(status, 'active') = 'active'
   );
 $$;
 
@@ -337,6 +369,10 @@ COMMIT;
 -- for each facility/day pair, then adds the required unique constraint.
 
 BEGIN;
+
+ALTER TABLE public.facility_hours
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 WITH ranked_facility_hours AS (
   SELECT

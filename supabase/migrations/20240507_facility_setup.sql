@@ -25,6 +25,10 @@ CREATE TABLE IF NOT EXISTS facility_hours (
   UNIQUE(facility_id, day)
 );
 
+ALTER TABLE facility_hours
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
 -- Add indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_facility_hours_facility_id ON facility_hours(facility_id);
 CREATE INDEX IF NOT EXISTS idx_facility_hours_day ON facility_hours(day);

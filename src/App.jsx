@@ -1503,17 +1503,18 @@ function AppInner() {
 
     supabase
       .from("profiles")
-      .select("id, name, display_name, avatar_url, role, sex, birthdate, province, institution, email, is_verified, verified_university")
+      .select("id, name, display_name, avatar_url, role, status, sex, birthdate, province, institution, email, is_verified, verified_university")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (!isActive) return;
 
         if (data) {
+          const hasActiveProfile = (data.status || "active") === "active";
           setAvatarUrl(data.avatar_url || null);
           setProfileName(data.display_name || data.name || null);
-          setIsAdmin(data.role === "admin");
-          setIsStaff(data.role === "staff");
+          setIsAdmin(hasActiveProfile && data.role === "admin");
+          setIsStaff(hasActiveProfile && data.role === "staff");
           setNeedsSetup(!isProfileComplete(data));
           setCurrentProfile(data);
         } else {
