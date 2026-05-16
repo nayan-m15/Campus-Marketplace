@@ -601,7 +601,7 @@ test("YourListingsPage edits status and deletes a listing", async () => {
   fireEvent.click(screen.getByRole("button", { name: /back/i }));
   expect(onBack).toHaveBeenCalled();
 
-  fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /edit/i }));
   fireEvent.click(screen.getByRole("radio", { name: /for sale & trade/i }));
   fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Desk Lamp Pro" } });
   // Category edits should use the same Save Changes path as the other fields.
