@@ -1,5 +1,6 @@
 // Main structure for the messages page feature lives here.
 // Shared UI pieces and page-level behavior are tied together in this file.
+//test
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
