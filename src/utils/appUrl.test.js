@@ -32,13 +32,23 @@ test("getAppBaseUrl falls back to the auth redirect url when provided", async ()
   expect(getAppBaseUrl()).toBe("https://auth.campusxchange.app/reset/");
 });
 
-test("getAppBaseUrl falls back to the site url when provided", async () => {
+test("getAppBaseUrl uses the active browser host over a legacy site url", async () => {
   vi.stubEnv("VITE_SITE_URL", "https://nayan-m15.github.io/Campus-Marketplace/");
   vi.stubGlobal("window", {
     location: {
-      hostname: "nayan-m15.github.io",
+      origin: "https://campus-marketplace.azurestaticapps.net",
+      hostname: "campus-marketplace.azurestaticapps.net",
     },
   });
+
+  const { getAppBaseUrl } = await import("./appUrl");
+
+  expect(getAppBaseUrl()).toBe("https://campus-marketplace.azurestaticapps.net/");
+});
+
+test("getAppBaseUrl keeps the legacy site url as a non-browser fallback", async () => {
+  vi.stubEnv("VITE_SITE_URL", "https://nayan-m15.github.io/Campus-Marketplace/");
+  vi.stubGlobal("window", undefined);
 
   const { getAppBaseUrl } = await import("./appUrl");
 
@@ -91,18 +101,19 @@ test("getPasswordRecoveryRedirectUrl prefers localhost while developing", async 
   );
 });
 
-test("getPasswordRecoveryRedirectUrl uses the configured deployed app outside localhost", async () => {
+test("getPasswordRecoveryRedirectUrl uses the active deployed app outside localhost", async () => {
   vi.stubEnv("BASE_URL", "/Campus-Marketplace/");
   vi.stubEnv("VITE_SITE_URL", "https://nayan-m15.github.io/Campus-Marketplace/");
   vi.stubGlobal("window", {
     location: {
-      hostname: "nayan-m15.github.io",
+      origin: "https://campus-marketplace.azurestaticapps.net",
+      hostname: "campus-marketplace.azurestaticapps.net",
     },
   });
 
   const { getPasswordRecoveryRedirectUrl } = await import("./appUrl");
 
   expect(getPasswordRecoveryRedirectUrl()).toBe(
-    "https://nayan-m15.github.io/Campus-Marketplace/?type=recovery"
+    "https://campus-marketplace.azurestaticapps.net/Campus-Marketplace/?type=recovery"
   );
 });
