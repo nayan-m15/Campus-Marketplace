@@ -21,6 +21,10 @@ export default function FilterBar({
   onPriceRangeChange,
   showSorting = true,
   mobileSorting = false,
+  uniFilter = "mine",
+  onUniFilterChange,
+  allInstitutions = [],
+  userInstitution = null,
 }) {
   const [mobilePanel, setMobilePanel] = useState(null);
   // Desktop and mobile share the same filtering state,
@@ -31,7 +35,8 @@ export default function FilterBar({
   const hasActiveFilters =
     activeCategory !== "All Items" ||
     activeCondition !== "All Conditions" ||
-    (supportsSorting && priceSort !== "");
+    (supportsSorting && priceSort !== "") ||
+    (userInstitution && uniFilter !== "mine");
 
   // When a mobile panel is open, lock the page behind it so the panel
   // feels like a real focused task instead of a floating piece of UI.
@@ -62,6 +67,9 @@ export default function FilterBar({
     if (supportsSorting) {
       onPriceSortChange?.("");
       onPriceRangeChange?.({ min: "", max: "" });
+     } 
+    if (userInstitution) {
+      onUniFilterChange?.("mine");
     }
   }
 
@@ -118,6 +126,31 @@ export default function FilterBar({
     );
   }
 
+  function renderUniFilter() {
+  if (!userInstitution) return null;
+
+  const uniId = `${fieldIdBase}-uni-filter`;
+
+  return (
+    <label className="filter-bar__label" htmlFor={uniId}>
+      <span className="filter-bar__label-text">University</span>
+      <select
+        id={uniId}
+        className="filter-bar__select"
+        value={uniFilter}
+        onChange={(e) => onUniFilterChange?.(e.target.value)}
+      >
+        <option value="mine">My University</option>
+        <option value="all">All universities</option>
+        {allInstitutions
+          .filter((inst) => inst.trim().toLowerCase() !== userInstitution.trim().toLowerCase())
+          .map((inst) => (
+            <option key={inst} value={inst}>{inst}</option>
+          ))}
+      </select>
+    </label>
+  );
+}
   // Desktop keeps the classic select dropdown.
   // Mobile gets a button list instead, so people can tap a sort option directly.
   function renderSortFields(prefix, enabled) {
@@ -269,6 +302,7 @@ export default function FilterBar({
       <fieldset className="filter-bar__fieldset" aria-hidden={mobilePanel ? "true" : undefined}>
         <legend className="filter-bar__legend">Filter listings</legend>
 
+        {renderUniFilter()}
         {renderFilterFields("desktop")}
         {renderSortFields("desktop", showSorting)}
 
@@ -319,7 +353,7 @@ export default function FilterBar({
 
             <section className="filter-bar__mobile-panel-body">
               {mobilePanel === "filter"
-                ? renderFilterFields("mobile")
+                 ? <>{renderUniFilter()}{renderFilterFields("mobile")}</>
                 : renderSortFields("mobile", mobileSorting)}
             </section>
 

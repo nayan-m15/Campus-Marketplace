@@ -1168,6 +1168,7 @@ function AppInner() {
   const [priceSort, setPriceSort] = useState("");
   const [priceRange, setPriceRange] = useState({ min: "", max: "" });
   const [searchQuery, setSearchQuery] = useState("");
+  const [uniFilter, setUniFilter] = useState("mine");
   const [showForm, setShowForm] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
   const [moderationListing, setModerationListing] = useState(null);
@@ -1686,18 +1687,27 @@ useEffect(() => {
     return isNaN(n) ? 0 : n;
   }
 
+  const userInstitution = currentProfile?.institution?.trim().toLowerCase();
+
+  const allInstitutions = [...new Set(
+    allListings.map((l) => l.institution).filter(Boolean)
+    )].sort();
+
   const filteredListings = (() => {
     const validPriceRange =
       priceSort === "custom" ? getValidPriceRange(priceRange) : { min: "", max: "" };
 
-    const userInstitution = currentProfile?.institution?.trim().toLowerCase();
-
-    let result = allListings.filter((item) => {
+      let result = allListings.filter((item) => {
       if (item.status === "sold") return false;
 
-      if (user && userInstitution && item.institution) {
-        if (item.institution.trim().toLowerCase() !== userInstitution) return false;
-    }
+      if (user && userInstitution) {
+        if (uniFilter === "mine") {
+          if (item.institution?.trim().toLowerCase() !== userInstitution) return false;
+        } else if (uniFilter !== "all") {
+          if (item.institution?.trim().toLowerCase() !== uniFilter.trim().toLowerCase()) return false;
+        }
+      }
+
 
   const searchMatch = searchQuery.trim()
         ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -2708,6 +2718,10 @@ useEffect(() => {
               onPriceRangeChange={setPriceRange}
               showSorting={false}
               mobileSorting
+              uniFilter={uniFilter}
+              onUniFilterChange={setUniFilter}
+              allInstitutions={allInstitutions}
+              userInstitution={currentProfile?.institution || null}
             />
           </aside>
 
