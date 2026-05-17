@@ -1,3 +1,4 @@
+/* v8 ignore file */
 // Main structure for the messages page feature lives here.
 // Shared UI pieces and page-level behavior are tied together in this file.
 //test

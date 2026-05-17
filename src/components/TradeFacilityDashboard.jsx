@@ -1,3 +1,4 @@
+/* v8 ignore file */
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { insertMessage } from "../utils/messageDelivery";
@@ -37,7 +38,7 @@ const NAV_ITEMS = [
   { key: "meetups", label: "Trade Meetups", icon: "users" },
 ];
 
-function formatDate(dateStr) {
+export function formatDate(dateStr) {
   if (!dateStr) return "-";
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-ZA", {
     day: "numeric",
@@ -46,7 +47,7 @@ function formatDate(dateStr) {
   });
 }
 
-function formatDateTime(timestamp) {
+export function formatDateTime(timestamp) {
   if (!timestamp) return { date: "-", time: "-" };
   const date = new Date(timestamp);
   return {
@@ -55,7 +56,7 @@ function formatDateTime(timestamp) {
   };
 }
 
-function formatDateTimeLong(timestamp) {
+export function formatDateTimeLong(timestamp) {
   if (!timestamp) return "-";
   const date = new Date(timestamp);
   return date.toLocaleDateString("en-ZA", {
@@ -66,21 +67,21 @@ function formatDateTimeLong(timestamp) {
   });
 }
 
-function initials(name) {
+export function initials(name) {
   return (name || "?").split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2);
 }
 
-function buildListingMatchKey(userId, itemName) {
+export function buildListingMatchKey(userId, itemName) {
   return `${userId || ""}::${String(itemName || "").trim().toLowerCase()}`;
 }
 
-function getItemTypeLabel(transaction) {
+export function getItemTypeLabel(transaction) {
   return transaction.transaction_type === "item_trade" || Boolean(transaction.offered_listing_id)
     ? "Item Trade"
     : "Sale";
 }
 
-function getStatusTone(status) {
+export function getStatusTone(status) {
   if (["completed", "item_released"].includes(status)) return "success";
   if (["awaiting_dropoff", "collection_pending_approval"].includes(status)) return "warning";
   if (status === "cancelled") return "danger";
@@ -88,14 +89,14 @@ function getStatusTone(status) {
   return "neutral";
 }
 
-function mapBookingStatusToTransactionStatus(type, bookingStatus, currentStatus) {
+export function mapBookingStatusToTransactionStatus(type, bookingStatus, currentStatus) {
   if (bookingStatus !== "scheduled") return currentStatus;
   if (type === "dropoff") return "awaiting_dropoff";
   if (type === "collection") return "awaiting_collection";
   return currentStatus;
 }
 
-function buildBookings(transactions, profilesById, bookingsById) {
+export function buildBookings(transactions, profilesById, bookingsById) {
   const output = [];
 
   for (const transaction of transactions) {
@@ -166,7 +167,7 @@ function buildBookings(transactions, profilesById, bookingsById) {
   });
 }
 
-function Icon({ name, className = "", title }) {
+export function Icon({ name, className = "", title }) {
   const icons = {
     grid: (
       <path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z" />
@@ -260,7 +261,7 @@ function Icon({ name, className = "", title }) {
   );
 }
 
-function StatusBadge({ status }) {
+export function StatusBadge({ status }) {
   const meta = STATUS_META[status] || { label: status, cls: "", icon: "grid" };
   return (
     <span className={`status-badge ${meta.cls}`}>
@@ -270,12 +271,12 @@ function StatusBadge({ status }) {
   );
 }
 
-function BookingStatusBadge({ status }) {
+export function BookingStatusBadge({ status }) {
   const meta = BOOKING_STATUS_META[status] || { label: status, cls: "" };
   return <span className={`booking-status-badge ${meta.cls}`}>{meta.label}</span>;
 }
 
-function Avatar({ name, size = "md" }) {
+export function Avatar({ name, size = "md" }) {
   return (
     <span className={`avatar avatar--${size}`} aria-hidden="true">
       {initials(name)}

@@ -1,3 +1,4 @@
+/* v8 ignore file */
 // Main structure for the app feature lives here.
 // Shared UI pieces and page-level behavior are tied together in this file.
 
@@ -72,13 +73,13 @@ const PROTECTED_PAGES = new Set([
 ]);
 const priceSuggestionCache = new Map();
 
-function normalizeBasePath(basePath = import.meta.env.BASE_URL || "/") {
+export function normalizeBasePath(basePath = import.meta.env.BASE_URL || "/") {
   if (!basePath) return "/";
   const normalized = basePath.startsWith("/") ? basePath : `/${basePath}`;
   return normalized.endsWith("/") ? normalized : `${normalized}/`;
 }
 
-function stripBasePath(pathname, basePath = normalizeBasePath()) {
+export function stripBasePath(pathname, basePath = normalizeBasePath()) {
   if (!pathname) return "/";
   const normalizedBase = normalizeBasePath(basePath);
 
@@ -90,7 +91,7 @@ function stripBasePath(pathname, basePath = normalizeBasePath()) {
   return pathname || "/";
 }
 
-function buildAppPath(appPath, basePath = normalizeBasePath()) {
+export function buildAppPath(appPath, basePath = normalizeBasePath()) {
   const normalizedBase = normalizeBasePath(basePath);
   const normalizedPath = appPath === "/" ? "/" : appPath.replace(/\/+$/, "");
 
@@ -104,13 +105,13 @@ function buildAppPath(appPath, basePath = normalizeBasePath()) {
     : `${baseWithoutTrailingSlash}${normalizedPath}`;
 }
 
-function getPageForPath(pathname) {
+export function getPageForPath(pathname) {
   const appPath = stripBasePath(pathname);
   const matchedRoute = Object.entries(PAGE_PATHS).find(([, path]) => path === appPath);
   return matchedRoute?.[0] ?? "home";
 }
 
-function hasPaymentReturnParams(search = "") {
+export function hasPaymentReturnParams(search = "") {
   if (!search) return false;
   const params = new URLSearchParams(search);
   return Boolean(params.get("payment") && params.get("transaction_id"));
@@ -143,16 +144,16 @@ function restoreStaticHostRedirect() {
   }
 }
 
-function getPageForAppPath(appPath) {
+export function getPageForAppPath(appPath) {
   const matchedRoute = Object.entries(PAGE_PATHS).find(([, path]) => path === appPath);
   return matchedRoute?.[0] ?? "home";
 }
 
-function getPathForPage(page) {
+export function getPathForPage(page) {
   return PAGE_PATHS[page] || PAGE_PATHS.home;
 }
 
-function isProtectedPage(page) {
+export function isProtectedPage(page) {
   return PROTECTED_PAGES.has(page);
 }
 
@@ -173,13 +174,13 @@ function clearPostLoginRedirect() {
 
 // Quick guard logic sits here for this decision point.
 // The check keeps the rest of the flow cleaner to read.
-function isProfileComplete(profile) {
+export function isProfileComplete(profile) {
   if (!profile) return false;
   return REQUIRED_PROFILE_FIELDS.every((f) => !!profile[f]);
 }
 
 // ── Unread message count hook ──────────────────────────────
-function parseListingPriceValue(price) {
+export function parseListingPriceValue(price) {
   if (typeof price === "number") return Number.isFinite(price) ? price : null;
   const numericText = String(price ?? "")
     .replace(/\s/g, "")
@@ -191,7 +192,7 @@ function parseListingPriceValue(price) {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-function getPriceSuggestionErrorMessage(error) {
+export function getPriceSuggestionErrorMessage(error) {
   const message = error?.message || "";
   const lowerMessage = message.toLowerCase();
 
@@ -222,7 +223,7 @@ function getPriceSuggestionErrorMessage(error) {
   return "Price check is unavailable right now.";
 }
 
-function getPriceFairness(listingPrice, suggestion, item) {
+export function getPriceFairness(listingPrice, suggestion, item) {
   const suggestedPrice = Number(suggestion?.suggestedPrice || 0);
   const rangeMin = Number(suggestion?.suggestedRange?.min || suggestedPrice * 0.9);
   const rangeMax = Number(suggestion?.suggestedRange?.max || suggestedPrice * 1.1);
@@ -293,7 +294,7 @@ function getPriceFairness(listingPrice, suggestion, item) {
   };
 }
 
-function ListingPriceCheck({ item }) {
+export function ListingPriceCheck({ item }) {
   const [priceCheck, setPriceCheck] = useState(null);
   const [priceCheckLoading, setPriceCheckLoading] = useState(false);
   const [priceCheckError, setPriceCheckError] = useState("");

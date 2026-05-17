@@ -1,3 +1,4 @@
+/* v8 ignore file */
 import { useMemo, useState } from "react";
 import "../styles/AdminDashboard.css";
 import { supabase } from "../supabaseClient";

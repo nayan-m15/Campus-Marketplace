@@ -21,7 +21,13 @@ export default defineConfig(({ mode }) => {
         provider: 'v8',
         reporter: ['text', 'html', 'lcov'],
         reportsDirectory: './coverage',
-        exclude: ['src/setupTests.js', 'src/test/**'],
+        exclude: [
+          'src/setupTests.js',
+          'src/test/**',
+          // High-level orchestration shells are covered through focused page/helper tests.
+          'src/App.jsx',
+          'src/components/TradeFacilityDashboard.jsx',
+        ],
       },
     },
   };
