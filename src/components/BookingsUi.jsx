@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import VerifiedBadge from "./VerifiedBadge";
 import "../styles/BookingsUi.css";
+import { getCurrentAppBaseUrl } from "../utils/appUrl";
 import {
   DAYS,
   formatBookingDate,
@@ -1006,7 +1007,10 @@ export function StudentBookingsPage({ user, onBack }) {
       }
 
       const { data, error: functionError } = await supabase.functions.invoke("create-payfast-checkout", {
-        body: { transactionId: transaction.id },
+        body: {
+          transactionId: transaction.id,
+          appBaseUrl: getCurrentAppBaseUrl(),
+        },
       });
 
       if (functionError) throw functionError;

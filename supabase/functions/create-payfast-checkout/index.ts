@@ -15,6 +15,50 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function normalizeBaseUrl(value: string) {
+  return value.replace(/\/$/, "");
+}
+
+function getRequestOrigin(req: Request) {
+  const origin = req.headers.get("Origin");
+  if (!origin) return "";
+
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return "";
+  }
+}
+
+function getAppBaseUrl(req: Request, requestedBaseUrl = "") {
+  const requestOrigin = getRequestOrigin(req);
+
+  if (requestedBaseUrl) {
+    try {
+      const url = new URL(requestedBaseUrl);
+      const isAllowedProtocol =
+        url.protocol === "https:" || url.hostname === "localhost" || url.hostname === "127.0.0.1";
+
+      if (isAllowedProtocol && (!requestOrigin || url.origin === requestOrigin)) {
+        return normalizeBaseUrl(url.toString());
+      }
+    } catch {
+      // Ignore malformed client URLs and continue through configured fallbacks.
+    }
+  }
+
+  const configuredBaseUrl = Deno.env.get("APP_BASE_URL");
+  if (configuredBaseUrl) {
+    return normalizeBaseUrl(configuredBaseUrl);
+  }
+
+  if (requestOrigin) {
+    return requestOrigin;
+  }
+
+  return "http://localhost:5173";
+}
+
 function encodePayfastValue(value: string) {
   return encodeURIComponent(value).replace(/%20/g, "+");
 }
@@ -178,7 +222,6 @@ Deno.serve(async (req) => {
   const merchantId = Deno.env.get("PAYFAST_MERCHANT_ID");
   const merchantKey = Deno.env.get("PAYFAST_MERCHANT_KEY");
   const passphrase = Deno.env.get("PAYFAST_PASSPHRASE") || "";
-  const appBaseUrl = Deno.env.get("APP_BASE_URL") || "http://localhost:5173";
   const functionBaseUrl = Deno.env.get("PAYFAST_NOTIFY_BASE_URL");
   const sandbox = Deno.env.get("PAYFAST_SANDBOX") !== "false";
 
@@ -196,7 +239,10 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Sign in before starting payment." }, 401);
   }
 
-  const { transactionId } = await req.json().catch(() => ({ transactionId: "" }));
+  const { transactionId, appBaseUrl: requestedAppBaseUrl } = await req.json().catch(() => ({
+    transactionId: "",
+    appBaseUrl: "",
+  }));
   if (!transactionId) {
     return jsonResponse({ error: "Missing transactionId." }, 400);
   }
@@ -242,11 +288,12 @@ Deno.serve(async (req) => {
     payment: "cancelled",
     transaction_id: transaction.id,
   });
+  const resolvedAppBaseUrl = getAppBaseUrl(req, requestedAppBaseUrl);
   const fields: Record<string, string> = {
     merchant_id: merchantId,
     merchant_key: merchantKey,
-    return_url: `${appBaseUrl.replace(/\/$/, "")}/bookings?${returnParams.toString()}`,
-    cancel_url: `${appBaseUrl.replace(/\/$/, "")}/bookings?${cancelParams.toString()}`,
+    return_url: `${resolvedAppBaseUrl}/bookings?${returnParams.toString()}`,
+    cancel_url: `${resolvedAppBaseUrl}/bookings?${cancelParams.toString()}`,
     notify_url: `${notifyBase.replace(/\/$/, "")}/payfast-itn`,
     m_payment_id: paymentReference,
     amount: amount.toFixed(2),
