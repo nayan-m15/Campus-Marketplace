@@ -75,6 +75,26 @@ Deno.serve(async (req) => {
     const listingIds = (userListings || []).map((listing) => listing.id).filter(Boolean);
 
     if (listingIds.length > 0) {
+      const { data: transactionRows, error: transactionsQueryError } = await adminClient
+        .from("transactions")
+        .select("id, dropoff_id, collection_id")
+        .or(
+          [
+            `seller_id.eq.${user.id}`,
+            `buyer_id.eq.${user.id}`,
+            `listing_id.in.(${listingIds.join(",")})`,
+            `requested_listing_id.in.(${listingIds.join(",")})`,
+            `offered_listing_id.in.(${listingIds.join(",")})`,
+          ].join(","),
+        );
+
+      if (transactionsQueryError) throw transactionsQueryError;
+
+      const transactionIds = (transactionRows || []).map((transaction) => transaction.id).filter(Boolean);
+      const bookingIds = (transactionRows || [])
+        .flatMap((transaction) => [transaction.dropoff_id, transaction.collection_id])
+        .filter(Boolean);
+
       const { error: wishlistListingDeleteError } = await adminClient
         .from("wishlists")
         .delete()
@@ -88,6 +108,51 @@ Deno.serve(async (req) => {
         .in("listing_id", listingIds);
 
       if (ratingsListingDeleteError) throw ratingsListingDeleteError;
+
+      const { error: offersListingDeleteError } = await adminClient
+        .from("offers")
+        .delete()
+        .or(
+          [
+            `listing_id.in.(${listingIds.join(",")})`,
+            `requested_listing_id.in.(${listingIds.join(",")})`,
+            `offered_listing_id.in.(${listingIds.join(",")})`,
+          ].join(","),
+        );
+
+      if (offersListingDeleteError) throw offersListingDeleteError;
+
+      const { error: messagesListingDeleteError } = await adminClient
+        .from("messages")
+        .delete()
+        .in("listing_id", listingIds);
+
+      if (messagesListingDeleteError) throw messagesListingDeleteError;
+
+      const { error: priceCacheDeleteError } = await adminClient
+        .from("price_suggestion_cache")
+        .delete()
+        .in("listing_id", listingIds);
+
+      if (priceCacheDeleteError) throw priceCacheDeleteError;
+
+      if (transactionIds.length > 0) {
+        const { error: transactionsDeleteError } = await adminClient
+          .from("transactions")
+          .delete()
+          .in("id", transactionIds);
+
+        if (transactionsDeleteError) throw transactionsDeleteError;
+      }
+
+      if (bookingIds.length > 0) {
+        const { error: bookingsDeleteError } = await adminClient
+          .from("bookings")
+          .delete()
+          .in("id", bookingIds);
+
+        if (bookingsDeleteError) throw bookingsDeleteError;
+      }
     }
 
     const rowDeletes = [
@@ -96,6 +161,10 @@ Deno.serve(async (req) => {
       adminClient.from("ratings").delete().eq("rated_id", user.id),
       adminClient.from("messages").delete().eq("sender_id", user.id),
       adminClient.from("messages").delete().eq("receiver_id", user.id),
+      adminClient.from("offers").delete().eq("sender_id", user.id),
+      adminClient.from("offers").delete().eq("receiver_id", user.id),
+      adminClient.from("transactions").delete().eq("seller_id", user.id),
+      adminClient.from("transactions").delete().eq("buyer_id", user.id),
       adminClient.from("listings").delete().eq("user_id", user.id),
       adminClient.from("profiles").delete().eq("id", user.id),
     ];
