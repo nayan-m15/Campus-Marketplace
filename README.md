@@ -61,7 +61,7 @@ Add your local Supabase values to `.env` or `.env.local`:
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_SITE_URL=http://localhost:5173/Campus-Marketplace
-VITE_BASE_PATH=/Campus-Marketplace/
+
 ```
 
 The app reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `src/supabaseClient.js`. `VITE_SITE_URL` is used for auth redirects, and `VITE_BASE_PATH` keeps the app under `/Campus-Marketplace/` locally and on GitHub Pages. Keep personal `.env` values out of Git; `.env` and `.env.local` are intentionally ignored.
