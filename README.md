@@ -221,6 +221,17 @@ If your Codecov account or repository settings require a token instead of OIDC, 
 - Expand automated test coverage across auth, messaging, and dashboards
 - Add deployment instructions
 
+## Deployment Notes
+
+Vite only exposes `import.meta.env.VITE_*` values at build time. For Azure Static Web Apps, make sure the GitHub Actions workflow that runs the build injects:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SITE_URL`
+- `VITE_BASE_PATH`
+
+Setting those values only in Azure app settings after the bundle is built will not update the already-published frontend assets.
+
 ## License
 
 No license file is currently included in this repository.
