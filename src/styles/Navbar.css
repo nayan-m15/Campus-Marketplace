@@ -3,6 +3,7 @@
 
 .navbar-spacer {
   /* Matches the fixed navbar height so page content starts in the right place. */
+  display: block;
   height: var(--navbar-height);
 }
 
@@ -559,10 +560,6 @@ html.dark .navbar__hamburger span {
     padding: 0 8px;
     border-radius: 999px;
     white-space: nowrap;
-  }
-
-  .navbar--logged-out .navbar__link--how-it-works {
-    display: none;
   }
 
   .navbar--logged-out .navbar__list-btn {

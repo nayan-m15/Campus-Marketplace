@@ -77,26 +77,17 @@ export default function Hero({
         const [
           { count: activeListingsCount, error: listingsCountError },
           { count: totalUsersCount, error: usersCountError },
-          { data: acceptedOffers, error: soldListingsError },
+          { data: semesterTradeValue, error: semesterTradeValueError },
         ] = await Promise.all([
           activeListingsQuery,
           supabase.from("profiles").select("*", { count: "exact", head: true }),
-          supabase
-            .from("offers")
-            .select("amount, created_at")
-            .eq("status", "accepted")
-            .gte("created_at", semesterStart.toISOString()),
+          supabase.rpc("get_semester_trade_value", {
+            p_semester_start: semesterStart.toISOString(),
+          }),
         ]);
 
         if (listingsCountError) throw listingsCountError;
-        if (soldListingsError) throw soldListingsError;
-
-        const semesterTradeValue = (acceptedOffers || []).reduce((sum, offer) => {
-          const amount = typeof offer.amount === "number"
-            ? offer.amount
-            : parseFloat(String(offer.amount || "").replace(/[^0-9.]/g, ""));
-          return sum + (Number.isFinite(amount) ? amount : 0);
-        }, 0);
+        if (semesterTradeValueError) throw semesterTradeValueError;
 
         if (!isMounted) return;
 

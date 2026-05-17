@@ -816,15 +816,14 @@ test("navigates to the How It Works page from the hero button without a refresh"
   expect(window.location.pathname).toBe("/how-it-works");
 });
 
-test("opens the How It Works page from desktop navigation", async () => {
+test("keeps How It Works out of logged-out desktop navigation", async () => {
   renderApp();
 
-  const nav = await screen.findByRole("navigation", { name: /user navigation/i });
-  fireEvent.click(within(nav).getByRole("button", { name: /^how it works$/i }));
+  const hero = await screen.findByRole("region", { name: /hero/i });
+  expect(within(hero).getByRole("button", { name: /how it works/i })).toBeInTheDocument();
 
-  expect(await screen.findByText(/students can browse listings, save items, message sellers/i)).toBeInTheDocument();
-  expect(screen.getByText(/staff accounts work inside the trade facility workflow/i)).toBeInTheDocument();
-  expect(screen.getByText(/admins balance marketplace quality and operational control/i)).toBeInTheDocument();
+  const nav = await screen.findByRole("navigation", { name: /user navigation/i });
+  expect(within(nav).queryByRole("button", { name: /^how it works$/i })).not.toBeInTheDocument();
 });
 
 test("shows the reset password page when the recovery link uses query params", async () => {
