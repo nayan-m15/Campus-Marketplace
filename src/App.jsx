@@ -73,6 +73,18 @@ const PROTECTED_PAGES = new Set([
 ]);
 const priceSuggestionCache = new Map();
 
+async function checkSameUniversity(currentUserId, sellerUserId) {
+  if (!currentUserId || !sellerUserId || currentUserId === sellerUserId) return true;
+  
+  const [{ data: buyer }, { data: seller }] = await Promise.all([
+    supabase.from("profiles").select("institution").eq("id", currentUserId).single(),
+    supabase.from("profiles").select("institution").eq("id", sellerUserId).single(),
+  ]);
+
+  if (!buyer?.institution || !seller?.institution) return false;
+  return buyer.institution.trim().toLowerCase() === seller.institution.trim().toLowerCase();
+}
+
 export function normalizeBasePath(basePath = import.meta.env.BASE_URL || "/") {
   if (!basePath) return "/";
   const normalized = basePath.startsWith("/") ? basePath : `/${basePath}`;
@@ -656,6 +668,7 @@ function ListingDetailsModal({
   onFlaggedWarning,
   onUnverifiedSellerWarning,
   user,
+  currentProfile,
   isWishlisted,
   onToggleWishlist,
   onSellerClick,
@@ -695,6 +708,14 @@ function ListingDetailsModal({
   }, [item, onClose]);
 
   if (!item) return null;
+
+  const sameUniversity =
+    !user ||
+    !item.user_id ||
+    user.id === item.user_id ||
+    (currentProfile?.institution &&
+      item.institution &&
+      currentProfile.institution.trim().toLowerCase() === item.institution.trim().toLowerCase());
 
   const images =
     Array.isArray(item.image_urls) && item.image_urls.length > 0
@@ -939,6 +960,11 @@ function ListingDetailsModal({
                     <h3>Message seller</h3>
                     {!user ? (
                       <p className="item-modal-error">Please <strong>log in</strong> to message this seller.</p>
+                    ) : !sameUniversity ? (
+                      <p className="item-modal-error">
+                        This seller is from a different university. You can only interact with sellers from{" "}
+                        <strong>{currentProfile?.institution || "your university"}</strong>.
+                      </p>
                     ) : (
                       <>
                         <textarea className="item-modal-textarea" value={message} onChange={(e) => setMessage(e.target.value)} rows={4} />
@@ -1664,9 +1690,16 @@ useEffect(() => {
     const validPriceRange =
       priceSort === "custom" ? getValidPriceRange(priceRange) : { min: "", max: "" };
 
+    const userInstitution = currentProfile?.institution?.trim().toLowerCase();
+
     let result = allListings.filter((item) => {
       if (item.status === "sold") return false;
-      const searchMatch = searchQuery.trim()
+
+      if (user && userInstitution && item.institution) {
+        if (item.institution.trim().toLowerCase() !== userInstitution) return false;
+    }
+
+  const searchMatch = searchQuery.trim()
         ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.category.toLowerCase().includes(searchQuery.toLowerCase())
         : true;
@@ -1871,6 +1904,20 @@ useEffect(() => {
       notifyFlaggedListingWarning(latestItem, "message");
       return;
     }
+
+    // University check
+    const sameUni = await checkSameUniversity(user?.id, latestItem?.user_id);
+    if (!sameUni) {
+      addNotification({
+        title: "Different university",
+        message: "You can only message sellers from your own university.",
+        category: "error",
+        type: "error",
+        dedupeKey: `uni-block-msg-${latestItem?.id}`,
+      });
+      return;
+    }
+
     if (skipUnverifiedWarning) {
       openMessagesForListing(latestItem, { acknowledged, suppressDraft });
       return;
@@ -1889,6 +1936,18 @@ useEffect(() => {
     const latestItem = await resolveListingForMessaging(item);
     if (latestItem?.status === "flagged") {
       notifyFlaggedListingWarning(latestItem, "offer");
+      return;
+    }
+
+    const sameUni = await checkSameUniversity(user?.id, latestItem?.user_id);
+    if (!sameUni) {
+      addNotification({
+        title: "Different university",
+        message: "You can only send offers to sellers from your own university.",
+        category: "error",
+        type: "error",
+        dedupeKey: `uni-block-offer-${latestItem?.id}`,
+      });
       return;
     }
 
@@ -2385,6 +2444,7 @@ useEffect(() => {
           onFlaggedWarning={openFlaggedListingWarning}
           onUnverifiedSellerWarning={continueIfSellerVerified}
           user={user}
+          currentProfile={currentProfile}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
           onSellerClick={handleSellerClick}
