@@ -1123,6 +1123,113 @@ test("TradeFacilityDashboard renders navigation and sign out", () => {
   expect(onSignOut).toHaveBeenCalled();
 });
 
+test("TradeFacilityDashboard exercises ledger filters, selection, menus, and receipts", async () => {
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: vi.fn().mockResolvedValue() },
+  });
+  renderWithNotifications(<TradeFacilityDashboard onSignOut={vi.fn()} staffProfile={profile} />);
+
+  fireEvent.click(screen.getByRole("button", { name: /transaction ledger/i }));
+  expect(await screen.findByRole("heading", { name: /transaction ledger/i, level: 1 })).toBeInTheDocument();
+
+  fireEvent.change(screen.getByPlaceholderText(/search by transaction/i), {
+    target: { value: "textbook" },
+  });
+  expect(screen.getAllByText("Textbook").length).toBeGreaterThan(0);
+
+  fireEvent.change(screen.getAllByLabelText(/status/i)[0], { target: { value: "awaiting_dropoff" } });
+  fireEvent.change(screen.getByLabelText(/item type/i), { target: { value: "sale" } });
+  expect(screen.getByText(/active filters/i)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: /clear filters/i }));
+  fireEvent.click(screen.getByRole("button", { name: /item/i }));
+  fireEvent.click(screen.getByRole("button", { name: /seller/i }));
+
+  fireEvent.click(screen.getAllByRole("checkbox")[1]);
+  expect(screen.getByText(/1 selected/i)).toBeInTheDocument();
+
+  fireEvent.click(screen.getAllByRole("button", { name: /copy transaction id txn-1/i })[0]);
+  await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith("txn-1"));
+
+  fireEvent.click(screen.getByRole("button", { name: /open actions for txn-1/i }));
+  fireEvent.click(screen.getAllByRole("button", { name: /view details/i })[0]);
+
+  fireEvent.click(screen.getByRole("button", { name: /generate receipt/i }));
+  expect(await screen.findByRole("heading", { name: /generate transaction receipt/i })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /close receipt generator/i }));
+});
+
+test("TradeFacilityDashboard confirms managed booking and meetup workflow actions", async () => {
+  transactions.splice(
+    0,
+    transactions.length,
+    {
+      id: "txn-ready",
+      item: "Ready Item",
+      seller_id: "seller-1",
+      buyer_id: "buyer-1",
+      price: 250,
+      status: "awaiting_collection",
+      dropoff_id: "booking-1",
+      collection_id: null,
+      created_at: "2026-04-18T10:00:00.000Z",
+    },
+    {
+      id: "txn-meetup",
+      item: "Desk Lamp for Ball",
+      requested_item: "Desk Lamp",
+      offered_item: "Ball",
+      seller_id: "seller-1",
+      buyer_id: "buyer-1",
+      price: 0,
+      status: "awaiting_meetup",
+      transaction_type: "item_trade",
+      trade_meetup_id: "booking-meetup-1",
+      trade_meetup_proposed_by: "seller-1",
+      created_at: "2026-05-03T10:00:00.000Z",
+    }
+  );
+  bookings.splice(
+    0,
+    bookings.length,
+    {
+      id: "booking-1",
+      type: "dropoff",
+      scheduled_time: "2026-04-19T10:00:00.000Z",
+      location: "Main Trade Desk",
+      status: "completed",
+      created_at: "2026-04-18T10:05:00.000Z",
+    },
+    {
+      id: "booking-meetup-1",
+      type: "trade_meetup",
+      scheduled_time: "2099-05-04T09:00:00.000Z",
+      location: "Main Trade Desk",
+      status: "scheduled",
+      created_at: "2026-05-03T10:05:00.000Z",
+    }
+  );
+
+  renderWithNotifications(<TradeFacilityDashboard onSignOut={vi.fn()} staffProfile={profile} />);
+
+  fireEvent.click(screen.getByRole("button", { name: /manage bookings/i }));
+  expect((await screen.findAllByText("Ready Item")).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole("button", { name: /confirm collection/i }));
+  expect(await screen.findByRole("heading", { name: /confirm: item released/i })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
+
+  await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(
+    "transactions",
+    expect.objectContaining({ status: "item_released" })
+  ));
+
+  fireEvent.click(screen.getByRole("button", { name: /trade meetups/i }));
+  expect((await screen.findAllByText(/desk lamp for ball/i)).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole("button", { name: /confirm swap complete/i }));
+  expect(await screen.findByRole("heading", { name: /confirm: completed/i })).toBeInTheDocument();
+});
+
 test("StudentBookingsPage shows a seller drop-off booking action for accepted trades", async () => {
   transactions.splice(
     0,
