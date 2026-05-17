@@ -3,9 +3,14 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+  const rawBasePath = env.VITE_BASE_PATH?.trim();
+  const base =
+    rawBasePath && rawBasePath !== ''
+      ? rawBasePath.replace(/^([^/])/, '/$1').replace(/([^/])$/, '$1/')
+      : '/';
 
   return {
-    base: env.VITE_BASE_PATH || '/',
+    base,
     plugins: [react()],
     test: {
       environment: 'jsdom',
