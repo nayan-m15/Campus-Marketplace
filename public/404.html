@@ -9,15 +9,15 @@
         var fallbackBase = "/Campus-Marketplace/";
         var redirectPath = window.location.pathname + window.location.search + window.location.hash;
 
+        if (!window.location.pathname.startsWith(fallbackBase)) {
+          fallbackBase = "/";
+        }
+
         try {
           window.sessionStorage.setItem("campusxchange:static-host-redirect", redirectPath);
         } catch (error) {
           window.location.replace(fallbackBase);
           return;
-        }
-
-        if (!window.location.pathname.startsWith(fallbackBase)) {
-          fallbackBase = "/";
         }
 
         window.location.replace(fallbackBase);
