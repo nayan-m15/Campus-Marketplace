@@ -37,7 +37,7 @@ import {
   normalizeModerationReason,
 } from "./utils/moderationReasonValidation";
 import SettingsPage from "./components/SettingsPage";
-import { getAppBaseUrl } from "./utils/appUrl";
+import { getCurrentAppBaseUrl } from "./utils/appUrl";
 import { insertMessage } from "./utils/messageDelivery";
 import { getVerificationStatus } from "./utils/verification";
 import { StudentBookingsPage } from "./components/BookingsUi";
@@ -1957,7 +1957,7 @@ useEffect(() => {
     setMsgInitialAction(null);
     setPublicProfileId(null);
     setPrevPage("home");
-    window.location.assign(getAppBaseUrl());
+    window.location.assign(getCurrentAppBaseUrl());
   }
 
   function dismissRating(txnId, wasSubmitted = false) {

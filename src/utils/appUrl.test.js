@@ -65,6 +65,21 @@ test("getAppBaseUrl builds from the current window origin and base path otherwis
   expect(getAppBaseUrl()).toBe("http://localhost:3000/Campus-Marketplace/");
 });
 
+test("getCurrentAppBaseUrl ignores deployed url config and uses the active browser host", async () => {
+  vi.stubEnv("BASE_URL", "/");
+  vi.stubEnv("VITE_SITE_URL", "https://nayan-m15.github.io/Campus-Marketplace/");
+  vi.stubGlobal("window", {
+    location: {
+      origin: "https://campus-marketplace.azurestaticapps.net",
+      hostname: "campus-marketplace.azurestaticapps.net",
+    },
+  });
+
+  const { getCurrentAppBaseUrl } = await import("./appUrl");
+
+  expect(getCurrentAppBaseUrl()).toBe("https://campus-marketplace.azurestaticapps.net/");
+});
+
 test("getPasswordRecoveryRedirectUrl prefers localhost while developing", async () => {
   vi.stubEnv("BASE_URL", "/Campus-Marketplace/");
   vi.stubEnv("VITE_SITE_URL", "https://nayan-m15.github.io/Campus-Marketplace/");
