@@ -19,7 +19,7 @@ BEGIN
   SELECT COALESCE(array_agg(id::TEXT), ARRAY[]::TEXT[])
     INTO v_listing_ids
   FROM public.listings
-  WHERE user_id = v_user_id;
+  WHERE user_id::TEXT = v_user_id::TEXT;
 
   SELECT
     COALESCE(array_agg(id::TEXT), ARRAY[]::TEXT[]),
@@ -27,47 +27,47 @@ BEGIN
     COALESCE(array_agg(collection_id::TEXT) FILTER (WHERE collection_id IS NOT NULL), ARRAY[]::TEXT[])
     INTO v_transaction_ids, v_booking_ids
   FROM public.transactions
-  WHERE seller_id = v_user_id
-     OR buyer_id = v_user_id
-     OR listing_id = ANY(v_listing_ids)
-     OR requested_listing_id = ANY(v_listing_ids)
-     OR offered_listing_id = ANY(v_listing_ids);
+  WHERE seller_id::TEXT = v_user_id::TEXT
+     OR buyer_id::TEXT = v_user_id::TEXT
+     OR listing_id::TEXT = ANY(v_listing_ids)
+     OR requested_listing_id::TEXT = ANY(v_listing_ids)
+     OR offered_listing_id::TEXT = ANY(v_listing_ids);
 
   DELETE FROM public.wishlists
-  WHERE user_id = v_user_id
-     OR listing_id = ANY(v_listing_ids);
+  WHERE user_id::TEXT = v_user_id::TEXT
+     OR listing_id::TEXT = ANY(v_listing_ids);
 
   DELETE FROM public.ratings
-  WHERE rater_id = v_user_id
-     OR rated_id = v_user_id
-     OR listing_id = ANY(v_listing_ids);
+  WHERE rater_id::TEXT = v_user_id::TEXT
+     OR rated_id::TEXT = v_user_id::TEXT
+     OR listing_id::TEXT = ANY(v_listing_ids);
 
   DELETE FROM public.messages
-  WHERE sender_id = v_user_id
-     OR receiver_id = v_user_id
-     OR listing_id = ANY(v_listing_ids);
+  WHERE sender_id::TEXT = v_user_id::TEXT
+     OR receiver_id::TEXT = v_user_id::TEXT
+     OR listing_id::TEXT = ANY(v_listing_ids);
 
   DELETE FROM public.offers
-  WHERE sender_id = v_user_id
-     OR receiver_id = v_user_id
-     OR listing_id = ANY(v_listing_ids)
-     OR requested_listing_id = ANY(v_listing_ids)
-     OR offered_listing_id = ANY(v_listing_ids);
+  WHERE sender_id::TEXT = v_user_id::TEXT
+     OR receiver_id::TEXT = v_user_id::TEXT
+     OR listing_id::TEXT = ANY(v_listing_ids)
+     OR requested_listing_id::TEXT = ANY(v_listing_ids)
+     OR offered_listing_id::TEXT = ANY(v_listing_ids);
 
   DELETE FROM public.price_suggestion_cache
-  WHERE listing_id = ANY(v_listing_ids);
+  WHERE listing_id::TEXT = ANY(v_listing_ids);
 
   DELETE FROM public.transactions
-  WHERE id = ANY(v_transaction_ids);
+  WHERE id::TEXT = ANY(v_transaction_ids);
 
   DELETE FROM public.bookings
-  WHERE id = ANY(v_booking_ids);
+  WHERE id::TEXT = ANY(v_booking_ids);
 
   DELETE FROM public.listings
-  WHERE id = ANY(v_listing_ids);
+  WHERE id::TEXT = ANY(v_listing_ids);
 
   DELETE FROM public.profiles
-  WHERE id = v_user_id;
+  WHERE id::TEXT = v_user_id::TEXT;
 
   DELETE FROM auth.users
   WHERE id = v_user_id;
