@@ -358,10 +358,14 @@ describe("StaffManagementPanel coverage", () => {
     );
 
     const firstStaffCard = screen.getByText("Ops Lead").closest(".staff-card");
-    fireEvent.click(within(firstStaffCard).getByRole("button", { name: "On" }));
+    const toggleButton = within(firstStaffCard).getByRole("button", { name: "On" });
+    await waitFor(() => expect(toggleButton).not.toBeDisabled());
+    fireEvent.click(toggleButton);
     await waitFor(() => expect(mocks.update).toHaveBeenCalledWith("profiles", { status: "inactive" }));
 
-    fireEvent.click(within(firstStaffCard).getByRole("button", { name: /delete/i }));
+    const deleteButton = within(firstStaffCard).getByRole("button", { name: /delete/i });
+    await waitFor(() => expect(deleteButton).not.toBeDisabled());
+    fireEvent.click(deleteButton);
     expect(screen.getByRole("heading", { name: /confirm deletion/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /delete staff member/i }));
 
