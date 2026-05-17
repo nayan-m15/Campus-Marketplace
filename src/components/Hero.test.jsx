@@ -24,6 +24,7 @@ function makeListingsQuery(result) {
 
 vi.mock("../supabaseClient", () => ({
   supabase: {
+    rpc: () => Promise.resolve({ data: 1250, error: null }),
     from: (table) => ({
       select: (columns, options) => {
         if (table === "profiles") {
@@ -103,4 +104,19 @@ test("opens hero listing details from the whole slide while carousel controls on
 
   fireEvent.click(firstSlide);
   expect(onListingClick).toHaveBeenCalledWith(listings[0]);
+});
+
+test("loads traded semester value from the public stats rpc", async () => {
+  render(
+    <Hero
+      onListingClick={vi.fn()}
+      onBrowseClick={vi.fn()}
+      onHowItWorksClick={vi.fn()}
+      onSignupClick={vi.fn()}
+      onLoginClick={vi.fn()}
+      user={null}
+    />
+  );
+
+  expect(await screen.findByText(/R 1\s250/)).toBeInTheDocument();
 });

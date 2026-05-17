@@ -2197,7 +2197,6 @@ useEffect(() => {
       clearPostLoginRedirect();
       navigateToPage("signup");
     },
-    onHowItWorks: () => navigateToPage("howItWorks"),
     onShowListingForm: () => { goHome(); setShowForm(true); },
     onProfile: () => {
       setProfileInitialTab("edit");

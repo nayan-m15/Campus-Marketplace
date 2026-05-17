@@ -12,7 +12,6 @@ export default function Navbar({
   profileName,
   onLogin,
   onSignup,
-  onHowItWorks,
   onSignOut,
   onShowListingForm,
   onProfile,
@@ -307,7 +306,6 @@ export default function Navbar({
                     </>
                   ) : (
                     <>
-                      <li><button className="navbar__link navbar__link--how-it-works" onClick={onHowItWorks}>How It Works</button></li>
                       <li><button className="navbar__link" onClick={onLogin}>Log In</button></li>
                       <li>
                         <button className="btn-primary navbar__list-btn" onClick={onSignup}>
