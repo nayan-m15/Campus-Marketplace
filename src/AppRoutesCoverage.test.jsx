@@ -311,6 +311,7 @@ beforeEach(() => {
 async function renderReady() {
   render(<App />);
   await screen.findByRole("navigation", { name: /mock nav/i });
+  await screen.findByRole("button", { name: /open listing/i });
 }
 
 describe("App route coverage", () => {
@@ -363,7 +364,7 @@ describe("App route coverage", () => {
     fireEvent.click(screen.getByRole("button", { name: /^range$/i }));
     fireEvent.change(screen.getByLabelText(/nav search/i), { target: { value: "calculator" } });
 
-    fireEvent.click(screen.getByRole("button", { name: /open listing/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /open listing/i }));
     expect(await screen.findByRole("button", { name: /add to wishlist/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /add to wishlist/i }));
     expect(mocks.toggleWishlist).toHaveBeenCalledWith("listing-1");

@@ -43,7 +43,7 @@ import { getVerificationStatus } from "./utils/verification";
 import { StudentBookingsPage } from "./components/BookingsUi";
 import RatingPromptModal from "./components/RatingPromptModal";
 
-const NOTIFICATION_DEBUG = import.meta.env.DEV;
+const NOTIFICATION_DEBUG = import.meta.env.DEV && import.meta.env.MODE !== "test";
 const REQUIRED_PROFILE_FIELDS = ["name", "sex", "birthdate", "province", "institution"];
 const DEBUG_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEBUG_AUTH === "true";
 const POST_LOGIN_REDIRECT_KEY = "campusxchange:post-login-redirect";
@@ -2605,6 +2605,7 @@ useEffect(() => {
           onFlaggedWarning={openFlaggedListingWarning}
           onUnverifiedSellerWarning={continueIfSellerVerified}
           user={user}
+          currentProfile={currentProfile}
           isWishlisted={isWishlisted}
           onToggleWishlist={user ? toggleWishlist : null}
           onSellerClick={handleSellerClick}

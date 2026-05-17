@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 const NOTIFICATION_STORAGE_KEY = "campusxchange:notifications";
 const MAX_NOTIFICATIONS = 80;
 const DUPLICATE_WINDOW_MS = 5000;
-const NOTIFICATION_DEBUG = import.meta.env.DEV;
+const NOTIFICATION_DEBUG = import.meta.env.DEV && import.meta.env.MODE !== "test";
 
 const NotificationContext = createContext(null);
 

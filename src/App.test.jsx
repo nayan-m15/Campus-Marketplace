@@ -202,7 +202,7 @@ vi.mock("./data/listings", () => ({
         user_id: "user-xyz",
         description: "Barely used.",
         approximate_location: "Pretoria",
-        institution: "UP",
+        institution: "Wits",
         joined_year: 2023,
         created_at: "2026-03-01T08:00:00.000Z",
         seller_is_verified: false,
@@ -248,6 +248,7 @@ beforeEach(() => {
   mockSignOut.mockReset();
   mockSignOut.mockResolvedValue({ error: null });
   Element.prototype.scrollIntoView = vi.fn();
+  window.localStorage.clear();
   window.sessionStorage.clear();
   window.history.replaceState({}, "", "/");
 });

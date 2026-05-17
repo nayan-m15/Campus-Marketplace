@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNotifications } from "../context/NotificationContext";
 import "../styles/NotificationBell.css";
 
-const NOTIFICATION_DEBUG = import.meta.env.DEV;
+const NOTIFICATION_DEBUG = import.meta.env.DEV && import.meta.env.MODE !== "test";
 
 function useMediaQuery(query) {
   const getMatch = () => {
